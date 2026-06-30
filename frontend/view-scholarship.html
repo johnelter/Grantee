@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Scholarship - Grantee Admin</title>
+    <link rel="stylesheet" href="css/admin-global.css">
+    <style>
+        .preview-banner {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 12px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .preview-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            padding-bottom: 40px;
+        }
+
+        /* Student View: Header Section */
+        .student-header {
+            padding: 40px;
+            background: linear-gradient(to right, #f0fdf4, #ffffff);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .student-category {
+            display: inline-block;
+            background: #0f766e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .student-header h1 { margin: 0 0 10px 0; font-size: 28px; color: #0f172a; }
+        .student-header p { margin: 0; color: #475569; font-size: 15px; }
+        
+        /* Student View: Details Grid */
+        .student-details-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            padding: 40px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .details-section h3 { margin: 0 0 15px 0; font-size: 18px; color: #1e293b; }
+        .rte-content { font-size: 14px; color: #475569; line-height: 1.6; }
+        
+        .info-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .info-item { margin-bottom: 15px; }
+        .info-item:last-child { margin-bottom: 0; }
+        .info-label { display: block; font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
+        .info-value { font-size: 14px; color: #0f172a; font-weight: 500; }
+        
+        .eligibility-list { list-style: none; padding: 0; margin: 0; }
+        .eligibility-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #475569;
+        }
+        .eligibility-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        /* Student View: Application Form */
+        .application-form-section { padding: 40px; }
+        .form-title { text-align: center; margin-bottom: 30px; }
+        .form-title h2 { font-size: 22px; color: #0f172a; margin: 0 0 8px 0; }
+        .form-title p { font-size: 14px; color: #64748b; margin: 0; }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f766e;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin: 30px 0 20px 0;
+        }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+        
+        .input-group input[type="text"],
+        .input-group input[type="number"],
+        .input-group input[type="email"],
+        .input-group select,
+        .input-group textarea {
+            width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+            background-color: #f8fafc; color: #94a3b8; cursor: not-allowed; font-family: inherit;
+        }
+        
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-group label { font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: not-allowed; color: #64748b; }
+        
+        .doc-upload-box {
+            border: 2px dashed #cbd5e1; background: #f8fafc; padding: 24px; text-align: center;
+            border-radius: 8px; margin-bottom: 16px; cursor: not-allowed; transition: background 0.2s;
+        }
+        .doc-upload-box strong { display: block; color: #1e293b; margin-bottom: 6px; font-size: 14px; }
+        .doc-upload-box span { display: block; font-size: 12px; color: #64748b; margin-bottom: 12px; }
+        .fake-upload-btn { background: white; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 4px; color: #94a3b8; font-size: 13px; display: inline-block; }
+        
+        .btn-submit-preview {
+            background: #0f766e; color: white; border: none; padding: 16px; width: 100%;
+            border-radius: 8px; font-size: 16px; font-weight: 700; cursor: not-allowed; margin-top: 30px; opacity: 0.6;
+        }
+        .text-red { color: #ef4444; }
+    </style>
+</head>
+
+<body class="bg-main">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="assets/grantee-logo.png" alt="Grantee" width="32">
+                <div>
+                    <h2>Grantee</h2>
+                    <span>Smart Scholarship Management</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="admin-dashboard.html">🏠 Dashboard</a>
+                <a href="admin-students.html">👥 Students</a>
+                <a href="admin-scholarships.html" class="active">🎓 Scholarships</a>
+                <a href="admin-applications.html">📄 Applications</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div>
+                    <div class="breadcrumbs">
+                        <a href="admin-dashboard.html">Dashboard</a> &gt; <a href="admin-scholarships.html">Scholarships</a> &gt; Student View Preview
+                    </div>
+                    <div class="header-titles">
+                        <h1>Scholarship Preview</h1>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <a href="admin-scholarships.html" class="btn-outline" style="text-decoration:none; padding:8px 16px; border-radius:6px; color:#0f766e; border:1px solid #0f766e;">Exit Preview</a>
+                </div>
+            </header>
+
+            <div style="max-width: 900px; margin: 0 auto;">
+                <div class="preview-banner">
+                    <span><strong>👁️ Live Student Preview</strong></span>
+                    <span>This is exactly what the applicant sees. Form inputs are disabled.</span>
+                </div>
+
+                <div class="preview-container">
+                    
+                    <!-- STUDENT: HEADER -->
+                    <div class="student-header">
+                        <span class="student-category" id="preview-category">Category</span>
+                        <h1 id="preview-title">Loading Scholarship...</h1>
+                        <p id="preview-department">Loading Provider...</p>
+                    </div>
+
+                    <!-- STUDENT: DETAILS & ELIGIBILITY -->
+                    <div class="student-details-grid">
+                        <div class="details-section">
+                            <h3>About this Scholarship</h3>
+                            <div class="rte-content" id="preview-description">Loading description...</div>
+                            
+                            <h3 style="margin-top: 30px;">Eligibility Requirements</h3>
+                            <ul class="eligibility-list" id="preview-eligibility">
+                                <!-- Generated via JS -->
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <div class="info-card">
+                                <div class="info-item">
+                                    <span class="info-label">Application Deadline</span>
+                                    <span class="info-value text-red" id="preview-deadline">--</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Available Slots</span>
+                                    <span class="info-value" id="preview-slots">--</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Status</span>
+                                    <span class="info-value" id="preview-status" style="color: #0f766e; font-weight: 700;">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STUDENT: APPLICATION FORM -->
+                    <div class="application-form-section">
+                        <div class="form-title">
+                            <h2>Application Form</h2>
+                            <p>Please review your details and complete the required fields.</p>
+                        </div>
+
+                        <!-- 1. AUTO PROFILE INFO -->
+                        <h3 class="section-title">1. Applicant Profile</h3>
+                        <p style="font-size:13px; color:#64748b; margin-bottom:20px;">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
+                        <div class="form-grid">
+                            <div class="input-group"><label>Student ID Number</label><input type="text" value="[Auto-filled]" disabled></div>
+                            <div class="input-group"><label>School</label><input type="text" value="[Auto-filled]" disabled></div>
+                            <div class="input-group full-width"><label>Full Name</label><input type="text" value="[Auto-filled]" disabled></div>
+                            <div class="input-group"><label>Program</label><input type="text" value="[Auto-filled]" disabled></div>
+                            <div class="input-group"><label>Year Level</label><input type="text" value="[Auto-filled]" disabled></div>
+                        </div>
+
+                        <!-- 2. CUSTOM FORM FIELDS -->
+                        <h3 class="section-title">2. Questionnaire</h3>
+                        <div id="preview-custom-fields" class="form-grid"></div>
+
+                        <!-- 3. DOCUMENT UPLOADS -->
+                        <h3 class="section-title">3. Document Uploads</h3>
+                        <div id="preview-documents"></div>
+
+                        <button class="btn-submit-preview" disabled>Submit Application</button>
+                    </div>
+
+                </div>
+            </div>
+            
+            <div style="height: 50px;"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/view-scholarship.js"></script>
+</body>
+</html>

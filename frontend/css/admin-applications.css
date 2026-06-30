@@ -1,0 +1,800 @@
+/* =========================================================
+   1. BASE RESET & VARIABLES
+========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --bg-main: #f8fafc;
+    --sidebar-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #f1f5f9;
+    --border-dark: #e2e8f0;
+    --primary-color: #10b981;
+    --primary-hover: #059669;
+    --danger-color: #ef4444;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    text-decoration: none;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* UTILITY CLASSES */
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+.text-red {
+    color: var(--danger-color) !important;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.text-sm {
+    font-size: 13px;
+}
+
+/* =========================================================
+   2. APP LAYOUT & SIDEBAR
+========================================================= */
+.app-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 260px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-dark);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+}
+
+.logo-icon {
+    font-size: 28px;
+    color: var(--primary-color);
+}
+
+.sidebar-brand h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.sub-brand {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.menu-item:hover {
+    background: #f8fafc;
+    color: var(--text-main);
+}
+
+.menu-item.active {
+    background: #ecfdf5;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.menu-icon {
+    font-size: 18px;
+}
+
+/* =========================================================
+   3. MAIN CONTENT & HEADER
+========================================================= */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+    background: #f8fafc;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.header-titles h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.welcome-text {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    font-size: 20px;
+    color: var(--text-main);
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.section-header p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* --- Header Actions & Profile Dropdown --- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.notification-bell {
+    background: #fff;
+    border: 1px solid var(--border-dark);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+}
+
+.badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #10b981;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    position: relative;
+    padding: 6px 16px 6px 6px;
+    border-radius: 30px;
+    border: 1px solid var(--border-dark);
+    background: #fff;
+    transition: 0.2s;
+    user-select: none;
+}
+
+.dropdown-toggle:hover {
+    background: #f8fafc;
+}
+
+.avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-info strong {
+    display: block;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.profile-info span {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.dropdown-arrow {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: 110%;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    min-width: 200px;
+    padding: 8px 0;
+    display: none;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.profile-dropdown-menu.show {
+    display: flex;
+}
+
+.profile-dropdown-menu a {
+    padding: 10px 20px;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.profile-dropdown-menu a:hover {
+    background: #f1f5f9;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-dark);
+    margin: 4px 0;
+}
+
+/* =========================================================
+   4. SCHOLARSHIP CARDS GRID (Matches Provided Image)
+========================================================= */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px;
+    border: 1px dashed var(--border-dark);
+    border-radius: 12px;
+}
+
+.cards-grid .data-panel {
+    padding: 16px 20px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid var(--border-dark);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.cards-grid .data-panel:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+}
+
+.cards-grid h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cards-grid p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 20px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex-grow: 1;
+    /* Pushes the bottom stats down */
+}
+
+/* =========================================================
+   5. TABS & BADGES
+========================================================= */
+.title-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.badge-status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.badge-review {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.badge-approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-rejected {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.tabs-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-dark);
+    padding-bottom: 0;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: 0.2s;
+    font-size: 14px;
+    margin-bottom: -1px;
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-btn:hover:not(.active) {
+    color: var(--text-main);
+    background: #f8fafc;
+    border-radius: 8px 8px 0 0;
+}
+
+/* =========================================================
+   6. TABLE PANELS & CONTROLS
+========================================================= */
+.data-panel {
+    background: #fff;
+    border: 1px solid var(--border-dark);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-dark);
+    background: #fcfcfd;
+}
+
+.count-pill {
+    background: #e2e8f0;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    background: #fff;
+    width: 280px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    width: 100%;
+    color: var(--text-main);
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-main);
+    outline: none;
+    cursor: pointer;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+/* --- Table Styles --- */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    text-align: left;
+    padding: 14px 20px;
+    background: #f8fafc;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-dark);
+    text-transform: uppercase;
+}
+
+.data-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-dark);
+    font-size: 14px;
+    color: var(--text-main);
+    vertical-align: middle;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr {
+    transition: 0.2s;
+}
+
+.data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* --- Pagination --- */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f8fafc;
+    border-top: 1px solid var(--border-dark);
+}
+
+.pagination {
+    display: flex;
+    gap: 5px;
+}
+
+.pagination button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-dark);
+    background: #fff;
+    border-radius: 6px;
+    transition: 0.2s;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.pagination button:hover:not(:disabled) {
+    background: #f1f5f9;
+}
+
+.pagination button.active {
+    background: #dcfce7;
+    color: #166534;
+    border-color: var(--primary-color);
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* =========================================================
+   7. BUTTONS & INDIVIDUAL VIEW
+========================================================= */
+.btn-primary {
+    background: var(--primary-color);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: 0.2s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-outline {
+    background: #fff;
+    border: 1px solid var(--border-dark);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.btn-outline:hover {
+    background: #f8fafc;
+}
+
+.btn-text {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-text:hover {
+    color: var(--primary-color);
+}
+
+/* Specific Application Action Buttons */
+.btn-approve {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-approve:hover {
+    background: #bbf7d0;
+}
+
+.btn-reject {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-reject:hover {
+    background: #fecaca;
+}
+
+.btn-remove {
+    background: #f1f5f9;
+    color: var(--text-muted);
+    border: 1px solid var(--border-dark);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-remove:hover {
+    background: #e2e8f0;
+    color: var(--danger-color);
+}
+
+.individual-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-dark);
+    border-radius: 12px 12px 0 0;
+}
+
+.gform-container {
+    padding: 20px;
+    background: transparent;
+}
+
+/* =========================================================
+   8. MODALS & DROPZONES
+========================================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content-sm {
+    background: #fff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    width: 380px;
+    animation: modalFadeIn 0.3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.2s;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: var(--danger-color);
+}
+
+.modal-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.form-input {
+    padding: 10px 12px;
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+}
+
+.form-input:focus {
+    border-color: var(--primary-color);
+}
+
+.upload-dropzone {
+    border: 2px dashed var(--border-dark);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #f8fafc;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.upload-dropzone:hover {
+    border-color: var(--primary-color);
+    background: #ecfdf5;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

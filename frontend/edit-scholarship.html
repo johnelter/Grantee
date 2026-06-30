@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Scholarship - Grantee Admin</title>
+    <link rel="stylesheet" href="css/edit-scholarship.css">
+</head>
+<body class="light-theme">
+    <div class="app-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="logo-icon">🎓</span>
+                <div>
+                    <h2>Grantee</h2>
+                    <p class="sub-brand">Smart Scholarship Management</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <a href="admin-dashboard.html" class="menu-item">
+                    <span class="menu-icon">🏠</span> Dashboard
+                </a>
+                <a href="admin-scholarships.html" class="menu-item active">
+                    <span class="menu-icon">🎓</span> Scholarships
+                </a>
+                <a href="admin-applications.html" class="menu-item">
+                    <span class="menu-icon">📄</span> Applications
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-icon">📋</span> Scholarship Policies
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-icon">👥</span> Enrolled Students Masterlist
+                </a>
+                <a href="#" class="menu-item">
+                    <span class="menu-icon">📢</span> Announcements
+                </a>
+                <a href="profile-settings.html" class="menu-item">
+                    <span class="menu-icon">⚙️</span> Profile Settings
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            
+            <header class="content-header">
+                <div>
+                    <div class="breadcrumbs">
+                        <a href="admin-dashboard.html">Dashboard</a> &gt; 
+                        <a href="admin-scholarships.html">Scholarships</a> &gt; 
+                        <span>Edit Scholarship</span>
+                    </div>
+                    <div class="header-titles mt-10">
+                        <h1>Edit Scholarship</h1>
+                        <p class="welcome-text">Update scholarship details, application form, requirements, and eligibility rules.</p>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="notification-bell">
+                        🔔<span class="badge">5</span>
+                    </div>
+
+                    <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
+                        <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
+                        <div class="profile-info">
+                            <strong id="header-name">Loading...</strong>
+                            <span id="header-role">Coordinator</span>
+                        </div>
+                        <span class="dropdown-arrow">▼</span>
+
+                        <div class="profile-dropdown-menu" id="profile-menu">
+                            <a href="admin-profile-settings.html">👤 Profile Settings</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" id="dropdown-logout-btn" class="text-red">🚪 Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="form-actions mb-24">
+                <a href="admin-scholarships.html" class="btn-outline">Cancel</a>
+                <button type="button" id="save-draft-btn" class="btn-outline">Update Draft</button>
+                <button type="button" id="publish-btn" class="btn-primary">Update & Publish</button>
+            </div>
+
+            <form id="edit-scholarship-form" class="create-grid" onsubmit="event.preventDefault();">
+
+                <div class="card">
+                    <h3 class="card-title"><span class="step-badge">1</span> Scholarship Information</h3>
+                    <div class="form-grid">
+                        <div class="input-group full-width">
+                            <label>Scholarship Name <span class="text-red">*</span></label>
+                            <input type="text" id="sch_title" class="form-input" placeholder="e.g. Academic Excellence Grant" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Category <span class="text-red">*</span></label>
+                            <select id="sch_category" class="form-input">
+                                <option value="Ched Scholarship">Ched Scholarship</option>
+                                <option value="School Based">School Based</option>
+                                <option value="Scholarship Offered Outside">Scholarship Offered Outside</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Available Slots <span class="text-red">*</span></label>
+                            <input type="number" id="sch_slots" class="form-input" required>
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Description <span class="text-red">*</span></label>
+                            <div class="rte-toolbar">
+                                <button type="button"><b>B</b></button>
+                                <button type="button"><i>I</i></button>
+                                <button type="button"><u>U</u></button>
+                            </div>
+                            <textarea id="sch_description" class="form-input" style="height: 100px;" required></textarea>
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Application Period <span class="text-red">*</span></label>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="date" id="sch_start" class="form-input" required> 
+                                <span style="font-weight: 500; color: var(--text-muted);">to</span> 
+                                <input type="date" id="sch_end" class="form-input" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><span class="step-badge">2</span> Eligibility Rules</h3>
+                    <div class="form-grid">
+                        <div>
+                            <div class="rule-row">
+                                <strong>Minimum General Weighted Average (GWA)</strong>
+                                <label class="toggle-switch"><input type="checkbox" id="gwa_enabled"><span class="slider"></span></label>
+                            </div>
+                            <div class="input-group mb-24">
+                                <label>Minimum GWA <span class="text-red">*</span></label>
+                                <input type="number" step="0.01" id="gwa_value" class="form-input">
+                                <span class="hint-text mt-8">Students below this GWA will be blocked from applying.</span>
+                            </div>
+
+                            <div class="rule-row">
+                                <strong>Eligible Year Levels</strong>
+                                <label class="toggle-switch"><input type="checkbox" id="year_enabled"><span class="slider"></span></label>
+                            </div>
+                            <div class="checkbox-list mb-24" id="year_list">
+                                <label><input type="checkbox" value="1st Year"> 1st Year</label>
+                                <label><input type="checkbox" value="2nd Year"> 2nd Year</label>
+                                <label><input type="checkbox" value="3rd Year"> 3rd Year</label>
+                                <label><input type="checkbox" value="4th Year"> 4th Year</label>
+                                <label><input type="checkbox" value="5th Year & Above"> 5th Year & Above</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="rule-row">
+                                <strong>Eligible Programs</strong>
+                                <label class="toggle-switch"><input type="checkbox" id="program_enabled"><span class="slider"></span></label>
+                            </div>
+                            <div class="input-group mb-24">
+                                <select id="eligible_programs" multiple class="multi-select">
+                                    <option value="BS in Information Technology">BS in Information Technology (BSIT)</option>
+                                    <option value="BS in Computer Science">BS in Computer Science (BSCS)</option>
+                                    <option value="BS in Business Administration">BS in Business Administration (BSBA)</option>
+                                    <option value="BS in Elementary Education">BS in Elementary Education (BEEd)</option>
+                                    <option value="BS in Secondary Education">BS in Secondary Education (BSEd)</option>
+                                    <option value="BS in Civil Engineering">BS in Civil Engineering (BSCE)</option>
+                                    <option value="BS in Hospitality Management">BS in Hospitality Management (BSHM)</option>
+                                    <option value="BS in Tourism Management">BS in Tourism Management (BSTM)</option>
+                                    <option value="BS in Nursing">BS in Nursing (BSN)</option>
+                                    <option value="BS in Criminology">BS in Criminology (BSCRIM)</option>
+                                </select>
+                                <span class="hint-text mt-8">Hold Ctrl (Windows) or Cmd (Mac) to select multiple programs.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+                        <div>
+                            <h3 class="card-title" style="margin-bottom:0;"><span class="step-badge">3</span> Application Form Builder</h3>
+                            <p class="hint-text mt-8">Create custom form fields for the scholarship application.</p>
+                        </div>
+                        <button type="button" id="add-field-btn" class="btn-primary" style="background:#10b981;">+ Add Field</button>
+                    </div>
+
+                    <div class="auto-profile-banner">
+                        <strong>🔒 Auto-Collected Profile Information</strong>
+                        Students do NOT need to fill these out. This system will automatically attach the following verified data from their profile:<br>
+                        <em>Student ID Number, First Name, Middle Name, Last Name, School, Program, and Year Level.</em>
+                    </div>
+
+                    <div id="form-builder-container"></div>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+                        <div>
+                            <h3 class="card-title" style="margin-bottom:0;"><span class="step-badge">4</span> Documentary Requirements & OCR Validation</h3>
+                            <p class="hint-text mt-8">Specify documents and enable AI OCR scanning to automatically extract and verify data.</p>
+                        </div>
+                        <button type="button" id="add-doc-btn" class="btn-primary" style="background:#10b981;">+ Add Requirement</button>
+                    </div>
+                    
+                    <div class="doc-header-grid">
+                        <div>DOCUMENT NAME</div>
+                        <div>FILE TYPES</div>
+                        <div>MAX SIZE</div>
+                        <div>REQUIRED</div>
+                        <div>OCR SCAN</div>
+                        <div></div>
+                    </div>
+                    <div id="doc-builder-container"></div>
+                </div>
+
+            </form>
+        </main>
+    </div>
+
+    <div id="logout-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content-sm">
+            <div class="modal-icon">🚪</div>
+            <h3>Logout</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Are you sure you want to log out of the Admin Dashboard?</p>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn-outline">Cancel</button>
+                <button id="modal-confirm" class="btn-danger">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/edit-scholarship.js"></script>
+</body>
+</html>

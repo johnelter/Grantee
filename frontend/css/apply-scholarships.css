@@ -1,0 +1,717 @@
+/* =========================================================
+   1. BASE RESET & VARIABLES (Standalone Setup)
+========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-main: #f8fafc;
+  --sidebar-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --primary-color: #10b981;
+  --primary-hover: #059669;
+  --danger-color: #ef4444;
+  --success-color: #10b981;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.back-btn {
+    display: inline-block;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 12px;
+    transition: color 0.2s;
+}
+
+.back-btn:hover {
+    color: var(--primary-color);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text-main);
+  margin: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* =========================================================
+   2. MAIN APP LAYOUT & SIDEBAR
+========================================================= */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.logo img {
+  width: 32px;
+  height: 32px;
+}
+
+.logo h2 {
+  font-size: 18px;
+  color: var(--text-main);
+}
+
+.logo span {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-nav.mt-20 {
+  margin-top: 20px;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.sidebar-nav a:hover {
+  background: #f1f5f9;
+  color: var(--text-main);
+}
+
+.sidebar-nav a.active {
+  background: #ecfdf5;
+  color: #047857;
+  border-left: 4px solid var(--primary-color);
+  font-weight: 600;
+}
+
+.sidebar-nav a .badge {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 10px;
+  margin-left: auto;
+}
+
+.nav-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 20px 0;
+}
+
+.text-red {
+  color: var(--danger-color) !important;
+}
+
+/* AI Help Box in Sidebar */
+.ai-help-box {
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-top: 30px;
+}
+
+.ai-icon-large {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.ai-help-box h4 {
+  font-size: 15px;
+  color: #064e3b;
+  margin-bottom: 6px;
+}
+
+.ai-help-box p {
+  font-size: 12px;
+  color: #047857;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+.btn-ai {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  width: 100%;
+  transition: 0.2s;
+}
+
+.btn-ai:hover {
+  background: var(--primary-hover);
+}
+
+/* =========================================================
+   3. HEADER & DROPDOWN
+========================================================= */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.content-wrapper {
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* Slightly narrower for forms */
+
+.top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+
+.header-titles h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.header-titles p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon-btn {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  position: relative;
+  transition: 0.2s;
+}
+
+.icon-btn:hover {
+  background: #f1f5f9;
+}
+
+.badge-icon {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  background: var(--primary-color);
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  padding: 6px 16px 6px 6px;
+  border-radius: 30px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  user-select: none;
+  transition: 0.2s;
+}
+
+.dropdown-toggle:hover {
+  background: #f8fafc;
+}
+
+.dropdown-toggle img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dropdown-toggle strong {
+  font-size: 14px;
+  color: var(--text-main);
+  display: block;
+}
+
+.dropdown-toggle span:not(.dropdown-arrow) {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+}
+
+.dropdown-arrow {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.profile-dropdown-menu {
+  position: absolute;
+  top: 115%;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  padding: 8px 0;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+}
+
+.profile-dropdown-menu.show {
+  display: flex;
+}
+
+.profile-dropdown-menu a {
+  padding: 10px 16px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.profile-dropdown-menu a:hover {
+  background: #f1f5f9;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 0;
+}
+
+/* =========================================================
+   4. APPLICATION FORM CONTAINER & LAYOUT
+========================================================= */
+.application-form-container {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.preview-banner {
+  background: #1e293b;
+  color: #ffffff;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.form-body {
+  padding: 50px;
+}
+
+/* Scholarship Header & Summary Card */
+.category-badge {
+  background: #115e59;
+  color: #ccfbf1;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.scholarship-header h1 {
+  font-size: 32px;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.provider-name {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 40px;
+}
+
+.scholarship-details-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+}
+
+.details-left h3 {
+  font-size: 18px;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+}
+
+.desc-text {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.eligibility-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.eligibility-list li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.eligibility-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.summary-card {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.summary-item {
+  margin-bottom: 18px;
+}
+
+.summary-item:last-child {
+  margin-bottom: 0;
+}
+
+.summary-item label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.summary-item span {
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.summary-item span.text-red {
+  color: var(--danger-color);
+}
+
+.summary-item span.text-green {
+  color: var(--success-color);
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 50px 0;
+}
+
+/* =========================================================
+   5. FORM SECTIONS & INPUTS
+========================================================= */
+.form-section {
+  margin-bottom: 50px;
+}
+
+.section-title {
+  font-size: 18px;
+  color: #115e59;
+  margin: 0 0 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+/* Profile Grid (Auto-filled) */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.auto-filled-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--text-muted);
+  font-size: 14px;
+  outline: none;
+  cursor: not-allowed;
+}
+
+/* Dynamic Interactive Inputs (Questionnaire) */
+.dynamic-input,
+.dynamic-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: 0.2s;
+  background: #ffffff;
+}
+
+.dynamic-input:focus,
+.dynamic-select:focus {
+  border-color: #5ba496;
+  box-shadow: 0 0 0 3px rgba(91, 164, 150, 0.1);
+}
+
+.radio-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.radio-checkbox-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #115e59;
+}
+
+/* =========================================================
+   6. DOCUMENTS (DASHED BOXES)
+========================================================= */
+.documents-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.doc-dashed-box {
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  transition: 0.2s;
+}
+
+.doc-dashed-box:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.doc-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.doc-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.btn-upload {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.btn-upload:hover {
+  border-color: #94a3b8;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Submit Button */
+.btn-submit-large {
+  width: 100%;
+  background: #68a699;
+  color: #ffffff;
+  border: none;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 20px;
+}
+
+.btn-submit-large:hover {
+  background: #568e82;
+}
+
+.btn-submit-large:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   7. MODALS (Logout)
+========================================================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content-sm {
+  background: #fff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 320px;
+}
+
+.modal-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  background: #f1f5f9;
+}
+
+.btn-danger {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}

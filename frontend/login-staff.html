@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff / Admin Login - Grantee</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/login-split.css">
+</head>
+<body>
+    <div class="login-split-layout">
+        <div class="split-graphic-side staff-accent-bg">
+            <div class="brand-watermark text-white">
+                <h2>🛡️ Grantee</h2>
+                <p class="opacity-7">Smart Scholarship Management System</p>
+            </div>
+            <div class="graphic-center-art text-white">
+                <img src="assets/admin-login-vector.png" alt="Admin Art" class="vector-art">
+                <h3>Manage. Review. Empower.<br><span class="opacity-7">All in one platform.</span></h3>
+            </div>
+        </div>
+
+        <div class="split-form-side">
+            <div class="compact-form-box">
+                <h3>Welcome Back!</h3>
+                <p class="subtitle">Login to your staff account</p>
+
+                <form id="staff-login-form">
+                    <div class="form-input-block">
+                        <label>Email Address</label>
+                        <input type="email" id="staffLoginEmail" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-input-block">
+                        <label>Password</label>
+                        <input type="password" id="staffLoginPassword" placeholder="Enter your password" required>
+                    </div>
+                    <div class="form-utils-row">
+                        <label><input type="checkbox"> Remember me</label>
+                        <a href="#" class="forgot-pass-link">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="btn-execute-login-action bg-midnight">Login as Staff / Admin</button>
+                    
+                    <div class="oauth-divider"><span>or continue with</span></div>
+                    <button type="button" class="btn-google-oauth"><img src="assets/google-icon.png" alt=""> Sign in with Google</button>
+                    
+                    <p class="bottom-route-p">Don't have an account? <a href="staff-register.html">Register</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

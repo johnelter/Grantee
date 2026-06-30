@@ -1,0 +1,26 @@
+.auth-flex-frame { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 2rem 1rem; background: var(--bg-color); }
+.form-panel-card { background: var(--panel-bg); padding: 2rem; border-radius: 12px; width: 100%; max-width: 460px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); text-align: left; }
+.brand-badge-header { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; }
+.brand-badge-header strong { font-size: 1.1rem; font-weight: 800; }
+.brand-badge-header p { margin: 0; font-size: 0.68rem; color: var(--text-secondary); }
+
+.header-titles h3 { font-size: 1.3rem; font-weight: 700; margin: 0 0 4px 0; }
+.header-titles p { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1.5rem 0; }
+
+.form-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.input-block { display: flex; flex-direction: column; margin-bottom: 1rem; }
+.input-block label { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary); }
+.input-block input, .input-block select { padding: 0.65rem 0.85rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); outline: none; }
+.input-block input:focus { border-color: var(--accent-blue); }
+
+.notice-callout { padding: 0.85rem; border-radius: 6px; font-size: 0.78rem; line-height: 1.4; margin: 1rem 0; border: 1px solid transparent; }
+.info-callout { background: var(--info-blue-bg); color: var(--info-blue-text); }
+.warning-callout { background: var(--warning-yellow-bg); border-color: var(--warning-yellow-border); color: var(--warning-yellow-text); font-weight: 500; }
+
+.checkbox-line { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1.25rem; }
+.checkbox-line a { color: var(--accent-blue); text-decoration: none; font-weight: 500; }
+
+.btn-blue-action-submit { width: 100%; padding: 0.75rem; background: var(--accent-blue); color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.btn-blue-action-submit:hover { background: var(--accent-blue-hover); }
+.routing-footer { font-size: 0.82rem; color: var(--text-secondary); text-align: center; margin-top: 1.25rem; }
+.routing-footer a { color: var(--accent-blue); text-decoration: none; font-weight: 600; }

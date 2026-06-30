@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Verification - Grantee</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/auth-form.css">
+</head>
+<body>
+    <div class="auth-flex-frame">
+        <div class="form-panel-card">
+            <div class="brand-badge-header">
+                <span class="logo-icon">🛡️</span>
+                <strong>Grantee Portal</strong>
+            </div>
+            
+            <div class="header-titles">
+                <h3>Verify Enrolled Status</h3>
+                <p>Please provide your academic credentials to link your Google account.</p>
+            </div>
+
+            <form id="google-confirm-form">
+                <div class="input-block">
+                    <label>🆔 Student ID Number</label>
+                    <input type="text" id="confirmStudentId" placeholder="e.g. 2020-02021" required>
+                </div>
+
+                <div class="input-block">
+                    <label>👤 Student Name</label>
+                    <input type="text" id="confirmStudentName" placeholder="Enter your registered full name" required>
+                </div>
+
+                <div class="notice-callout info-callout">
+                    ℹ️ <strong>Verification Policy:</strong> Your authenticated Google identity and provided credentials will be mapped against the enrolled masterlist file records.
+                </div>
+
+                <button type="submit" class="btn-blue-action-submit">Confirm Enrolled Status</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://hcclmoretabvymrgukdl.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjY2xtb3JldGFidnltcmd1a2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MTMxNTAsImV4cCI6MjA5NTA4OTE1MH0.jY_9BXEsmN7_-UMYHDOdp2MetismTVGbT2-33PVVEy8';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        document.getElementById('google-confirm-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const studentId = document.getElementById('confirmStudentId').value.trim();
+            const typedFullName = document.getElementById('confirmStudentName').value.trim();
+
+            // 1. Get current active Google OAuth Session
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                alert("Session expired. Please sign in again.");
+                window.location.href = 'login-student.html';
+                return;
+            }
+
+            const email = session.user.email;
+            const googleMetadata = session.user.user_metadata;
+            const googleFullName = googleMetadata.full_name || '';
+
+            // 2. Retrieve the selected school from the landing page gatekeeper
+            const selectedSchool = localStorage.getItem('granteeSelectedSchool') || 'Unknown School';
+
+            try {
+                // 3. Send data to backend for cross-matching against the enrolled_masterlist table
+                const response = await fetch('http://localhost:3000/api/validate-student', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        studentId: studentId,
+                        typedName: typedFullName,
+                        googleName: googleFullName
+                    })
+                });
+
+                const validationData = await response.json();
+                if (!response.ok) throw new Error(validationData.error);
+
+                // 4. Parse the typed name into structural columns for the database
+                const nameParts = typedFullName.split(' ');
+                const firstName = nameParts[0];
+                const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''; // Safely joins everything after the first name as the last name
+
+                // 5. Verification Passed! Save to profiles table INCLUDING the school
+                const { error: profileError } = await supabaseClient.from('profiles').insert([{
+                    id: session.user.id,
+                    role: 'student',
+                    first_name: firstName,
+                    last_name: lastName,
+                    id_number: studentId,
+                    school: selectedSchool,
+                    email: email,
+                    is_approved: true
+                }]);
+
+                if (profileError) throw profileError;
+
+                alert(`Verification successful! Welcome to the ${selectedSchool} Portal, ${firstName}.`);
+                window.location.href = 'student-dashboard.html';
+
+            } catch (error) {
+                alert('Verification Rejected: ' + error.message);
+                // Immediately terminate the unauthorized session
+                await supabaseClient.auth.signOut();
+                window.location.href = 'login-student.html';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Registration - Grantee</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/auth-form.css">
+</head>
+<body>
+    <div class="auth-flex-frame">
+        <div class="form-panel-card">
+            <div class="brand-badge-header">
+                <span class="logo-icon">🎓</span>
+                <strong>Grantee</strong>
+                <p>Smart Scholarship System</p>
+            </div>
+            
+            <div class="header-titles">
+                <h3>Staff Registration</h3>
+                <p>Create your staff account</p>
+            </div>
+
+            <form id="staff-register-form">
+                <div class="form-row-grid">
+                    <div class="input-block">
+                        <label>👤 First Name</label>
+                        <input type="text" id="staffFirstName" placeholder="First Name" required>
+                    </div>
+                    <div class="input-block">
+                        <label>👤 Last Name</label>
+                        <input type="text" id="staffLastName" placeholder="Last Name" required>
+                    </div>
+                </div>
+
+                <div class="input-block">
+                    <label>✉️ Email Address</label>
+                    <input type="email" id="staffEmail" placeholder="Email Address" required>
+                </div>
+
+                <div class="input-block">
+                    <label>🆔 Staff ID Number</label>
+                    <input type="text" id="staffId" placeholder="Staff ID Number" required>
+                </div>
+
+                <div class="input-block">
+                    <label>🏢 Department</label>
+                    <select id="department" required>
+                        <option value="">Select your department</option>
+                        <option value="Scholarship Office">Scholarship Office</option>
+                        <option value="Admin Office">Admin Office</option>
+                    </select>
+                </div>
+
+                <div class="form-row-grid">
+                    <div class="input-block">
+                        <label>🔒 Password</label>
+                        <input type="password" id="staffPassword" placeholder="Password" required>
+                    </div>
+                    <div class="input-block">
+                        <label>🔒 Confirm Password</label>
+                        <input type="password" id="staffConfirmPassword" placeholder="Confirm Password" required>
+                    </div>
+                </div>
+
+                <div class="notice-callout warning-callout">
+                    ⚠️ Your account will be on pending status until the Scholarship Admin approves it.
+                </div>
+
+                <div class="checkbox-line">
+                    <input type="checkbox" id="staffTerms" required>
+                    <label for="staffTerms">I agree to the <a href="#">Terms and Conditions</a></label>
+                </div>
+
+                <button type="submit" class="btn-blue-action-submit">Register as Staff</button>
+                <p class="routing-footer">Already have an account? <a href="login-student.html">Login</a></p>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

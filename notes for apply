@@ -1,0 +1,467 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    
+    // Dynamically load Tesseract.js (Local OCR)
+    const tesseractScript = document.createElement('script');
+    tesseractScript.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    document.head.appendChild(tesseractScript);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const scholarshipId = urlParams.get('id');
+
+    // --- 1. AUTH CHECK & INIT ---
+    const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+    if (sessionError || !session) { 
+        window.location.href = 'login.html'; 
+        return; 
+    }
+    
+    const studentId = session.user.id;
+    const studentEmail = session.user.email;
+
+    let studentProfile = {};
+    let requiredDocsCount = 0;
+    let validatedDocsCount = 0;
+    let uploadedDocumentsList = [];
+
+    // Dynamically load PDF.js
+    async function loadPDFJS() {
+        if (window.pdfjsLib) return;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+            script.onload = () => {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function init() {
+        try {
+            // Fetch Student Profile
+            const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', studentId).single();
+            if(profile) {
+                studentProfile = profile;
+                document.getElementById('prof-fname').value = profile.first_name || '';
+                document.getElementById('prof-lname').value = profile.last_name || '';
+                document.getElementById('prof-id').value = profile.id_number || 'N/A';
+                
+                const emailField = document.getElementById('prof-email');
+                if (emailField) {
+                    emailField.value = studentEmail || 'N/A';
+                }
+            }
+
+            // Fetch Scholarship
+            const { data: sch } = await window.supabaseClient.from('scholarships').select('*').eq('id', scholarshipId).single();
+            
+            document.getElementById('sch-title').innerText = sch.title;
+            document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
+            document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
+            document.getElementById('sch-deadline').innerText = sch.end_date ? new Date(sch.end_date).toLocaleDateString() : 'No Deadline';
+            document.getElementById('sch-slots').innerText = sch.available_slots || 'Unlimited';
+
+            // --- RENDER ELIGIBILITY RULES (If any are enabled) ---
+            const elList = document.getElementById('sch-eligibility');
+            elList.innerHTML = ''; // Clear defaults
+            
+            if (sch.eligibility_rules) {
+                let hasRules = false;
+                if (sch.eligibility_rules.gwa && sch.eligibility_rules.gwa.enabled) {
+                    elList.innerHTML += `<li>Must have a GWA of <strong>${sch.eligibility_rules.gwa.minimum}</strong> or better.</li>`;
+                    hasRules = true;
+                }
+                if (sch.eligibility_rules.year_levels && sch.eligibility_rules.year_levels.enabled && sch.eligibility_rules.year_levels.allowed.length > 0) {
+                    elList.innerHTML += `<li>Open to Year Levels: <strong>${sch.eligibility_rules.year_levels.allowed.join(', ')}</strong>.</li>`;
+                    hasRules = true;
+                }
+                if (sch.eligibility_rules.program_department && sch.eligibility_rules.program_department.enabled && sch.eligibility_rules.program_department.allowed.length > 0) {
+                    elList.innerHTML += `<li>Open to Programs: <strong>${sch.eligibility_rules.program_department.allowed.join(', ')}</strong>.</li>`;
+                    hasRules = true;
+                }
+                if (!hasRules) {
+                    elList.innerHTML = `<li>No specific eligibility restrictions for this scholarship.</li>`;
+                }
+            }
+
+            // --- RENDER DYNAMIC QUESTIONNAIRE ---
+            const questionsContainer = document.getElementById('dynamic-questions');
+            if (sch.form_fields) {
+                sch.form_fields.forEach((field, i) => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '15px';
+                    const reqStr = field.required ? 'required' : '';
+                    const reqIcon = field.required ? '<span class="chameleon-icon required" style="color:red;">*</span>' : '';
+                    
+                    let inputHtml = '';
+
+                    // 1. Selection (Radio or Checkbox)
+                    if (field.type === 'Selection') {
+                        const inputType = field.allow_multiple ? 'checkbox' : 'radio';
+                        let optionsHtml = '';
+                        field.options.forEach((opt, optIndex) => {
+                            optionsHtml += `
+                                <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:14px; cursor:pointer;">
+                                    <input type="${inputType}" name="q_${i}" value="${opt}" ${reqStr}>
+                                    ${opt}
+                                </label>
+                            `;
+                        });
+                        inputHtml = `<div class="chameleon-selection-group" style="padding:10px 0;">${optionsHtml}</div>`;
+                    } 
+                    // 2. Dropdown
+                    else if (field.type === 'Dropdown') {
+                        let optionsHtml = field.options.map(o => `<option value="${o}">${o}</option>`).join('');
+                        inputHtml = `<select class="chameleon-input" name="q_${i}" ${reqStr}><option value="">Select...</option>${optionsHtml}</select>`;
+                    } 
+                    // 3. Text & Number Inputs
+                    else {
+                        const htmlType = field.type === 'Number' ? 'number' : 'text';
+                        inputHtml = `<input type="${htmlType}" class="chameleon-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr}>`;
+                    }
+                    
+                    div.innerHTML = `<label class="chameleon-label" style="display:block; font-weight:600; margin-bottom:8px;">${field.label} ${reqIcon}</label>${inputHtml}`;
+                    
+                    if(field.type === 'Textarea' || field.type === 'Text') div.style.gridColumn = '1 / -1';
+                    questionsContainer.appendChild(div);
+                });
+            }
+
+            // --- RENDER DOCUMENT UPLOADS ---
+            const ocrContainer = document.getElementById('ocr-documents-container');
+            if (sch.document_requirements) {
+                sch.document_requirements.forEach((doc, i) => {
+                    if (!doc.required) return; 
+                    
+                    requiredDocsCount++;
+                    const div = document.createElement('div');
+                    div.className = 'ocr-extraction';
+                    div.id = `block_${i}`;
+                    
+                    if (doc.ocr_enabled) {
+                        div.innerHTML = `
+                            <div class="ocr-upload-zone" id="zone_${i}">
+                                <strong>📄 Upload ${doc.name} (Image or PDF)</strong>
+                                <p>Click browse to upload your file. Our system will verify it automatically.</p>
+                                <input type="file" id="file_${i}" accept="image/*,application/pdf" style="display:none">
+                                <button type="button" class="chameleon-button secondary" onclick="document.getElementById('file_${i}').click()">Browse File</button>
+                                <div id="fname_${i}" style="margin-top: 12px; font-size: 12px; color: var(--chameleon-text-muted);">No file selected</div>
+                            </div>
+                            <div id="loader_${i}" style="display:none; text-align:center; padding: 40px; color: var(--chameleon-primary); font-weight: bold;">
+                                ⚙️ System is verifying your document... Please wait...
+                            </div>
+                            <div id="grid_${i}" style="display:none; grid-template-columns: 1.5fr 1fr; gap: 20px;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--chameleon-border); padding-bottom: 10px; margin-bottom: 15px;">
+                                        <h4 style="margin: 0; font-size: 16px; font-weight: bold;">Document Preview</h4>
+                                        <button type="button" class="chameleon-button secondary" id="btn_fullview_${i}" style="padding: 4px 10px; font-size: 11px;">🔍 Full View</button>
+                                    </div>
+                                    <div id="preview_container_${i}" style="height: 250px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--chameleon-border); border-radius: 6px; background: #f8fafc;"></div>
+                                </div>
+                                <div style="display:flex; flex-direction:column; justify-content:space-between;">
+                                    <div>
+                                        <h4 class="confidence-header">Verification Status</h4>
+                                        <div id="verify_box_${i}" style="padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; background: #f8fafc; transition: 0.3s;">
+                                            <div style="font-weight: bold; margin-bottom: 8px; font-size: 15px;" id="verify_title_${i}">Pending</div>
+                                            <div style="font-size: 13px; color: #475569; line-height: 1.5;" id="verify_desc_${i}">Waiting for scan...</div>
+                                        </div>
+                                    </div>
+                                    <div class="decision-panel" style="margin-top:0; padding-top:0; border:none;">
+                                        <button type="button" class="chameleon-button primary reject" onclick="removeFile(${i})">Change File</button>
+                                        <button type="button" class="chameleon-button primary approve" id="confirm_${i}" onclick="confirmData(${i}, ${doc.required}, '${doc.name}')" disabled style="opacity: 0.5; cursor: not-allowed;">Confirm Upload</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        ocrContainer.appendChild(div);
+                        document.getElementById(`file_${i}`).addEventListener('change', (e) => handleLocalScan(e, i, doc.name));
+                    } else {
+                        div.innerHTML = `
+                            <div class="ocr-upload-zone" id="zone_${i}">
+                                <strong>📄 Upload ${doc.name}</strong>
+                                <p>Standard Upload. Click browse to attach your file.</p>
+                                <input type="file" id="file_${i}" accept="image/*,application/pdf" style="display:none">
+                                <button type="button" class="chameleon-button secondary" onclick="document.getElementById('file_${i}').click()">Browse File</button>
+                                <div id="fname_${i}" style="margin-top: 12px; font-size: 12px; color: var(--chameleon-text-muted);">No file selected</div>
+                            </div>
+                            <div id="standard_preview_wrapper_${i}" style="display:none;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--chameleon-border); padding-bottom: 10px; margin-bottom: 15px;">
+                                    <h4 style="margin: 0; font-size: 16px; font-weight: bold;">Document Preview</h4>
+                                    <span id="preview_fname_${i}" style="font-size: 12px; color: var(--chameleon-primary); font-weight: bold;"></span>
+                                </div>
+                                <div id="standard_preview_${i}" style="height: 350px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--chameleon-border); border-radius: 6px; background: #f8fafc; margin-bottom: 15px;"></div>
+                                <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:15px; border-top:1px dashed var(--chameleon-border);">
+                                    <button type="button" class="chameleon-button primary reject" onclick="removeFile(${i})">Change File</button>
+                                    <button type="button" class="chameleon-button primary approve" id="confirm_${i}" onclick="confirmData(${i}, ${doc.required}, '${doc.name}')">Confirm Upload</button>
+                                </div>
+                            </div>
+                        `;
+                        ocrContainer.appendChild(div);
+                        document.getElementById(`file_${i}`).addEventListener('change', (e) => {
+                            const file = e.target.files[0];
+                            if(file) {
+                                document.getElementById(`zone_${i}`).style.display = 'none';
+                                document.getElementById(`standard_preview_wrapper_${i}`).style.display = 'block';
+                                document.getElementById(`preview_fname_${i}`).innerText = file.name;
+                                const fileUrl = URL.createObjectURL(file);
+                                const previewContainer = document.getElementById(`standard_preview_${i}`);
+                                if (file.type === 'application/pdf') {
+                                    previewContainer.innerHTML = `<iframe src="${fileUrl}#toolbar=0" width="100%" height="100%" style="border:none; display:block;"></iframe>`;
+                                } else {
+                                    previewContainer.innerHTML = `<img src="${fileUrl}" style="width:100%; height:auto; display:block; margin: 0 auto;">`;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            if (requiredDocsCount === 0) {
+                document.getElementById('btn-submit-app').disabled = false;
+            }
+
+            // --- SUBMIT APPLICATION TO SUPABASE ---
+            document.getElementById('scholarship-application-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const submitBtn = document.getElementById('btn-submit-app');
+                const formResponses = {};
+                
+                if (sch.form_fields) {
+                    for (let i = 0; i < sch.form_fields.length; i++) {
+                        const field = sch.form_fields[i];
+                        
+                        if (field.type === 'Selection') {
+                            // Logic for Checkboxes and Radios
+                            const inputs = document.querySelectorAll(`[name="q_${i}"]:checked`);
+                            if (field.required && inputs.length === 0) {
+                                alert(`Please answer the required question: ${field.label}`);
+                                return;
+                            }
+                            if (inputs.length > 0) {
+                                // Maps all checked values and joins them with a comma
+                                formResponses[field.label] = Array.from(inputs).map(inp => inp.value).join(', ');
+                            }
+                        } else {
+                            // Logic for standard Text, Number, Dropdown
+                            const input = document.querySelector(`[name="q_${i}"]`);
+                            if (field.required && (!input || !input.value.trim())) {
+                                alert(`Please answer the required question: ${field.label}`);
+                                return;
+                            }
+                            if (input && input.value) {
+                                formResponses[field.label] = input.value.trim();
+                            }
+                        }
+                    }
+                }
+
+                submitBtn.innerText = 'Submitting...';
+                submitBtn.disabled = true;
+
+                try {
+                    const payload = {
+                        student_id: studentId,
+                        scholarship_id: scholarshipId,
+                        status: 'Pending',
+                        form_responses: formResponses,
+                        documents: uploadedDocumentsList
+                    };
+
+                    const { error } = await window.supabaseClient.from('applications').insert([payload]);
+                    
+                    if (error) throw error;
+
+                    alert('Application Submitted Successfully!');
+                    window.location.href = 'student-applications.html';
+                    
+                } catch (err) {
+                    console.error("Submission Error:", err);
+                    alert("Failed to submit application: " + err.message);
+                    submitBtn.innerText = 'Submit Application';
+                    submitBtn.disabled = false;
+                }
+            });
+
+        } catch (err) {
+            console.error("Error initializing page:", err);
+            alert("Failed to load scholarship details.");
+        }
+    }
+
+
+    // --- 3. LOCAL TESSERACT VERIFICATION LOGIC ---
+    async function handleLocalScan(event, index, expectedDocName) {
+        const file = event.target.files[0];
+        if(!file) return;
+
+        document.getElementById(`fname_${index}`).innerText = file.name;
+        document.getElementById(`zone_${index}`).style.display = 'none';
+        
+        const loader = document.getElementById(`loader_${index}`);
+        loader.style.display = 'block';
+
+        try {
+            const fileUrl = URL.createObjectURL(file);
+            document.getElementById(`btn_fullview_${index}`).onclick = () => window.open(fileUrl, '_blank');
+            const previewContainer = document.getElementById(`preview_container_${index}`);
+            
+            let imageSource = fileUrl;
+
+            if (file.type === 'application/pdf') {
+                previewContainer.innerHTML = `<iframe src="${fileUrl}#toolbar=0" width="100%" height="100%" style="border:none; display:block;"></iframe>`;
+                await loadPDFJS();
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                imageSource = canvas.toDataURL('image/png');
+            } else {
+                previewContainer.innerHTML = `<img src="${fileUrl}" style="width:100%; height:auto; display:block;">`;
+            }
+
+            Tesseract.recognize(imageSource, 'eng').then(({ data: { text } }) => {
+                const upperText = text.toUpperCase();
+                let isMatch = false;
+
+                if (expectedDocName.includes("Average") || expectedDocName.includes("GWA") || expectedDocName.includes("Report Card")) {
+                    isMatch = upperText.includes("REPORT ON RATINGS") || upperText.includes("WEIGHTED AVERAGE") || upperText.includes("COURSE/LEVEL");
+                } else if (expectedDocName.includes("Barangay Clearance")) {
+                    isMatch = upperText.includes("BARANGAY CLEARANCE") || upperText.includes("PUNONG BARANGAY");
+                } else if (expectedDocName.includes("Residency") || expectedDocName.includes("Certificate of Residency")) {
+                    isMatch = upperText.includes("CERTIFICATE OF RESIDENCY") && upperText.includes("BARANGAY");
+                }
+
+                const vBox = document.getElementById(`verify_box_${index}`);
+                const vTitle = document.getElementById(`verify_title_${index}`);
+                const vDesc = document.getElementById(`verify_desc_${index}`);
+                const confirmBtn = document.getElementById(`confirm_${index}`);
+
+                if (isMatch) {
+                    vBox.style.background = '#dcfce7';
+                    vBox.style.borderColor = '#bbf7d0';
+                    vTitle.style.color = '#166534';
+                    vTitle.innerText = "✅ Verified: " + expectedDocName;
+                    vDesc.innerText = "Document scanned and verified locally.";
+                    
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.style.cursor = 'pointer';
+                } else {
+                    vBox.style.background = '#fee2e2';
+                    vBox.style.borderColor = '#fecaca';
+                    vTitle.style.color = '#991b1b';
+                    vTitle.innerText = "❌ Verification Failed";
+                    vDesc.innerText = "System could not detect the required keywords for this document.";
+                    
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = '0.5';
+                    confirmBtn.style.cursor = 'not-allowed';
+
+                    setTimeout(() => {
+                        alert(`Upload Rejected.\n\nCould not verify this as a "${expectedDocName}". Please ensure the picture is clear and correct.`);
+                    }, 500);
+                }
+
+                loader.style.display = 'none';
+                document.getElementById(`grid_${index}`).style.display = 'grid';
+            });
+
+        } catch (err) {
+            console.error("Scanning Error:", err);
+            alert(`Verification failed!\nReason: ${err.message}`);
+            window.removeFile(index);
+        }
+    }
+
+    // --- HELPER: UPLOAD TO SUPABASE STORAGE ---
+    async function uploadFileToSupabase(file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${studentId}/${scholarshipId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { data, error } = await window.supabaseClient.storage
+            .from('scholarship-docs') // Make sure this bucket exists and is PUBLIC!
+            .upload(fileName, file);
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = window.supabaseClient.storage
+            .from('scholarship-docs')
+            .getPublicUrl(fileName);
+
+        return publicUrlData.publicUrl;
+    }
+
+    // --- 4. UTILITIES ---
+    window.removeFile = (index) => {
+        document.getElementById(`file_${index}`).value = '';
+        
+        if (document.getElementById(`fname_${index}`)) {
+            document.getElementById(`fname_${index}`).innerText = 'No file selected';
+            document.getElementById(`fname_${index}`).style.color = 'var(--chameleon-text-muted)';
+        }
+        
+        if (document.getElementById(`zone_${index}`)) document.getElementById(`zone_${index}`).style.display = 'block';
+        if (document.getElementById(`grid_${index}`)) document.getElementById(`grid_${index}`).style.display = 'none';
+        if (document.getElementById(`loader_${index}`)) document.getElementById(`loader_${index}`).style.display = 'none';
+        if (document.getElementById(`standard_preview_wrapper_${index}`)) document.getElementById(`standard_preview_wrapper_${index}`).style.display = 'none';
+    };
+
+    window.confirmData = async (index, isRequired, docName) => {
+        const btn = document.getElementById(`confirm_${index}`);
+        
+        btn.innerText = 'Uploading...';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'wait';
+        btn.previousElementSibling.disabled = true;
+        btn.previousElementSibling.style.opacity = '0.6';
+        btn.previousElementSibling.style.cursor = 'not-allowed';
+
+        try {
+            const fileInput = document.getElementById(`file_${index}`);
+            const file = fileInput.files[0];
+            let fileUrl = null;
+
+            if (file) {
+                fileUrl = await uploadFileToSupabase(file);
+            }
+
+            uploadedDocumentsList.push({ 
+                name: docName, 
+                status: 'Verified', 
+                file_url: fileUrl 
+            });
+
+            btn.innerText = '✔ Upload Confirmed';
+            btn.style.cursor = 'not-allowed';
+
+            if(isRequired) validatedDocsCount++;
+            checkValidation();
+
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload document: " + err.message);
+            btn.innerText = 'Confirm Upload';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.previousElementSibling.disabled = false;
+            btn.previousElementSibling.style.opacity = '1';
+            btn.previousElementSibling.style.cursor = 'pointer';
+        }
+    };
+
+    function checkValidation() {
+        if(validatedDocsCount >= requiredDocsCount) {
+            document.getElementById('btn-submit-app').disabled = false;
+        }
+    }
+
+    init();
+});

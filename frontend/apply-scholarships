@@ -1,0 +1,429 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    // 🛑 PASTE YOUR OPENROUTER API KEY HERE 🛑
+    const OPENROUTER_API_KEY = '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'; 
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const scholarshipId = urlParams.get('id');
+
+    // --- 1. AUTH CHECK & INIT ---
+    const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+    if (sessionError || !session) { 
+        window.location.href = 'login.html'; 
+        return; 
+    }
+    const studentId = session.user.id;
+
+    let studentProfile = {};
+    let requiredDocsCount = 0;
+    let validatedDocsCount = 0;
+
+    // Dynamically load PDF.js
+    async function loadPDFJS() {
+        if (window.pdfjsLib) return;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+            script.onload = () => {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function init() {
+        try {
+            const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', studentId).single();
+            if(profile) {
+                studentProfile = profile;
+                document.getElementById('prof-fname').value = profile.first_name || '';
+                document.getElementById('prof-lname').value = profile.last_name || '';
+                document.getElementById('prof-id').value = profile.id_number || 'N/A';
+                document.getElementById('prof-school').value = profile.school || 'N/A';
+            }
+
+            const { data: sch } = await window.supabaseClient.from('scholarships').select('*').eq('id', scholarshipId).single();
+            
+            document.getElementById('sch-title').innerText = sch.title;
+            document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
+            document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
+            document.getElementById('sch-deadline').innerText = sch.end_date ? new Date(sch.end_date).toLocaleDateString() : 'No Deadline';
+            document.getElementById('sch-slots').innerText = sch.available_slots || 'Unlimited';
+
+            const elList = document.getElementById('sch-eligibility');
+            if (sch.eligibility_rules?.gwa?.enabled) {
+                elList.innerHTML += `<li>Must have a GWA of <strong>${sch.eligibility_rules.gwa.minimum}</strong> or better.</li>`;
+            }
+            if (sch.eligibility_rules?.year_levels?.enabled && sch.eligibility_rules.year_levels.allowed.length > 0) {
+                elList.innerHTML += `<li>Open to: <strong>${sch.eligibility_rules.year_levels.allowed.join(', ')}</strong>.</li>`;
+            }
+
+            const questionsContainer = document.getElementById('dynamic-questions');
+            if (sch.form_fields) {
+                sch.form_fields.forEach((field, i) => {
+                    const div = document.createElement('div');
+                    const reqStr = field.required ? 'required' : '';
+                    const reqIcon = field.required ? '<span class="chameleon-icon required">*</span>' : '';
+                    
+                    let input = `<input type="text" class="chameleon-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr}>`;
+                    if(field.type === 'Dropdown') {
+                        let options = field.options.map(o => `<option value="${o}">${o}</option>`).join('');
+                        input = `<select class="chameleon-input" name="q_${i}" ${reqStr}><option value="">Select...</option>${options}</select>`;
+                    }
+                    
+                    div.innerHTML = `<label class="chameleon-label">${field.label} ${reqIcon}</label>${input}`;
+                    if(field.type === 'Textarea' || field.type === 'Text') div.style.gridColumn = '1 / -1';
+                    questionsContainer.appendChild(div);
+                });
+            }
+
+            const ocrContainer = document.getElementById('ocr-documents-container');
+            if (sch.document_requirements) {
+                sch.document_requirements.forEach((doc, i) => {
+                    if(doc.required) requiredDocsCount++;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'ocr-extraction';
+                    div.id = `block_${i}`;
+                    
+                    // --- CONDITIONAL LOGIC: CHECK IF OCR IS ENABLED ---
+                    if (doc.ocr_enabled) {
+                        // PATH A: AI VERIFICATION UI
+                        div.innerHTML = `
+                            <div class="ocr-upload-zone" id="zone_${i}">
+                                <strong>📄 Upload ${doc.name} (Image or PDF)</strong>
+                                <p>Click browse to upload your file. Our AI will verify if this is the correct document.</p>
+                                <input type="file" id="file_${i}" accept="image/*,application/pdf" style="display:none">
+                                <button type="button" class="chameleon-button secondary" onclick="document.getElementById('file_${i}').click()">Browse File</button>
+                                <div id="fname_${i}" style="margin-top: 12px; font-size: 12px; color: var(--chameleon-text-muted);">No file selected</div>
+                            </div>
+
+                            <div id="loader_${i}" style="display:none; text-align:center; padding: 40px; color: var(--chameleon-primary); font-weight: bold;">
+                                ⚙️ AI is verifying your document... Please wait...
+                            </div>
+
+                            <div id="grid_${i}" style="display:none; grid-template-columns: 1.5fr 1fr; gap: 20px;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--chameleon-border); padding-bottom: 10px; margin-bottom: 15px;">
+                                        <h4 style="margin: 0; font-size: 16px; font-weight: bold;">Document Preview</h4>
+                                        <button type="button" class="chameleon-button secondary" id="btn_fullview_${i}" style="padding: 4px 10px; font-size: 11px;">🔍 Full View</button>
+                                    </div>
+                                    <div id="preview_container_${i}" style="height: 250px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--chameleon-border); border-radius: 6px; background: #f8fafc;"></div>
+                                </div>
+
+                                <div style="display:flex; flex-direction:column; justify-content:space-between;">
+                                    <div>
+                                        <h4 class="confidence-header">AI Verification Status</h4>
+                                        <div id="verify_box_${i}" style="padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; background: #f8fafc; transition: 0.3s;">
+                                            <div style="font-weight: bold; margin-bottom: 8px; font-size: 15px;" id="verify_title_${i}">Waiting for scan...</div>
+                                            <div style="font-size: 13px; color: #475569; line-height: 1.5;" id="verify_desc_${i}"></div>
+                                            <div style="margin-top: 15px; font-size: 12px; font-weight: bold; color: #1e293b;">Confidence Score: <span id="verify_conf_${i}" style="color:var(--chameleon-primary);">0%</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="decision-panel" style="margin-top:0; padding-top:0; border:none;">
+                                        <button type="button" class="chameleon-button primary reject" onclick="removeFile(${i})">Change File</button>
+                                        <button type="button" class="chameleon-button primary approve" id="confirm_${i}" onclick="confirmData(${i}, ${doc.required})" disabled style="opacity: 0.5; cursor: not-allowed;">Confirm Upload</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        ocrContainer.appendChild(div);
+                        document.getElementById(`file_${i}`).addEventListener('change', (e) => handleFileScan(e, i, doc.name));
+                    
+                    } else {
+                        // PATH B: STANDARD UPLOAD UI WITH INLINE PREVIEW
+                        div.innerHTML = `
+                            <div class="ocr-upload-zone" id="zone_${i}">
+                                <strong>📄 Upload ${doc.name}</strong>
+                                <p>Standard Upload. Click browse to attach your file.</p>
+                                <input type="file" id="file_${i}" accept="image/*,application/pdf" style="display:none">
+                                <button type="button" class="chameleon-button secondary" onclick="document.getElementById('file_${i}').click()">Browse File</button>
+                                <div id="fname_${i}" style="margin-top: 12px; font-size: 12px; color: var(--chameleon-text-muted);">No file selected</div>
+                            </div>
+                            
+                            <div id="standard_preview_wrapper_${i}" style="display:none;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--chameleon-border); padding-bottom: 10px; margin-bottom: 15px;">
+                                    <h4 style="margin: 0; font-size: 16px; font-weight: bold;">Document Preview</h4>
+                                    <span id="preview_fname_${i}" style="font-size: 12px; color: var(--chameleon-primary); font-weight: bold;"></span>
+                                </div>
+                                
+                                <div id="standard_preview_${i}" style="height: 350px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--chameleon-border); border-radius: 6px; background: #f8fafc; margin-bottom: 15px;">
+                                    </div>
+                                
+                                <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:15px; border-top:1px dashed var(--chameleon-border);">
+                                    <button type="button" class="chameleon-button primary reject" onclick="removeFile(${i})">Change File</button>
+                                    <button type="button" class="chameleon-button primary approve" id="confirm_${i}" onclick="confirmData(${i}, ${doc.required})">Confirm Upload</button>
+                                </div>
+                            </div>
+                        `;
+                        ocrContainer.appendChild(div);
+                        
+                        // Handle file attachment and show inline preview for non-OCR
+                        document.getElementById(`file_${i}`).addEventListener('change', (e) => {
+                            const file = e.target.files[0];
+                            if(file) {
+                                document.getElementById(`zone_${i}`).style.display = 'none';
+                                document.getElementById(`standard_preview_wrapper_${i}`).style.display = 'block';
+                                document.getElementById(`preview_fname_${i}`).innerText = file.name;
+                                
+                                const fileUrl = URL.createObjectURL(file);
+                                const previewContainer = document.getElementById(`standard_preview_${i}`);
+                                
+                                if (file.type === 'application/pdf') {
+                                    previewContainer.innerHTML = `<iframe src="${fileUrl}#toolbar=0" width="100%" height="100%" style="border:none; display:block;"></iframe>`;
+                                } else {
+                                    previewContainer.innerHTML = `<img src="${fileUrl}" style="width:100%; height:auto; display:block; margin: 0 auto;">`;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("Error initializing page:", err);
+            alert("Failed to load scholarship details.");
+        }
+    }
+
+    // --- 2. FAST IMAGE COMPRESSOR HELPER ---
+    const compressImageToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1000; 
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height * MAX_WIDTH) / width);
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.6));
+                };
+            };
+            reader.onerror = error => reject(error);
+        });
+    };
+
+    // --- 3. OPENROUTER AI VERIFICATION LOGIC ---
+    async function handleFileScan(event, index, expectedDocName) {
+        const file = event.target.files[0];
+        if(!file) return;
+
+        document.getElementById(`fname_${index}`).innerText = file.name;
+        document.getElementById(`zone_${index}`).style.display = 'none';
+        
+        const loader = document.getElementById(`loader_${index}`);
+        loader.style.display = 'block';
+
+        try {
+            const fileUrl = URL.createObjectURL(file);
+            document.getElementById(`btn_fullview_${index}`).onclick = () => window.open(fileUrl, '_blank');
+            const previewContainer = document.getElementById(`preview_container_${index}`);
+            
+            let imagePayloads = [];
+
+            if (file.type === 'application/pdf') {
+                loader.innerText = "⚙️ Optimizing PDF pages for verification...";
+                previewContainer.innerHTML = `<iframe src="${fileUrl}#toolbar=0" width="100%" height="100%" style="border:none; display:block;"></iframe>`;
+                
+                await loadPDFJS();
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                const totalPages = Math.min(pdf.numPages, 3); 
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 0.8 }); 
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    const base64 = canvas.toDataURL('image/jpeg', 0.5);
+                    imagePayloads.push({
+                        "type": "image_url",
+                        "image_url": { "url": base64 }
+                    });
+                }
+            } else {
+                previewContainer.innerHTML = `<img src="${fileUrl}" style="width:100%; height:auto; display:block;">`;
+                loader.innerText = "⚙️ Compressing image for verification...";
+                
+                const compressedBase64 = await compressImageToBase64(file);
+                imagePayloads.push({
+                    "type": "image_url",
+                    "image_url": { "url": compressedBase64 }
+                });
+            }
+
+            loader.innerText = `⚙️ Verifying if this is a valid "${expectedDocName}"...`;
+
+            const promptText = `
+                Analyze this uploaded document. The student is supposed to upload a document that fulfills this requirement: "${expectedDocName}".
+                Determine if the uploaded image matches this requirement.
+                
+                Guidelines:
+                - If requirement is "General Weighted Average", "Report Card", or "TOR", look for grades, "Report on Ratings", "Transcript", "GWA", etc.
+                - If requirement is "Barangay Clearance", look for words like "Barangay Clearance", "No Derogatory Record", etc.
+                - If requirement is "Barangay Certificate of Residency", look for "Certificate of Residency", "residing at", etc.
+                
+                Return STRICTLY a JSON object with no markdown formatting:
+                {
+                    "isMatch": true or false,
+                    "documentFound": "What type of document does this actually appear to be?",
+                    "confidenceScore": 95,
+                    "reason": "A short reason for why you approved or rejected it."
+                }
+            `;
+
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": window.location.href, 
+                    "X-Title": "Scholarship App" 
+                },
+                body: JSON.stringify({
+                    "model": "openrouter/free", 
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                { "type": "text", "text": promptText },
+                                ...imagePayloads 
+                            ]
+                        }
+                    ]
+                })
+            });
+
+            const result = await response.json();
+            
+            if (!response.ok) {
+                console.error("API Response Error:", result);
+                throw new Error(result.error?.message || "Unknown OpenRouter API Error");
+            }
+
+            if (!result.choices || result.choices.length === 0 || !result.choices[0].message || !result.choices[0].message.content) {
+                throw new Error("The AI model returned an empty response. The server might be overloaded. Please try again.");
+            }
+
+            const rawAiText = result.choices[0].message.content;
+            const cleanedJsonText = rawAiText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            
+            let aiData;
+            try {
+                aiData = JSON.parse(cleanedJsonText);
+            } catch (parseError) {
+                console.error("Invalid JSON from AI:", rawAiText);
+                throw new Error("The AI did not format the data correctly. Please try again.");
+            }
+
+            const vBox = document.getElementById(`verify_box_${index}`);
+            const vTitle = document.getElementById(`verify_title_${index}`);
+            const vDesc = document.getElementById(`verify_desc_${index}`);
+            const vConf = document.getElementById(`verify_conf_${index}`);
+            const confirmBtn = document.getElementById(`confirm_${index}`);
+
+            vDesc.innerHTML = `<strong>Detected Document:</strong> ${aiData.documentFound}<br><br><strong>Reason:</strong> ${aiData.reason}`;
+            vConf.innerText = `${aiData.confidenceScore}%`;
+
+            if (aiData.isMatch) {
+                vBox.style.background = '#dcfce7';
+                vBox.style.borderColor = '#bbf7d0';
+                vTitle.style.color = '#166534';
+                vTitle.innerText = "✅ Verified: " + expectedDocName;
+                vConf.style.color = '#166534';
+                
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.style.cursor = 'pointer';
+            } else {
+                vBox.style.background = '#fee2e2';
+                vBox.style.borderColor = '#fecaca';
+                vTitle.style.color = '#991b1b';
+                vTitle.innerText = "❌ Verification Failed";
+                vConf.style.color = '#991b1b';
+                
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.style.cursor = 'not-allowed';
+
+                setTimeout(() => {
+                    alert(`Upload Rejected.\n\nExpected: ${expectedDocName}\nDetected: ${aiData.documentFound}\n\nPlease click "Change File" and upload the correct document.`);
+                }, 500);
+            }
+
+            loader.style.display = 'none';
+            document.getElementById(`grid_${index}`).style.display = 'grid';
+
+        } catch (err) {
+            console.error("Scanning Error:", err);
+            alert(`AI verification failed!\nReason: ${err.message}\n\nPlease try uploading the file again.`);
+            window.removeFile(index);
+        }
+    }
+
+    // --- 4. UTILITIES ---
+    window.removeFile = (index) => {
+        document.getElementById(`file_${index}`).value = '';
+        
+        if (document.getElementById(`fname_${index}`)) {
+            document.getElementById(`fname_${index}`).innerText = 'No file selected';
+            document.getElementById(`fname_${index}`).style.color = 'var(--chameleon-text-muted)';
+            document.getElementById(`fname_${index}`).style.fontWeight = 'normal';
+        }
+        
+        if (document.getElementById(`zone_${index}`)) document.getElementById(`zone_${index}`).style.display = 'block';
+        if (document.getElementById(`grid_${index}`)) document.getElementById(`grid_${index}`).style.display = 'none';
+        if (document.getElementById(`loader_${index}`)) document.getElementById(`loader_${index}`).style.display = 'none';
+        
+        // Hide standard upload preview wrapper
+        if (document.getElementById(`standard_preview_wrapper_${index}`)) {
+            document.getElementById(`standard_preview_wrapper_${index}`).style.display = 'none';
+        }
+    };
+
+    window.confirmData = (index, isRequired) => {
+        const btn = document.getElementById(`confirm_${index}`);
+        btn.innerText = '✔ Upload Confirmed';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+        
+        btn.previousElementSibling.disabled = true;
+        btn.previousElementSibling.style.opacity = '0.6';
+        btn.previousElementSibling.style.cursor = 'not-allowed';
+
+        if(isRequired) validatedDocsCount++;
+        checkValidation();
+    };
+
+    function checkValidation() {
+        if(validatedDocsCount >= requiredDocsCount) {
+            document.getElementById('btn-submit-app').disabled = false;
+        }
+    }
+
+    document.getElementById('scholarship-application-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Application Submitted Successfully!');
+    });
+
+    init();
+});

@@ -3,9 +3,6 @@
 ## Project Description
 The Grantee System is a full-stack Scholarship Management and Inquiry System designed to streamline application workflows for students and administrators. It allows students to apply for grants, verify their identity via OTP, and track their application status. Administrators have a centralized dashboard to review, approve, and reject applications with detailed remarks, ensuring transparency and efficiency in the scholarship process.
 
-**Live Frontend:** [Grantee on Vercel](https://grantee.vercel.app) *(Update with your actual Vercel deployment URL)*  
-**Live API:** [Grantee Backend on Render](https://grantee-api.onrender.com)
-
 ---
 
 ## Features

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scholarships - Grantee Admin</title>
+    <title>Educational Assistance - Grantee Admin</title>
     <link rel="stylesheet" href="css/admin-scholarships.css">
 </head>
+
 <body class="light-theme">
     <div class="app-layout">
 
@@ -14,7 +16,7 @@
                 <span class="logo-icon">🎓</span>
                 <div>
                     <h2>Grantee</h2>
-                    <p class="sub-brand">Smart Scholarship Management</p>
+                    <p class="sub-brand">Smart Management</p>
                 </div>
             </div>
 
@@ -23,7 +25,7 @@
                     <span class="menu-icon">🏠</span> Dashboard
                 </a>
                 <a href="admin-scholarships.html" class="menu-item active">
-                    <span class="menu-icon">🎓</span> Scholarships
+                    <span class="menu-icon">🎓</span> Educational Assistance
                 </a>
                 <a href="admin-applications.html" class="menu-item">
                     <span class="menu-icon">📄</span> Applications
@@ -32,7 +34,7 @@
                     <span class="menu-icon">🏆</span> Active Scholars
                 </a>
                 <a href="admin-policies.html" class="menu-item">
-                    <span class="menu-icon">📋</span> Scholarship Policies
+                    <span class="menu-icon">📋</span> Assistance Policies
                 </a>
                 <a href="admin-students.html" class="menu-item">
                     <span class="menu-icon">👥</span> Enrolled Students
@@ -47,20 +49,21 @@
         </aside>
 
         <main class="main-content">
-            
+
             <header class="content-header">
                 <div class="header-titles">
-                    <h1>Scholarships</h1>
-                    <p class="welcome-text">Manage all scholarships offered by your school.</p>
+                    <h1>Educational Assistance</h1>
+                    <p class="welcome-text">Manage all educational assistance programs offered by your school.</p>
                 </div>
-                
+
                 <div class="header-actions">
                     <div class="notification-bell">
                         🔔<span class="badge">5</span>
                     </div>
 
                     <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
-                        <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
+                        <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img"
+                            onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
                         <div class="profile-info">
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
@@ -80,31 +83,31 @@
                 <div class="stat-card">
                     <div class="stat-icon bg-green-light text-green">📚</div>
                     <div class="stat-details">
-                        <p>Total Scholarships</p>
+                        <p>Total Programs</p>
                         <h2 id="count-total">0</h2>
-                        <span>All scholarship programs</span>
+                        <span>All active & closed programs</span>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon bg-blue-light text-blue">📩</div>
                     <div class="stat-details">
-                        <p>Active Scholarships</p>
+                        <p>Active Programs</p>
                         <h2 id="count-active">0</h2>
                         <span>Currently accepting applications</span>
                     </div>
                 </div>
-                <div class="stat-card">
+                <!-- <div class="stat-card">
                     <div class="stat-icon bg-yellow-light text-yellow">📅</div>
                     <div class="stat-details">
-                        <p>Upcoming Scholarships</p>
+                        <p>Upcoming Programs</p>
                         <h2 id="count-upcoming">0</h2>
                         <span>Will open soon</span>
                     </div>
-                </div>
+                </div> -->
                 <div class="stat-card">
                     <div class="stat-icon bg-red-light text-red">🛑</div>
                     <div class="stat-details">
-                        <p>Closed Scholarships</p>
+                        <p>Closed Programs</p>
                         <h2 id="count-closed">0</h2>
                         <span>Application closed</span>
                     </div>
@@ -115,7 +118,7 @@
                 <div class="table-controls mb-20">
                     <div class="search-box">
                         <span>🔍</span>
-                        <input type="text" id="search-input" placeholder="Search scholarships...">
+                        <input type="text" id="search-input" placeholder="Search educational assistance...">
                     </div>
                     <div class="filters">
                         <select id="filter-status" class="filter-select">
@@ -125,12 +128,21 @@
                             <option value="Closed">Closed</option>
                             <option value="Draft">Draft</option>
                         </select>
+                        
                         <select id="filter-type" class="filter-select">
                             <option value="">All Categories</option>
-                            <option value="Ched Scholarship">Ched Scholarship</option>
-                            <option value="School Based">School Based</option>
-                            <option value="Scholarship Offered Outside">Scholarship Offered Outside</option>
+                            <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
+                            <option value="Ched Educational Assistance">Ched Educational Assistance</option>
+                            <option value="Private Educational Assistance">Private Educational Assistance</option>
+                            <option value="Government Educational Assistance">Government Educational Assistance</option>
                         </select>
+
+                        <select id="filter-scholarship-type" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="Merit-Based">Merit-Based</option>
+                            <option value="Need-Based">Need-Based</option>
+                        </select>
+
                         <select id="sort-by" class="filter-select">
                             <option value="">Sort By...</option>
                             <option value="start_asc">Opening Date (Oldest First)</option>
@@ -141,7 +153,8 @@
                     </div>
                     <div class="actions">
                         <button id="export-btn" class="btn-outline">📥 Export</button>
-                        <a href="create-scholarship.html" class="btn-primary">+ Add Scholarship</a>
+                        <!-- Button text updated -->
+                        <a href="create-scholarship.html" class="btn-primary">+ Add Educational Assistance</a>
                     </div>
                 </div>
 
@@ -149,8 +162,9 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>SCHOLARSHIP NAME</th>
+                                <th>EDUCATIONAL ASSISTANCE NAME</th>
                                 <th>CATEGORY</th>
+                                <th>TYPE</th>
                                 <th>OPENING DATE</th>
                                 <th>DEADLINE</th>
                                 <th>STATUS</th>
@@ -160,7 +174,8 @@
                         </thead>
                         <tbody id="scholarships-tbody">
                             <tr>
-                                <td colspan="7" class="text-center" style="padding: 40px; color:#64748b;">Loading scholarships...</td>
+                                <td colspan="8" class="text-center" style="padding: 40px; color:#64748b;">Loading
+                                    educational assistance programs...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -194,4 +209,5 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/admin-scholarships.js"></script>
 </body>
+
 </html>

@@ -24,7 +24,7 @@
                     <span class="menu-icon">🏠</span> Dashboard
                 </a>
                 <a href="admin-scholarships.html" class="menu-item">
-                    <span class="menu-icon">🎓</span> Scholarships
+                    <span class="menu-icon">🎓</span> Educational Assistance
                 </a>
                 <a href="admin-applications.html" class="menu-item">
                     <span class="menu-icon">📄</span> Applications
@@ -33,10 +33,10 @@
                     <span class="menu-icon">🏆</span> Active Scholars
                 </a>
                 <a href="admin-policies.html" class="menu-item">
-                    <span class="menu-icon">📋</span> Scholarship Policies
+                    <span class="menu-icon">📋</span> Assistance Policies
                 </a>
                 <a href="admin-students.html" class="menu-item active">
-                    <span class="menu-icon">👥</span> Enrolled Students Masterlist
+                    <span class="menu-icon">👥</span> Enrolled Masterlist
                 </a>
                 <a href="admin-announcements.html" class="menu-item">
                     <span class="menu-icon">📢</span> Announcements
@@ -53,10 +53,10 @@
                 <div>
                     <div class="breadcrumbs">
                         <a href="admin-dashboard.html">Dashboard</a> &gt; 
-                        <span>Enrolled Students</span>
+                        <span>Enrolled Masterlist</span>
                     </div>
                     <div class="header-titles mt-10">
-                        <h1>Enrolled Students Masterlist</h1>
+                        <h1>Enrolled Masterlist</h1>
                         <p class="welcome-text">Manage the list of officially enrolled students eligible for scholarships.</p>
                     </div>
                 </div>
@@ -132,7 +132,7 @@
                                     <th style="padding: 15px;">Year Level</th>
                                     <th style="padding: 15px;">Gender</th>
                                     <th style="padding: 15px;">Status</th>
-                                    <th style="padding: 15px; text-align: right;">Actions</th>
+                                    <!-- <th style="padding: 15px; text-align: right;">Actions</th> -->
                                 </tr>
                             </thead>
                             <tbody id="students-tbody">
@@ -163,13 +163,19 @@
                     <input type="text" id="stu-id-number" class="form-input" required placeholder="e.g. 2023-12345" style="width: 100%;">
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="input-group">
                         <label style="display:block; font-size:13px; font-weight:600; margin-bottom:5px;">First Name <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="stu-fname" class="form-input" required style="width: 100%;">
                     </div>
+                    
                     <div class="input-group">
-                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:5px;">Last Name <span style="color:#ef4444;">*</span></label>
+                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:5px;">Middle Name</label>
+                        <input type="text" id="stu-mname" class="form-input" placeholder="Middle Name (Optional)" style="width: 100%;">
+                    </div>
+
+                    <div class="input-group">
+                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:5px;">Last Name / Surname <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="stu-lname" class="form-input" required style="width: 100%;">
                     </div>
                 </div>
@@ -207,8 +213,8 @@
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                        <option value="Not Specified">Prefer not to say</option>
+                        <!-- <option value="Other">Other</option>
+                        <option value="Not Specified">Prefer not to say</option> -->
                     </select>
                 </div>
 
@@ -229,7 +235,7 @@
             
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
                 Upload a <strong>.csv</strong>, <strong>.xls</strong>, or <strong>.xlsx</strong> file containing your student masterlist.<br><br>
-                <strong>Required columns:</strong> <code>Student ID</code>, <code>First Name</code>, <code>Last Name</code>.<br>
+                <strong>Required columns:</strong> <code>Student ID</code>, <code>First Name</code>, <code>Last Name/Surname</code>.<br>
                 <strong>Optional columns:</strong> <code>Middle Name</code>, <code>Program</code>, <code>Year Level</code>, <code>Gender</code>.
             </p>
             
@@ -242,7 +248,7 @@
                 <input type="file" id="import-file-input" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
             </div>
 
-            <div id="import-status" style="font-size: 14px; font-weight: 600; text-align: center; min-height: 20px;"></div>
+            <div id="import-status" style="font-size: 14px; text-align: center; min-height: 20px;"></div>
         </div>
     </div>
 

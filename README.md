@@ -18,6 +18,7 @@ The Grantee System is a full-stack Scholarship Management and Inquiry System des
 * **Quick Actions:** One-click status updates directly modifying the database records.
 * **Audit Trail:** Rejection remark modal that saves specific reasons for denied applications.
 
+
 ---
 
 ## Technology Stack

@@ -18,33 +18,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const scholarshipId = urlParams.get('id');
 
     if (!scholarshipId) {
-        alert("No scholarship ID provided in the URL.");
+        alert("No educational assistance ID provided in the URL.");
         window.location.href = 'admin-scholarships.html';
         return;
     }
 
     const adminId = session.user.id;
 
-    // Load Profile into Header
     try {
         const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', adminId).single();
         if (profile) {
-            // Kick out non-admins
             if (profile.role !== 'admin') {
                 window.location.href = 'student-dashboard.html';
                 return;
             }
 
-            // Update Header Name & Avatar
             const firstName = profile.first_name || 'Admin';
             const lastName = profile.last_name || '';
             
-            if (document.getElementById('header-name')) {
-                document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
-            }
-            if (profile.avatar_url && document.getElementById('header-avatar')) {
-                document.getElementById('header-avatar').src = profile.avatar_url;
-            }
+            if (document.getElementById('header-name')) document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
+            if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
         }
     } catch (err) {
         console.error("Error fetching admin profile:", err);
@@ -92,44 +85,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
-    // 3. UI ELEMENTS & ELIGIBILITY SYNC LOGIC
+    // 3. DYNAMIC SLOTS LOGIC
     // ==========================================
-    const gwaToggle = document.getElementById('gwa_enabled');
-    const yearToggle = document.getElementById('year_enabled');
-    const programToggle = document.getElementById('program_enabled');
-    const gwaInput = document.getElementById('gwa_value');
-    const yearInputs = document.querySelectorAll('#year_list input[type="checkbox"]');
-    const programSelect = document.getElementById('eligible_programs');
+    const dynamicSlotsCb = document.getElementById('dynamicSlots');
+    const fixedSlotsInput = document.getElementById('fixedSlots');
 
-    const formBuilderContainer = document.getElementById('form-builder-container');
-    const docBuilderContainer = document.getElementById('doc-builder-container');
-    let docRequirements = [];
-
-    const syncEligibilityUI = () => {
-        if (gwaToggle && gwaInput) {
-            gwaInput.disabled = !gwaToggle.checked;
-            if(!gwaToggle.checked) gwaInput.value = '';
-        }
-        if (yearToggle && yearInputs.length > 0) {
-            yearInputs.forEach(cb => {
-                cb.disabled = !yearToggle.checked;
-                if(!yearToggle.checked) cb.checked = false;
-            });
-        }
-        if (programToggle && programSelect) {
-            programSelect.disabled = !programToggle.checked;
-            if(!programToggle.checked) programSelect.selectedIndex = -1;
-        }
-    };
-
-    if (gwaToggle) gwaToggle.addEventListener('change', syncEligibilityUI);
-    if (yearToggle) yearToggle.addEventListener('change', syncEligibilityUI);
-    if (programToggle) programToggle.addEventListener('change', syncEligibilityUI);
+    if (dynamicSlotsCb && fixedSlotsInput) {
+        dynamicSlotsCb.addEventListener('change', (e) => {
+            fixedSlotsInput.style.display = e.target.checked ? 'none' : 'block';
+            if(e.target.checked) fixedSlotsInput.value = '';
+        });
+    }
 
 
     // ==========================================
     // 4. DYNAMIC FORM BUILDER LOGIC
     // ==========================================
+    const formBuilderContainer = document.getElementById('form-builder-container');
+
     const addFormFieldRow = (label = '', type = 'Text', required = true, allowMultiple = false, optionsArray = []) => {
         const row = document.createElement('div');
         row.className = 'builder-row form-field-item';
@@ -222,17 +195,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // ==========================================
-    // 5. DOCUMENT BUILDER LOGIC
+    // 5. DOCUMENT BUILDER LOGIC (REMOVED MANDATORY BUTTON)
     // ==========================================
+    const docBuilderContainer = document.getElementById('doc-builder-container');
+    let docRequirements = [];
+
+    // The core defaults expected in the system
+    const coreDefaultDocs = [
+        { name: "Report Card (Form 138) (High School Level)", size: 5, required: true, ocr: true, isDefault: true },
+        { name: "General Weighted Average (College Level)", size: 5, required: true, ocr: true, isDefault: true },
+        { name: "Certification from the School Principal", size: 5, required: true, ocr: true, isDefault: true },
+        { name: "Official Honor Certificate", size: 5, required: true, ocr: true, isDefault: true },
+        { name: "Certificate of Residency", size: 5, required: true, ocr: true, isDefault: true },
+        { name: "Barangay Clearance", size: 5, required: true, ocr: true, isDefault: true }
+    ];
+
     function renderDocs() {
         if (!docBuilderContainer) return;
         docBuilderContainer.innerHTML = '';
         
+        // Removed "Mandatory" from Header Labels
+        docBuilderContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2.5fr 1fr 1fr 1.5fr; gap: 15px; padding: 0 12px 8px 12px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">
+                <div>Document Name</div>
+                <div>Max Size</div>
+                <div>AI OCR Scan</div>
+                <div style="text-align: right;">Include</div>
+            </div>
+        `;
+
         docRequirements.forEach((doc, index) => {
             const row = document.createElement('div');
             row.className = 'doc-req-item';
             row.style.display = 'grid';
-            row.style.gridTemplateColumns = '2fr 1fr 1fr 1fr 1fr 0.5fr';
+            // Adjusted grid template to account for removed column
+            row.style.gridTemplateColumns = '2.5fr 1fr 1fr 1.5fr';
             row.style.gap = '15px';
             row.style.alignItems = 'center';
             row.style.marginBottom = '10px';
@@ -240,37 +237,50 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.style.background = '#f8fafc';
             row.style.border = '1px solid #e2e8f0';
             row.style.borderRadius = '8px';
+            row.style.transition = '0.2s opacity';
 
-            const ocrDisabledStyle = !doc.isDefault ? "opacity: 0.5; cursor: not-allowed;" : "";
+            const isRowActive = doc.isIncluded !== false;
+            row.style.opacity = isRowActive ? '1' : '0.5';
+
+            const disableInputsAttr = !isRowActive ? 'disabled' : '';
+            const inputBg = doc.isDefault || !isRowActive ? 'background:#f1f5f9; color:#475569;' : 'background:#fff;';
+
+            // AI Logic: OCR is ONLY allowed on default documents. Custom documents disable the OCR toggle.
+            const isOcrClickable = doc.isDefault && isRowActive;
+            const ocrDisabledAttr = isOcrClickable ? '' : 'disabled';
+            const ocrCursor = isOcrClickable ? 'pointer' : 'not-allowed';
 
             row.innerHTML = `
                 <div>
-                    <input type="text" class="doc-name" value="${doc.name}" onchange="updateDoc(${index}, 'name', this.value)" ${doc.isDefault ? 'readonly' : ''} style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; ${doc.isDefault ? 'background:#f1f5f9; color:#475569;' : ''}">
+                    <input type="text" class="doc-name" value="${doc.name}" onchange="updateDoc(${index}, 'name', this.value)" ${doc.isDefault || !isRowActive ? 'readonly' : ''} style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; font-family:'Inter', sans-serif; outline:none; ${inputBg}">
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Allowed: PDF, JPG, PNG</div>
                 </div>
-                <div style="font-size: 12px; color: #64748b; font-weight: 500;">PDF, JPG, PNG</div>
+                
                 <div>
-                    <select class="doc-size" onchange="updateDoc(${index}, 'size', this.value)" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px;">
+                    <select class="doc-size" onchange="updateDoc(${index}, 'size', this.value)" ${disableInputsAttr} style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; font-family:'Inter', sans-serif; outline:none; cursor:${isRowActive ? 'pointer' : 'not-allowed'};">
                         <option value="2" ${doc.size == 2 ? 'selected' : ''}>2 MB</option>
                         <option value="5" ${doc.size == 5 ? 'selected' : ''}>5 MB</option>
                         <option value="10" ${doc.size == 10 ? 'selected' : ''}>10 MB</option>
                     </select>
                 </div>
-                <div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" class="doc-required" onchange="updateDoc(${index}, 'required', this.checked)" ${doc.required ? 'checked' : ''}>
-                        <span class="slider"></span>
+                
+                <!-- Mandatory Toggle Removed -->
+                
+                <div style="display:flex; align-items:center;">
+                    <label class="toggle-switch" title="${doc.isDefault ? 'Enable OCR AI Validation?' : 'AI Scan is only available for system default documents'}">
+                        <input type="checkbox" onchange="updateDoc(${index}, 'ocr', this.checked)" ${doc.ocr ? 'checked' : ''} ${ocrDisabledAttr}>
+                        <span class="slider" style="cursor:${ocrCursor};"></span>
                     </label>
                 </div>
-                <div>
-                    <label class="toggle-switch" style="${ocrDisabledStyle}">
-                        <input type="checkbox" class="doc-ocr" onchange="updateDoc(${index}, 'ocr', this.checked)" ${doc.ocr ? 'checked' : ''} ${!doc.isDefault ? 'disabled' : ''}>
-                        <span class="slider" style="background-color: ${doc.ocr ? '#10b981' : '#ccc'};"></span>
-                    </label>
-                </div>
-                <div style="text-align: right; display:flex; justify-content:flex-end; align-items:center;">
+                
+                <div style="text-align: right; display:flex; justify-content:flex-end; align-items:center; gap:8px;">
                     ${doc.isDefault 
-                        ? `<span style="color:#94a3b8; font-size:10px; font-style:italic; font-weight:bold; text-align:center; line-height:1.2;">System<br>Field</span>` 
-                        : `<button type="button" onclick="removeDoc(${index})" style="color:#ef4444; border:none; background:transparent; cursor:pointer; font-size:16px;">🗑️</button>`
+                        ? ` <span style="font-size:12px; font-weight:600; color:#475569;">Include:</span>
+                            <label class="toggle-switch" title="Include this default document?">
+                                <input type="checkbox" onchange="updateDoc(${index}, 'isIncluded', this.checked)" ${doc.isIncluded ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>` 
+                        : `<button type="button" onclick="removeDoc(${index})" style="color:#ef4444; border:none; background:transparent; cursor:pointer; font-size:16px; padding:4px 8px; border-radius:4px; border:1px solid #fecaca;" title="Remove Custom Document">🗑️ Remove</button>`
                     }
                 </div>
             `;
@@ -280,7 +290,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.updateDoc = (index, key, value) => {
         docRequirements[index][key] = value;
-        if(key === 'ocr') { renderDocs(); } 
+        
+        // Safety check: If they turn a document OFF, reset its required and OCR stats internally
+        if (key === 'isIncluded' && value === false) {
+            docRequirements[index].ocr = false;
+        }
+
+        // We only re-render the HTML if the "Include" button is toggled so the row grays out.
+        // Toggling OCR does NOT need a re-render, allowing smooth CSS animations to play!
+        if(key === 'isIncluded') { 
+            renderDocs(); 
+        } 
     };
 
     window.removeDoc = (index) => {
@@ -293,11 +313,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         addDocBtn.addEventListener('click', () => {
             docRequirements.push({
                 id: Date.now(),
-                name: "New Document Requirement",
+                name: "New Custom Document",
                 size: 5,
-                required: true,
+                required: true, // Forces background state to true
                 ocr: false,
-                isDefault: false
+                isDefault: false,
+                isIncluded: true
             });
             renderDocs();
         });
@@ -317,58 +338,123 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (error) throw error;
 
             if(document.getElementById('sch_title')) document.getElementById('sch_title').value = sch.title || '';
-            if(document.getElementById('sch_category')) document.getElementById('sch_category').value = sch.category || 'Academic';
+            // Load Updated Category & Scholarship Type
+            if(document.getElementById('sch_category')) document.getElementById('sch_category').value = sch.category || 'Institution-Funded Educational Assistance';
+            if(document.getElementById('sch_type')) document.getElementById('sch_type').value = sch.scholarship_type || 'Merit-Based';
+            
             if(document.getElementById('sch_description')) document.getElementById('sch_description').value = sch.description || '';
-            if(document.getElementById('sch_slots')) document.getElementById('sch_slots').value = sch.available_slots || 0;
             if(document.getElementById('sch_start')) document.getElementById('sch_start').value = sch.start_date || '';
             if(document.getElementById('sch_end')) document.getElementById('sch_end').value = sch.end_date || '';
 
-            if (sch.eligibility_rules) {
-                if (sch.eligibility_rules.gwa && gwaToggle) {
-                    gwaToggle.checked = sch.eligibility_rules.gwa.enabled;
-                    gwaInput.value = sch.eligibility_rules.gwa.minimum || '';
-                }
-                if (sch.eligibility_rules.year_levels && yearToggle) {
-                    yearToggle.checked = sch.eligibility_rules.year_levels.enabled;
-                    const allowedYears = sch.eligibility_rules.year_levels.allowed || [];
-                    yearInputs.forEach(cb => cb.checked = allowedYears.includes(cb.value));
-                }
-                if (sch.eligibility_rules.program_department && programToggle) {
-                    programToggle.checked = sch.eligibility_rules.program_department.enabled;
-                    const allowedProgs = sch.eligibility_rules.program_department.allowed || [];
-                    if (programSelect) {
-                        Array.from(programSelect.options).forEach(opt => {
-                            opt.selected = allowedProgs.includes(opt.value);
-                        });
-                    }
+            // Slots Loading
+            if (sch.slots === 'Open') {
+                if(dynamicSlotsCb) dynamicSlotsCb.checked = true;
+                if(fixedSlotsInput) fixedSlotsInput.style.display = 'none';
+            } else {
+                if(dynamicSlotsCb) dynamicSlotsCb.checked = false;
+                if(fixedSlotsInput) {
+                    fixedSlotsInput.style.display = 'block';
+                    fixedSlotsInput.value = sch.slots || 0;
                 }
             }
-            syncEligibilityUI();
 
+            // Academic Grades Loading (INCLUDING INDIVIDUAL SUBJECTS)
+            if (document.getElementById('minHsAverage')) document.getElementById('minHsAverage').value = sch.min_hs_average || '';
+            if (document.getElementById('minCollegeGwa')) document.getElementById('minCollegeGwa').value = sch.min_college_gwa || '';
+            if (document.getElementById('minHsSubject')) document.getElementById('minHsSubject').value = sch.min_hs_subject_grade || '';
+            if (document.getElementById('minCollegeSubject')) document.getElementById('minCollegeSubject').value = sch.min_college_subject_grade || '';
+
+            // Eligibility Years Loading
+            const yearSelect = document.getElementById('eligibilityYears');
+            if (yearSelect && sch.eligibility_years) {
+                Array.from(yearSelect.options).forEach(opt => {
+                    opt.selected = sch.eligibility_years.includes(opt.value);
+                });
+            }
+
+            // Eligibility Programs Loading
+            const progSelect = document.getElementById('eligibilityPrograms');
+            if (progSelect && sch.eligibility_programs) {
+                Array.from(progSelect.options).forEach(opt => {
+                    opt.selected = sch.eligibility_programs.includes(opt.value);
+                });
+            }
+
+            // Form Fields Loading
             if (sch.form_fields && sch.form_fields.length > 0) {
                 sch.form_fields.forEach(field => {
                     addFormFieldRow(field.label, field.type, field.required, field.allow_multiple || false, field.options || []);
                 });
             } else {
-                addFormFieldRow('Why do you deserve this scholarship?', 'Text', true);
+                addFormFieldRow('Why do you deserve this educational assistance?', 'Text', true);
             }
 
-            if (sch.document_requirements && sch.document_requirements.length > 0) {
-                docRequirements = sch.document_requirements.map((doc, idx) => ({
-                    id: idx,
+            // Document Configs Loading (With Smart Merge for missing defaults)
+            if (sch.document_configurations && sch.document_configurations.length > 0) {
+                let loadedDocs = sch.document_configurations.map((doc, idx) => ({
+                    id: Date.now() + idx,
                     name: doc.name,
                     size: doc.max_size || 5,
-                    required: doc.required,
+                    required: true, // Forces background state to true
                     ocr: doc.ocr_enabled || false,
-                    isDefault: doc.is_system_default || false
+                    isDefault: doc.is_system_default || false,
+                    isIncluded: true
                 }));
+
+                // Smart Merge: Find any core defaults that are missing from the DB (because they were turned off)
+                coreDefaultDocs.forEach(def => {
+                    const existsInDb = loadedDocs.find(ld => ld.name === def.name);
+                    if (!existsInDb) {
+                        loadedDocs.push({
+                            id: Date.now() + Math.random(),
+                            name: def.name,
+                            size: def.size,
+                            required: true, // Forces background state to true
+                            ocr: def.ocr,
+                            isDefault: true,
+                            isIncluded: false // It was missing, so it must have been turned off
+                        });
+                    }
+                });
+
+                // Sort so system defaults always appear at the top
+                loadedDocs.sort((a, b) => (b.isDefault === a.isDefault ? 0 : b.isDefault ? 1 : -1));
+                docRequirements = loadedDocs;
+
+            } else if (sch.required_documents && sch.required_documents.length > 0) {
+                // Legacy fallback handling
+                let legacyDocs = sch.required_documents.map((docName, idx) => ({
+                    id: Date.now() + idx,
+                    name: docName,
+                    size: 5,
+                    required: true,
+                    ocr: false,
+                    isDefault: coreDefaultDocs.some(d => d.name === docName),
+                    isIncluded: true
+                }));
+
+                coreDefaultDocs.forEach(def => {
+                    if (!legacyDocs.find(ld => ld.name === def.name)) {
+                        legacyDocs.push({
+                            ...def,
+                            id: Date.now() + Math.random(),
+                            isIncluded: false
+                        });
+                    }
+                });
+
+                legacyDocs.sort((a, b) => (b.isDefault === a.isDefault ? 0 : b.isDefault ? 1 : -1));
+                docRequirements = legacyDocs;
+
             } else {
-                docRequirements = [{ id: 1, name: "General Weighted Average (Report Card/TOR)", size: 5, required: true, ocr: true, isDefault: true }];
+                // If totally empty, inject standard defaults included
+                docRequirements = coreDefaultDocs.map(d => ({ ...d, isIncluded: true }));
             }
+            
             renderDocs();
 
         } catch (err) {
-            console.error("Failed to load scholarship:", err);
+            console.error("Failed to load educational assistance data:", err);
             alert("Error loading details: " + err.message);
         }
     };
@@ -378,6 +464,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. GATHER & SAVE (UPDATE)
     // ==========================================
     const gatherScholarshipData = (status) => {
+        // Form Fields
         const formFields = [];
         document.querySelectorAll('.form-field-item').forEach(row => {
             const type = row.querySelector('.field-type').value;
@@ -396,43 +483,66 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        const finalDocs = docRequirements.map(doc => ({
+        // Filter only included documents
+        const activeDocs = docRequirements.filter(doc => doc.isIncluded !== false);
+
+        const finalDocsNames = activeDocs.map(doc => doc.name);
+        const structuredDocs = activeDocs.map(doc => ({
             name: doc.name,
             max_size: doc.size,
-            required: doc.required,
+            required: true, // Forces output to true automatically
             ocr_enabled: doc.ocr,
             is_system_default: doc.isDefault,
             allowed_types: ['PDF', 'JPG', 'PNG']
         }));
 
-        let selectedPrograms = [];
-        if (programSelect && !programSelect.disabled) {
-            selectedPrograms = Array.from(programSelect.selectedOptions).map(opt => opt.value);
-        }
+        // Dynamic Slots
+        const isDynamicSlots = document.getElementById('dynamicSlots') ? document.getElementById('dynamicSlots').checked : false;
+        const slotsValue = isDynamicSlots ? "Open" : (parseInt(document.getElementById('fixedSlots')?.value) || 0);
+
+        // Eligibility Multi-Selects
+        const getSelectedOptions = (selectId) => {
+            const selectEl = document.getElementById(selectId);
+            if (!selectEl) return [];
+            return Array.from(selectEl.selectedOptions).map(opt => opt.value);
+        };
+        const targetYears = getSelectedOptions('eligibilityYears');
+        const targetPrograms = getSelectedOptions('eligibilityPrograms');
+
+        // Academic Requirements (UPDATED TO CAPTURE SUBJECT LIMITS)
+        const hsInput = document.getElementById('minHsAverage');
+        const colInput = document.getElementById('minCollegeGwa');
+        const hsSubjectInput = document.getElementById('minHsSubject'); 
+        const colSubjectInput = document.getElementById('minCollegeSubject');
+
+        const minHsAvg = hsInput && hsInput.value ? parseFloat(hsInput.value) : null;
+        const minColGwa = colInput && colInput.value ? parseFloat(colInput.value) : null;
+        const minHsSubject = hsSubjectInput && hsSubjectInput.value ? parseFloat(hsSubjectInput.value) : null; 
+        const minColSubject = colSubjectInput && colSubjectInput.value ? parseFloat(colSubjectInput.value) : null; 
 
         return {
             title: document.getElementById('sch_title') ? document.getElementById('sch_title').value.trim() : 'Untitled',
-            category: document.getElementById('sch_category') ? document.getElementById('sch_category').value : 'Academic',
+            category: document.getElementById('sch_category') ? document.getElementById('sch_category').value : 'Institution-Funded Educational Assistance', // <-- Fallback Updated Here
+            scholarship_type: document.getElementById('sch_type') ? document.getElementById('sch_type').value : 'Merit-Based',
             description: document.getElementById('sch_description') ? document.getElementById('sch_description').value.trim() : '',
-            available_slots: document.getElementById('sch_slots') ? (parseInt(document.getElementById('sch_slots').value) || 0) : 0,
             start_date: document.getElementById('sch_start') ? document.getElementById('sch_start').value : null,
             end_date: document.getElementById('sch_end') ? document.getElementById('sch_end').value : null,
-            eligibility_rules: {
-                gwa: {
-                    enabled: gwaToggle ? gwaToggle.checked : false,
-                    minimum: gwaInput && gwaToggle.checked ? gwaInput.value : ''
-                },
-                year_levels: {
-                    enabled: yearToggle ? yearToggle.checked : false,
-                    allowed: yearToggle && yearToggle.checked ? Array.from(document.querySelectorAll('#year_list input:checked')).map(cb => cb.value) : []
-                },
-                program_department: {
-                    enabled: programToggle ? programToggle.checked : false,
-                    allowed: selectedPrograms
-                }
-            },
+            
+            slots: slotsValue.toString(),
+            available_slots: isDynamicSlots ? 0 : (parseInt(document.getElementById('fixedSlots')?.value) || 0), // <-- FIXED NULL CONSTRAINT
+            
+            eligibility_years: targetYears,
+            eligibility_programs: targetPrograms,
+            
+            min_hs_average: minHsAvg,
+            min_college_gwa: minColGwa,
+            min_hs_subject_grade: minHsSubject,
+            min_college_subject_grade: minColSubject,
+            
+            required_documents: finalDocsNames,
+            document_configurations: structuredDocs,
             form_fields: formFields,
-            document_requirements: finalDocs,
+            
             status: status
         };
     };
@@ -444,7 +554,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const payload = gatherScholarshipData(status);
 
             if (!payload.title || !payload.start_date) {
-                alert("Please fill in the Scholarship Name and Application Start Date.");
+                alert("Please fill in the Educational Assistance Name and Application Start Date.");
                 return;
             }
 
@@ -461,7 +571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(error.message || "Unknown database error");
             }
 
-            alert(`Scholarship successfully updated as ${status}!`);
+            alert(`Educational Assistance successfully updated!`);
             window.location.href = 'admin-scholarships.html';
 
         } catch (error) {

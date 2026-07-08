@@ -24,11 +24,11 @@
                 <a href="student-applications.html">📄 My Applications</a>
                 <a href="student-announcements.html">📢 Announcements <span class="badge">2</span></a>
                 <a href="profile-settings.html" class="active">👤 Profile Settings</a>
-                </nav>
+            </nav>
 
             <div class="nav-divider"></div>
 
-            </aside>
+        </aside>
 
         <main class="main-content">
             
@@ -115,13 +115,18 @@
                                         <option value="">Select Gender</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
-                                        <option value="Prefer not to say">Prefer not to say</option>
+                                        <!-- <option value="Other">Other</option>
+                                        <option value="Prefer not to say">Prefer not to say</option> -->
                                     </select>
                                 </div>
                                 <div class="input-group full-width">
                                     <label>Contact Number</label>
                                     <input type="text" id="contact_number" placeholder="e.g., 09123456789">
+                                </div>
+                                
+                                <div class="input-group full-width" style="grid-column: 1 / -1;">
+                                    <label>Address</label>
+                                    <input type="text" id="address" placeholder="House Number, Street/Barangay, Municipality/Province">
                                 </div>
 
                                 <div class="form-actions full-width mt-10">
@@ -139,23 +144,17 @@
                             </div>
                             <form id="academic-info-form" class="grid-form">
                                 <div class="input-group full-width">
-                                    <label>School</label>
-                                    <input type="text" id="school" class="locked-input" placeholder="e.g., Cebu Roosevelt Memorial Colleges (CRMC)" readonly>
+                                    <label>School (Locked)</label>
+                                    <input type="text" id="school" class="locked-input italic-muted" placeholder="e.g., Cebu Roosevelt Memorial Colleges (CRMC)" readonly>
                                 </div>
                                 <div class="input-group full-width">
-                                    <label>Program</label>
-                                    <input type="text" id="program" class="locked-input" placeholder="e.g., Bachelor of Science in Information Technology" readonly>
+                                    <label>Program (Locked)</label>
+                                    <input type="text" id="program" class="locked-input italic-muted" placeholder="e.g., Bachelor of Science in Information Technology" readonly>
                                 </div>
                                 <div class="input-group">
-                                    <label>Year Level</label>
-                                    <select id="year_level">
-                                        <option value="">Select Year</option>
-                                        <option value="1st Year">1st Year</option>
-                                        <option value="2nd Year">2nd Year</option>
-                                        <option value="3rd Year">3rd Year</option>
-                                        <option value="4th Year">4th Year</option>
-                                        <option value="5th Year">5th Year</option>
-                                    </select>
+                                    <!-- CHANGED TO LOCKED TEXT INPUT -->
+                                    <label>Year Level (Locked)</label>
+                                    <input type="text" id="year_level" class="locked-input italic-muted" placeholder="e.g., 1st year" readonly>
                                 </div>
                                 <div class="input-group">
                                     <label>Current GWA</label>
@@ -334,7 +333,7 @@
                     if(window.supabaseClient) {
                         document.getElementById('modal-confirm').innerText = "Logging out...";
                         await window.supabaseClient.auth.signOut();
-                        window.location.href = 'login.html'; // Changed to standard login
+                        window.location.href = 'login.html'; 
                     }
                 });
             }

@@ -2,15 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const Tesseract = require('tesseract.js');
 const nodemailer = require('nodemailer');
-const supabase = require('./supabaseClient'); // Ensure this file is in the same folder
+const supabase = require('./supabaseClient');
+const { validateDocumentWithGemini } = require('./ocrService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARE ---
-app.use(cors()); // Essential for connecting your HTML frontend to this local API
+app.use(cors());
 app.use(express.json());
 
 // Set up Multer to store uploaded files in memory temporarily
@@ -18,34 +18,51 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 
 // ============================================================================
-// 1. OCR API ENDPOINT
+// 1. SMART AI OCR VALIDATOR (Direct to Gemini)
 // ============================================================================
-app.post('/api/ocr/scan', upload.single('document'), async (req, res) => {
+app.post('/api/validate-document', upload.single('document'), async (req, res) => {
+    console.log("Request received!");
     try {
         if (!req.file) {
+            console.log("No file detected in request");
             return res.status(400).json({ error: 'No document uploaded' });
         }
 
-        console.log('Scanning document...');
+        console.log("File received, name:", req.file.originalname);
+        
+        // Destructure ALL variables from req.body exactly once
+        const { 
+            documentType, 
+            applicantName, 
+            minHsAvg, 
+            minCollegeGwa, 
+            minHsSubject, 
+            minCollegeSubject 
+        } = req.body;
+        
+        const fileBuffer = req.file.buffer;
+        const mimeType = req.file.mimetype; // Tells Gemini if it's an image or a PDF
 
-        // Run Tesseract OCR on the uploaded file buffer
-        const { data: { text } } = await Tesseract.recognize(
-            req.file.buffer,
-            'eng', // English language recognition
-            { logger: m => console.log(m.status, Math.round(m.progress * 100) + '%') }
+        console.log(`Received ${mimeType}. Passing directly to Gemini AI for high-speed validation...`);
+
+        // Pass all variables to the updated OCR service function
+        const validationResult = await validateDocumentWithGemini(
+            fileBuffer,
+            mimeType,
+            documentType,
+            applicantName,
+            minHsAvg,
+            minCollegeGwa,
+            minHsSubject,       // NEW
+            minCollegeSubject   // NEW
         );
 
-        console.log('Scan Complete!');
-        
-        res.json({
-            success: true,
-            raw_text: text,
-            message: "Document successfully scanned!"
-        });
+        console.log('Validation complete!');
+        res.status(200).json(validationResult);
 
     } catch (error) {
-        console.error('OCR Error:', error);
-        res.status(500).json({ error: 'Failed to process document' });
+        console.error("Endpoint Error:", error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -59,31 +76,28 @@ app.post('/api/validate-student', async (req, res) => {
     const googleNameInput = (req.body.googleName || '').trim().toLowerCase();
 
     try {
-        // Changed table target to 'enrolled_masterlist' matching your schema
         const { data: masterlistRow, error } = await supabase
-            .from('enrolled_masterlist') 
+            .from('enrolled_masterlist')
             .select('*')
-            .eq('id_number', studentIdInput) // Matches exact DB column
+            .eq('id_number', studentIdInput)
             .single();
 
         if (error || !masterlistRow) {
             return res.status(400).json({ error: "Student ID Number not found in the enrolled masterlist." });
         }
 
-        // Reconstruct the full name from your schema columns
         const dbFirstName = (masterlistRow.first_name || '').trim();
         const dbMiddleName = (masterlistRow.middle_name && masterlistRow.middle_name !== 'NULL') ? masterlistRow.middle_name.trim() : '';
         const dbLastName = (masterlistRow.last_name || '').trim();
-        
+
         const dbFullName = `${dbFirstName} ${dbMiddleName} ${dbLastName}`.replace(/\s+/g, ' ').trim().toLowerCase();
 
-        // Perform name comparisons
         const matchesTyped = dbFullName.includes(typedNameInput) || typedNameInput.includes(dbFullName);
         const matchesGoogle = dbFullName.includes(googleNameInput) || googleNameInput.includes(dbFullName);
 
         if (!matchesTyped && !matchesGoogle) {
-            return res.status(400).json({ 
-                error: "Provided name details do not match the official record for this Student ID." 
+            return res.status(400).json({
+                error: "Provided name details do not match the official record for this Student ID."
             });
         }
 
@@ -103,8 +117,8 @@ app.get('/api/student-dashboard/:userId', async (req, res) => {
 
     try {
         const { data: apps, error: appsError } = await supabase
-            .from('profiles') 
-            .select('id, id_number') 
+            .from('profiles')
+            .select('id, id_number')
             .eq('id', userId);
 
         if (appsError) throw appsError;
@@ -179,14 +193,14 @@ app.get('/api/scholarships', async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const updatesPromises = []; 
+        const updatesPromises = [];
 
         scholarships.forEach(sch => {
             if (sch.status === 'Draft' || !sch.start_date || !sch.end_date) return;
 
             const start = new Date(sch.start_date);
             start.setHours(0, 0, 0, 0);
-            
+
             const end = new Date(sch.end_date);
             end.setHours(23, 59, 59, 999);
 
@@ -201,7 +215,7 @@ app.get('/api/scholarships', async (req, res) => {
 
             if (sch.status !== correctStatus) {
                 console.log(`Syncing scholarship "${sch.title}": ${sch.status} -> ${correctStatus}`);
-                sch.status = correctStatus; 
+                sch.status = correctStatus;
                 updatesPromises.push(
                     supabase.from('scholarships').update({ status: correctStatus }).eq('id', sch.id)
                 );
@@ -242,7 +256,7 @@ app.get('/api/student/available-scholarships', async (req, res) => {
 
             const start = new Date(sch.start_date);
             start.setHours(0, 0, 0, 0);
-            
+
             const end = new Date(sch.end_date);
             end.setHours(23, 59, 59, 999);
 
@@ -251,10 +265,10 @@ app.get('/api/student/available-scholarships', async (req, res) => {
             } else if (today < start) {
                 sch.display_status = 'Upcoming';
             } else {
-                sch.display_status = 'Closed'; 
+                sch.display_status = 'Closed';
             }
-            
-            return true; 
+
+            return true;
         });
 
         res.status(200).json(availableScholarships);
@@ -297,7 +311,7 @@ app.post('/api/student/applications', async (req, res) => {
             .from('applications')
             .insert([{
                 scholarship_id,
-                student_id, 
+                student_id,
                 form_data,
                 status: status || 'Draft'
             }])
@@ -305,7 +319,7 @@ app.post('/api/student/applications', async (req, res) => {
             .single();
 
         if (error) throw error;
-        
+
         res.status(200).json({ success: true, application_id: data.id, message: "Draft saved successfully." });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -357,7 +371,6 @@ app.get('/api/student/:studentId/applications', async (req, res) => {
 app.post('/api/verify-id', async (req, res) => {
     const { id_number } = req.body;
     try {
-        // Check if ID is in the masterlist
         const { data: student, error } = await supabase
             .from('enrolled_masterlist')
             .select('*')
@@ -368,7 +381,6 @@ app.post('/api/verify-id', async (req, res) => {
             return res.status(404).json({ error: 'ID Number not found in the official enrolled masterlist.' });
         }
 
-        // Check if this ID already has a registered account
         const { data: existingUser } = await supabase
             .from('profiles')
             .select('id')
@@ -390,7 +402,6 @@ app.post('/api/verify-id', async (req, res) => {
 // ============================================================================
 const otpDatabase = {}; // Temporarily holds codes in memory
 
-// 1. Configure the Email Sender (Transporter)
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -403,11 +414,9 @@ app.post('/api/send-otp', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    // Generate a random 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     otpDatabase[email] = code;
 
-    // 2. Design the Email
     const mailOptions = {
         from: `"Grantee System" <${process.env.EMAIL_USER}>`,
         to: email,
@@ -424,10 +433,9 @@ app.post('/api/send-otp', async (req, res) => {
     };
 
     try {
-        // 3. Send the Email!
         await transporter.sendMail(mailOptions);
         console.log(`Real email successfully sent to ${email}`);
-        
+
         res.status(200).json({ message: 'Verification code sent to your inbox!' });
     } catch (error) {
         console.error('Nodemailer Error:', error);
@@ -440,10 +448,9 @@ app.post('/api/send-otp', async (req, res) => {
 // ============================================================================
 app.post('/api/verify-otp', (req, res) => {
     const { email, code } = req.body;
-    
-    // Check if the email exists in our temporary database AND matches the code
+
     if (otpDatabase[email] && otpDatabase[email] === code) {
-        delete otpDatabase[email]; // Clear it out for security after success
+        delete otpDatabase[email];
         res.status(200).json({ message: 'Email verified successfully!' });
     } else {
         res.status(400).json({ error: 'Invalid or expired verification code.' });
@@ -453,6 +460,10 @@ app.post('/api/verify-otp', (req, res) => {
 // ============================================================================
 // START THE SERVER
 // ============================================================================
+app.get('/api/test', (req, res) => {
+    res.json({ message: "Backend is reachable!" });
+});
+
 app.listen(PORT, () => {
     console.log(`Grantee Master Backend running on port ${PORT}`);
 });

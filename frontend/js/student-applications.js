@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
     let applicationsData = [];
+    let currentProfile = null; // Store student profile for the modal
     const tbody = document.getElementById('applications-tbody');
 
-    // --- CUSTOM UI: ALERTS & CONFIRMS ---
-    // Injects the CSS for the custom alerts so you don't need to touch your CSS files
+    // --- CUSTOM UI: ALERTS ---
     const injectCustomUIStyles = () => {
         if (document.getElementById('custom-ui-styles')) return;
         const style = document.createElement('style');
@@ -15,18 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             .custom-toast.error { border-left-color: #ef4444; }
             .custom-toast.success { border-left-color: #10b981; }
             
-            .custom-confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; visibility: hidden; transition: all 0.2s ease; }
-            .custom-confirm-overlay.show { opacity: 1; visibility: visible; }
-            .custom-confirm-box { background: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-            .custom-confirm-overlay.show .custom-confirm-box { transform: scale(1); }
-            .custom-confirm-title { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
-            .custom-confirm-msg { font-size: 14px; color: #64748b; margin-bottom: 25px; line-height: 1.5; }
-            .custom-confirm-actions { display: flex; gap: 10px; justify-content: center; }
-            .custom-confirm-btn { padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; flex: 1; transition: 0.2s; font-size: 14px; }
-            .custom-confirm-cancel { background: #f1f5f9; color: #475569; }
-            .custom-confirm-cancel:hover { background: #e2e8f0; }
-            .custom-confirm-proceed { background: #ef4444; color: #fff; }
-            .custom-confirm-proceed:hover { background: #dc2626; }
+            /* Scrollbar styling for extracted data box */
+            .ai-data-box::-webkit-scrollbar { width: 6px; }
+            .ai-data-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         `;
         document.head.appendChild(style);
     };
@@ -38,43 +29,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
         document.body.appendChild(toast);
         
-        // Trigger animation
         setTimeout(() => toast.classList.add('show'), 10);
         
-        // Remove after 3.5 seconds
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, 3500);
-    };
-
-    const showConfirm = (title, message, onConfirm) => {
-        const overlay = document.createElement('div');
-        overlay.className = 'custom-confirm-overlay';
-        overlay.innerHTML = `
-            <div class="custom-confirm-box">
-                <div class="custom-confirm-title">${title}</div>
-                <div class="custom-confirm-msg">${message}</div>
-                <div class="custom-confirm-actions">
-                    <button class="custom-confirm-btn custom-confirm-cancel" id="confirm-cancel-btn">Cancel</button>
-                    <button class="custom-confirm-btn custom-confirm-proceed" id="confirm-proceed-btn">Proceed</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        setTimeout(() => overlay.classList.add('show'), 10);
-
-        const closeConfirm = () => {
-            overlay.classList.remove('show');
-            setTimeout(() => overlay.remove(), 200);
-        };
-
-        document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirm);
-        document.getElementById('confirm-proceed-btn').addEventListener('click', () => {
-            closeConfirm();
-            onConfirm();
-        });
     };
 
     injectCustomUIStyles();
@@ -84,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
             if (sessionError || !session) {
-                window.location.href = 'login-student.html';
+                window.location.href = 'login.html';
                 return;
             }
             const studentId = session.user.id;
@@ -96,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             if (profileError || !profile) {
-                window.location.href = 'login-student.html';
+                window.location.href = 'login.html';
                 return;
             }
 
@@ -106,11 +66,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (profile) {
+                currentProfile = profile; // Save globally for the details modal
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
                 
                 if(document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
-                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.course || 'Student';
+                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student';
                 if(profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
@@ -141,13 +102,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const review = apps.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
         const approved = apps.filter(a => a.status === 'Approved').length;
         const rejected = apps.filter(a => a.status === 'Rejected').length;
-        const withdrawn = apps.filter(a => a.status === 'Withdrawn').length;
 
         if(document.getElementById('count-total')) document.getElementById('count-total').innerText = total;
         if(document.getElementById('count-review')) document.getElementById('count-review').innerText = review;
         if(document.getElementById('count-approved')) document.getElementById('count-approved').innerText = approved;
         if(document.getElementById('count-rejected')) document.getElementById('count-rejected').innerText = rejected;
-        if(document.getElementById('count-withdrawn')) document.getElementById('count-withdrawn').innerText = withdrawn;
     };
 
     const renderTable = (apps) => {
@@ -161,50 +120,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = '';
 
         apps.forEach(app => {
-            const scholarshipName = app.scholarships ? app.scholarships.title : 'Unknown Scholarship';
+            const programName = app.scholarships ? app.scholarships.title : 'Unknown Program';
 
             const dateObj = new Date(app.created_at);
             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-            let badgeClass = 'badge-pending';
-            let progress = 33;
-            let barColor = '#3b82f6';
+            let badgeClass = 'badge-review';
+            let progress = 50;
+            let barColor = '#f59e0b';
+            let displayStatus = 'Under Review';
 
-            const statusLower = (app.status || '').toLowerCase();
+            const statusLower = (app.status || 'pending').toLowerCase();
 
-            if (statusLower === 'under review') {
-                badgeClass = 'badge-review';
-                progress = 66;
-                barColor = '#f59e0b';
-            } else if (statusLower === 'approved') {
+            if (statusLower === 'approved' || statusLower === 'grantee') {
                 badgeClass = 'badge-approved';
                 progress = 100;
                 barColor = 'var(--success-color)';
-            } else if (statusLower === 'rejected') {
+                displayStatus = 'Approved';
+            } else if (statusLower === 'rejected' || statusLower === 'declined') {
                 badgeClass = 'badge-rejected';
                 progress = 100;
                 barColor = 'var(--danger-color)';
-            } else if (statusLower === 'withdrawn') {
-                badgeClass = 'badge-withdrawn';
-                progress = 0;
-                barColor = 'var(--text-muted)';
+                displayStatus = 'Rejected';
+            } else {
+                badgeClass = 'badge-review';
+                progress = 50;
+                barColor = '#f59e0b';
+                displayStatus = 'Under Review';
             }
-
-            const showWithdrawBtn = (statusLower === 'pending' || statusLower === 'under review');
-            const showDeleteBtn = (statusLower === 'withdrawn');
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <strong style="color: var(--text-main);">${scholarshipName}</strong>
+                    <strong style="color: var(--text-main);">${programName}</strong>
                     <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Application ID: ${app.id.substring(0, 8).toUpperCase()}</div>
                 </td>
                 <td>
                     <div>${dateStr}</div>
                     <div style="font-size:11px; color:var(--text-muted);">${timeStr}</div>
                 </td>
-                <td><span class="badge-status ${badgeClass}">${app.status || 'Pending'}</span></td>
+                <td><span class="badge-status ${badgeClass}">${displayStatus}</span></td>
                 <td>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div style="flex:1; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
@@ -216,8 +172,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>
                     <div style="display:flex; gap:8px;">
                         <button class="btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="viewDetails('${app.id}')">View Details</button>
-                        ${showWithdrawBtn ? `<button class="btn-outline" style="padding: 6px 12px; font-size: 11px; color: var(--danger-color); border-color: var(--danger-color);" onclick="withdrawApplication('${app.id}')">Withdraw</button>` : ''}
-                        ${showDeleteBtn ? `<button class="btn-outline" style="padding: 6px 12px; font-size: 11px; color: var(--danger-color); border-color: var(--danger-color); background: #fee2e2;" onclick="deleteApplication('${app.id}')"><i class="fas fa-xmark"></i> Delete</button>` : ''}
                     </div>
                 </td>
             `;
@@ -229,49 +183,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (apps.length === 0) return;
 
         const latestApp = apps[0]; 
-        const scholarshipName = latestApp.scholarships ? latestApp.scholarships.title : '';
+        const programName = latestApp.scholarships ? latestApp.scholarships.title : '';
         const createdDate = new Date(latestApp.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
-        if(document.getElementById('latest-app-title')) document.getElementById('latest-app-title').innerText = `(${scholarshipName})`;
+        if(document.getElementById('latest-app-title')) document.getElementById('latest-app-title').innerText = `(${programName})`;
         if(document.getElementById('date-submitted')) document.getElementById('date-submitted').innerText = createdDate;
 
         const statusLower = (latestApp.status || '').toLowerCase();
 
         const stepSub = document.getElementById('step-submitted');
         const stepRev = document.getElementById('step-review');
-        const stepEval = document.getElementById('step-eval');
         const stepFinal = document.getElementById('step-final');
 
         const line1 = document.getElementById('line-1');
         const line2 = document.getElementById('line-2');
-        const line3 = document.getElementById('line-3');
 
         if(!stepSub) return; 
 
-        [stepSub, stepRev, stepEval, stepFinal].forEach(el => el.classList.remove('completed', 'active'));
-        [line1, line2, line3].forEach(el => el.classList.remove('active'));
+        [stepSub, stepRev, stepFinal].forEach(el => { if(el) el.classList.remove('completed', 'active') });
+        [line1, line2].forEach(el => { if(el) el.classList.remove('active') });
 
-        if (statusLower === 'pending') {
-            stepSub.classList.add('active');
+        // Step 1: Submitted (Always active if application exists)
+        if(stepSub) stepSub.classList.add('active');
+        
+        if (statusLower === 'pending' || statusLower === 'under review') {
+            if(line1) line1.classList.add('active');
+            if(stepRev) stepRev.classList.add('active');
         }
-        else if (statusLower === 'under review') {
-            stepSub.classList.add('active');
-            line1.classList.add('active');
-            stepRev.classList.add('active');
-        }
-        else if (statusLower === 'approved' || statusLower === 'rejected') {
-            stepSub.classList.add('active');
-            stepRev.classList.add('active');
-            stepEval.classList.add('active');
-            stepFinal.classList.add('active');
-            line1.classList.add('active');
-            line2.classList.add('active');
-            line3.classList.add('active');
-            if(document.getElementById('date-final')) document.getElementById('date-final').innerText = createdDate;
+        else if (statusLower === 'approved' || statusLower === 'rejected' || statusLower === 'grantee' || statusLower === 'declined') {
+            if(stepRev) stepRev.classList.add('active');
+            if(stepFinal) stepFinal.classList.add('active');
+            if(line1) line1.classList.add('active');
+            if(line2) line2.classList.add('active');
+            
+            const finalNode = document.getElementById('date-final');
+            if(finalNode) finalNode.innerText = 'Determined';
         }
     };
 
-    // --- MODAL: VIEW DETAILS ---
+    // --- MODAL: VIEW DETAILS (READ-ONLY) ---
     window.viewDetails = (appId) => {
         const app = applicationsData.find(a => a.id === appId);
         if (!app) return;
@@ -279,198 +229,184 @@ document.addEventListener('DOMContentLoaded', async () => {
         const existingModal = document.getElementById('app-details-modal');
         if (existingModal) existingModal.remove();
 
+        const statusColor = (app.status === 'Approved' || app.status === 'Grantee') ? '#166534' : ((app.status === 'Rejected' || app.status === 'Declined') ? '#991b1b' : '#b45309');
+        const statusBg = (app.status === 'Approved' || app.status === 'Grantee') ? '#dcfce7' : ((app.status === 'Rejected' || app.status === 'Declined') ? '#fee2e2' : '#fef3c7');
+        const displayStatus = (app.status === 'Pending' || app.status === 'Under Review') ? 'Under Review' : (app.status === 'Grantee' ? 'Approved' : (app.status === 'Declined' ? 'Rejected' : app.status));
+
+        // 1. Applicant Profile
+        const fname = currentProfile?.first_name || '';
+        const mname = currentProfile?.middle_name || '';
+        const lname = currentProfile?.last_name || '';
+        const name = `${fname} ${mname ? mname + ' ' : ''}${lname}`.trim();
+        
+        const sid = currentProfile?.id_number || 'N/A';
+        const email = currentProfile?.email || 'N/A';
+        const dob = currentProfile?.date_of_birth || 'N/A';
+        const gender = currentProfile?.gender || 'N/A';
+        const contact = currentProfile?.contact_number || 'N/A';
+        const address = currentProfile?.address || 'N/A';
+        const program = currentProfile?.program || currentProfile?.course || 'N/A'; 
+        const yearLevel = currentProfile?.year_level || 'N/A';
+
+        let profileHTML = `
+            <div style="background:#fff; border:1px solid var(--border-dark); border-top: 8px solid #3b82f6; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Student ID:</strong> <span style="color:#475569">${sid}</span></div>
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Email:</strong> <span style="color:#475569">${email}</span></div>
+                    
+                    <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Full Name:</strong> <span style="color:#475569">${name}</span></div>
+                    
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Date of Birth:</strong> <span style="color:#475569">${dob}</span></div>
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Gender:</strong> <span style="color:#475569">${gender}</span></div>
+                    
+                    <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Contact Number:</strong> <span style="color:#475569">${contact}</span></div>
+                    <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Address:</strong> <span style="color:#475569">${address}</span></div>
+                    
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Program:</strong> <span style="color:#475569">${program}</span></div>
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Year Level:</strong> <span style="color:#475569">${yearLevel}</span></div>
+                </div>
+            </div>
+        `;
+
+        // 2. Questionnaire Responses
         let formFieldsHTML = '';
         if (app.form_responses && Object.keys(app.form_responses).length > 0) {
             for (const [question, answer] of Object.entries(app.form_responses)) {
-                const safeId = "resp_" + question.replace(/[^a-zA-Z0-9]/g, "_");
                 formFieldsHTML += `
-                    <div style="margin-bottom: 20px;">
-                        <label style="display:block; font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:8px;">${question}</label>
-                        <input type="text" id="${safeId}" data-question="${question}" value="${answer}" 
-                            style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:6px; font-size:14px; background:#f8fafc; color:var(--text-main); outline:none; transition:0.2s; box-sizing:border-box;" 
-                            onfocus="this.style.borderColor='var(--primary-color)'; this.style.background='#ffffff';" 
-                            onblur="this.style.borderColor='var(--border-color)'; this.style.background='#f8fafc';">
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-left: 4px solid var(--primary-color); border-radius:6px; padding:16px; margin-bottom:15px;">
+                        <div style="font-weight:600; font-size:14px; margin-bottom:8px; color:#1e293b;">${question}</div>
+                        <div style="font-size:14px; color:#475569;">${answer || '<span style="font-style:italic;">No response provided</span>'}</div>
                     </div>
                 `;
             }
         } else {
-            formFieldsHTML = '<div style="padding: 15px; background: #f1f5f9; border-radius: 6px; color: var(--text-muted); font-size: 13px; text-align:center;">No custom form fields for this application.</div>';
+            formFieldsHTML = '<div style="padding: 15px; background: #f1f5f9; border-radius: 6px; color: var(--text-muted); font-size: 13px; text-align:center;">No questionnaire responses for this application.</div>';
         }
 
+        // 3. Document Uploads & OCR
         let docsHTML = '';
         if (app.documents && app.documents.length > 0) {
             app.documents.forEach(doc => {
-                const isVerified = doc.status === 'Verified';
-                const badgeColor = isVerified ? 'var(--success-color)' : 'var(--text-muted)';
-                const badgeBg = isVerified ? '#dcfce7' : '#f1f5f9';
-                const statusText = isVerified ? 'Verified ✓' : 'Uploaded';
-
                 const fileUrl = doc.file_url || doc.url;
                 let previewContent = '';
+                
+                const fullViewLink = fileUrl 
+                    ? `<a href="${fileUrl}" target="_blank" style="font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;">↗ Full View</a>` 
+                    : '';
 
                 if (fileUrl) {
                     if (fileUrl.toLowerCase().split('?')[0].endsWith('.pdf')) {
-                        previewContent = `<iframe src="${fileUrl}#toolbar=0" style="width:100%; height:100%; border:none;"></iframe>`;
+                        previewContent = `<iframe src="${fileUrl}#toolbar=0" style="width:100%; height:350px; border:none; display:block;"></iframe>`;
                     } else {
-                        previewContent = `<img src="${fileUrl}" style="width:100%; height:100%; object-fit:contain; background:#e2e8f0;">`;
+                        previewContent = `<img src="${fileUrl}" style="width:100%; max-height:350px; object-fit:contain; display:block; margin: 0 auto;">`;
                     }
                 } else {
                     previewContent = `
-                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-muted);">
-                            <span style="font-size:36px; margin-bottom:8px;">📄</span>
-                            <span style="font-size:14px; font-weight:600; color:#475569;">Document Attached</span>
-                            <span style="font-size:12px;">Stored securely in database</span>
+                        <div style="padding:40px 20px; text-align:center; color:#64748b;">
+                            <strong style="display:block; margin-bottom:4px;">File not available</strong>
+                        </div>`;
+                }
+
+                let extractedDataHtml = '';
+                if (doc.extracted_data && Object.keys(doc.extracted_data).length > 0) {
+                    let liHtml = '';
+                    
+                    for (const [key, value] of Object.entries(doc.extracted_data)) {
+                        let displayValue = '';
+
+                        if (Array.isArray(value)) {
+                            displayValue = value.map(item => {
+                                if (typeof item === 'object' && item !== null) {
+                                    return Object.entries(item).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
+                                }
+                                return item;
+                            }).join('<div style="height:1px; background:#e2e8f0; margin:6px 0;"></div>');
+                            
+                        } else if (typeof value === 'object' && value !== null) {
+                            displayValue = Object.entries(value).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
+                        } else {
+                            displayValue = value || 'N/A';
+                        }
+
+                        liHtml += `
+                            <li style="background:#fff; border:1px solid #e2e8f0; padding:8px 10px; border-radius:4px; margin-bottom:8px;">
+                                <span style="display:block; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; margin-bottom:4px;">${key}</span>
+                                <div style="color:#1e293b; font-weight:400; font-size:12px; line-height:1.4;">${displayValue}</div>
+                            </li>
+                        `;
+                    }
+                    
+                    extractedDataHtml = `
+                        <div class="ai-data-box" style="flex: 1; min-width: 250px; max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; padding: 15px; font-size: 13px;">
+                            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+                                <strong style="color:#0f172a; font-size:13px;">AI Extracted Information</strong>
+                            </div>
+                            <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column;">
+                                ${liHtml}
+                            </ul>
                         </div>
                     `;
                 }
 
                 docsHTML += `
-                    <div style="border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px; overflow: hidden; background: #ffffff;">
-                        <div style="padding: 15px; background: #f8fafc; border-bottom: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                            <strong style="font-size:14px; color:var(--text-main);">${doc.name || 'Requirement'}</strong>
-                            <span style="font-size:11px; padding:4px 10px; background:${badgeBg}; color:${badgeColor}; border-radius:12px; font-weight:bold;">${statusText}</span>
+                    <div style="background:#fff; border:1px solid var(--border-dark); border-radius:12px; padding:20px; margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <div style="font-weight:600; font-size:14px; color:var(--text-main);">${doc.name || 'Requirement'}</div>
+                            ${fullViewLink}
                         </div>
-                        <div style="height: 220px; background: #f1f5f9; position: relative;">
-                            ${previewContent}
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 250px; border: 1px solid var(--border-dark); border-radius: 8px; overflow: hidden; background:#f8fafc;">
+                                ${previewContent}
+                            </div>
+                            ${extractedDataHtml}
                         </div>
                     </div>
                 `;
             });
         } else {
-            docsHTML = '<div style="padding: 15px; background: #f1f5f9; border-radius: 6px; color: var(--text-muted); font-size: 13px; text-align:center;">No documents uploaded for this application.</div>';
+            docsHTML = '<div style="padding: 15px; background: #f1f5f9; border-radius: 6px; color: var(--text-muted); font-size: 13px; text-align:center;">No documents uploaded.</div>';
         }
 
         const modalHTML = `
             <div id="app-details-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter: blur(2px);">
-                <div style="background:#ffffff; width:90%; max-width:650px; max-height:85vh; overflow-y:auto; border-radius:12px; padding:30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+                <div style="background:#ffffff; width:90%; max-width:750px; max-height:85vh; overflow-y:auto; border-radius:12px; padding:30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
                     
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border-color); padding-bottom:15px; margin-bottom:25px;">
                         <div>
-                            <h2 style="margin:0; font-size:20px; color:var(--text-main); font-weight:700;">${app.scholarships?.title || 'Scholarship Application'}</h2>
-                            <span style="font-size:13px; color:var(--text-muted); display:block; margin-top:4px;">Application ID: ${app.id.substring(0, 8).toUpperCase()}</span>
+                            <h2 style="margin:0; font-size:20px; color:var(--text-main); font-weight:700;">${app.scholarships?.title || 'Program Application'}</h2>
+                            <div style="display:flex; align-items:center; gap: 10px; margin-top: 8px;">
+                                <span style="font-size:13px; color:var(--text-muted);">Application ID: ${app.id.substring(0, 8).toUpperCase()}</span>
+                                <span style="background:${statusBg}; color:${statusColor}; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:12px;">${displayStatus}</span>
+                            </div>
                         </div>
                         <button onclick="document.getElementById('app-details-modal').remove()" style="background:none; border:none; font-size:28px; color:#94a3b8; cursor:pointer; line-height:1;">&times;</button>
                     </div>
 
-                    <div style="margin-bottom:35px;">
-                        <h3 style="font-size:15px; color:var(--primary-color); border-left:4px solid var(--primary-color); padding-left:10px; margin-bottom:20px;">Application Form Details</h3>
-                        <div id="edit-form-fields">
+                    <div style="margin-bottom:30px;">
+                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;">Applicant Profile</h3>
+                        ${profileHTML}
+                    </div>
+
+                    <div style="margin-bottom:30px;">
+                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;">Questionnaire Responses</h3>
+                        <div id="read-only-form-fields">
                             ${formFieldsHTML}
                         </div>
                     </div>
 
                     <div style="margin-bottom:25px;">
-                        <h3 style="font-size:15px; color:var(--primary-color); border-left:4px solid var(--primary-color); padding-left:10px; margin-bottom:15px;">Uploaded Documents</h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px; background:#f8fafc; padding:10px; border-radius:6px; border:1px solid var(--border-color);">
-                            <span style="color:var(--danger-color); font-weight:bold;">Note:</span> Document files are locked and cannot be altered after initial submission.
-                        </p>
+                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;">Submitted Documents & AI Verification</h3>
                         ${docsHTML}
                     </div>
 
-                    <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:25px;">
-                        <button type="button" onclick="document.getElementById('app-details-modal').remove()" style="padding:10px 20px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-weight:600; border-radius:6px; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">Cancel</button>
-                        <button type="button" id="save-app-btn" onclick="saveApplicationChanges('${app.id}')" style="padding:10px 20px; border:none; background:var(--primary-color); color:#fff; font-weight:600; border-radius:6px; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary-color)'">Save Changes</button>
+                    <div style="display:flex; justify-content:flex-end; border-top:1px solid var(--border-color); padding-top:20px;">
+                        <button type="button" onclick="document.getElementById('app-details-modal').remove()" style="padding:10px 24px; border:none; background:var(--primary-color); color:#fff; font-weight:600; border-radius:6px; cursor:pointer; transition:0.2s;">Close View</button>
                     </div>
                 </div>
             </div>
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-    };
-
-    window.saveApplicationChanges = async (appId) => {
-        const app = applicationsData.find(a => a.id === appId);
-        if (!app) return;
-
-        const saveBtn = document.getElementById('save-app-btn');
-        saveBtn.innerText = "Saving...";
-        saveBtn.disabled = true;
-
-        let updatedResponses = { ...app.form_responses };
-        const inputs = document.querySelectorAll('#edit-form-fields input');
-
-        inputs.forEach(input => {
-            const originalQuestion = input.getAttribute('data-question');
-            if (originalQuestion) {
-                updatedResponses[originalQuestion] = input.value;
-            }
-        });
-
-        try {
-            const { error } = await window.supabaseClient
-                .from('applications')
-                .update({ form_responses: updatedResponses })
-                .eq('id', appId);
-
-            if (error) throw error;
-
-            showToast('Application details updated successfully!');
-            document.getElementById('app-details-modal').remove();
-
-            loadMyApplications();
-
-        } catch (err) {
-            console.error(err);
-            showToast('Failed to update: ' + err.message, 'error');
-            saveBtn.innerText = "Save Changes";
-            saveBtn.disabled = false;
-        }
-    };
-
-    // --- WITHDRAW LOGIC ---
-    window.withdrawApplication = async (appId) => {
-        showConfirm(
-            "Withdraw Application", 
-            "Are you sure you want to withdraw this application? This action cannot be undone.", 
-            async () => {
-                try {
-                    const { error } = await window.supabaseClient
-                        .from('applications')
-                        .update({ status: 'Withdrawn' })
-                        .eq('id', appId);
-
-                    if (error) throw error;
-
-                    showToast('Application successfully withdrawn.');
-                    loadMyApplications(); 
-
-                } catch (err) {
-                    console.error("Error withdrawing:", err);
-                    showToast("Failed to withdraw: " + err.message, 'error');
-                }
-            }
-        );
-    };
-
-    // --- DELETE LOGIC (Only for Withdrawn Applications) ---
-    window.deleteApplication = async (appId) => {
-        showConfirm(
-            "Permanently Delete", 
-            "Are you sure you want to permanently delete this application?", 
-            async () => {
-                try {
-                    const { error } = await window.supabaseClient
-                        .from('applications')
-                        .delete()
-                        .eq('id', appId);
-
-                    // Check if error was caused by Supabase Row Level Security (RLS)
-                    if (error) {
-                        if (error.code === '42501') {
-                            throw new Error("Database Security Policy (RLS) is preventing deletion. Check Supabase table policies.");
-                        }
-                        throw error;
-                    }
-
-                    showToast('Application permanently deleted.');
-                    loadMyApplications();
-
-                } catch (err) {
-                    console.error("Error deleting application:", err);
-                    showToast("Deletion failed: " + err.message, 'error');
-                }
-            }
-        );
     };
 
     // --- AI CHAT TOGGLE ---

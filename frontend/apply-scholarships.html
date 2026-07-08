@@ -1,17 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apply for Scholarship - Grantee</title>
     <link rel="stylesheet" href="css/apply-scholarships.css">
+    <style>
+        /* Small inline addition for the AI notice box */
+        .ai-notice-box {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
 </head>
+
 <body class="bg-main text-main">
     <div class="app-layout">
-        
+
         <aside class="sidebar">
             <div class="logo">
-                <img src="assets/grantee-logo.png" alt="Grantee" width="32" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>'">
+                <img src="assets/grantee-logo.png" alt="Grantee" width="32"
+                    onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>'">
                 <div>
                     <h2>Grantee</h2>
                     <span>Smart Scholarship Management</span>
@@ -22,29 +40,17 @@
                 <a href="student-dashboard.html">🏠 Dashboard</a>
                 <a href="student-scholarships.html">🎓 Available Scholarships</a>
                 <a href="student-applications.html">📄 My Applications</a>
-                <a href="#">📢 Announcements <span class="badge">2</span></a>
+                <a href="student-announcements.html">📢 Announcements <span class="badge">2</span></a>
                 <a href="profile-settings.html">👤 Profile Settings</a>
-                <!-- <a href="#">🔒 Password and Security</a> -->
             </nav>
 
             <div class="nav-divider"></div>
-
-            <!-- <nav class="sidebar-nav" style="margin-top: 0;">
-                <a href="#" id="sidebar-logout-btn" class="text-red">🚪 Logout</a>
-            </nav>
-
-            <div class="ai-help-box">
-                <div class="ai-icon-large">🤖</div>
-                <h4>Need help?</h4>
-                <p>Chat with our AI Assistant 24/7 to get quick answers about scholarships.</p>
-                <button class="btn-ai">💬 Chat with AI</button>
-            </div> -->
         </aside>
 
         <main class="main-content">
-            
+
             <div class="content-wrapper">
-                
+
                 <header class="top-header">
                     <div class="header-titles">
                         <a href="student-scholarships.html" class="back-btn">← Back to Scholarships</a>
@@ -52,14 +58,15 @@
                         <h1>Scholarship Application</h1>
                         <p>Please review your details and complete the required fields.</p>
                     </div>
-                    
+
                     <div class="header-actions">
                         <button class="icon-btn">
                             🔔<span class="badge-icon">2</span>
                         </button>
-                        
+
                         <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
-                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
+                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
                             <div>
                                 <strong id="header-name">Student Name</strong>
                                 <span id="header-program">Student</span>
@@ -76,16 +83,21 @@
                 </header>
 
                 <div class="application-form-container">
-                    
+
                     <div class="preview-banner">
                         <span class="preview-icon">👁️</span>
                         <span><strong>Scholarship Application Form</strong></span>
-                        <span style="margin-left:auto; font-size:12px; opacity:0.8;">Please review your details carefully before submitting.</span>
+                        <span style="margin-left:auto; font-size:12px; opacity:0.8;">Please review your details
+                            carefully before submitting.</span>
                     </div>
 
                     <div class="form-body">
                         <div class="scholarship-header">
                             <span class="category-badge" id="sch-category">Category</span>
+                            <span id="sch-type" class="badge-type"
+                                style="background:#e0e7ff; color:#3730a3; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold; margin-left:8px;">
+                                Loading Type...
+                            </span>
                             <h1 id="sch-title">Loading Scholarship...</h1>
                             <p class="provider-name" id="sch-provider">Department / Provider</p>
                         </div>
@@ -97,9 +109,10 @@
 
                                 <h3 style="margin-top: 25px;">Eligibility Requirements</h3>
                                 <ul id="sch-eligibility" class="eligibility-list">
-                                    </ul>
+                                    <!-- Populated by JS -->
+                                </ul>
                             </div>
-                            
+
                             <div class="details-right">
                                 <div class="summary-card">
                                     <div class="summary-item">
@@ -126,31 +139,57 @@
                         </div>
 
                         <form id="scholarship-application-form">
-                            
+
                             <div class="form-section">
                                 <h3 class="section-title">1. Applicant Profile</h3>
-                                <p class="section-subtitle">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
-                                
+                                <p class="section-subtitle">This information is permanently tied to your account. To
+                                    edit, go to Profile Settings.</p>
+
                                 <div class="profile-grid">
                                     <div class="input-group">
                                         <label>Student ID Number</label>
-                                        <input type="text" id="prof-id" class="auto-filled-input" readonly placeholder="[Auto-filled]">
+                                        <input type="text" id="prof-id" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
                                     </div>
                                     <div class="input-group">
                                         <label>Email Address</label>
-                                        <input type="email" id="prof-email" class="auto-filled-input" readonly placeholder="[Auto-filled]">
+                                        <input type="email" id="prof-email" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
                                     </div>
                                     <div class="input-group full-width">
                                         <label>Full Name</label>
-                                        <input type="text" id="prof-fullname" class="auto-filled-input" readonly placeholder="[Auto-filled]">
+                                        <input type="text" id="prof-fullname" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Date of Birth</label>
+                                        <input type="text" id="prof-dob" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Gender</label>
+                                        <input type="text" id="prof-gender" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
+                                    </div>
+                                    <div class="input-group full-width">
+                                        <label>Contact Number</label>
+                                        <input type="text" id="prof-contact" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
+                                    </div>
+                                    <div class="input-group full-width" style="grid-column: 1 / -1;">
+                                        <label>Address</label>
+                                        <input type="text" id="prof-address" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
                                     </div>
                                     <div class="input-group">
                                         <label>Program</label>
-                                        <input type="text" id="prof-program" class="auto-filled-input" readonly placeholder="[Auto-filled]">
+                                        <input type="text" id="prof-program" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
                                     </div>
                                     <div class="input-group">
                                         <label>Year Level</label>
-                                        <input type="text" id="prof-year" class="auto-filled-input" readonly placeholder="[Auto-filled]">
+                                        <input type="text" id="prof-year" class="auto-filled-input" readonly
+                                            placeholder="[Auto-filled]">
                                     </div>
                                 </div>
                             </div>
@@ -158,16 +197,26 @@
                             <div class="form-section">
                                 <h3 class="section-title">2. Questionnaire</h3>
                                 <div id="dynamic-questions" class="questions-container">
-                                    </div>
+                                    <!-- Populated by JS -->
+                                </div>
                             </div>
 
                             <div class="form-section">
                                 <h3 class="section-title">3. Document Uploads</h3>
+                                <div class="ai-notice-box">
+                                    <span style="font-size: 18px;">🤖</span>
+                                    <span><strong>AI Verification Active:</strong> Please ensure your documents are
+                                        clear and legible. Our AI system will scan the contents to verify authenticity,
+                                        signatures, and ensure your grades meet the minimum eligibility rules for this
+                                        scholarship.</span>
+                                </div>
                                 <div id="ocr-documents-container" class="documents-container">
-                                    </div>
+                                    <!-- Populated by JS -->
+                                </div>
                             </div>
 
-                            <button type="submit" id="btn-submit-app" class="btn-submit-large" disabled>Submit Application</button>
+                            <button type="submit" id="btn-submit-app" class="btn-submit-large" disabled>Submit
+                                Application</button>
                         </form>
 
                     </div>
@@ -211,31 +260,32 @@
             // Logout Modal Logic
             const logoutModal = document.getElementById('logout-modal');
             const logoutTriggers = document.querySelectorAll('#dropdown-logout-btn, #sidebar-logout-btn');
-            
+
             logoutTriggers.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if(logoutModal) logoutModal.style.display = 'flex';
-                    if(profileMenu) profileMenu.classList.remove('show');
+                    if (logoutModal) logoutModal.style.display = 'flex';
+                    if (profileMenu) profileMenu.classList.remove('show');
                 });
             });
 
-            if(document.getElementById('modal-cancel')) {
+            if (document.getElementById('modal-cancel')) {
                 document.getElementById('modal-cancel').addEventListener('click', () => {
                     logoutModal.style.display = 'none';
                 });
             }
 
-            if(document.getElementById('modal-confirm')) {
+            if (document.getElementById('modal-confirm')) {
                 document.getElementById('modal-confirm').addEventListener('click', async () => {
-                    if(window.supabaseClient) {
+                    if (window.supabaseClient) {
                         document.getElementById('modal-confirm').innerText = "Logging out...";
                         await window.supabaseClient.auth.signOut();
-                        window.location.href = 'login-student.html';
+                        window.location.href = 'login.html';
                     }
                 });
             }
         });
     </script>
 </body>
+
 </html>

@@ -24,25 +24,13 @@
 
             <nav class="sidebar-nav mt-20">
                 <a href="student-dashboard.html">🏠 Dashboard</a>
-                <a href="student-scholarships.html">🎓 Available Scholarships</a>
+                <a href="student-scholarships.html">🎓 Educational Assistance</a>
                 <a href="student-applications.html" class="active">📄 My Applications</a>
                 <a href="student-announcements.html">📢 Announcements <span class="badge">2</span></a>
                 <a href="profile-settings.html">👤 Profile Settings</a>
-                <!-- <a href="#">🔒 Password and Security</a> -->
             </nav>
 
             <div class="nav-divider"></div>
-
-            <!-- <nav class="sidebar-nav" style="margin-top: 0;">
-                <a href="#" id="sidebar-logout-btn" class="text-red">🚪 Logout</a>
-            </nav>
-
-            <div class="ai-help-box">
-                <div class="ai-icon-large">🤖</div>
-                <h4>Need help?</h4>
-                <p>Chat with our AI Assistant 24/7 to get quick answers about scholarships.</p>
-                <button class="btn-ai">💬 Chat with AI</button>
-            </div> -->
         </aside>
 
         <main class="main-content">
@@ -52,7 +40,7 @@
                 <header class="top-header">
                     <div class="header-titles">
                         <h1>My Applications</h1>
-                        <p>Track the status of your scholarship applications.</p>
+                        <p>Track the status of your educational assistance applications.</p>
                     </div>
 
                     <div class="header-actions">
@@ -81,7 +69,7 @@
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <h2 id="count-total">0</h2>
-                        <span>Total Applications</span>
+                        <span>Submitted</span>
                     </div>
                     <div class="metric-card">
                         <h2 id="count-review" class="text-yellow">0</h2>
@@ -94,10 +82,6 @@
                     <div class="metric-card">
                         <h2 id="count-rejected" class="text-red">0</h2>
                         <span>Rejected</span>
-                    </div>
-                    <div class="metric-card">
-                        <h2 id="count-withdrawn">0</h2>
-                        <span>Withdrawn</span>
                     </div>
                 </div>
 
@@ -119,13 +103,6 @@
                         </div>
                         <div class="tracker-line" id="line-2"></div>
 
-                        <div class="tracker-step" id="step-eval">
-                            <div class="tracker-icon">📋</div>
-                            <strong>For Final Evaluation</strong>
-                            <span id="date-eval">--</span>
-                        </div>
-                        <div class="tracker-line" id="line-3"></div>
-
                         <div class="tracker-step" id="step-final">
                             <div class="tracker-icon">🏆</div>
                             <strong>Approved / Rejected</strong>
@@ -140,7 +117,7 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>SCHOLARSHIP</th>
+                                    <th>PROGRAM</th>
                                     <th>DATE APPLIED</th>
                                     <th>CURRENT STATUS</th>
                                     <th>PROGRESS</th>
@@ -162,10 +139,8 @@
                         <span>ℹ️</span> <strong>Tips</strong>
                     </div>
                     <ul>
-                        <li>You will be notified via email and in-app notification once your application status changes.
-                        </li>
-                        <li>You can click "View Details" to review your application form responses. Uploaded documents,
-                            however, are locked upon submission.</li>
+                        <li>You will be notified via email and in-app notification once your application status changes.</li>
+                        <li>You can click "View Details" to review your application profile, responses, and OCR-extracted document data. Your application is locked and cannot be withdrawn after submission.</li>
                     </ul>
                 </div>
 
@@ -181,7 +156,7 @@
                     🤖</div>
                 <div>
                     <strong style="display:block; font-size:14px;">AI Assistant</strong>
-                    <span style="font-size:11px; opacity:0.8;">Your scholarship helper</span>
+                    <span style="font-size:11px; opacity:0.8;">Your program helper</span>
                 </div>
             </div>
             <button class="close-chat" onclick="toggleChat()">✕</button>
@@ -191,24 +166,24 @@
                 <div class="msg-avatar">🤖</div>
                 <div class="msg-bubble">
                     <strong>Hi there! 👋</strong><br>
-                    I'm your AI assistant. I can help you with scholarships, requirements, application status,
+                    I'm your AI assistant. I can help you with programs, requirements, application status,
                     and more.
                     <span class="msg-time">10:30 AM</span>
                 </div>
             </div>
             <div class="chat-message user-message">
                 <div class="msg-bubble">
-                    What scholarships am I eligible for?
+                    What educational assistance programs am I eligible for?
                     <span class="msg-time">10:31 AM ✔</span>
                 </div>
             </div>
             <div class="chat-message bot-message">
                 <div class="msg-avatar">🤖</div>
                 <div class="msg-bubble">
-                    Based on your profile, you may be eligible for the following scholarships:
+                    Based on your profile, you may be eligible for the following programs:
                     <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
-                        <li>Merit Excellence Scholarship</li>
-                        <li>Leadership Excellence Scholarship</li>
+                        <li>Merit Excellence Program</li>
+                        <li>Leadership Excellence Program</li>
                     </ul>
                     Would you like to know more about any of these?
                     <span class="msg-time">10:31 AM</span>
@@ -288,7 +263,7 @@
                     if (window.supabaseClient) {
                         document.getElementById('modal-confirm').innerText = "Logging out...";
                         await window.supabaseClient.auth.signOut();
-                        window.location.href = 'login-student.html';
+                        window.location.href = 'login.html';
                     }
                 });
             }

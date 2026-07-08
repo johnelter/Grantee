@@ -23,8 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const qrCodeContainer = document.getElementById('qr-code-container');
     const verify2faInput = document.getElementById('verify-2fa-input');
     const confirm2faBtn = document.getElementById('confirm-2fa-btn');
-    let factorId = null; // Used during 2FA setup
-    let activeFactorId = null; // Used for 2FA teardown
+    let factorId = null; 
+    let activeFactorId = null; 
 
     // State variable to track which form is currently being saved
     let activeSaveForm = null;
@@ -40,8 +40,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userId = session.user.id;
     const userEmail = session.user.email;
 
+    // --- Inject Exact Years to prevent database mismatch ---
+    const EXACT_YEARS = ["1st year", "2nd year", "3rd year", "4th year", "Irregular"];
+    const yearSelect = document.getElementById('year_level');
+    if (yearSelect) {
+        yearSelect.innerHTML = '<option value="">Select Year</option>' + EXACT_YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
+    }
+
     // ==========================================
-    // 1. FETCH AND DISPLAY DATA
+    // 1. FETCH AND DISPLAY DATA (SMART SYNC)
     // ==========================================
     async function loadProfileData() {
         try {
@@ -54,17 +61,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error) throw error;
 
-            // STEP 2: Fetch School strictly from the Masterlist (Single Source of Truth)
+            // STEP 2: Fetch School & Masterlist Syncing
             let schoolName = 'Unassigned School';
+            let masterGender = profile.gender; // Defaults to what the student saved
+            let masterYear = profile.year_level;
+            let masterProgram = profile.program || profile.course;
+
             if (profile.id_number) {
                 const { data: masterlistData, error: masterlistError } = await window.supabaseClient
                     .from('enrolled_masterlist')
-                    .select('school_id, schools(name)')
+                    .select('school_id, schools(name), gender, year_level, program')
                     .eq('id_number', profile.id_number)
                     .single();
 
-                if (!masterlistError && masterlistData && masterlistData.schools) {
-                    schoolName = masterlistData.schools.name;
+                if (!masterlistError && masterlistData) {
+                    if (masterlistData.schools) schoolName = masterlistData.schools.name;
+                    
+                    if (!masterGender && masterlistData.gender) {
+                        masterGender = masterlistData.gender;
+                    }
+
+                    if (masterlistData.year_level) masterYear = masterlistData.year_level;
+                    if (masterlistData.program) masterProgram = masterlistData.program;
+
+                    // Auto-correct the profiles table silently for Academic Info ONLY
+                    if (profile.year_level !== masterYear || profile.program !== masterProgram) {
+                        window.supabaseClient.from('profiles').update({
+                            year_level: masterYear,
+                            program: masterProgram
+                        }).eq('id', userId).then();
+                    }
                 }
             }
 
@@ -73,55 +99,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
                 
-                if(document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
-                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student';
-                if(profile.avatar_url && document.getElementById('header-avatar')) {
+                if (document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
+                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = masterProgram || 'Student';
+                if (profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
             }
 
             // --- Locked Personal Information ---
-            if(document.getElementById('first_name')) document.getElementById('first_name').value = profile.first_name || '';
-            if(document.getElementById('middle_name')) document.getElementById('middle_name').value = profile.middle_name || '';
-            if(document.getElementById('last_name')) document.getElementById('last_name').value = profile.last_name || '';
-            if(document.getElementById('email')) document.getElementById('email').value = profile.email || '';
-            if(document.getElementById('student_id')) document.getElementById('student_id').value = profile.id_number || '';
+            if (document.getElementById('first_name')) document.getElementById('first_name').value = profile.first_name || '';
+            if (document.getElementById('middle_name')) document.getElementById('middle_name').value = profile.middle_name || '';
+            if (document.getElementById('last_name')) document.getElementById('last_name').value = profile.last_name || '';
+            if (document.getElementById('email')) document.getElementById('email').value = profile.email || '';
+            if (document.getElementById('student_id')) document.getElementById('student_id').value = profile.id_number || '';
             
-            // Format Registration Date
             if (profile.created_at && document.getElementById('reg_date')) {
                 const regDate = new Date(profile.created_at);
                 document.getElementById('reg_date').value = regDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             }
 
             // --- Locked Academic Information ---
-            if(document.getElementById('school')) document.getElementById('school').value = schoolName; 
-            if(document.getElementById('program')) document.getElementById('program').value = profile.program || profile.course || ''; 
+            if (document.getElementById('school')) document.getElementById('school').value = schoolName; 
+            if (document.getElementById('program')) document.getElementById('program').value = masterProgram || ''; 
+            if (document.getElementById('year_level')) document.getElementById('year_level').value = masterYear || ''; 
 
             // --- Editable Fields (Personal) ---
-            if(document.getElementById('suffix')) document.getElementById('suffix').value = profile.suffix || '';
-            if(document.getElementById('gender')) document.getElementById('gender').value = profile.gender || '';
-            if(document.getElementById('dob')) document.getElementById('dob').value = profile.date_of_birth || '';
-            if(document.getElementById('contact_number')) document.getElementById('contact_number').value = profile.contact_number || '';
+            if (document.getElementById('suffix')) document.getElementById('suffix').value = profile.suffix || '';
+            if (document.getElementById('dob')) document.getElementById('dob').value = profile.date_of_birth || '';
+            if (document.getElementById('contact_number')) document.getElementById('contact_number').value = profile.contact_number || '';
+            if (document.getElementById('address')) document.getElementById('address').value = profile.address || ''; 
+            if (document.getElementById('gender')) document.getElementById('gender').value = masterGender || '';
 
             // --- Editable Fields (Academic) ---
-            if(document.getElementById('year_level')) document.getElementById('year_level').value = profile.year_level || '';
-            if(document.getElementById('gwa')) document.getElementById('gwa').value = profile.gwa || '';
+            if (document.getElementById('gwa')) document.getElementById('gwa').value = profile.gwa || '';
 
-            // --- CHECK 2FA STATUS (With Turn Off Logic) ---
+            // --- CHECK 2FA STATUS ---
             const { data: mfaData, error: mfaError } = await window.supabaseClient.auth.mfa.listFactors();
             if (!mfaError && mfaData && mfaData.totp && mfaData.totp.length > 0) {
-                
-                // Check if any of the factors are actually verified and active
                 const activeFactor = mfaData.totp.find(f => f.status === 'verified');
-                
                 if (activeFactor) {
                     activeFactorId = activeFactor.id;
-                    if(start2faBtn && setup2faSection) {
+                    if (start2faBtn && setup2faSection) {
                         start2faBtn.style.display = 'none';
                         setup2faSection.style.display = 'block';
                         setup2faSection.style.borderTop = 'none';
                         
-                        // Inject the Active status and the Turn Off Button
                         setup2faSection.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center; background:#ecfdf5; padding:15px; border-radius:8px; border:1px solid #10b981;">
                                 <p style="color: #065f46; font-weight: 600; margin: 0; font-size:14px;">✅ Two-Factor Authentication is Active.</p>
@@ -129,7 +151,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                         `;
 
-                        // Add event listener to the newly created Turn Off button
                         document.getElementById('disable-2fa-btn').addEventListener('click', async () => {
                             const isConfirmed = confirm("Are you sure you want to disable Two-Factor Authentication? This will make your account less secure.");
                             if (isConfirmed) {
@@ -142,7 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     if (unenrollError) throw unenrollError;
                                     
                                     alert("2FA has been successfully disabled.");
-                                    window.location.reload(); // Refresh the page to reset the UI
+                                    window.location.reload(); 
                                 } catch (err) {
                                     alert("Failed to disable 2FA: " + err.message);
                                     document.getElementById('disable-2fa-btn').innerText = "Turn Off 2FA";
@@ -163,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. MODAL LOGIC FOR SAVING PROFILE
     // ==========================================
 
-    if(personalForm) {
+    if (personalForm) {
         personalForm.addEventListener('submit', (e) => {
             e.preventDefault();
             activeSaveForm = 'personal';
@@ -171,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    if(academicForm) {
+    if (academicForm) {
         academicForm.addEventListener('submit', (e) => {
             e.preventDefault();
             activeSaveForm = 'academic';
@@ -198,28 +219,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveProceedBtn.disabled = true;
 
             try {
+                const studentIdNumber = document.getElementById('student_id').value;
+
                 if (activeSaveForm === 'personal') {
                     const updates = {
-                        suffix: document.getElementById('suffix') ? document.getElementById('suffix').value.trim() : null,
-                        gender: document.getElementById('gender') ? document.getElementById('gender').value : null,
-                        date_of_birth: document.getElementById('dob') ? document.getElementById('dob').value || null : null,
-                        contact_number: document.getElementById('contact_number') ? document.getElementById('contact_number').value.trim() || null : null,
+                        suffix: document.getElementById('suffix')?.value.trim() || null,
+                        gender: document.getElementById('gender')?.value || null,
+                        date_of_birth: document.getElementById('dob')?.value || null,
+                        contact_number: document.getElementById('contact_number')?.value.trim() || null,
+                        address: document.getElementById('address')?.value.trim() || null,
                         updated_at: new Date()
                     };
+                    
+                    // Update Profiles Table - Student's gender is successfully saved here!
                     const { error } = await window.supabaseClient.from('profiles').update(updates).eq('id', userId);
                     if (error) throw error;
+
                 } 
                 else if (activeSaveForm === 'academic') {
+                    const gwaInput = document.getElementById('gwa')?.value;
                     const updates = {
-                        year_level: document.getElementById('year_level') ? document.getElementById('year_level').value : null,
-                        gwa: document.getElementById('gwa') ? document.getElementById('gwa').value || null : null,
                         updated_at: new Date()
                     };
+                    
+                    // Prevent DB crash if the input is completely empty, but parse correctly if it exists
+                    if (gwaInput && gwaInput.trim() !== "") {
+                        updates.gwa = parseFloat(gwaInput);
+                    } else {
+                        updates.gwa = null;
+                    }
+                    
+                    // 1. Update Profiles Table
                     const { error } = await window.supabaseClient.from('profiles').update(updates).eq('id', userId);
-                    if (error) throw error;
+                    
+                    if (error) {
+                        if (error.message.includes('gwa')) throw new Error("The database is missing the 'gwa' column! Please run the SQL command provided by the developer.");
+                        throw error;
+                    }
                 }
 
-                // Hide confirm modal, show success modal
                 saveConfirmModal.style.display = 'none';
                 document.getElementById('success-title').innerText = "Success!";
                 document.getElementById('success-message').innerText = "Your profile settings have been successfully updated.";
@@ -227,7 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             } catch (error) {
                 console.error("Error updating info:", error);
-                alert("Failed to save updates.");
+                alert("Failed to save updates: " + error.message);
                 saveConfirmModal.style.display = 'none';
             } finally {
                 saveProceedBtn.innerText = "Yes, Save";
@@ -240,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     // 3. SECURITY SETTINGS (Update Password)
     // ==========================================
-    if(passwordForm) {
+    if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -258,7 +296,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Strong password regex requirement
             const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/;
             if (!strongPasswordRegex.test(newPassword)) {
                 alert("Security Requirement: Password must be at least 8 characters long and contain:\n\n• One uppercase letter (A-Z)\n• One lowercase letter (a-z)\n• One number (0-9)\n• One special character (e.g., !@#$%^&*)");
@@ -270,17 +307,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.disabled = true;
 
             try {
-                // STEP 1: Verify Current Password via a silent re-login
                 const { error: signInError } = await window.supabaseClient.auth.signInWithPassword({
                     email: userEmail,
                     password: currentPassword
                 });
 
-                if (signInError) {
-                    throw new Error("Incorrect current password. Please try again.");
-                }
+                if (signInError) throw new Error("Incorrect current password. Please try again.");
 
-                // STEP 2: Update to New Password
                 btn.innerText = "Updating...";
                 const { error: updateError } = await window.supabaseClient.auth.updateUser({
                     password: newPassword
@@ -288,7 +321,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (updateError) throw updateError;
 
-                // Show Success Modal, then log them out to re-authenticate
                 document.getElementById('success-title').innerText = "Password Updated";
                 document.getElementById('success-message').innerText = "Your password has been changed securely. You will now be logged out.";
                 successModal.style.display = 'flex';
@@ -318,30 +350,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             start2faBtn.disabled = true;
 
             try {
-                // 1. CLEANUP: Find and remove any stuck 'unverified' factors
+                // 1. CLEANUP: Forcefully remove ALL existing TOTP factors to prevent naming collisions
                 const { data: existingFactors } = await window.supabaseClient.auth.mfa.listFactors();
                 if (existingFactors && existingFactors.totp) {
                     for (const factor of existingFactors.totp) {
-                        if (factor.status === 'unverified') {
-                            await window.supabaseClient.auth.mfa.unenroll({ factorId: factor.id });
-                        }
+                        await window.supabaseClient.auth.mfa.unenroll({ factorId: factor.id });
                     }
                 }
 
-                // 2. ENROLL: Create a new factor with a proper name
+                // 2. ENROLL: Append a random number to guarantee a 100% unique friendlyName
+                const randomId = Math.floor(Math.random() * 10000);
                 const { data, error } = await window.supabaseClient.auth.mfa.enroll({
                     factorType: 'totp',
-                    friendlyName: 'Grantee Student App' 
+                    friendlyName: `Grantee App ${randomId}`
                 });
 
                 if (error) throw error;
-
                 factorId = data.id;
 
-                // Inject the generated QR Code (SVG)
-                qrCodeContainer.innerHTML = data.totp.qr_code;
+                // FIX: Wrap the raw SVG in a high-contrast container with forced dimensions
+                qrCodeContainer.innerHTML = `<div style="display: inline-block; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 220px; height: 220px; margin: 0 auto;">
+                    ${data.totp.qr_code.replace('<svg', '<svg width="200" height="200" style="display:block; margin:0 auto;"')}
+                </div>`;
                 
-                // Add the manual secret key fallback just in case their camera fails
                 qrCodeContainer.innerHTML += `
                     <p style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
                         Can't scan the QR code? Enter this secret key manually into your app:<br>
@@ -350,8 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </strong>
                     </p>
                 `;
-                
-                // Show the verify input section, hide the start button
+
                 setup2faSection.style.display = 'block';
                 start2faBtn.style.display = 'none';
 
@@ -376,11 +406,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             confirm2faBtn.disabled = true;
 
             try {
-                // Create a challenge for the factor
                 const { data: challenge, error: challengeError } = await window.supabaseClient.auth.mfa.challenge({ factorId });
                 if (challengeError) throw challengeError;
 
-                // Verify the code
                 const { data: verifyData, error: verifyError } = await window.supabaseClient.auth.mfa.verify({
                     factorId,
                     challengeId: challenge.id,
@@ -389,9 +417,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (verifyError) throw verifyError;
 
-                // Success
                 alert("2FA has been successfully enabled! You will be asked for a code next time you log in.");
-                window.location.reload(); // Refresh to lock in the "Turn Off" UI
+                window.location.reload(); 
 
             } catch (error) {
                 alert("Invalid code. Please try again. " + error.message);
@@ -409,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnChangePhoto = document.getElementById('change-photo-btn');
     const avatarUploadInput = document.getElementById('avatar-upload');
 
-    if(btnChangePhoto && avatarUploadInput) {
+    if (btnChangePhoto && avatarUploadInput) {
         btnChangePhoto.addEventListener('click', () => {
             avatarUploadInput.click();
         });
@@ -428,22 +455,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { error: uploadError } = await window.supabaseClient.storage
                     .from('avatars')
                     .upload(filePath, file, { upsert: true });
-                
+
                 if (uploadError) throw uploadError;
 
                 const { data: { publicUrl } } = window.supabaseClient.storage
                     .from('avatars')
                     .getPublicUrl(filePath);
 
-                // Update Database with new URL
                 await window.supabaseClient
                     .from('profiles')
                     .update({ avatar_url: publicUrl })
                     .eq('id', userId);
 
-                // Update UI
-                profileAvatarImg.src = publicUrl;
-                headerAvatarImg.src = publicUrl;
+                const cacheBuster = `?t=${new Date().getTime()}`;
+                profileAvatarImg.src = publicUrl + cacheBuster;
+                headerAvatarImg.src = publicUrl + cacheBuster;
 
                 document.getElementById('success-title').innerText = "Success!";
                 document.getElementById('success-message').innerText = "Profile photo updated successfully.";
@@ -460,11 +486,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
-    // 6. DOWNLOAD PDF PROFILE
+    // 6. DOWNLOAD PDF PROFILE (WITH ADDRESS)
     // ==========================================
     const downloadBtn = document.querySelector('.action-item');
     if (downloadBtn) {
-        downloadBtn.addEventListener('click', function(e) {
+        downloadBtn.addEventListener('click', function (e) {
             e.preventDefault(); 
 
             const { jsPDF } = window.jspdf;
@@ -475,23 +501,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             const studentIdVal = document.getElementById('student_id') ? document.getElementById('student_id').value : '';
             const program = document.getElementById('program') ? document.getElementById('program').value : '';
             const email = document.getElementById('email') ? document.getElementById('email').value : '';
-            
-            // New dynamic fields for the report
+
             const contact = document.getElementById('contact_number') ? document.getElementById('contact_number').value : 'N/A';
+            const address = document.getElementById('address') ? document.getElementById('address').value : 'N/A';
             const gwa = document.getElementById('gwa') ? document.getElementById('gwa').value : 'N/A';
+
+            // Re-fetch the locked year level
+            const yearLevel = document.getElementById('year_level') ? document.getElementById('year_level').value : 'N/A';
 
             doc.setFontSize(22);
             doc.text("Student Profile Report", 20, 20);
-            
+
             doc.setFontSize(12);
             doc.text(`Name: ${firstName} ${lastName}`, 20, 40);
             doc.text(`Student ID: ${studentIdVal}`, 20, 50);
             doc.text(`Program: ${program}`, 20, 60);
-            doc.text(`Email: ${email}`, 20, 70);
-            doc.text(`Contact Number: ${contact}`, 20, 80);
-            doc.text(`Current GWA: ${gwa}`, 20, 90);
-            
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 110);
+            doc.text(`Year Level: ${yearLevel}`, 20, 70);
+            doc.text(`Email: ${email}`, 20, 80);
+            doc.text(`Contact Number: ${contact}`, 20, 90);
+            doc.text(`Address: ${address}`, 20, 100);
+            doc.text(`Current GWA: ${gwa}`, 20, 110);
+
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 130);
 
             doc.save(`Profile_${lastName}.pdf`);
         });

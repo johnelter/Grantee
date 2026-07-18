@@ -3,342 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scholarship Policies - Grantee Admin</title>
+    <title>Assistance Policies - Grantee Admin</title>
+    
+    <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/admin-policies.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        .swal2-container { z-index: 99999 !important; }
+        @media (max-width: 768px) {
+            .header-actions { width: 100%; justify-content: flex-end; margin-top: 15px; }
+            .content-header { flex-direction: column; align-items: stretch; }
+            .hamburger-btn { display: flex !important; }
+        }
+    </style>
 </head>
 <body class="light-theme">
     <div class="app-layout">
-
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo-icon">🎓</span>
-                <div>
-                    <h2>Grantee</h2>
-                    <p class="sub-brand">Smart Scholarship Management</p>
-                </div>
-            </div>
-
-            <nav class="sidebar-menu">
-                <a href="admin-dashboard.html" class="menu-item">
-                    <span class="menu-icon">🏠</span> Dashboard
-                </a>
-                <a href="admin-scholarships.html" class="menu-item">
-                    <span class="menu-icon">🎓</span> Educational Assistance
-                </a>
-                <a href="admin-applications.html" class="menu-item">
-                    <span class="menu-icon">📄</span> Applications
-                </a>
-                <a href="admin-active-scholars.html" class="menu-item">
-                    <span class="menu-icon">🏆</span> Active Scholars
-                </a>
-                <a href="admin-policies.html" class="menu-item active">
-                    <span class="menu-icon">📋</span> Assistance Policies
-                </a>
-                <a href="admin-students.html" class="menu-item">
-                    <span class="menu-icon">👥</span> Enrolled Students
-                </a>
-                <a href="admin-announcements.html" class="menu-item">
-                    <span class="menu-icon">📢</span> Announcements
-                </a>
-                <a href="admin-profile-settings.html" class="menu-item">
-                    <span class="menu-icon">⚙️</span> Profile Settings
-                </a>
-            </nav>
-        </aside>
+        
+        <!-- DYNAMIC SIDEBAR INJECTION POINT -->
+        <div id="sidebar-container"></div>
 
         <main class="main-content">
-            
-            <header class="content-header">
-                <div class="header-left">
-                    <div class="header-titles">
-                        <h1 style="display: flex; align-items: center; gap: 10px;">
-                            Scholarship Policies <span style="color: var(--primary-color); font-size: 24px;">☑️</span>
-                        </h1>
-                        <p class="welcome-text">Configure global scholarship rules and application limits for all students.</p>
-                    </div>
-                </div>
+            <div class="content-wrapper">
                 
-                <div class="header-actions">
-                    <button class="btn-primary" id="btn-save-policies">💾 Save All Changes</button>
+                <!-- HEADER RESTRUCTURED -->
+                <header class="content-header" style="display: flex; flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 30px;">
                     
-                    <div style="width: 1px; height: 30px; background: var(--border-dark); margin: 0 10px;"></div>
-
-                    <div class="notification-bell">🔔<span class="badge">5</span></div>
-
-                    <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
-                        <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
-                        <div class="profile-info">
-                            <strong id="header-name">Loading...</strong>
-                            <span id="header-role">Coordinator</span>
+                    <!-- TOP ROW: Action Icons (Profile, Bell, Hamburger) -->
+                    <div class="header-actions" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: 100%;">
+                        
+                        <div class="notification-bell" aria-label="Notifications" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-color); background: #fff; color: var(--text-main); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge" style="position: absolute; top: -2px; right: -2px; background: var(--danger-color); color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #fff;">5</span>
                         </div>
-                        <span class="dropdown-arrow">▼</span>
 
-                        <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="profile-settings.html">👤 Profile Settings</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red">🚪 Logout</a>
+                        <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="profile-menu" style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 6px 16px 6px 6px; border-radius: 30px; border: 1px solid var(--border-color); background: #fff; position: relative;">
+                            <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
+                            <div class="profile-info">
+                                <strong id="header-name" style="display: block; font-size: 14px; color: var(--text-main);">Loading...</strong>
+                                <span id="header-role" style="display: block; font-size: 12px; color: var(--text-muted);">Coordinator</span>
+                            </div>
+                            <span class="dropdown-arrow" style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-caret-down"></i></span>
+
+                            <div class="profile-dropdown-menu" id="profile-menu" aria-hidden="true" style="position: absolute; top: 115%; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); min-width: 200px; padding: 8px 0;">
+                                <a href="admin-profile-settings.html" style="padding: 10px 20px; color: var(--text-main); font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
+                                <div class="dropdown-divider" style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger" style="padding: 10px 20px; color: #ef4444; font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                            </div>
+                        </div>
+
+                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Open menu" style="display: none; background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer;">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                    </div>
+
+                    <!-- MIDDLE ROW: Titles -->
+                    <div class="header-titles-wrapper">
+                        <div class="header-titles">
+                            <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Assistance Policies</h1>
+                            <p class="welcome-text" style="color: var(--text-muted); font-size: 14px;">Configure global educational assistance rules and application limits for all students.</p>
                         </div>
                     </div>
-                </div>
-            </header>
 
-            <div class="info-banner mb-24">
-                <strong>ℹ️ About Scholarship Policies</strong>
-                <p>These policies define the global rules that apply to all scholarships in the system. You can set the maximum number of scholarships a student can hold, per category limits, and combination rules.</p>
+                    <!-- BOTTOM ROW: Save Button -->
+                    <div class="header-actions-bottom" style="display: flex; justify-content: flex-start; margin-top: 5px;">
+                        <button type="button" class="btn-primary" id="btn-save-policies" style="background: var(--primary-color); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-floppy-disk"></i> Save All Changes
+                        </button>
+                    </div>
+
+                </header>
+
+                <div class="info-banner mb-24" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 24px; color: #1e3a8a;">
+                    <strong style="display: flex; align-items: center; font-size: 15px; margin-bottom: 8px;"><i class="fa-solid fa-circle-info" style="margin-right: 8px; color: #3b82f6;"></i> About Educational Assistance Policies</strong>
+                    <p style="font-size: 13px; line-height: 1.5; margin: 0; color: #1e40af;">These policies define the global rules that apply to all educational assistance programs in the institution. You can set the maximum number of assistances a student can hold, per-category limits, and combination rules.</p>
+                </div>
+
+                <form id="policies-form">
+                    <div class="policy-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                        
+                        <!-- 1. Global Limit -->
+                        <div class="policy-card" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <h3 style="font-size: 16px; margin: 0;">1. Global Assistance Limit</h3>
+                                    <span class="status-badge" id="global-limit-status" style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Enabled</span>
+                                </div>
+                                <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                                    <input type="checkbox" id="pol-global-enabled" checked style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                </label>
+                            </div>
+                            <p class="hint-text mb-20" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Set the maximum number of active educational assistance programs a student can have across all categories.</p>
+                            
+                            <div class="input-group" style="margin-bottom: 10px;">
+                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Maximum Active Assistance Per Student (All Categories)</label>
+                                <input type="number" id="pol-global-limit" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;" value="3" min="0">
+                            </div>
+                            <p class="text-link mt-10" style="font-size: 12px; color: #3b82f6; cursor: pointer; font-weight: 500;" id="btn-set-unlimited-global">Set to 0 for unlimited assistance.</p>
+                        </div>
+
+                        <!-- 2. Category Limits (Dynamic Container) -->
+                        <div class="policy-card" id="category-limits-container" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                            <!-- Injected via JS -->
+                        </div>
+
+                        <!-- 3. Combination Rules (Dynamic Container) -->
+                        <div class="policy-card" id="matrix-container" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                            <!-- Injected via JS -->
+                        </div>
+
+                        <!-- 4. Other Settings -->
+                        <div class="policy-card" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                            <div class="card-header" style="margin-bottom: 10px;">
+                                <h3 style="font-size: 16px; margin: 0;">4. Other Policy Settings</h3>
+                            </div>
+                            
+                            <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0;">
+                                <div class="setting-text">
+                                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Auto-validate limits on application</strong>
+                                    <span style="font-size: 12px; color: var(--text-muted);">Automatically block application if limit is reached.</span>
+                                </div>
+                                <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0;">
+                                    <input type="checkbox" id="pol-auto-validate" checked style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                </label>
+                            </div>
+                            <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0;">
+                                <div class="setting-text">
+                                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Allow override for administrators</strong>
+                                    <span style="font-size: 12px; color: var(--text-muted);">Admins can manually approve even if limit is exceeded.</span>
+                                </div>
+                                <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0;">
+                                    <input type="checkbox" id="pol-allow-override" checked style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 5. Summary (Dynamic Container) -->
+                        <div class="policy-card full-width" id="summary-container" style="grid-column: 1 / -1; background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                            <!-- Injected via JS -->
+                        </div>
+
+                    </div>
+                </form>
             </div>
-
-            <form id="policies-form">
-                <div class="policy-grid">
-                    
-                    <div class="policy-card">
-                        <div class="card-header">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <h3>1. Global Scholarship Limit</h3>
-                                <span class="status-badge" id="global-limit-status">Enabled</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="pol-global-enabled" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <p class="hint-text mb-20">Set the maximum number of active scholarships a student can have across all categories.</p>
-                        
-                        <div class="input-group">
-                            <label>Maximum Active Scholarships Per Student (All Categories)</label>
-                            <input type="number" id="pol-global-limit" class="form-input" value="3" min="0">
-                        </div>
-                        <p class="text-link mt-10" style="font-size: 13px;" onclick="document.getElementById('pol-global-limit').value = 0; updateSummary();">Set to 0 for unlimited scholarships.</p>
-                    </div>
-
-                    <div class="policy-card">
-                        <div class="card-header">
-                            <h3>2. Per Category Limits</h3>
-                        </div>
-                        <p class="hint-text mb-20">Set the maximum number of active scholarships allowed per category.</p>
-                        
-                        <div class="category-limit-row">
-                            <div class="cat-label">
-                                <div class="cat-icon bg-green-light text-green">🎓</div>
-                                <span>CHED Scholarship</span>
-                            </div>
-                            <div class="cat-controls">
-                                <div class="input-group" style="margin: 0; width: 120px;">
-                                    <label style="font-size: 11px;">Maximum Allowed</label>
-                                    <select id="pol-cat-ched" class="form-input">
-                                        <option value="0">0</option>
-                                        <option value="1" selected>1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                    </select>
-                                </div>
-                                <label class="checkbox-label"><input type="checkbox" id="pol-unli-ched"> Unlimited</label>
-                            </div>
-                        </div>
-
-                        <div class="category-limit-row">
-                            <div class="cat-label">
-                                <div class="cat-icon bg-blue-light text-blue">🏛️</div>
-                                <span>School-Based Scholarship</span>
-                            </div>
-                            <div class="cat-controls">
-                                <div class="input-group" style="margin: 0; width: 120px;">
-                                    <label style="font-size: 11px;">Maximum Allowed</label>
-                                    <select id="pol-cat-school" class="form-input">
-                                        <option value="0">0</option>
-                                        <option value="1">1</option>
-                                        <option value="2" selected>2</option>
-                                        <option value="3">3</option>
-                                    </select>
-                                </div>
-                                <label class="checkbox-label"><input type="checkbox" id="pol-unli-school"> Unlimited</label>
-                            </div>
-                        </div>
-
-                        <div class="category-limit-row">
-                            <div class="cat-label">
-                                <div class="cat-icon bg-purple-light text-purple">🌐</div>
-                                <span>Scholarship Offered Outside</span>
-                            </div>
-                            <div class="cat-controls">
-                                <div class="input-group" style="margin: 0; width: 120px;">
-                                    <label style="font-size: 11px;">Maximum Allowed</label>
-                                    <select id="pol-cat-outside" class="form-input" disabled>
-                                        <option value="0" selected>0</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                    </select>
-                                </div>
-                                <label class="checkbox-label"><input type="checkbox" id="pol-unli-outside" checked> Unlimited</label>
-                            </div>
-                        </div>
-
-                        <div class="info-banner-sm mt-10">
-                            ℹ️ A value of 0 means unlimited for that category.
-                        </div>
-                    </div>
-
-                    <div class="policy-card">
-                        <div class="card-header">
-                            <h3>3. Category Combination Rules</h3>
-                        </div>
-                        <p class="hint-text mb-20">Choose which categories can be combined by a student.</p>
-                        
-                        <p style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text-main);">Allow combination between categories</p>
-                        <table class="matrix-table">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th>CHED</th>
-                                    <th>School-Based</th>
-                                    <th>Offered Outside</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="row-label">CHED Scholarship</td>
-                                    <td class="text-center">—</td>
-                                    <td class="text-center"><input type="checkbox" id="combo-ched-school" class="custom-checkbox" checked></td>
-                                    <td class="text-center"><input type="checkbox" id="combo-ched-outside" class="custom-checkbox" checked></td>
-                                </tr>
-                                <tr>
-                                    <td class="row-label">School-Based Scholarship</td>
-                                    <td class="text-center"><input type="checkbox" id="combo-school-ched" class="custom-checkbox" checked disabled style="opacity: 0.5;"></td>
-                                    <td class="text-center">—</td>
-                                    <td class="text-center"><input type="checkbox" id="combo-school-outside" class="custom-checkbox" checked></td>
-                                </tr>
-                                <tr>
-                                    <td class="row-label">Scholarship Offered Outside</td>
-                                    <td class="text-center"><input type="checkbox" id="combo-outside-ched" class="custom-checkbox" checked disabled style="opacity: 0.5;"></td>
-                                    <td class="text-center"><input type="checkbox" id="combo-outside-school" class="custom-checkbox" checked disabled style="opacity: 0.5;"></td>
-                                    <td class="text-center">—</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div class="info-banner-sm mt-20">
-                            ℹ️ Check the boxes to allow students to hold scholarships from both categories simultaneously.
-                        </div>
-                    </div>
-
-                    <div class="policy-card">
-                        <div class="card-header">
-                            <h3>4. Other Policy Settings</h3>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <div class="setting-text">
-                                <strong>Count pending applications in the limit</strong>
-                                <span>Include pending scholarship applications in the maximum count.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="pol-count-pending">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-row">
-                            <div class="setting-text">
-                                <strong>Count expired/revoked scholarships</strong>
-                                <span>Include expired or revoked scholarships in the maximum count.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="pol-count-expired">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-row">
-                            <div class="setting-text">
-                                <strong>Auto-validate scholarship limit on application</strong>
-                                <span>Automatically check and prevent application if limit is reached.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="pol-auto-validate" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
-                            <div class="setting-text">
-                                <strong>Allow override for administrators</strong>
-                                <span>Administrators can approve applications even if limit is exceeded.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="pol-allow-override" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="policy-card full-width">
-                        <div class="card-header">
-                            <h3>5. Policy Summary</h3>
-                        </div>
-                        <p class="hint-text mb-20">Overview of the current scholarship policies.</p>
-                        
-                        <div class="summary-grid">
-                            <div class="summary-card">
-                                <div class="sum-icon bg-green-light text-green">🛡️</div>
-                                <div>
-                                    <span class="sum-label">Global Limit (All Categories)</span>
-                                    <strong class="sum-value" id="sum-global">3</strong>
-                                    <span class="sum-sub">active scholarships</span>
-                                </div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="sum-icon bg-green-light text-green">🎓</div>
-                                <div>
-                                    <span class="sum-label">CHED Scholarship Limit</span>
-                                    <strong class="sum-value" id="sum-ched">1</strong>
-                                    <span class="sum-sub">active scholarship</span>
-                                </div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="sum-icon bg-blue-light text-blue">🏛️</div>
-                                <div>
-                                    <span class="sum-label">School-Based Limit</span>
-                                    <strong class="sum-value" id="sum-school">2</strong>
-                                    <span class="sum-sub">active scholarships</span>
-                                </div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="sum-icon" style="background:#fef3c7; color:#d97706;">🌐</div>
-                                <div>
-                                    <span class="sum-label">Offered Outside Limit</span>
-                                    <strong class="sum-value" id="sum-outside" style="font-size: 32px; line-height: 1;">∞</strong>
-                                    <span class="sum-sub">unlimited</span>
-                                </div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="sum-icon bg-green-light text-green">✅</div>
-                                <div>
-                                    <span class="sum-label">Combination Allowed</span>
-                                    <strong class="sum-value" id="sum-combo" style="font-size: 20px; line-height: 1.5; margin-top: 5px;">Yes</strong>
-                                    <span class="sum-sub">between categories</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="warning-banner mt-20">
-                            <strong>⚠️ These policies are applied in real-time when students submit applications.</strong>
-                        </div>
-                    </div>
-
-                </div>
-            </form>
         </main>
     </div>
 
-    <div id="logout-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm text-center">
-            <div class="modal-icon">🚪</div>
-            <h3>Logout</h3>
-            <p class="text-muted text-sm mb-20">Are you sure you want to log out of the Admin Dashboard?</p>
-            <div class="modal-actions" style="justify-content: center;">
-                <button id="modal-cancel" class="btn-outline">Cancel</button>
-                <button id="modal-confirm" class="btn-danger">Logout</button>
-            </div>
-        </div>
-    </div>
+    <!-- MOBILE SIDEBAR OVERLAY -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/sidebar-loader.js"></script>
     <script src="js/admin-policies.js"></script>
 </body>
 </html>

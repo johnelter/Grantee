@@ -1,56 +1,19 @@
 document.addEventListener('DOMContentLoaded', async () => {
     
-    // --- 0. INJECT CSS & MODAL HTML FOR FULL VIEW ---
-    const style = document.createElement('style');
-    style.innerHTML = `
-        /* Chrome, Safari, Edge, Opera */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        /* Firefox */
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-        /* Scrollbar styling for extracted data box */
-        .ai-data-box::-webkit-scrollbar { width: 6px; }
-        .ai-data-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        
-        /* Document Full View Modal CSS */
-        .doc-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.9); z-index: 99999;
-            display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(4px);
-        }
-        .doc-modal-content {
-            width: 90vw; height: 90vh; background: #000; border-radius: 8px;
-            position: relative; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        .doc-modal-close {
-            position: absolute; top: 15px; right: 20px;
-            font-size: 28px; font-weight: bold; color: #fff;
-            background: #ef4444; border: none; border-radius: 50%;
-            width: 40px; height: 40px; cursor: pointer; z-index: 100000;
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.2s;
-        }
-        .doc-modal-close:hover { background: #dc2626; transform: scale(1.05); }
-    `;
-    document.head.appendChild(style);
-
+    // --- 1. INJECT MODAL HTML FOR FULL VIEW ---
     const modalHtml = `
         <div id="full-view-modal" class="doc-modal-overlay">
             <div class="doc-modal-content">
-                <button class="doc-modal-close" onclick="document.getElementById('full-view-modal').style.display='none'">×</button>
+                <button class="doc-modal-close" onclick="document.getElementById('full-view-modal').style.display='none'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
                 <div id="full-view-content" style="width:100%; height:100%;"></div>
             </div>
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    // --- 1. DYNAMICALLY LOAD LIBRARIES (PDF.js for previews) ---
+    // --- 2. DYNAMICALLY LOAD LIBRARIES (PDF.js for previews) ---
     async function loadPDFJS() {
         if (window.pdfjsLib) return;
         return new Promise((resolve, reject) => {
@@ -68,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const scholarshipId = urlParams.get('id');
 
-    // --- 2. AUTH CHECK ---
+    // --- 3. AUTH CHECK ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
     if (sessionError || !session) { 
         window.location.href = 'login.html'; 
@@ -88,33 +51,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     window.tempFileUrls = {}; // Global store for local blob URLs for the Full View
 
-    // --- 2.5 DROPDOWN MENU LOGIC ---
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
+    // --- TEXT FORMATTING UTILITY ---
+    const formatText = (text, rule) => {
+        if (!text || typeof text !== 'string') return text;
+        if (rule === 'UPPERCASE') return text.toUpperCase();
+        if (rule === 'lowercase') return text.toLowerCase();
+        if (rule === 'Capitalize Each Word') return text.replace(/\b\w/g, l => l.toUpperCase());
+        return text; // 'No formatting' or unknown fallback
+    };
 
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileMenu.classList.toggle('show');
-        });
-        document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) profileMenu.classList.remove('show');
-        });
-    }
-
-    const logoutBtn = document.getElementById('dropdown-logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await window.supabaseClient.auth.signOut();
-            window.location.href = 'login.html';
-        });
-    }
-
-    // --- 3. INIT FUNCTION ---
+    // --- 4. INIT FUNCTION ---
     async function init() {
         try {
-            // A. Fetch Student Profile
+            // A. Fetch Educational Assistance Details First (To get formatting rules)
+            const { data: sch } = await window.supabaseClient.from('scholarships').select('*').eq('id', scholarshipId).single();
+            currentScholarship = sch; 
+            const autoFmt = sch.auto_collected_formats || {};
+            
+            if(document.getElementById('sch-category')) document.getElementById('sch-category').innerText = sch.category || 'Institution-Funded Educational Assistance';
+            if(document.getElementById('sch-type')) document.getElementById('sch-type').innerText = sch.scholarship_type || 'Merit-Based';
+            if(document.getElementById('sch-title')) document.getElementById('sch-title').innerText = sch.title;
+            if(document.getElementById('sch-provider')) document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
+            if(document.getElementById('sch-description')) document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
+            
+            const dateObj = sch.end_date ? new Date(sch.end_date) : null;
+            if(document.getElementById('sch-deadline')) document.getElementById('sch-deadline').innerText = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No Deadline';
+            
+            // Batch, Semester, and School Year Integrations
+            if(document.getElementById('sch-batch')) document.getElementById('sch-batch').innerText = sch.batch || 'N/A';
+            if(document.getElementById('sch-semester')) document.getElementById('sch-semester').innerText = sch.semester || 'N/A';
+            if(document.getElementById('sch-school-year')) document.getElementById('sch-school-year').innerText = sch.school_year || 'N/A';
+            
+            if(document.getElementById('sch-slots')) document.getElementById('sch-slots').innerText = sch.slots || 'Unlimited';
+
+            // B. Fetch Student Profile
             const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', studentId).single();
             
             if(profile) {
@@ -142,32 +112,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if(document.getElementById('prof-id')) document.getElementById('prof-id').value = profile.id_number || 'N/A';
                 if(document.getElementById('prof-email')) document.getElementById('prof-email').value = studentEmail || 'N/A';
-                if(document.getElementById('prof-fullname')) document.getElementById('prof-fullname').value = studentFullName;
-                if(document.getElementById('prof-program')) document.getElementById('prof-program').value = masterProgram || 'N/A';
-                if(document.getElementById('prof-year')) document.getElementById('prof-year').value = profile.year_level || 'N/A';
-                
-                // --- NEW ADDITIONS TO APPLICANT PROFILE ---
                 if(document.getElementById('prof-dob')) document.getElementById('prof-dob').value = profile.date_of_birth || 'N/A';
-                if(document.getElementById('prof-gender')) document.getElementById('prof-gender').value = profile.gender || 'N/A';
                 if(document.getElementById('prof-contact')) document.getElementById('prof-contact').value = profile.contact_number || 'N/A';
-                if(document.getElementById('prof-address')) document.getElementById('prof-address').value = profile.address || 'N/A';
+                
+                // Formatted Auto-Collected Profile Information
+                if(document.getElementById('prof-fullname')) document.getElementById('prof-fullname').value = formatText(studentFullName, autoFmt['Full Name']);
+                if(document.getElementById('prof-gender')) document.getElementById('prof-gender').value = formatText(profile.gender || 'N/A', autoFmt['Gender']);
+                if(document.getElementById('prof-address')) document.getElementById('prof-address').value = formatText(profile.address || 'N/A', autoFmt['Address']);
+                if(document.getElementById('prof-program')) document.getElementById('prof-program').value = formatText(masterProgram || 'N/A', autoFmt['Program']);
+                if(document.getElementById('prof-year')) document.getElementById('prof-year').value = formatText(profile.year_level || 'N/A', autoFmt['Year Level']);
             }
-
-            // B. Fetch Scholarship Details
-            const { data: sch } = await window.supabaseClient.from('scholarships').select('*').eq('id', scholarshipId).single();
-            currentScholarship = sch; 
-            
-            if(document.getElementById('sch-category')) document.getElementById('sch-category').innerText = sch.category || 'Institution-Funded Educational Assistance';
-            
-            if(document.getElementById('sch-type')) document.getElementById('sch-type').innerText = sch.scholarship_type || 'Merit-Based';
-            
-            if(document.getElementById('sch-title')) document.getElementById('sch-title').innerText = sch.title;
-            if(document.getElementById('sch-provider')) document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
-            if(document.getElementById('sch-description')) document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
-            
-            const dateObj = sch.end_date ? new Date(sch.end_date) : null;
-            if(document.getElementById('sch-deadline')) document.getElementById('sch-deadline').innerText = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No Deadline';
-            if(document.getElementById('sch-slots')) document.getElementById('sch-slots').innerText = sch.slots || 'Unlimited';
 
             // C. Render Eligibility Rules
             const elList = document.getElementById('sch-eligibility');
@@ -202,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!hasRules) elList.innerHTML = `<li>No specific eligibility restrictions for this educational assistance program.</li>`;
             }
 
-            // D. Render Dynamic Questionnaire
+            // D. Render Dynamic Questionnaire with Custom Formatting Rules
             const questionsContainer = document.getElementById('dynamic-questions');
             if (sch.form_fields && questionsContainer) {
                 sch.form_fields.forEach((field, i) => {
@@ -226,13 +180,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                         inputHtml = `<input type="date" class="dynamic-input" name="q_${i}" ${reqStr}>`;
                     } else {
                         const htmlType = (field.type && field.type.toLowerCase() === 'number') ? 'number' : 'text';
-                        inputHtml = `<input type="${htmlType}" class="dynamic-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr}>`;
+                        const formatRule = field.format_rule || 'No formatting';
+                        inputHtml = `<input type="${htmlType}" class="dynamic-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr} data-format="${formatRule}">`;
                     }
                     
                     div.innerHTML = `<label style="display:block; font-size:13px; font-weight:600; color:#1e293b; margin-bottom:8px;">${field.label}${reqIcon}</label>${inputHtml}`;
                     if(field.type === 'Textarea' || field.type === 'Text') div.style.gridColumn = '1 / -1';
                     
                     questionsContainer.appendChild(div);
+                });
+
+                // Attach real-time formatter to all text inputs that have rules
+                document.querySelectorAll('.dynamic-input[data-format]').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const rule = e.target.getAttribute('data-format');
+                        if (rule && rule !== 'No formatting') {
+                            const start = e.target.selectionStart;
+                            const end = e.target.selectionEnd;
+                            e.target.value = formatText(e.target.value, rule);
+                            e.target.setSelectionRange(start, end);
+                        }
+                    });
                 });
             }
 
@@ -258,7 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (isReq) requiredDocsCount++;
                     
                     const reqMarker = isReq ? `<span style="color:#ef4444;">*</span>` : `<span style="font-size:12px; color:#64748b; font-weight:normal; margin-left:4px;">(Optional)</span>`;
-                    const ocrBadge = isOcr ? `<span style="font-size:10px; background:#e0e7ff; color:#3730a3; padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle;">⚡ AI Scan</span>` : '';
+                    const ocrBadge = isOcr ? `<span style="font-size:10px; background:#e0e7ff; color:#3730a3; padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle;"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Scan</span>` : '';
                     
                     const div = document.createElement('div');
                     div.className = 'doc-dashed-box';
@@ -266,7 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     div.innerHTML = `
                         <div id="zone_${i}">
-                            <div class="doc-title">📄 Upload ${docName} ${reqMarker} ${ocrBadge}</div>
+                            <div class="doc-title"><i class="fa-solid fa-file-arrow-up"></i> Upload ${docName} ${reqMarker} ${ocrBadge}</div>
                             <div class="doc-subtitle">Allowed: PDF, JPG, PNG (Max: ${maxSize}MB)</div>
                             <input type="file" id="file_${i}" accept="image/*,application/pdf" style="display:none">
                             <button type="button" class="btn-upload" onclick="document.getElementById('file_${i}').click()">Choose File</button>
@@ -274,14 +242,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
 
                         <div id="loader_${i}" style="display:none; text-align:center; padding: 20px; color: var(--primary-color); font-weight: bold;">
-                            ⚙️ AI is validating document... Please wait...
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> AI is validating document... Please wait...
                         </div>
 
                         <div id="grid_${i}" style="display:none; text-align:left;">
                             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
                                 <h4 style="margin: 0; font-size: 14px; font-weight: bold; color: #0f172a;">${docName}</h4>
                                 <div>
-                                    <button type="button" onclick="openFullView('${i}')" style="font-size:11px; padding:4px 10px; background:#e0e7ff; color:#3730a3; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-right:8px; transition:0.2s;">🔍 Full View</button>
+                                    <button type="button" onclick="openFullView('${i}')" style="font-size:11px; padding:4px 10px; background:#e0e7ff; color:#3730a3; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-right:8px; transition:0.2s;"><i class="fa-solid fa-magnifying-glass"></i> Full View</button>
                                     <span id="status_badge_${i}" style="font-size:11px; padding:4px 10px; background:#e2e8f0; color:#334155; border-radius:12px; font-weight:bold;">Pending</span>
                                 </div>
                             </div>
@@ -307,7 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if(!file) return;
 
                         if (file.size > maxSize * 1024 * 1024) {
-                            alert(`File is too large! Maximum allowed size for this document is ${maxSize}MB.`);
+                            Swal.fire('File Too Large', `Maximum allowed size for this document is ${maxSize}MB.`, 'error');
                             e.target.value = ''; 
                             return;
                         }
@@ -323,11 +291,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Error initializing page:", err);
-            alert("Failed to load details.");
+            Swal.fire('Loading Error', 'Failed to load educational assistance details. Please try again.', 'error');
         }
     }
 
-    // --- 4. BACKEND OCR OR BYPASS LOGIC ---
+    // --- 5. BACKEND OCR OR BYPASS LOGIC ---
     async function processDocumentSelection(file, index, expectedDocName, isOcrEnabled) {
         document.getElementById(`zone_${index}`).style.display = 'none';
         
@@ -391,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (validationResult.extracted_data) {
                 let html = `
                     <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                        <span style="font-size:16px;">✨</span>
+                        <span style="font-size:16px; color:#10b981;"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
                         <strong style="color:#0f172a; font-size:14px;">AI Extracted Information</strong>
                     </div>
                     <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column; gap:8px;">
@@ -436,7 +404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 confirmBtn.style.opacity = '1';
                 confirmBtn.style.cursor = 'pointer';
             } else {
-                badge.innerText = "Verification Failed ❌";
+                badge.innerHTML = "Verification Failed <i class='fa-solid fa-xmark'></i>";
                 badge.style.background = '#fee2e2';
                 badge.style.color = '#991b1b';
                 confirmBtn.disabled = true;
@@ -448,7 +416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorMsg += `\nMissing Fields: ${validationResult.missing_information.join(', ')}`;
                 }
                 
-                setTimeout(() => alert(errorMsg), 500);
+                setTimeout(() => Swal.fire('Verification Failed', errorMsg, 'error'), 500);
             }
 
             loader.style.display = 'none';
@@ -456,7 +424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Validation Error:", err);
-            alert(`Validation failed. Please ensure the backend is running and the file is legible.`);
+            Swal.fire('Validation Error', 'Validation failed. Please ensure the backend is running and the file is legible.', 'error');
             window.removeFile(index);
         }
     }
@@ -478,7 +446,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return publicUrlData.publicUrl;
     }
 
-    // --- 5. DOCUMENT CONFIRMATION & FULL VIEW UTILS ---
+    // --- 6. DOCUMENT CONFIRMATION & FULL VIEW UTILS ---
     window.openFullView = (index) => {
         const fileData = window.tempFileUrls[index];
         if (!fileData) return;
@@ -505,7 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.confirmData = async (index, isRequired, docName) => {
         const btn = document.getElementById(`confirm_${index}`);
-        btn.innerText = 'Uploading...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
         btn.disabled = true;
         btn.style.opacity = '0.6';
         btn.style.cursor = 'wait';
@@ -528,7 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 extracted_data: extractedDataStore[index] || {} 
             });
 
-            btn.innerText = '✔ Uploaded';
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Uploaded';
             btn.style.background = '#e2e8f0';
             btn.style.color = '#475569';
             btn.style.cursor = 'not-allowed';
@@ -541,7 +509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Upload error:", err);
-            alert(err.message);
+            Swal.fire('Upload Error', err.message, 'error');
             btn.innerText = 'Confirm Upload';
             btn.disabled = false;
             btn.style.opacity = '1';
@@ -551,7 +519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- 6. FINAL FORM SUBMISSION ---
+    // --- 7. FINAL FORM SUBMISSION ---
     document.getElementById('scholarship-application-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -565,7 +533,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (field.type === 'Selection') {
                     const inputs = document.querySelectorAll(`[name="q_${i}"]:checked`);
                     if (field.required && inputs.length === 0) {
-                        alert(`Please answer the required question: ${field.label}`);
+                        Swal.fire('Required Field', `Please answer the required question: ${field.label}`, 'warning');
                         return; // Exits submission safely
                     }
                     if (inputs.length > 0) {
@@ -574,7 +542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     const input = document.querySelector(`[name="q_${i}"]`);
                     if (field.required && (!input || !input.value.trim())) {
-                        alert(`Please answer the required question: ${field.label}`);
+                        Swal.fire('Required Field', `Please answer the required question: ${field.label}`, 'warning');
                         return; // Exits submission safely
                     }
                     if (input && input.value) {
@@ -584,7 +552,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        submitBtn.innerText = 'Submitting...';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
         submitBtn.disabled = true;
 
         try {
@@ -599,12 +567,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { error } = await window.supabaseClient.from('applications').insert([payload]);
             if (error) throw error;
 
-            alert('Application Submitted Successfully!');
+            await Swal.fire('Success!', 'Educational Assistance Application Submitted Successfully!', 'success');
             window.location.href = 'student-applications.html';
             
         } catch (err) {
             console.error("Submission Error:", err);
-            alert("Failed to submit application: " + err.message);
+            Swal.fire('Submission Failed', "Failed to submit application: " + err.message, 'error');
             submitBtn.innerText = 'Submit Application';
             submitBtn.disabled = false;
         }

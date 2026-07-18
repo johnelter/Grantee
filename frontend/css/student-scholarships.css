@@ -132,8 +132,9 @@ button { font-family: inherit; }
 ========================================================= */
 .top-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
     margin-bottom: 30px;
 }
 
@@ -143,7 +144,18 @@ button { font-family: inherit; }
 .header-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 16px;
+    flex-wrap: wrap;
+}
+
+.dropdown-toggle,
+.notification-bell,
+.hamburger-btn,
+#apply-filters-btn,
+#clear-filters,
+.btn-action {
+    cursor: pointer;
 }
 
 .icon-btn {
@@ -203,6 +215,45 @@ button { font-family: inherit; }
 .profile-dropdown-menu a:hover { background: #f1f5f9; }
 .dropdown-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
 
+    button, .btn-action, .dropdown-toggle, .notification-bell, .hamburger-btn, #apply-filters-btn, #clear-filters {
+        cursor: pointer;
+    }
+
+    .btn-action:hover:not(.btn-disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12);
+    }
+
+    .btn-disabled {
+        cursor: not-allowed;
+        opacity: 0.85;
+    }
+    transition: transform 0.15s ease, box-shadow 0.15s ease; 
+}
+
+.btn-action:hover:not(.btn-disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.12);
+}
+
+.btn-disabled {
+    opacity: 0.9;
+}
+
+#apply-filters-btn {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+}
+
+#apply-filters-btn:hover {
+    background: var(--primary-hover);
+}
+
+#clear-filters {
+    cursor: pointer;
+}
+
 /* =========================================================
    5. PAGE LAYOUT (Scholarships vs Filters Grid)
 ========================================================= */
@@ -232,12 +283,21 @@ button { font-family: inherit; }
     border-radius: 8px;
     padding: 0 16px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    position: relative;
 }
-.search-box span { color: #94a3b8; margin-right: 10px; }
+.search-box span {
+    position: absolute;
+    left: 16px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
 .search-box input {
     flex: 1;
     border: none;
-    padding: 12px 0;
+    padding: 12px 0 12px 38px;
     outline: none;
     font-size: 14px;
     background: transparent;

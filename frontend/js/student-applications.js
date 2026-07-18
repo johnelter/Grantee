@@ -25,7 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const showToast = (message, type = 'success') => {
         const toast = document.createElement('div');
         toast.className = `custom-toast ${type}`;
-        const icon = type === 'success' ? '✅' : '⚠️';
+        
+        // Updated to use FontAwesome Icons
+        const icon = type === 'success' ? '<i class="fa-solid fa-circle-check" style="color:#10b981; font-size:18px;"></i>' : '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444; font-size:18px;"></i>';
+        
         toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
         document.body.appendChild(toast);
         
@@ -93,15 +96,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error("Error loading applications:", error);
-            if(tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">Error loading data. Check console.</td></tr>`;
+            if(tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger-color);"><i class="fa-solid fa-triangle-exclamation"></i> Error loading data. Check console.</td></tr>`;
         }
     };
 
     const updateMetrics = (apps) => {
         const total = apps.length;
         const review = apps.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
-        const approved = apps.filter(a => a.status === 'Approved').length;
-        const rejected = apps.filter(a => a.status === 'Rejected').length;
+        const approved = apps.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
+        const rejected = apps.filter(a => a.status === 'Rejected' || a.status === 'Declined').length;
 
         if(document.getElementById('count-total')) document.getElementById('count-total').innerText = total;
         if(document.getElementById('count-review')) document.getElementById('count-review').innerText = review;
@@ -113,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!tbody) return;
 
         if (apps.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">You have not submitted any applications yet.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-folder-open" style="font-size:24px; margin-bottom:10px; display:block;"></i> You have not submitted any applications yet.</td></tr>`;
             return;
         }
 
@@ -136,17 +139,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (statusLower === 'approved' || statusLower === 'grantee') {
                 badgeClass = 'badge-approved';
                 progress = 100;
-                barColor = 'var(--success-color)';
+                barColor = '#10b981'; // success green
                 displayStatus = 'Approved';
             } else if (statusLower === 'rejected' || statusLower === 'declined') {
                 badgeClass = 'badge-rejected';
                 progress = 100;
-                barColor = 'var(--danger-color)';
+                barColor = '#ef4444'; // danger red
                 displayStatus = 'Rejected';
             } else {
                 badgeClass = 'badge-review';
                 progress = 50;
-                barColor = '#f59e0b';
+                barColor = '#f59e0b'; // warning yellow
                 displayStatus = 'Under Review';
             }
 
@@ -171,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </td>
                 <td>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="viewDetails('${app.id}')">View Details</button>
+                        <button class="btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="viewDetails('${app.id}')"><i class="fa-solid fa-eye"></i> View Details</button>
                     </div>
                 </td>
             `;
@@ -291,7 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let previewContent = '';
                 
                 const fullViewLink = fileUrl 
-                    ? `<a href="${fileUrl}" target="_blank" style="font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;">↗ Full View</a>` 
+                    ? `<a href="${fileUrl}" target="_blank" style="font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-expand"></i> Full View</a>` 
                     : '';
 
                 if (fileUrl) {
@@ -303,6 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     previewContent = `
                         <div style="padding:40px 20px; text-align:center; color:#64748b;">
+                            <i class="fa-solid fa-file-circle-xmark" style="font-size:24px; margin-bottom:10px;"></i>
                             <strong style="display:block; margin-bottom:4px;">File not available</strong>
                         </div>`;
                 }
@@ -339,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     extractedDataHtml = `
                         <div class="ai-data-box" style="flex: 1; min-width: 250px; max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; padding: 15px; font-size: 13px;">
                             <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                                <strong style="color:#0f172a; font-size:13px;">AI Extracted Information</strong>
+                                <strong style="color:#0f172a; font-size:13px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#10b981;"></i> AI Extracted Information</strong>
                             </div>
                             <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column;">
                                 ${liHtml}
@@ -351,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 docsHTML += `
                     <div style="background:#fff; border:1px solid var(--border-dark); border-radius:12px; padding:20px; margin-bottom:20px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                            <div style="font-weight:600; font-size:14px; color:var(--text-main);">${doc.name || 'Requirement'}</div>
+                            <div style="font-weight:600; font-size:14px; color:var(--text-main);"><i class="fa-solid fa-paperclip"></i> ${doc.name || 'Requirement'}</div>
                             ${fullViewLink}
                         </div>
                         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -379,23 +383,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <span style="background:${statusBg}; color:${statusColor}; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:12px;">${displayStatus}</span>
                             </div>
                         </div>
-                        <button onclick="document.getElementById('app-details-modal').remove()" style="background:none; border:none; font-size:28px; color:#94a3b8; cursor:pointer; line-height:1;">&times;</button>
+                        <button onclick="document.getElementById('app-details-modal').remove()" style="background:none; border:none; font-size:20px; color:#94a3b8; cursor:pointer; line-height:1;"><i class="fa-solid fa-xmark"></i></button>
                     </div>
 
                     <div style="margin-bottom:30px;">
-                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;">Applicant Profile</h3>
+                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;"><i class="fa-solid fa-address-card"></i> Applicant Profile</h3>
                         ${profileHTML}
                     </div>
 
                     <div style="margin-bottom:30px;">
-                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;">Questionnaire Responses</h3>
+                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;"><i class="fa-solid fa-clipboard-question"></i> Questionnaire Responses</h3>
                         <div id="read-only-form-fields">
                             ${formFieldsHTML}
                         </div>
                     </div>
 
                     <div style="margin-bottom:25px;">
-                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;">Submitted Documents & AI Verification</h3>
+                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;"><i class="fa-solid fa-file-invoice"></i> Submitted Documents & AI Verification</h3>
                         ${docsHTML}
                     </div>
 

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-
+    
     // ==========================================
     // 1. AUTH CHECK & INITIALIZATION
     // ==========================================
@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             if (profile) {
-                if (!['admin', 'coordinator'].includes(profile.role)) {
+                if (profile.role !== 'admin') {
                     window.location.href = 'student-dashboard.html';
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
-                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
-                if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
+                if(document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
+                if(profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
                 // Fetch data sequence
                 await fetchMasterlistData();
@@ -51,59 +51,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     // 3. FETCH DATA (Masterlist & Programs)
     // ==========================================
-
-    // Fetch Enrolled Masterlist to auto-sync Program and Year Level
     async function fetchMasterlistData() {
         try {
             const { data } = await window.supabaseClient
                 .from('enrolled_masterlist')
                 .select('id_number, program, year_level');
-
+            
             if (data) {
                 data.forEach(student => {
                     masterlistMap[student.id_number] = student;
                 });
             }
-        } catch (err) { console.error("Error fetching masterlist:", err); }
+        } catch(err) { console.error("Error fetching masterlist:", err); }
     }
 
-    // Fetch Educational Assistance Programs for Filters, Policy Tracking, and Import
     async function fetchScholarshipList() {
         try {
             const { data } = await window.supabaseClient
                 .from('scholarships')
-                .select('id, title, category, batch, semester, school_year, start_date, end_date')
+                .select('id, title, category, batch, semester, school_year')
                 .eq('school_id', currentAdminSchoolId)
                 .neq('status', 'Draft');
 
             if (data) {
                 schoolScholarships = data;
-
+                
                 const filterSelect = document.getElementById('filter-scholarship');
                 const manualSelect = document.getElementById('manual-scholarship-select');
-
-                // Track unique attributes for new filters
+                
                 const uniqueBatches = new Set();
                 const uniqueSems = new Set();
                 const uniqueSYs = new Set();
-
+                
                 data.forEach(sch => {
-                    if (filterSelect) filterSelect.add(new Option(sch.title, sch.id));
-                    if (manualSelect) manualSelect.add(new Option(`${sch.title} (${sch.category || 'Institution-Funded Educational Assistance'})`, sch.id));
-
+                    if(filterSelect) filterSelect.add(new Option(sch.title, sch.id));
+                    if(manualSelect) manualSelect.add(new Option(`${sch.title} (${sch.category || 'Outside Assistance'})`, sch.id));
+                    
                     if (sch.batch) uniqueBatches.add(sch.batch);
                     if (sch.semester) uniqueSems.add(sch.semester);
                     if (sch.school_year) uniqueSYs.add(sch.school_year);
                 });
 
-                // Populate dynamic filters
                 const batchFilter = document.getElementById('filter-batch');
                 const semFilter = document.getElementById('filter-semester');
                 const syFilter = document.getElementById('filter-school-year');
 
-                if (batchFilter) uniqueBatches.forEach(b => batchFilter.add(new Option(b, b)));
-                if (semFilter) uniqueSems.forEach(s => semFilter.add(new Option(s, s)));
-                if (syFilter) uniqueSYs.forEach(s => syFilter.add(new Option(s, s)));
+                if(batchFilter) uniqueBatches.forEach(b => batchFilter.add(new Option(b, b)));
+                if(semFilter) uniqueSems.forEach(s => semFilter.add(new Option(s, s)));
+                if(syFilter) uniqueSYs.forEach(s => syFilter.add(new Option(s, s)));
             }
         } catch (err) { console.error(err); }
     }
@@ -122,65 +117,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (schError) throw schError;
 
+            // Extract IDs, but DO NOT return early if empty. 
+            // We still need to load students with Outside Assistance (scholarship_id = null)
             const schIds = schData ? schData.map(s => s.id) : [];
 
-            // Fetch applications. Check for 'Grantee', 'Passed', AND 'Approved'
+            // Fetch applications. Checks for 'Grantee', 'Passed', AND 'Approved'
             const { data: beneficiaries, error: appError } = await window.supabaseClient
                 .from('applications')
-                .select('*, profiles ( first_name, last_name, middle_name, id_number, email ), scholarships (id, title, category, school_id, batch, semester, school_year, start_date, end_date)')
-                .in('status', ['Grantee', 'Passed', 'Approved'])
-                .order('created_at', { ascending: false });
+                .select('*, profiles ( first_name, last_name, middle_name, id_number, email ), scholarships (id, title, category, school_id, batch, semester, school_year)')
+                .in('status', ['Grantee', 'Passed', 'Approved']) 
+                .order('created_at', { ascending: false }); 
 
             if (appError) throw appError;
-
+            
             // Filter to only include Grantees for THIS school's programs, OR Grantees with NO program ID (Outside Assistance)
             activeBeneficiaries = (beneficiaries || []).filter(app => {
                 return schIds.includes(app.scholarship_id) || app.scholarship_id === null;
             });
 
-            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeBeneficiaries.length;
+            if(document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeBeneficiaries.length;
 
             applyFilters();
         } catch (err) {
             console.error("Error fetching active beneficiaries:", err);
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:40px;">Failed to load data. Please check the console.</td></tr>`;
+            if(tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444; padding:40px;">Failed to load data. Please check the console.</td></tr>`;
         }
     }
 
     function getCategoryBadge(category) {
         if (!category) return `<span style="background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700;">Outside Assistance</span>`;
         const catLower = category.toLowerCase();
-        let bg = 'rgba(16, 185, 129, 0.1)', color = 'var(--success-color)';
+        let bg = 'rgba(16, 185, 129, 0.1)', color = 'var(--success-color)'; 
         if (catLower.includes('need')) { bg = 'rgba(59, 130, 246, 0.1)'; color = '#3b82f6'; }
         if (catLower.includes('talent')) { bg = 'rgba(139, 92, 246, 0.1)'; color = '#8b5cf6'; }
         return `<span style="background:${bg}; color:${color}; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700;">${category}</span>`;
     }
 
-    function formatDate(dateString) {
-        if (!dateString) return 'Not Set';
-        return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
     function renderTable(data) {
-        if (document.getElementById('entries-info')) document.getElementById('entries-info').innerText = `Showing ${data.length} active beneficiaries`;
-        if (!tbody) return;
+        if(document.getElementById('entries-info')) document.getElementById('entries-info').innerText = `Showing ${data.length} active beneficiaries`;
+        if(!tbody) return;
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b; padding:40px;">No active beneficiaries found matching criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:40px;">No active beneficiaries found matching criteria.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = '';
         data.forEach(app => {
             const tr = document.createElement('tr');
-
+            
             const fname = app.profiles?.first_name || '';
             const mname = app.profiles?.middle_name ? ` ${app.profiles.middle_name.charAt(0)}.` : '';
             const lname = app.profiles?.last_name || '';
             const fullName = `${lname}, ${fname}${mname}`;
             const studentId = app.profiles?.id_number || 'N/A';
-
-            // Auto-sync Program & Year Level from Masterlist (Fallback to profile if missing)
+            
             const masterInfo = masterlistMap[studentId] || {};
             const program = masterInfo.program || app.profiles?.program || 'N/A';
             const yearLevel = masterInfo.year_level || app.profiles?.year_level || 'N/A';
@@ -188,25 +179,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Handle Outside Assistance explicitly
             const isOutside = !app.scholarship_id;
             const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown Assistance');
+            const catBadge = getCategoryBadge(app.scholarships?.category);
             
-            // STRICT CATEGORY EXTRACTION FOR POLICIES
-            const categoryValue = app.category || app.scholarships?.category || 'Outside Assistance';
-            const catBadge = getCategoryBadge(categoryValue);
-
-            // Assistance Details & Timelines
-            const batch = app.scholarships?.batch || app.outside_batch || '';
-            const semester = app.scholarships?.semester || app.outside_semester || '';
-            const schoolYear = app.scholarships?.school_year || app.outside_sy || '';
+            const batch = app.scholarships?.batch || app.outside_batch || 'N/A';
+            const semester = app.scholarships?.semester || app.outside_semester || 'N/A';
+            const schoolYear = app.scholarships?.school_year || app.outside_sy || 'N/A';
             const duration = app.duration || 'Not Set';
-            const startDate = app.scholarships?.start_date || app.created_at;
-            const endDate = app.scholarships?.end_date || null;
-            const dateAwarded = formatDate(app.created_at); // NEW: Get Date Awarded
             
-            const termDetails = [];
-            if (schoolYear) termDetails.push(`<div><span style="color:var(--text-muted);">SY:</span> ${schoolYear}</div>`);
-            if (semester) termDetails.push(`<div><span style="color:var(--text-muted);">Sem:</span> ${semester}</div>`);
-            if (batch) termDetails.push(`<div><span style="color:var(--text-muted);">Batch:</span> ${batch}</div>`);
-
             tr.innerHTML = `
                 <td>
                     <strong style="color:#0f172a;">${studentId}</strong>
@@ -222,17 +201,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${catBadge}
                 </td>
                 <td style="font-size:12px;">
-                    <div style="margin-bottom: 4px;"><strong>Start:</strong> ${formatDate(startDate)}</div>
-                    <div><strong>End:</strong> <span class="${endDate ? 'text-main' : 'text-muted'}">${formatDate(endDate)}</span></div>
+                    <div><span style="color:var(--text-muted);">SY:</span> ${schoolYear}</div>
+                    <div><span style="color:var(--text-muted);">Sem:</span> ${semester}</div>
+                    <div><span style="color:var(--text-muted);">Batch:</span> ${batch}</div>
                 </td>
                 <td>
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-weight:600; font-size:13px; color:#334155;">${duration}</span>
                         <button style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-size:12px;" onclick="editDuration('${app.id}', '${duration}')" title="Edit Duration"><i class="fa-solid fa-pen-to-square"></i></button>
                     </div>
-                </td>
-                <td style="font-size:13px; color:#475569; font-weight:500;">
-                    ${dateAwarded}
                 </td>
                 <td style="text-align: right;">
                     <button style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')"><i class="fa-solid fa-xmark"></i> Revoke</button>
@@ -250,16 +227,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             inputOptions: {
                 '1 Semester': '1 Semester',
                 '2 Semesters (1 Year)': '2 Semesters (1 Year)',
-                '3 Semesters (1.5 Years)': '3 Semesters (1.5 Years)',
+                '3 Semesters': '3 Semesters',
                 '4 Semesters (2 Years)': '4 Semesters (2 Years)',
-                '5 Semesters (2.5 Years)': '5 Semesters (2.5 Years)',
-                '6 Semesters (3 Years)': '6 Semesters (3 Years)',
-                '7 Semesters (3.5 Years)': '7 Semesters (3.5 Years)',
-                '8 Semesters (4 Years)': '8 Semesters (4 Years)',
                 'Until Graduation': 'Until Graduation'
             },
             inputPlaceholder: 'Select a standard duration',
-            inputValue: currentDuration !== 'Not Set' ? currentDuration : '',
+            inputValue: currentDuration,
             showCancelButton: true,
             confirmButtonColor: '#10b981'
         });
@@ -269,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const { error } = await window.supabaseClient.from('applications').update({ duration: newDuration }).eq('id', appId);
                 if (error) throw error;
-
+                
                 Swal.fire('Saved!', 'The duration has been successfully updated.', 'success');
                 fetchActiveBeneficiaries();
             } catch (err) {
@@ -281,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.revokeAssistance = async (appId) => {
         const result = await Swal.fire({
             title: 'Revoke Assistance?',
-            text: "Are you sure you want to revoke this beneficiary's educational assistance? They will immediately be removed from the active limits tracked by the institutional policies.",
+            text: "Are you sure you want to revoke this beneficiary's educational assistance? Their status will be changed to 'Rejected'.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -291,26 +264,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (result.isConfirmed) {
             try {
                 Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                const { error } = await window.supabaseClient.from('applications').update({ status: 'Rejected', remarks: 'Revoked by Admin' }).eq('id', appId);
+                if(error) throw error;
                 
-                // Changing status to Rejected automatically frees up the student's active policy limits
-                const { error } = await window.supabaseClient.from('applications').update({ 
-                    status: 'Rejected', 
-                    remarks: 'Assistance Revoked by Administrator' 
-                }).eq('id', appId);
-                
-                if (error) throw error;
-
-                // Log Action
-                await window.supabaseClient.from('system_logs').insert([{
-                    admin_id: adminId,
-                    school_id: currentAdminSchoolId,
-                    action: 'Revoked Assistance',
-                    details: `Revoked active assistance for application ID: ${appId}`
-                }]);
-
-                Swal.fire('Revoked', 'The assistance has been revoked and policy counts have been updated.', 'success');
-                fetchActiveBeneficiaries();
-            } catch (err) {
+                Swal.fire('Revoked', 'The assistance has been revoked.', 'success');
+                fetchActiveBeneficiaries(); 
+            } catch(err) {
                 Swal.fire('Error', 'Failed to revoke assistance.', 'error');
             }
         }
@@ -324,14 +283,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sy = document.getElementById('filter-school-year')?.value || '';
 
         const filtered = activeBeneficiaries.filter(app => {
-            const matchSearch = (app.profiles?.id_number || '').toLowerCase().includes(term) ||
-                (app.profiles?.first_name || '').toLowerCase().includes(term) ||
-                (app.profiles?.last_name || '').toLowerCase().includes(term) ||
-                (app.outside_assistance_name || '').toLowerCase().includes(term);
-
-            // Convert IDs to Strings to prevent strict equality mismatch
+            const matchSearch = (app.profiles?.id_number || '').toLowerCase().includes(term) || 
+                                (app.profiles?.first_name || '').toLowerCase().includes(term) || 
+                                (app.profiles?.last_name || '').toLowerCase().includes(term) ||
+                                (app.outside_assistance_name || '').toLowerCase().includes(term);
+            
+            // Convert IDs to Strings to prevent strict equality mismatch on dropdown select
             const matchSch = schId === "" || String(app.scholarship_id) === String(schId);
-
+            
             const matchBatch = batch === "" || String(app.scholarships?.batch || app.outside_batch || '') === String(batch);
             const matchSem = sem === "" || String(app.scholarships?.semester || app.outside_semester || '') === String(sem);
             const matchSy = sy === "" || String(app.scholarships?.school_year || app.outside_sy || '') === String(sy);
@@ -343,157 +302,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTable(filtered);
     }
 
-    if (document.getElementById('search-input')) document.getElementById('search-input').addEventListener('input', applyFilters);
-    if (document.getElementById('filter-scholarship')) document.getElementById('filter-scholarship').addEventListener('change', applyFilters);
-    if (document.getElementById('filter-batch')) document.getElementById('filter-batch').addEventListener('change', applyFilters);
-    if (document.getElementById('filter-semester')) document.getElementById('filter-semester').addEventListener('change', applyFilters);
-    if (document.getElementById('filter-school-year')) document.getElementById('filter-school-year').addEventListener('change', applyFilters);
+    if(document.getElementById('search-input')) document.getElementById('search-input').addEventListener('input', applyFilters);
+    if(document.getElementById('filter-scholarship')) document.getElementById('filter-scholarship').addEventListener('change', applyFilters);
+    if(document.getElementById('filter-batch')) document.getElementById('filter-batch').addEventListener('change', applyFilters);
+    if(document.getElementById('filter-semester')) document.getElementById('filter-semester').addEventListener('change', applyFilters);
+    if(document.getElementById('filter-school-year')) document.getElementById('filter-school-year').addEventListener('change', applyFilters);
 
     // ==========================================
-    // 5. EXPORT ACTIVE BENEFICIARIES (CSV & PDF)
+    // 5. EXPORT ACTIVE BENEFICIARIES
     // ==========================================
     const btnExport = document.getElementById('btn-export');
     if (btnExport) {
         btnExport.addEventListener('click', async () => {
-            if (currentFilteredBeneficiaries.length === 0) {
-                Swal.fire("Empty", "No data to export based on current filters.", "info");
-                return;
+            if (currentFilteredBeneficiaries.length === 0) { 
+                Swal.fire("Empty", "No data to export based on current filters.", "info"); 
+                return; 
             }
 
-            const { value: format } = await Swal.fire({
-                title: 'Export Beneficiaries',
-                text: `You are about to export ${currentFilteredBeneficiaries.length} records. Select the desired file format:`,
+            const confirm = await Swal.fire({
+                title: 'Export Beneficiaries?',
+                text: `You are about to export ${currentFilteredBeneficiaries.length} records to CSV.`,
                 icon: 'question',
-                input: 'select',
-                inputOptions: {
-                    'csv': 'CSV Excel (.csv)',
-                    'pdf': 'PDF Document (.pdf)'
-                },
-                inputPlaceholder: 'Select an export format',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
-                confirmButtonText: 'Export'
+                confirmButtonText: 'Yes, Export'
             });
 
-            if (!format) return;
+            if (!confirm.isConfirmed) return;
 
-            if (format === 'csv') {
-                exportToCSV(currentFilteredBeneficiaries);
-            } else if (format === 'pdf') {
-                exportToPDF(currentFilteredBeneficiaries);
-            }
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Student ID,Last Name,First Name,Middle Name,Email,Program,Year Level,Assistance Title,Category,School Year,Semester,Batch,Duration,Date Awarded\r\n";
+
+            currentFilteredBeneficiaries.forEach(app => {
+                const sid = app.profiles?.id_number || '';
+                const fname = app.profiles?.first_name || '';
+                const mname = app.profiles?.middle_name || '';
+                const lname = app.profiles?.last_name || '';
+                const email = app.profiles?.email || '';
+                
+                const masterInfo = masterlistMap[sid] || {};
+                const program = masterInfo.program || app.profiles?.program || '';
+                const yearLevel = masterInfo.year_level || app.profiles?.year_level || '';
+
+                const isOutside = !app.scholarship_id;
+                const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown');
+                const cat = app.scholarships?.category || 'Outside Assistance';
+                const sy = app.scholarships?.school_year || app.outside_sy || '';
+                const sem = app.scholarships?.semester || app.outside_semester || '';
+                const batch = app.scholarships?.batch || app.outside_batch || '';
+                const duration = app.duration || '';
+                
+                const date = new Date(app.created_at).toLocaleDateString();
+
+                csvContent += `"${sid}","${lname}","${fname}","${mname}","${email}","${program}","${yearLevel}","${schTitle}","${cat}","${sy}","${sem}","${batch}","${duration}","${date}"\r\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Active_Beneficiaries_Export_${new Date().getTime()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
     }
-
-    function exportToCSV(data) {
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Student ID,Last Name,First Name,Middle Name,Email,Program,Year Level,Assistance Title,Category,School Year,Semester,Batch,Duration,Date Awarded\r\n";
-
-        data.forEach(app => {
-            const sid = app.profiles?.id_number || '';
-            const fname = app.profiles?.first_name || '';
-            const mname = app.profiles?.middle_name || '';
-            const lname = app.profiles?.last_name || '';
-            const email = app.profiles?.email || '';
-
-            const masterInfo = masterlistMap[sid] || {};
-            const program = masterInfo.program || app.profiles?.program || '';
-            const yearLevel = masterInfo.year_level || app.profiles?.year_level || '';
-
-            const isOutside = !app.scholarship_id;
-            const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown');
-            const cat = app.category || app.scholarships?.category || 'Outside Assistance';
-            const sy = app.scholarships?.school_year || app.outside_sy || '';
-            const sem = app.scholarships?.semester || app.outside_semester || '';
-            const batch = app.scholarships?.batch || app.outside_batch || '';
-            const duration = app.duration || '';
-
-            const date = new Date(app.created_at).toLocaleDateString();
-
-            csvContent += `"${sid}","${lname}","${fname}","${mname}","${email}","${program}","${yearLevel}","${schTitle}","${cat}","${sy}","${sem}","${batch}","${duration}","${date}"\r\n`;
-        });
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Active_Beneficiaries_Export_${new Date().getTime()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function exportToPDF(data) {
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            Swal.fire('Missing Library', 'jsPDF is required to export to PDF. Please ensure it is linked in your HTML.', 'error');
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape', 'pt', 'a4');
-        
-        doc.setFontSize(16);
-        doc.text("Active Educational Assistance Beneficiaries", 40, 40);
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 55);
-
-        const tableColumn = ["Student ID", "Full Name", "Program & Year", "Assistance Title", "Category", "Duration", "Date Awarded"];
-        const tableRows = [];
-
-        data.forEach(app => {
-            const sid = app.profiles?.id_number || 'N/A';
-            const fname = app.profiles?.first_name || '';
-            const lname = app.profiles?.last_name || '';
-            const fullName = `${lname}, ${fname}`;
-            
-            const masterInfo = masterlistMap[sid] || {};
-            const program = masterInfo.program || app.profiles?.program || 'N/A';
-            const yearLevel = masterInfo.year_level || app.profiles?.year_level || 'N/A';
-            const progYear = `${program}\n(${yearLevel})`;
-
-            const isOutside = !app.scholarship_id;
-            const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown');
-            const cat = app.category || app.scholarships?.category || 'Outside Assistance';
-            const duration = app.duration || 'Not Set';
-            const date = new Date(app.created_at).toLocaleDateString();
-
-            tableRows.push([sid, fullName, progYear, schTitle, cat, duration, date]);
-        });
-
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 70,
-            styles: { fontSize: 8, cellPadding: 4 },
-            headStyles: { fillColor: [16, 185, 129] },
-            alternateRowStyles: { fillColor: [248, 250, 252] }
-        });
-
-        doc.save(`Active_Beneficiaries_Export_${new Date().getTime()}.pdf`);
-    }
-
 
     // ==========================================
-    // 6. IMPORT EXCEL / CSV BULK UPLOAD (STRICT CATEGORY MATCHING)
+    // 6. IMPORT EXCEL / CSV BULK UPLOAD WITH CROSS-CHECKING
     // ==========================================
     const importModal = document.getElementById('import-modal');
     const importInput = document.getElementById('import-file-input');
     const importStatus = document.getElementById('import-status');
 
-    if (document.getElementById('btn-open-import')) {
+    if(document.getElementById('btn-open-import')) {
         document.getElementById('btn-open-import').addEventListener('click', () => {
-            if (importInput) importInput.value = '';
-            if (importStatus) importStatus.innerHTML = '';
-            if (importModal) importModal.style.display = 'flex';
+            if(importInput) importInput.value = '';
+            if(importStatus) importStatus.innerHTML = '';
+            if(importModal) importModal.style.display = 'flex';
         });
     }
 
-    // Download Template Logic
     window.downloadTemplate = () => {
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Student ID,Last Name,First Name,Middle Name,Educational Assistance Name,Educational Assistance Category,School Year (Optional),Semester (Optional),Batch (Optional),Duration (Optional)\r\n";
-        csvContent += "20230001,Doe,John,Smith,CHED Scholarship,Institution-Funded Educational Assistance,2024-2025,1st Semester,Batch 1,1 Year\r\n";
-
+        csvContent += "Student ID,Email,Last Name,First Name,Middle Name,Educational Assistance Name,School Year (Optional),Semester (Optional),Batch (Optional),Duration (Optional)\r\n";
+        csvContent += "20230001,student@email.com,Doe,John,Smith,CHED Scholarship,2024-2025,1st Semester,Batch 1,1 Year\r\n";
+        
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -503,10 +396,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.removeChild(link);
     };
 
-    if (importInput) {
+    if(importInput) {
         importInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            if(!file) return;
 
             const confirm = await Swal.fire({
                 title: 'Start Import?',
@@ -517,13 +410,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 confirmButtonText: 'Yes, Process File'
             });
 
-            if (!confirm.isConfirmed) {
+            if(!confirm.isConfirmed) {
                 importInput.value = '';
                 return;
             }
 
             const ext = file.name.split('.').pop().toLowerCase();
-            if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
+            if(ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
                 importStatus.innerHTML = "<span style='color:var(--danger-color);'><i class='fa-solid fa-triangle-exclamation'></i> Only CSV and Excel files are supported.</span>";
                 return;
             }
@@ -536,23 +429,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                if (jsonData.length === 0) throw new Error("The uploaded file is empty.");
+                if(jsonData.length === 0) throw new Error("The uploaded file is empty.");
 
                 let importData = [];
                 let studentIds = [];
-
+                
                 jsonData.forEach(row => {
                     const sid = row['Student ID'] || row['ID'] || row['ID Number'];
                     const assistance = row['Educational Assistance Name'] || row['Educational Assistance'];
-                    const providedCategory = row['Educational Assistance Category'] || row['Category'];
-
-                    if (sid && assistance) {
+                    
+                    if(sid && assistance) {
                         const sidStr = sid.toString().trim();
                         studentIds.push(sidStr);
                         importData.push({
                             id_number: sidStr,
                             assistance_name: assistance.toString().trim(),
-                            category_input: providedCategory ? providedCategory.toString().trim() : null,
                             sy: row['School Year (Optional)'] || null,
                             sem: row['Semester (Optional)'] || null,
                             batch: row['Batch (Optional)'] || null,
@@ -561,14 +452,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
 
-                if (importData.length === 0) throw new Error("Could not find valid 'Student ID' and 'Educational Assistance Name' columns. Please use the template.");
+                if(importData.length === 0) throw new Error("Could not find valid 'Student ID' and 'Educational Assistance Name' columns. Please use the template.");
 
                 importStatus.innerHTML = `<span style="color:var(--primary-color);"><i class="fa-solid fa-spinner fa-spin"></i> Cross-checking ${importData.length} records with Masterlist...</span>`;
 
-                // 1. Check against Masterlist
+                // 1. Filter out students NOT in the Masterlist
                 const validStudentsToImport = [];
                 const unenrolledSkipped = [];
-
+                
                 importData.forEach(row => {
                     if (masterlistMap[row.id_number]) {
                         validStudentsToImport.push(row);
@@ -581,7 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     throw new Error("Import failed: None of the students in the file are in the Enrolled Masterlist.");
                 }
 
-                // 2. Look up UUIDs for valid enrolled students
+                // 2. Look up Student UUIDs based on valid ID Numbers
                 const validIds = validStudentsToImport.map(s => s.id_number);
                 const { data: matchedProfiles, error: profileError } = await window.supabaseClient
                     .from('profiles')
@@ -595,28 +486,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                     matchedProfiles.forEach(p => profileMap[p.id_number] = p.id);
                 }
 
-                importStatus.innerHTML = `<span style="color:var(--primary-color);"><i class="fa-solid fa-spinner fa-spin"></i> Formatting and enforcing Policy Categories...</span>`;
+                importStatus.innerHTML = `<span style="color:var(--primary-color);"><i class="fa-solid fa-spinner fa-spin"></i> Processing records...</span>`;
 
                 let insertCount = 0;
                 let updateCount = 0;
                 let duplicateCount = 0;
                 let noAccountSkipped = 0;
 
-                // 3. Process records (Internal vs Outside Assistance Logic + STRICT CATEGORY MAPPING)
+                // Process records
                 const processPromises = validStudentsToImport.map(async row => {
                     const studentUuid = profileMap[row.id_number];
-
+                    
                     if (!studentUuid) {
                         noAccountSkipped++;
                         return; // Skip if they are in Masterlist but haven't registered an account yet
                     }
 
+                    // Check if the assistance name matches an internal program
                     const internalProgram = schoolScholarships.find(s => s.title.toLowerCase() === row.assistance_name.toLowerCase());
 
                     if (internalProgram) {
-                        // INTERNAL ASSISTANCE: Force exact category match from database for strict policy tracking
-                        const strictCategory = internalProgram.category;
-
+                        // INTERNAL ASSISTANCE LOGIC
                         const { data: existingApps } = await window.supabaseClient
                             .from('applications')
                             .select('id, status')
@@ -625,14 +515,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         if (existingApps && existingApps.length > 0) {
                             const extApp = existingApps[0];
-                            if (extApp.status === 'Grantee' || extApp.status === 'Approved' || extApp.status === 'Passed') {
+                            if (extApp.status === 'Grantee' || extApp.status === 'Approved') {
                                 duplicateCount++;
                             } else {
-                                await window.supabaseClient.from('applications').update({
-                                    status: 'Grantee',
+                                await window.supabaseClient.from('applications').update({ 
+                                    status: 'Grantee', 
                                     remarks: 'Auto-Approved via Beneficiary Bulk Import',
-                                    duration: row.duration || extApp.duration,
-                                    category: strictCategory
+                                    duration: row.duration || extApp.duration 
                                 }).eq('id', extApp.id);
                                 updateCount++;
                             }
@@ -642,15 +531,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 scholarship_id: internalProgram.id,
                                 status: 'Grantee',
                                 duration: row.duration,
-                                category: strictCategory,
                                 remarks: 'Directly Imported Beneficiary'
                             });
                             insertCount++;
                         }
                     } else {
-                        // OUTSIDE ASSISTANCE: Use input category or fallback to standard string
-                        const fallbackCategory = row.category_input || 'Institution-Funded Educational Assistance';
-                        
+                        // OUTSIDE ASSISTANCE LOGIC
+                        // Check if they already have this specific outside assistance
                         const { data: existingOutside } = await window.supabaseClient
                             .from('applications')
                             .select('id')
@@ -663,13 +550,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         } else {
                             await window.supabaseClient.from('applications').insert({
                                 student_id: studentUuid,
-                                scholarship_id: null,
+                                scholarship_id: null, // Null means outside assistance
                                 outside_assistance_name: row.assistance_name,
                                 outside_sy: row.sy,
                                 outside_semester: row.sem,
                                 outside_batch: row.batch,
                                 duration: row.duration,
-                                category: fallbackCategory,
                                 status: 'Grantee',
                                 remarks: 'Imported Outside Educational Assistance'
                             });
@@ -684,8 +570,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 resultMsg += `<h4 style="color:#166534; margin-bottom:10px;"><i class="fa-solid fa-circle-check"></i> Import Complete</h4>`;
                 resultMsg += `<ul style="font-size:13px; color:#1e293b; padding-left:20px; margin:0; line-height:1.6;">`;
                 resultMsg += `<li><strong>${updateCount}</strong> pending internal applications were auto-approved.</li>`;
-                resultMsg += `<li><strong>${insertCount}</strong> new beneficiaries (internal/outside) were registered with strict category matching.</li>`;
-
+                resultMsg += `<li><strong>${insertCount}</strong> new beneficiaries (internal/outside) were registered.</li>`;
+                
                 if (duplicateCount > 0) {
                     resultMsg += `<li style="color:#b45309;"><strong>Note:</strong> ${duplicateCount} records ignored (Already active for the specific assistance).</li>`;
                 }
@@ -701,8 +587,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fetchActiveBeneficiaries();
 
                 setTimeout(() => {
-                    if (importModal) importModal.style.display = 'none';
-                }, 8000);
+                    if(importModal) importModal.style.display = 'none';
+                }, 8000); 
 
             } catch (err) {
                 console.error("Import Error:", err);
@@ -727,16 +613,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sid = document.getElementById('manual-student-id').value.trim();
             const schId = document.getElementById('manual-scholarship-select').value;
             const outsideName = document.getElementById('manual-outside-name').value.trim();
-            let category = document.getElementById('manual-category').value.trim();
             const duration = document.getElementById('manual-duration').value;
 
             if (!schId && !outsideName) {
                 Swal.fire("Required", "Please select an Internal Program OR provide an Outside Assistance Name.", "warning");
-                return;
-            }
-
-            if (!category) {
-                Swal.fire("Required", "Please select an Educational Assistance Category to track policies accurately.", "warning");
                 return;
             }
 
@@ -745,18 +625,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Force internal DB category exact match for internal programs
-            if (schId) {
-                const internalSch = schoolScholarships.find(s => s.id === schId);
-                if (internalSch && internalSch.category) {
-                    category = internalSch.category;
-                }
-            }
-
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
             btn.disabled = true;
 
             try {
+                // Find student UUID
                 const { data: profile } = await window.supabaseClient.from('profiles').select('id').eq('id_number', sid).single();
                 if (!profile) throw new Error("Student has not registered an account yet.");
 
@@ -764,23 +637,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     student_id: profile.id,
                     scholarship_id: schId || null,
                     outside_assistance_name: schId ? null : outsideName,
-                    category: category,
                     duration: duration,
                     status: 'Grantee',
-                    remarks: 'Manually Added by Administrator'
+                    remarks: 'Manually Added by Admin'
                 };
 
                 const { error } = await window.supabaseClient.from('applications').insert(payload);
                 if (error) throw error;
-
-                // Log Action
-                await window.supabaseClient.from('system_logs').insert([{
-                    admin_id: adminId,
-                    school_id: currentAdminSchoolId,
-                    action: 'Manually Added Beneficiary',
-                    details: `Added Student ID ${sid} to assistance program. Category mapped: ${category}`,
-                    target_user_id: profile.id
-                }]);
 
                 Swal.fire("Success", "Beneficiary manually added successfully.", "success");
                 document.getElementById('form-manual-add').reset();
@@ -796,54 +659,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Dynamic field toggle for manual add form
+    // Dynamic field toggle for manual add
     if (document.getElementById('manual-scholarship-select')) {
         document.getElementById('manual-scholarship-select').addEventListener('change', (e) => {
             const outsideInput = document.getElementById('manual-outside-name');
-            const categorySelect = document.getElementById('manual-category');
             if (e.target.value) {
                 outsideInput.value = '';
                 outsideInput.disabled = true;
-                
-                // Set the category dropdown to the exact DB match and disable it to prevent policy violations
-                const matchedSch = schoolScholarships.find(s => s.id === e.target.value);
-                if (matchedSch && matchedSch.category) {
-                    const existingOption = Array.from(categorySelect.options).find(opt => opt.value === matchedSch.category);
-                    if (existingOption) {
-                        categorySelect.value = matchedSch.category;
-                    } else {
-                        categorySelect.add(new Option(matchedSch.category, matchedSch.category, true, true));
-                    }
-                    categorySelect.disabled = true;
-                }
             } else {
                 outsideInput.disabled = false;
-                categorySelect.disabled = false;
             }
         });
     }
 
-    // ==========================================
-    // 8. PROFILE CARET FIX
-    // ==========================================
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
-
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileMenu.classList.toggle('show');
-            profileToggle.classList.toggle('active-state');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) {
-                profileMenu.classList.remove('show');
-                profileToggle.classList.remove('active-state');
-            }
-        });
-    }
-
-    // Boot
-    initProfile();
 });

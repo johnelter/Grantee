@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const adminId = session.user.id;
     let currentAdminSchoolId = null;
     let allStudents = [];
+    
+    let pendingImportPayload = [];
+    let pendingDuplicateRecords = [];
 
     // ==========================================
     // 1.5 EXACT PROGRAMS & YEAR LEVELS
@@ -46,33 +49,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const filterYear = document.getElementById('filter-year');
         const stuYear = document.getElementById('stu-year');
 
-        if (filterProgram) {
-            filterProgram.innerHTML = '<option value="">All Programs</option>' + EXACT_PROGRAMS.map(p => `<option value="${p}">${p}</option>`).join('');
-        }
-        if (stuProgram) {
-            stuProgram.innerHTML = '<option value="">Select Program</option>' + EXACT_PROGRAMS.map(p => `<option value="${p}">${p}</option>`).join('');
-        }
-
-        if (filterYear) {
-            filterYear.innerHTML = '<option value="">All Years</option>' + EXACT_YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
-        }
-        if (stuYear) {
-            stuYear.innerHTML = '<option value="">Select Year Level</option>' + EXACT_YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
-        }
+        if (filterProgram) filterProgram.innerHTML = '<option value="">All Programs</option>' + EXACT_PROGRAMS.map(p => `<option value="${p}">${p}</option>`).join('');
+        if (stuProgram) stuProgram.innerHTML = '<option value="">Select Program</option>' + EXACT_PROGRAMS.map(p => `<option value="${p}">${p}</option>`).join('');
+        if (filterYear) filterYear.innerHTML = '<option value="">All Years</option>' + EXACT_YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
+        if (stuYear) stuYear.innerHTML = '<option value="">Select Year Level</option>' + EXACT_YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
     }
 
-
     // ==========================================
-    // 2. HEADER PROFILE & DROPDOWN LOGIC
+    // 2. HEADER PROFILE & LOGOUT
     // ==========================================
     async function initProfile() {
         try {
-            const { data: profile } = await window.supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('id', adminId)
-                .single();
-
+            const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', adminId).single();
             if (profile) {
                 if (profile.role !== 'admin') {
                     window.location.href = 'student-dashboard.html';
@@ -106,7 +94,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await window.supabaseClient.auth.signOut();
         window.location.href = 'login.html';
     });
-
 
     // ==========================================
     // 3. FETCH & RENDER ENROLLED STUDENTS
@@ -144,13 +131,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             allStudents = students || [];
 
-            // STATS UPDATE: Total & Added This Month
-            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = allStudents.length;
+            const activeStudents = allStudents.filter(s => s.status !== 'Unenrolled');
+            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeStudents.length;
             
             const currentMonth = new Date().getMonth();
             const currentYear = new Date().getFullYear();
             
-            const newThisMonth = allStudents.filter(s => {
+            const newThisMonth = activeStudents.filter(s => {
                 if(!s.created_at) return false;
                 const createdAt = new Date(s.created_at);
                 return createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
@@ -166,28 +153,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderTable(data) {
-        if (document.getElementById('entries-info')) document.getElementById('entries-info').innerText = `Showing ${data.length} enrolled students`;
+        if (document.getElementById('entries-info')) document.getElementById('entries-info').innerText = `Showing ${data.length} students`;
 
         if (!tbody) return;
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding:40px;">No enrolled students found. Add one or import a list.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = '';
         data.forEach(s => {
             const tr = document.createElement('tr');
-            
             const mName = s.middle_name ? ` ${s.middle_name.charAt(0)}.` : '';
             const fullName = `${s.last_name}, ${s.first_name}${mName}`;
             
+            const statusText = s.status || 'Enrolled';
+            const badgeBg = statusText === 'Unenrolled' ? '#fee2e2' : '#dcfce7';
+            const badgeColor = statusText === 'Unenrolled' ? '#ef4444' : '#166534';
+
             tr.innerHTML = `
                 <td style="color:#0f172a; font-weight:600; vertical-align: middle;">${s.id_number}</td>
                 <td style="vertical-align: middle;">${fullName}</td>
                 <td style="vertical-align: middle;">${s.program || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.year_level || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.gender || 'N/A'}</td>
-                <td style="vertical-align: middle;"><span class="status-badge">Enrolled</span></td>
+                <td style="vertical-align: middle;"><span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:700;">${statusText}</span></td>
                 <td style="text-align: right; vertical-align: middle;">
                     <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
                         <button onclick="editStudent('${s.id}')" style="padding: 6px 16px; border: 1px solid #3b82f6; background: #dbeafe; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;">Edit</button>
@@ -224,24 +214,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('filter-program')) document.getElementById('filter-program').addEventListener('change', applyFilters);
     if (document.getElementById('filter-year')) document.getElementById('filter-year').addEventListener('change', applyFilters);
 
+    // ==========================================
+    // 4. UNENROLL ALL LOGIC (PASSWORD PROTECTED)
+    // ==========================================
+    const btnUnenrollAll = document.getElementById('btn-unenroll-all');
+    if (btnUnenrollAll) {
+        btnUnenrollAll.addEventListener('click', async () => {
+            
+            const activeStudents = allStudents.filter(s => s.status !== 'Unenrolled');
+            if (activeStudents.length === 0) {
+                Swal.fire('No Action Needed', 'All students are already marked as Unenrolled.', 'info');
+                return;
+            }
+
+            const { value: password } = await Swal.fire({
+                title: 'Security Verification',
+                html: `This will instantly change the status of <b>${activeStudents.length}</b> enrolled students to <b>"Unenrolled"</b>.<br><br>Please enter your admin password to proceed.`,
+                input: 'password',
+                inputPlaceholder: 'Enter your password',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Verify & Unenroll All',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'You need to enter your password!'
+                    }
+                }
+            });
+
+            if (password) {
+                Swal.fire({ title: 'Verifying Identity...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                const { error: authError } = await window.supabaseClient.auth.signInWithPassword({
+                    email: user.email,
+                    password: password
+                });
+
+                if (authError) {
+                    Swal.fire('Security Error', 'Incorrect password. Action aborted.', 'error');
+                    return;
+                }
+
+                Swal.fire({ title: 'Updating Database...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                const { error: updateError } = await window.supabaseClient
+                    .from('enrolled_masterlist')
+                    .update({ status: 'Unenrolled' })
+                    .eq('school_id', currentAdminSchoolId)
+                    .neq('status', 'Unenrolled');
+
+                if (updateError) {
+                    Swal.fire('Database Error', 'Failed to update records: ' + updateError.message, 'error');
+                } else {
+                    Swal.fire('Success!', 'All active students have been marked as Unenrolled.', 'success');
+                    fetchEnrolledStudents();
+                }
+            }
+        });
+    }
 
     // ==========================================
-    // 4. ADD / EDIT STUDENT MODAL LOGIC
+    // 5. ADD / EDIT STUDENT MODAL LOGIC
     // ==========================================
     const studentModal = document.getElementById('student-modal');
     const studentForm = document.getElementById('student-form');
-
-    // Make middle name placeholder obvious
     const mnameInput = document.getElementById('stu-mname');
-    if (mnameInput) {
-        mnameInput.placeholder = "";
-    }
+    if (mnameInput) mnameInput.placeholder = "Middle Name (Optional)";
 
     if (document.getElementById('btn-open-add')) {
         document.getElementById('btn-open-add').addEventListener('click', () => {
             if(studentForm) studentForm.reset();
             document.getElementById('student-db-id').value = '';
             document.getElementById('student-modal-title').innerText = "Add New Student";
+            if(document.getElementById('stu-status')) document.getElementById('stu-status').value = 'Enrolled';
             studentModal.style.display = 'flex';
         });
     }
@@ -254,11 +302,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('stu-id-number').value = s.id_number || '';
         document.getElementById('stu-fname').value = s.first_name || '';
         document.getElementById('stu-lname').value = s.last_name || '';
-        if (mnameInput) mnameInput.value = s.middle_name || ''; // Added Middle Name support
+        if (mnameInput) mnameInput.value = s.middle_name || ''; 
         
         document.getElementById('stu-program').value = s.program || '';
         document.getElementById('stu-year').value = s.year_level || ''; 
         if (document.getElementById('stu-gender')) document.getElementById('stu-gender').value = s.gender || ''; 
+        if (document.getElementById('stu-status')) document.getElementById('stu-status').value = s.status || 'Enrolled';
         
         document.getElementById('student-modal-title').innerText = "Edit Student";
         studentModal.style.display = 'flex';
@@ -267,15 +316,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (studentForm) {
         studentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const confirmResult = await Swal.fire({
+                title: 'Save Student?',
+                text: "Are you sure you want to save this student's information?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Yes, Save it'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+
             const btn = document.getElementById('btn-save-student');
-            
             const id = document.getElementById('student-db-id').value;
             const inputIdNumber = document.getElementById('stu-id-number').value.trim();
             
-            // CHECK FOR DUPLICATE ID (Double Entry Prevention)
             const isDuplicate = allStudents.some(s => s.id_number.toLowerCase() === inputIdNumber.toLowerCase() && s.id !== id);
             if (isDuplicate) {
-                alert(`A student with the ID Number "${inputIdNumber}" is already in the enrolled list!`);
+                Swal.fire('Duplicate Entry', `A student with the ID Number "${inputIdNumber}" is already in the masterlist!`, 'error');
                 return;
             }
 
@@ -283,16 +343,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const genderVal = document.getElementById('stu-gender') ? document.getElementById('stu-gender').value : null;
             const middleNameVal = document.getElementById('stu-mname') ? document.getElementById('stu-mname').value.trim() : '';
+            const statusVal = document.getElementById('stu-status') ? document.getElementById('stu-status').value : 'Enrolled';
             
             const payload = {
                 school_id: currentAdminSchoolId,
                 id_number: inputIdNumber,
                 first_name: document.getElementById('stu-fname').value.trim(),
                 last_name: document.getElementById('stu-lname').value.trim(),
-                middle_name: middleNameVal, // Saving Middle Name
+                middle_name: middleNameVal, 
                 program: document.getElementById('stu-program').value,
                 year_level: document.getElementById('stu-year').value, 
-                gender: genderVal 
+                gender: genderVal,
+                status: statusVal
             };
 
             try {
@@ -304,7 +366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         window.supabaseClient.from('profiles').update({
                             first_name: payload.first_name,
                             last_name: payload.last_name,
-                            middle_name: payload.middle_name, // Sync Middle Name
+                            middle_name: payload.middle_name, 
                             program: payload.program,
                             year_level: payload.year_level,
                             gender: payload.gender
@@ -312,16 +374,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (syncErr) console.warn("Background sync to profile skipped:", syncErr);
                         });
                     }
-
                 } else {
                     const { error } = await window.supabaseClient.from('enrolled_masterlist').insert([payload]);
                     if (error) throw error;
                 }
+                
+                Swal.fire('Success!', 'Student information saved successfully.', 'success');
                 studentModal.style.display = 'none';
                 fetchEnrolledStudents();
             } catch (err) {
                 console.error("Save Error:", err);
-                alert("Failed to save student: " + err.message);
+                Swal.fire('Save Failed', err.message, 'error');
             } finally {
                 btn.disabled = false; btn.innerText = "Save Student";
             }
@@ -329,51 +392,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.deleteStudent = async (id) => {
-        if(confirm("Are you sure you want to remove this student from the enrolled masterlist?")) {
+        const result = await Swal.fire({
+            title: 'Delete Student?',
+            text: "Are you sure you want to permanently remove this student? (Note: To keep records, Edit their status to 'Unenrolled' instead.)",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Yes, Delete!'
+        });
+
+        if(result.isConfirmed) {
             try {
                 const { error } = await window.supabaseClient.from('enrolled_masterlist').delete().eq('id', id);
                 if(error) throw error;
+                Swal.fire('Deleted!', 'The student has been deleted.', 'success');
                 fetchEnrolledStudents();
             } catch(err) {
-                alert("Error deleting record.");
+                Swal.fire('Error', 'Failed to delete record: ' + err.message, 'error');
             }
         }
     };
 
-
     // ==========================================
-    // 5. IMPORT EXCEL / CSV BULK UPLOAD
+    // 6. IMPORT EXCEL / CSV (APPEND ONLY) WITH PREVIEW
     // ==========================================
     const importModal = document.getElementById('import-modal');
     const importInput = document.getElementById('import-file-input');
     const importStatus = document.getElementById('import-status');
+    const importUploadArea = document.getElementById('import-upload-area');
+    const importPreviewArea = document.getElementById('import-preview-area');
+    const previewTbody = document.getElementById('preview-tbody');
+    const rawThead = document.getElementById('raw-thead');
+    const rawTbody = document.getElementById('raw-tbody');
+    const previewCount = document.getElementById('preview-count');
+    const previewDuplicates = document.getElementById('preview-duplicates');
+    const btnCancelImport = document.getElementById('btn-cancel-import');
+    const btnConfirmImport = document.getElementById('btn-confirm-import');
 
-    // Global function to download the template using SheetJS
     window.downloadImportTemplate = () => {
         const headers = [['Student ID', 'First Name', 'Middle Name', 'Last Name/Surname', 'Program', 'Year Level', 'Gender']];
         const sampleData = [['2024-0001', 'Juan', 'Dela Cruz', 'Santos', 'Bachelor of Science in Information Technology', '1st year', 'Male']];
-        
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([...headers, ...sampleData]);
-        
-        // Auto-size columns slightly for better visibility
         ws['!cols'] = [{wch: 15}, {wch: 20}, {wch: 15}, {wch: 25}, {wch: 45}, {wch: 15}, {wch: 12}];
-
         XLSX.utils.book_append_sheet(wb, ws, "Template");
         XLSX.writeFile(wb, "Enrolled_Students_Template.xlsx");
     };
 
+    function resetImportModal() {
+        if(importInput) importInput.value = '';
+        importStatus.innerHTML = `
+            <div style="margin-bottom: 15px; font-size: 13px; color: #475569; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                <strong>Need the correct format?</strong><br>
+                <a href="#" onclick="downloadImportTemplate(); return false;" style="color: var(--primary-color); font-weight: 600; text-decoration: underline; display: inline-block; margin-top: 4px;">📥 Download Excel Template</a>
+            </div>
+        `;
+        importUploadArea.style.display = 'block';
+        importPreviewArea.style.display = 'none';
+        pendingImportPayload = [];
+        pendingDuplicateRecords = [];
+        const modalContent = document.querySelector('#import-modal .modal-content-sm');
+        if(modalContent) modalContent.style.maxWidth = '500px';
+    }
+
     if (document.getElementById('btn-open-import')) {
         document.getElementById('btn-open-import').addEventListener('click', () => {
-            if(importInput) importInput.value = '';
-            
-            // Add the template download link directly into the modal status area
-            importStatus.innerHTML = `
-                <div style="margin-bottom: 15px; font-size: 13px; color: #475569; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px dashed #cbd5e1;">
-                    <strong>Need the correct format?</strong><br>
-                    <a href="#" onclick="downloadImportTemplate(); return false;" style="color: var(--primary-color); font-weight: 600; text-decoration: underline; display: inline-block; margin-top: 4px;">📥 Download Excel Template</a>
-                </div>
-            `;
+            resetImportModal();
             importModal.style.display = 'flex';
         });
     }
@@ -384,36 +469,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(!file) return;
 
             const ext = file.name.split('.').pop().toLowerCase();
-            
             if(ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
                 importStatus.innerHTML = "<span class='text-red'>Only CSV and Excel files (.xlsx, .xls) are supported.</span>";
                 return;
             }
 
-            importStatus.innerHTML = `<span style="color:var(--primary-color);">Processing ${file.name}...</span>`;
+            importStatus.innerHTML = `<span style="color:var(--primary-color);">Reading ${file.name}...</span>`;
 
             try {
                 const buffer = await file.arrayBuffer();
                 const workbook = XLSX.read(buffer);
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                
                 const rawData = XLSX.utils.sheet_to_json(worksheet);
+                const rawGrid = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 if(rawData.length === 0) throw new Error("File is empty or headers are not on the first row.");
 
-                let uploadPayload = [];
-                let duplicateRecords = [];
+                pendingImportPayload = [];
+                pendingDuplicateRecords = [];
                 let seenIdsInFile = new Set();
                 const existingIdsInDb = new Set(allStudents.map(s => s.id_number.toLowerCase()));
                 
-                // SUPER SMART MATCHER: 2-Pass Safe Search
                 const findColumn = (row, possibleNames) => {
                     const rowKeys = Object.keys(row);
-                    
                     for (let key of rowKeys) {
                         const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
                         if (possibleNames.includes(cleanKey)) return row[key];
                     }
-
                     for (let key of rowKeys) {
                         const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
                         for (let p of possibleNames) {
@@ -437,10 +520,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const sidLower = cleanSid.toLowerCase();
 
                         if (existingIdsInDb.has(sidLower) || seenIdsInFile.has(sidLower)) {
-                            duplicateRecords.push(`${fname.toString().trim()} ${lname.toString().trim()} (${cleanSid})`);
+                            pendingDuplicateRecords.push(`${fname.toString().trim()} ${lname.toString().trim()} (${cleanSid})`);
                         } else {
                             seenIdsInFile.add(sidLower);
-                            uploadPayload.push({
+                            pendingImportPayload.push({
                                 school_id: currentAdminSchoolId,
                                 id_number: cleanSid,
                                 first_name: fname.toString().trim(),
@@ -448,51 +531,161 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 middle_name: mname.toString().trim(),
                                 program: program.toString().trim(),
                                 year_level: yLevel.toString().trim(),
-                                gender: gender.toString().trim()
+                                gender: gender.toString().trim(),
+                                status: 'Enrolled' // Default to Enrolled upon import
                             });
                         }
                     }
                 });
 
-                if(uploadPayload.length === 0 && duplicateRecords.length === 0) {
+                if(pendingImportPayload.length === 0 && pendingDuplicateRecords.length === 0) {
                     const detectedHeaders = Object.keys(rawData[0]).join(', ');
                     throw new Error(`Could not find valid data.<br><br><b>Detected Columns:</b> [${detectedHeaders}]<br><br>Please ensure your sheet has 'Student ID', 'First Name', and 'Last Name/Surname' on Row 1.`);
                 }
 
-                if(uploadPayload.length === 0 && duplicateRecords.length > 0) {
-                    throw new Error("No new students were added. All valid students in the file are already in the system.");
+                if(pendingImportPayload.length === 0 && pendingDuplicateRecords.length > 0) {
+                    throw new Error(`No new students to add. All ${pendingDuplicateRecords.length} students in the file are already in the system.`);
                 }
 
-                importStatus.innerHTML = `<span style="color:var(--primary-color);">Saving ${uploadPayload.length} new students to database...</span>`;
+                const modalContent = document.querySelector('#import-modal .modal-content-sm');
+                if(modalContent) modalContent.style.maxWidth = '1400px';
 
-                const { error } = await window.supabaseClient.from('enrolled_masterlist').insert(uploadPayload);
-                if(error) throw error;
+                importUploadArea.style.display = 'none';
+                importPreviewArea.style.display = 'block';
+                importStatus.innerHTML = '';
+                btnConfirmImport.disabled = false;
+                btnConfirmImport.innerText = "Confirm & Import";
 
-                let finalStatusHtml = `<span style="color:#10b981; font-weight:600;">✅ Successfully imported ${uploadPayload.length} new students!</span>`;
+                // --- 1. POPULATE RAW GRID (LEFT) ---
+                rawThead.innerHTML = '';
+                rawTbody.innerHTML = '';
+                if(rawGrid.length > 0) {
+                    const headers = rawGrid[0];
+                    let theadHtml = '<tr>';
+                    headers.forEach(h => {
+                        theadHtml += `<th style="padding: 10px; font-weight: 600; color: #475569;">${h || ''}</th>`;
+                    });
+                    theadHtml += '</tr>';
+                    rawThead.innerHTML = theadHtml;
+
+                    const maxRows = Math.min(rawGrid.length, 51);
+                    for(let i = 1; i < maxRows; i++) {
+                        let trHtml = '<tr style="border-bottom: 1px solid #e2e8f0;">';
+                        for(let j = 0; j < headers.length; j++) {
+                            const cellValue = rawGrid[i][j] !== undefined ? rawGrid[i][j] : '';
+                            trHtml += `<td style="padding: 8px;">${cellValue}</td>`;
+                        }
+                        trHtml += '</tr>';
+                        rawTbody.innerHTML += trHtml;
+                    }
+                    if(rawGrid.length > 51) {
+                        rawTbody.innerHTML += `<tr><td colspan="${headers.length}" style="padding: 10px; text-align: center; color: #64748b; font-style: italic;">...and ${rawGrid.length - 51} more rows</td></tr>`;
+                    }
+                }
+
+                // --- 2. POPULATE PROCESSED GRID (RIGHT) ---
+                previewCount.innerText = `${pendingImportPayload.length} Valid Student(s) to import`;
+                previewTbody.innerHTML = '';
                 
-                if (duplicateRecords.length > 0) {
-                    finalStatusHtml += `
-                        <div style="margin-top: 15px; padding: 12px; background: #fee2e2; border: 1px solid #ef4444; border-radius: 6px; color: #991b1b; text-align: left; font-size: 13px; max-height: 140px; overflow-y: auto;">
-                            <strong>⚠️ Skipped ${duplicateRecords.length} Duplicate(s):</strong><br>
-                            <span style="font-size:12px; opacity:0.9;">These students are already in the enrollment list.</span><br><br>
-                            ${duplicateRecords.join('<br>')}
+                const displayRows = pendingImportPayload.slice(0, 50);
+                displayRows.forEach(p => {
+                    previewTbody.innerHTML += `
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 8px;">${p.id_number}</td>
+                            <td style="padding: 8px;">${p.first_name}</td>
+                            <td style="padding: 8px;">${p.middle_name}</td>
+                            <td style="padding: 8px;">${p.last_name}</td>
+                            <td style="padding: 8px;">${p.program}</td>
+                            <td style="padding: 8px;">${p.year_level}</td>
+                            <td style="padding: 8px;">${p.gender}</td>
+                        </tr>
+                    `;
+                });
+                if(pendingImportPayload.length > 50) {
+                    previewTbody.innerHTML += `<tr><td colspan="7" style="padding: 10px; text-align: center; color: #64748b; font-style: italic;">...and ${pendingImportPayload.length - 50} more students</td></tr>`;
+                }
+
+                if(pendingDuplicateRecords.length > 0) {
+                    previewDuplicates.style.display = 'block';
+                    previewDuplicates.innerHTML = `
+                        <strong>⚠️ Skipping ${pendingDuplicateRecords.length} Duplicate(s):</strong><br>
+                        <span style="font-size:11px; opacity:0.9;">These IDs already exist in the system and will be ignored.</span><br>
+                        <div style="margin-top: 8px; font-size: 12px; max-height: 80px; overflow-y: auto;">
+                            ${pendingDuplicateRecords.join('<br>')}
                         </div>
                     `;
-                }
-
-                importStatus.innerHTML = finalStatusHtml;
-                fetchEnrolledStudents();
-
-                if (duplicateRecords.length === 0) {
-                    setTimeout(() => {
-                        importModal.style.display = 'none';
-                    }, 2000);
+                } else {
+                    previewDuplicates.style.display = 'none';
                 }
 
             } catch (err) {
-                console.error("Import Error:", err);
+                console.error("Import Parsing Error:", err);
                 importStatus.innerHTML = `<div class="text-red" style="text-align:left; background:#fee2e2; padding:10px; border-radius:6px; border:1px solid #ef4444;">${err.message}</div>`;
+                importInput.value = ''; 
             }
+        });
+    }
+
+    if(btnCancelImport) btnCancelImport.addEventListener('click', () => resetImportModal());
+
+    if(btnConfirmImport) {
+        btnConfirmImport.addEventListener('click', async () => {
+            if(pendingImportPayload.length === 0) return;
+
+            // SWEET ALERT CONFIRMATION BEFORE IMPORT
+            const confirmResult = await Swal.fire({
+                title: 'Execute Import?',
+                text: `You are about to import ${pendingImportPayload.length} new students. Proceed?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Yes, Import!'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+
+            btnConfirmImport.disabled = true;
+            btnConfirmImport.innerText = "Importing...";
+            importStatus.innerHTML = `<span style="color:var(--primary-color);">Saving ${pendingImportPayload.length} students to database...</span>`;
+
+            try {
+                const { error } = await window.supabaseClient.from('enrolled_masterlist').insert(pendingImportPayload);
+                if(error) throw error;
+
+                // SWEET ALERT SUCCESS MESSAGE
+                Swal.fire('Success!', `Successfully imported ${pendingImportPayload.length} students!`, 'success');
+                
+                importModal.style.display = 'none';
+                resetImportModal();
+                fetchEnrolledStudents();
+
+            } catch(err) {
+                console.error("Database Insert Error:", err);
+                importStatus.innerHTML = `<div class="text-red" style="text-align:left; background:#fee2e2; padding:10px; border-radius:6px; border:1px solid #ef4444;">Import failed: ${err.message}</div>`;
+                btnConfirmImport.disabled = false;
+                btnConfirmImport.innerText = "Try Again";
+            }
+        });
+    }
+
+    // ==========================================
+    // 7. MOBILE HAMBURGER MENU TOGGLE
+    // ==========================================
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (mobileMenuToggle && sidebar && sidebarOverlay) {
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.add('active');
+            sidebarOverlay.classList.add('active');
+        });
+
+        // Close sidebar when clicking outside
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
         });
     }
 

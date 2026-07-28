@@ -1,278 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Settings - Grantee</title>
+    <!-- SweetAlert2 CDN (Moved to head to prevent loading errors) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/profile-settings.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
+
 <body class="bg-main text-main">
     <div class="app-layout">
-        
-        <aside class="sidebar">
-            <div class="logo">
-                <img src="assets/grantee-logo.png" alt="Grantee" width="32" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>'">
-                <div>
-                    <h2>Grantee</h2>
-                    <span>Smart Scholarship Management</span>
-                </div>
-            </div>
 
-            <nav class="sidebar-nav mt-20">
-                <a href="student-dashboard.html">🏠 Dashboard</a>
-                <a href="student-scholarships.html">🎓 Available Scholarships</a>
-                <a href="student-applications.html">📄 My Applications</a>
-                <a href="student-announcements.html">📢 Announcements <span class="badge">2</span></a>
-                <a href="profile-settings.html" class="active">👤 Profile Settings</a>
-            </nav>
-
-            <div class="nav-divider"></div>
-
-        </aside>
+        <!-- DYNAMIC SIDEBAR INJECTION POINT -->
+        <div id="sidebar-container"></div>
 
         <main class="main-content">
-            
+
             <div class="content-wrapper">
 
-                <header class="top-header">
-                    <div class="header-titles">
-                        <h1>Profile Settings</h1>
-                        <p>Manage your personal information and account settings</p>
-                    </div>
-                    
-                    <div class="header-actions">
-                        <button class="icon-btn">
-                            🔔<span class="badge-icon">2</span>
-                        </button>
-                        
+                <header class="top-header" style="flex-direction: column; align-items: stretch; gap: 15px;">
+                    <!-- TOP ROW: Actions & Mobile Menu -->
+                    <div class="header-actions" style="width: 100%; justify-content: flex-end;">
+
                         <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
-                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
+                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><path d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/></svg>'">
                             <div>
                                 <strong id="header-name">Student Name</strong>
-                                <span id="header-program">Student</span>
+                                <span id="header-program">Program</span>
                             </div>
-                            <span class="dropdown-arrow">▼</span>
+                            <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
 
                             <div class="profile-dropdown-menu" id="profile-menu">
-                                <a href="profile-settings.html">👤 Profile Settings</a>
+                                <a href="profile-settings.html"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
                                 <div class="dropdown-divider"></div>
-                                <a href="#" id="dropdown-logout-btn" class="text-red">🚪 Logout</a>
+                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
                             </div>
+                        </div>
+
+                        <div style="position: relative;">
+                            <button class="btn-notification" id="notification-bell" type="button">
+                                <i class="fa-regular fa-bell" style="font-size: 22px;"></i>
+                                <span class="badge" id="notification-badge" style="display:none;">0</span>
+                            </button>
+
+                            <div id="notification-dropdown" class="notification-dropdown" style="display: none; position: absolute; right: 0; top: 35px; width: 300px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; z-index: 1000; border: 1px solid #e2e8f0; overflow: hidden; text-align: left;">
+                                <div class="notification-header" style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: 14px;">
+                                    <strong>Notifications</strong>
+                                </div>
+                                <div id="notification-list" class="notification-list-body" style="max-height: 300px; overflow-y: auto;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HAMBURGER BUTTON (Mobile Only) -->
+                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                    </div>
+
+                    <!-- BOTTOM ROW: Titles -->
+                    <div class="header-titles-wrapper">
+                        <div class="header-titles">
+                            <h1>Profile Settings</h1>
+                            <p>Manage your personal information and account settings</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="profile-layout-grid">
-                    
-                    <div class="center-column">
-                        
-                        <div class="card">
-                            <div class="card-header">
-                                <div>
-                                    <h3>Personal Information</h3>
-                                    <p class="text-sm">Update your personal details</p>
-                                </div>
-                            </div>
-                            <form id="personal-info-form" class="grid-form">
-                                <div class="input-group">
-                                    <label>First Name</label>
-                                    <input type="text" id="first_name" class="locked-input italic-muted" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label>Middle Name</label>
-                                    <input type="text" id="middle_name" class="locked-input italic-muted" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label>Last Name</label>
-                                    <input type="text" id="last_name" class="locked-input italic-muted" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label>Suffix (Optional)</label>
-                                    <input type="text" id="suffix" placeholder="e.g. Jr, Sr">
-                                </div>
-                                <div class="input-group full-width">
-                                    <label>Email Address</label>
-                                    <div class="input-with-badge">
-                                        <input type="email" id="email" class="locked-input italic-muted" readonly>
-                                        <span class="status-badge verified">Verified</span>
-                                    </div>
-                                </div>
-                                <div class="input-group">
-                                    <label>Student ID Number</label>
-                                    <input type="text" id="student_id" class="locked-input italic-muted" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label>Registration Date</label>
-                                    <input type="text" id="reg_date" class="locked-input italic-muted" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label>Date of Birth</label>
-                                    <input type="date" id="dob">
-                                </div>
-                                <div class="input-group">
-                                    <label>Gender</label>
-                                    <select id="gender">
-                                        <option value="">Select Gender</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <!-- <option value="Other">Other</option>
-                                        <option value="Prefer not to say">Prefer not to say</option> -->
-                                    </select>
-                                </div>
-                                <div class="input-group full-width">
-                                    <label>Contact Number</label>
-                                    <input type="text" id="contact_number" placeholder="e.g., 09123456789">
-                                </div>
-                                
-                                <div class="input-group full-width" style="grid-column: 1 / -1;">
-                                    <label>Address</label>
-                                    <input type="text" id="address" placeholder="House Number, Street/Barangay, Municipality/Province">
-                                </div>
+                <!-- Single Column Layout for Exact Sequence -->
+                <div class="profile-layout-single" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px; width: 100%;">
 
-                                <div class="form-actions full-width mt-10">
-                                    <button type="submit" id="save-personal-btn" class="btn-primary">Save Changes</button>
-                                </div>
-                            </form>
+                    <!-- 1. Profile Photo -->
+                    <div class="card align-center">
+                        <h3>Profile Photo</h3>
+                        <p class="text-sm">This photo will appear on your profile</p>
+                        <div class="large-avatar-container">
+                            <img src="assets/default-avatar.png" alt="Profile" class="large-avatar"
+                                id="profile-avatar"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22><i class=%22fa-solid fa-user%22></i></text></svg>'">
                         </div>
-
-                        <div class="card mt-24">
-                            <div class="card-header">
-                                <div>
-                                    <h3>Academic Information</h3>
-                                    <p class="text-sm">Your academic details</p>
-                                </div>
-                            </div>
-                            <form id="academic-info-form" class="grid-form">
-                                <div class="input-group full-width">
-                                    <label>School (Locked)</label>
-                                    <input type="text" id="school" class="locked-input italic-muted" placeholder="e.g., Cebu Roosevelt Memorial Colleges (CRMC)" readonly>
-                                </div>
-                                <div class="input-group full-width">
-                                    <label>Program (Locked)</label>
-                                    <input type="text" id="program" class="locked-input italic-muted" placeholder="e.g., Bachelor of Science in Information Technology" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <!-- CHANGED TO LOCKED TEXT INPUT -->
-                                    <label>Year Level (Locked)</label>
-                                    <input type="text" id="year_level" class="locked-input italic-muted" placeholder="e.g., 1st year" readonly>
-                                </div>
-                                <div class="input-group">
-                                    <label>Current GWA</label>
-                                    <input type="number" id="gwa" step="0.01" placeholder="e.g., 1.25">
-                                </div>
-                                <div class="form-actions full-width mt-10">
-                                    <button type="submit" id="save-academic-btn" class="btn-primary">Save Academic Info</button>
-                                </div>
-                            </form>
-                        </div>
-
+                        <input type="file" id="avatar-upload" accept="image/png, image/jpeg, image/gif"
+                            style="display: none;">
+                        <button class="btn-outline full-width mt-20" id="change-photo-btn" type="button">Change Photo</button>
+                        <p class="text-xs mt-10">JPG and PNG. Max size of 5MB.</p>
                     </div>
 
-                    <div class="right-column">
-                        
-                        <div class="card align-center">
-                            <h3>Profile Photo</h3>
-                            <p class="text-sm">This photo will appear on your profile</p>
-                            <div class="large-avatar-container">
-                                <img src="assets/default-avatar.png" alt="Profile" class="large-avatar" id="profile-avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
-                            </div>
-                            <input type="file" id="avatar-upload" accept="image/png, image/jpeg, image/gif" style="display: none;">
-                            <button class="btn-outline full-width mt-20" id="change-photo-btn" type="button">Change Photo</button>
-                            <p class="text-xs mt-10">JPG and PNG. Max size of 5MB.</p>
-                        </div>
-
-                        <div class="card mt-24">
-                            <h3>Account Status</h3>
-                            <p class="text-sm">Your account verification status</p>
-                            <ul class="status-list mt-16">
-                                <li><span>Email Address</span> <span class="text-green font-semibold">Verified ✔</span></li>
-                                <li><span>Student Verification</span> <span class="text-green font-semibold">Verified ✔</span></li>
-                                <li><span>Account Status</span> <span class="text-green font-semibold">Active ✔</span></li>
-                            </ul>
-                        </div>
-
-                        <div class="card mt-24">
-                            <h3>Security Settings</h3>
-                            <p class="text-sm">Change your account password securely.</p>
-                            <form id="password-form" class="mt-16">
-                                <div class="input-group" style="margin-bottom: 12px;">
-                                    <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">Current Password <span class="text-red">*</span></label>
-                                    <input type="password" id="current-password" class="form-input" required placeholder="Enter current password" style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                </div>
-                                <div class="input-group" style="margin-bottom: 12px;">
-                                    <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">New Password <span class="text-red">*</span></label>
-                                    <input type="password" id="new-password" class="form-input" minlength="8" required placeholder="Minimum 8 characters" style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                </div>
-                                <div class="input-group" style="margin-bottom: 16px;">
-                                    <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">Confirm New Password <span class="text-red">*</span></label>
-                                    <input type="password" id="confirm-password" class="form-input" minlength="8" required placeholder="Retype new password" style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                </div>
-                                <button type="submit" id="btn-save-password" class="btn-primary" style="width: 100%;">Update Password</button>
-                            </form>
-                        </div>
-                        
-                        <div class="card mt-24 security-settings-panel">
-                            <h3>Two-Factor Authentication (2FA)</h3>
-                            <p class="text-sm">Secure your account with a TOTP authenticator app.</p>
-                            
-                            <button id="start-2fa-btn" class="btn-outline full-width mt-16" type="button" style="border-color: #3b82f6; color: #3b82f6;">Set Up 2FA</button>
-
-                            <div id="setup-2fa-section" style="display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                                <p class="text-sm" style="color: #475569; margin-bottom: 10px;"><strong>1. Scan this QR code with your Authenticator App:</strong></p>
-                                
-                                <div id="qr-code-container" style="background: #fff; padding: 10px; display: inline-block; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; text-align: center;"></div>
-                                
-                                <p class="text-sm" style="color: #475569; margin-bottom: 10px;"><strong>2. Enter the 6-digit code from your app to verify:</strong></p>
-                                <div style="display: flex; gap: 10px;">
-                                    <input type="text" id="verify-2fa-input" maxlength="6" placeholder="000000" style="flex: 1; padding: 8px; text-align: center; letter-spacing: 5px; font-size: 16px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                    <button id="confirm-2fa-btn" type="button" class="btn-primary" style="padding: 8px 16px;">Confirm</button>
-                                </div>
+                    <!-- 2. Personal Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Personal Information</h3>
+                                <p class="text-sm">Update your personal details</p>
                             </div>
                         </div>
-
-                        <div class="card mt-24">
-                            <h3>Quick Actions</h3>
-                            <div class="action-list mt-16">
-                                <a href="#" class="action-item">
-                                    <div>
-                                        <strong>Download My Profile</strong>
-                                        <span class="text-xs block text-muted">Download your profile information</span>
-                                    </div>
-                                    <span style="font-size: 18px;">📥</span>
-                                </a>
-                                <a href="#" class="action-item text-red" style="border-bottom: none;">
-                                    <div>
-                                        <strong style="color: var(--danger-color);">Deactivate Account</strong>
-                                        <span class="text-xs block text-muted">Temporarily deactivate your account</span>
-                                    </div>
-                                    <span style="color: var(--danger-color); font-weight: bold;">></span>
-                                </a>
+                        <form id="personal-info-form" class="grid-form">
+                            <div class="input-group">
+                                <label>First Name</label>
+                                <input type="text" id="first_name" class="locked-input italic-muted" readonly>
                             </div>
-                        </div>
+                            <div class="input-group">
+                                <label>Middle Name</label>
+                                <input type="text" id="middle_name" class="locked-input italic-muted" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label>Last Name</label>
+                                <input type="text" id="last_name" class="locked-input italic-muted" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label>Suffix (Optional)</label>
+                                <input type="text" id="suffix" placeholder="e.g. Jr, Sr">
+                            </div>
+                            <div class="input-group full-width">
+                                <label>Email Address</label>
+                                <div class="input-with-badge">
+                                    <input type="email" id="email" class="locked-input italic-muted" readonly>
+                                    <span class="status-badge verified">Verified</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Student ID Number</label>
+                                <input type="text" id="student_id" class="locked-input italic-muted" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label>Registration Date</label>
+                                <input type="text" id="reg_date" class="locked-input italic-muted" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label>Date of Birth</label>
+                                <input type="date" id="dob">
+                            </div>
+                            <div class="input-group">
+                                <label>Gender</label>
+                                <select id="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div class="input-group full-width">
+                                <label>Contact Number</label>
+                                <input type="text" id="contact_number" placeholder="e.g., 09123456789">
+                            </div>
 
+                            <div class="input-group full-width" style="grid-column: 1 / -1;">
+                                <label>Address</label>
+                                <input type="text" id="address"
+                                    placeholder="House Number, Street/Barangay, Municipality/Province">
+                            </div>
+
+                            <div class="form-actions full-width mt-10">
+                                <button type="submit" id="save-personal-btn" class="btn-primary">Save Changes</button>
+                            </div>
+                        </form>
                     </div>
+
+                    <!-- 3. Academic Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Academic Information</h3>
+                                <p class="text-sm">Your academic details</p>
+                            </div>
+                        </div>
+                        <form id="academic-info-form" class="grid-form">
+                            <div class="input-group full-width">
+                                <label>School (Locked)</label>
+                                <input type="text" id="school" class="locked-input italic-muted"
+                                    placeholder="e.g., Cebu Roosevelt Memorial Colleges (CRMC)" readonly>
+                            </div>
+                            <div class="input-group full-width">
+                                <label>Program (Locked)</label>
+                                <input type="text" id="program" class="locked-input italic-muted"
+                                    placeholder="e.g., Bachelor of Science in Information Technology" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label>Year Level (Locked)</label>
+                                <input type="text" id="year_level" class="locked-input italic-muted"
+                                    placeholder="e.g., 1st year" readonly>
+                            </div>
+                            <div class="input-group">
+                                <label>Current GWA</label>
+                                <input type="number" id="gwa" step="0.01" placeholder="e.g., 1.25">
+                            </div>
+                            <div class="form-actions full-width mt-10">
+                                <button type="submit" id="save-academic-btn" class="btn-primary">Save Academic Info</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 4. Account Status -->
+                    <div class="card">
+                        <h3>Account Status</h3>
+                        <p class="text-sm">Your account verification status</p>
+                        <ul class="status-list mt-16">
+                            <li><span>Email Address</span> <span class="text-green font-semibold">Verified ✔</span></li>
+                            <li><span>Student Verification</span> <span class="text-green font-semibold">Verified ✔</span></li>
+                            <li><span>Account Status</span> <span class="text-green font-semibold">Active ✔</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- 5. Security Settings -->
+                    <div class="card">
+                        <h3>Security Settings</h3>
+                        <p class="text-sm">Change your account password securely.</p>
+                        <form id="password-form" class="mt-16">
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">Current Password <span class="text-red">*</span></label>
+                                <input type="password" id="current-password" class="form-input" required
+                                    placeholder="Enter current password"
+                                    style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">New Password <span class="text-red">*</span></label>
+                                <input type="password" id="new-password" class="form-input" minlength="8" required
+                                    placeholder="Minimum 8 characters"
+                                    style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 16px;">
+                                <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">Confirm New Password <span class="text-red">*</span></label>
+                                <input type="password" id="confirm-password" class="form-input" minlength="8" required
+                                    placeholder="Retype new password"
+                                    style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            </div>
+                            <button type="submit" id="btn-save-password" class="btn-primary" style="width: 100%;">Update Password</button>
+                        </form>
+                    </div>
+
+                    <!-- 6. Two-Factor Authentication (2FA) -->
+                    <div class="card security-settings-panel">
+                        <h3>Two-Factor Authentication (2FA)</h3>
+                        <p class="text-sm">Secure your account with a TOTP authenticator app.</p>
+
+                        <button id="start-2fa-btn" class="btn-outline full-width mt-16" type="button"
+                            style="border-color: #3b82f6; color: #3b82f6;">Set Up 2FA</button>
+
+                        <div id="setup-2fa-section" style="display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                            <p class="text-sm" style="color: #475569; margin-bottom: 10px;"><strong>1. Scan this QR code with your Authenticator App:</strong></p>
+
+                            <div id="qr-code-container" style="background: #fff; padding: 10px; display: inline-block; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; text-align: center;">
+                            </div>
+
+                            <p class="text-sm" style="color: #475569; margin-bottom: 10px;"><strong>2. Enter the 6-digit code from your app to verify:</strong></p>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="verify-2fa-input" maxlength="6" placeholder="000000"
+                                    style="flex: 1; padding: 8px; text-align: center; letter-spacing: 5px; font-size: 16px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <button id="confirm-2fa-btn" type="button" class="btn-primary"
+                                    style="padding: 8px 16px;">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Email Notification Preferences -->
+                    <div class="card notification-settings-panel">
+                        <h3>Email Notification Preferences</h3>
+                        <p class="text-sm" style="margin-bottom: 20px;">Manage which emails you want to receive. In-app notifications are always enabled.</p>
+                        
+                        <form id="notification-prefs-form">
+                            <div class="toggle-group" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                                <div>
+                                    <strong style="font-size: 14px; color: #1e293b; display: block;">System Announcements & Deadlines</strong>
+                                    <span style="font-size: 12px; color: #64748b;">Receive emails for new announcements and upcoming deadlines.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="pref-announcements" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-group" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                                <div>
+                                    <strong style="font-size: 14px; color: #1e293b; display: block;">Application Status Updates</strong>
+                                    <span style="font-size: 12px; color: #64748b;">Emails when your application is submitted, under review, approved, or rejected.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="pref-applications" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-group" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                                <div>
+                                    <strong style="font-size: 14px; color: #1e293b; display: block;">Beneficiary Updates & Certificates</strong>
+                                    <span style="font-size: 12px; color: #64748b;">Emails regarding active beneficiary status and certificate availability.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="pref-beneficiary" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-group" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                                <div>
+                                    <strong style="font-size: 14px; color: #1e293b; display: block;">Security & Account Activity</strong>
+                                    <span style="font-size: 12px; color: #64748b;">Emails for password resets, OTPs, and verification. (Always On)</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="pref-security" checked disabled>
+                                    <span class="slider round" style="opacity: 0.5; cursor: not-allowed;"></span>
+                                </label>
+                            </div>
+
+                            <button type="submit" id="btn-save-prefs" class="btn-primary full-width mt-16">Save Preferences</button>
+                        </form>
+                    </div>
+
+                    <!-- 8. Quick Actions -->
+                    <div class="card">
+                        <h3>Quick Actions</h3>
+                        <div class="action-list mt-16">
+                            <a href="#" class="action-item">
+                                <div>
+                                    <strong>Download My Profile</strong>
+                                    <span class="text-xs block text-muted">Download your profile information</span>
+                                </div>
+                                <span style="font-size: 18px;"><i class="fa-solid fa-download"></i></span>
+                            </a>
+                            <a href="#" class="action-item text-red" style="border-bottom: none;">
+                                <div>
+                                    <strong style="color: var(--danger-color);">Deactivate Account</strong>
+                                    <span class="text-xs block text-muted">Temporarily deactivate your account</span>
+                                </div>
+                                <span style="color: var(--danger-color); font-weight: bold;"><i class="fa-solid fa-chevron-right"></i></span>
+                            </a>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </main>
     </div>
 
-    <div id="logout-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm">
-            <div class="modal-icon">🚪</div>
-            <h3>Logout</h3>
-            <p>Do you want to logout?</p>
-            <div class="modal-actions">
-                <button id="modal-cancel" class="btn-outline" style="width: auto;">No</button>
-                <button id="modal-confirm" class="btn-danger">Yes</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- The custom Save/Success modals are kept here for compatibility with profile-settings.js -->
     <div id="save-confirm-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content-sm">
-            <div class="modal-icon" style="color: #3b82f6;">💾</div>
+            <div class="modal-icon" style="color: #3b82f6;"><i class="fa-solid fa-floppy-disk"></i></div>
             <h3>Save Changes</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Are you sure you want to save these changes to your profile?</p>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Are you sure you want to save
+                these changes to your profile?</p>
             <div class="modal-actions">
                 <button id="save-cancel-btn" class="btn-outline" style="width: auto;">Cancel</button>
                 <button id="save-proceed-btn" class="btn-primary" style="margin-left: 10px;">Yes, Save</button>
@@ -282,18 +351,26 @@
 
     <div id="success-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content-sm" style="padding-bottom: 40px;">
-            <div class="modal-icon" style="color: var(--success-color);">✅</div>
+            <div class="modal-icon" style="color: var(--success-color);"><i class="fa-solid fa-circle-check"></i></div>
             <h3 id="success-title">Success!</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;" id="success-message">Your profile settings have been successfully updated.</p>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;" id="success-message">Your profile
+                settings have been successfully updated.</p>
             <button id="success-close-btn" class="btn-primary" style="width: 100%;">Okay</button>
         </div>
     </div>
 
+    <div id="modal-root"></div>
+
+    <!-- MOBILE SIDEBAR OVERLAY -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/components/student-notifications.js"></script>
+    <script src="js/sidebar-loader.js"></script>
     <script src="js/profile-settings.js"></script>
-
+    <script src="js/components/ai-assistant.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Dropdown Menu Logic
@@ -309,35 +386,41 @@
                     if (!profileToggle.contains(e.target)) profileMenu.classList.remove('show');
                 });
             }
+        });
+    </script>
 
-            // Logout Modal Logic
-            const logoutModal = document.getElementById('logout-modal');
-            const logoutTriggers = document.querySelectorAll('#sidebar-logout-btn, #dropdown-logout-btn');
-
-            logoutTriggers.forEach(btn => {
-                btn.addEventListener('click', (e) => {
+    <!-- MOBILE SIDEBAR TOGGLE SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            
+            // Function to strictly close both the sidebar and the blur overlay
+            function closeSidebar(e) {
+                if (e && e.cancelable) e.preventDefault();
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) sidebar.classList.remove('show');
+                if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+            }
+            
+            // Toggle sidebar open
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if(logoutModal) logoutModal.style.display = 'flex';
-                    if(profileMenu) profileMenu.classList.remove('show');
-                });
-            });
-
-            if(document.getElementById('modal-cancel')) {
-                document.getElementById('modal-cancel').addEventListener('click', () => {
-                    logoutModal.style.display = 'none';
+                    e.stopPropagation();
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar) sidebar.classList.toggle('show');
+                    if (sidebarOverlay) sidebarOverlay.classList.toggle('show');
                 });
             }
 
-            if(document.getElementById('modal-confirm')) {
-                document.getElementById('modal-confirm').addEventListener('click', async () => {
-                    if(window.supabaseClient) {
-                        document.getElementById('modal-confirm').innerText = "Logging out...";
-                        await window.supabaseClient.auth.signOut();
-                        window.location.href = 'login.html'; 
-                    }
-                });
+            // Close sidebar instantly when tapping the blurred overlay
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebar);
+                sidebarOverlay.addEventListener('touchstart', closeSidebar, { passive: false });
             }
         });
     </script>
 </body>
+
 </html>

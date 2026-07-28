@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const adminId = session.user.id;
     let currentAdminSchoolId = null;
+    let currentAdminSchool = null;
     let activeBeneficiaries = [];
     let currentFilteredBeneficiaries = [];
     let schoolScholarships = [];
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
+                currentAdminSchool = profile.school;
 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
                 if(document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
@@ -267,6 +269,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { error } = await window.supabaseClient.from('applications').update({ status: 'Rejected', remarks: 'Revoked by Admin' }).eq('id', appId);
                 if(error) throw error;
                 
+                // Notify coordinators of the status change
+                const app = activeBeneficiaries.find(a => a.id === appId);
+                if (app && currentAdminSchool) {
+                    const studentName = app.profiles ? `${app.profiles.first_name || ''} ${app.profiles.last_name || ''}`.trim() : 'A student';
+                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            schoolName: currentAdminSchool,
+                            eventType: 'BENEFICIARY_UPDATE',
+                            subject: 'Beneficiary Status Changed',
+                            message: `Beneficiary status revoked for ${studentName}.`,
+                            resourceId: appId
+                        })
+                    }).catch(e => console.error("Notification failed:", e));
+                }
+
                 Swal.fire('Revoked', 'The assistance has been revoked.', 'success');
                 fetchActiveBeneficiaries(); 
             } catch(err) {

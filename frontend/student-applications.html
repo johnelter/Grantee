@@ -45,15 +45,11 @@
                     
                     <!-- TOP ROW: Actions & Mobile Menu -->
                     <div class="header-actions" style="width: 100%; justify-content: flex-end;">
-                        <button class="icon-btn" style="position: relative;">
-                            <i class="fa-regular fa-bell"></i><span class="badge-icon" style="position: absolute; top: -5px; right: -5px;">2</span>
-                        </button>
-
                         <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
                             <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><path d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/></svg>'">
                             <div>
-                                <strong id="display-user-name">Student Name</strong>
+                                <strong id="header-name">Student Name</strong>
                                 <span id="header-program">Student</span>
                             </div>
                             <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
@@ -62,6 +58,21 @@
                                 <a href="profile-settings.html"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
                                 <div class="dropdown-divider"></div>
                                 <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                            </div>
+                        </div>
+
+                        <div style="position: relative;">
+                            <button class="btn-notification" id="notification-bell" type="button">
+                                <i class="fa-regular fa-bell" style="font-size: 22px;"></i>
+                                <span class="badge" id="notification-badge" style="display:none;">0</span>
+                            </button>
+
+                            <div id="notification-dropdown" class="notification-dropdown" style="display: none; position: absolute; right: 0; top: 35px; width: 300px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; z-index: 1000; border: 1px solid #e2e8f0; overflow: hidden; text-align: left;">
+                                <div class="notification-header" style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: 14px;">
+                                    <strong>Notifications</strong>
+                                </div>
+                                <div id="notification-list" class="notification-list-body" style="max-height: 300px; overflow-y: auto;">
+                                </div>
                             </div>
                         </div>
 
@@ -161,63 +172,7 @@
         </main>
     </div>
 
-    <!-- AI Chat Widget (Kept exactly as requested) -->
-    <div class="chat-widget" id="ai-chat-widget">
-        <div class="chat-header">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="background:#fff; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:18px;">
-                    🤖</div>
-                <div>
-                    <strong style="display:block; font-size:14px;">AI Assistant</strong>
-                    <span style="font-size:11px; opacity:0.8;">Your program helper</span>
-                </div>
-            </div>
-            <button class="close-chat" onclick="toggleChat()">✕</button>
-        </div>
-        <div class="chat-body">
-            <div class="chat-message bot-message">
-                <div class="msg-avatar">🤖</div>
-                <div class="msg-bubble">
-                    <strong>Hi there! 👋</strong><br>
-                    I'm your AI assistant. I can help you with programs, requirements, application status,
-                    and more.
-                    <span class="msg-time">10:30 AM</span>
-                </div>
-            </div>
-            <div class="chat-message user-message">
-                <div class="msg-bubble">
-                    What educational assistance programs am I eligible for?
-                    <span class="msg-time">10:31 AM ✔</span>
-                </div>
-            </div>
-            <div class="chat-message bot-message">
-                <div class="msg-avatar">🤖</div>
-                <div class="msg-bubble">
-                    Based on your profile, you may be eligible for the following programs:
-                    <ul style="margin:8px 0; padding-left:20px; font-size:12px;">
-                        <li>Merit Excellence Program</li>
-                        <li>Leadership Excellence Program</li>
-                    </ul>
-                    Would you like to know more about any of these?
-                    <span class="msg-time">10:31 AM</span>
-                </div>
-            </div>
-            <div class="chat-suggestions">
-                <button>Application Status</button>
-                <button>Requirements</button>
-                <button>Deadlines</button>
-            </div>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" placeholder="Type your message...">
-            <button class="send-btn">➤</button>
-        </div>
-    </div>
 
-    <button class="floating-chat-btn" onclick="toggleChat()">
-        🤖 AI Assistant
-        <span class="status-dot"></span>
-    </button>
 
     <div id="modal-root"></div>
 
@@ -228,6 +183,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/sidebar-loader.js"></script>
+    
+    <script src="js/components/ai-assistant.js"></script>
+    <script src="js/components/student-notifications.js"></script>
     <script src="js/student-applications.js"></script>
 
     <script>

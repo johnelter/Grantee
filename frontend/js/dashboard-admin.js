@@ -8,12 +8,84 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const adminId = session.user.id;
-    let adminSchoolId = null; // Holds the school ID to filter the dashboard
+    let adminSchoolId = null; 
+    let currentFilter = 'This Month'; // Default filter
 
-    // --- 2. LOAD PROFILE DATA INTO HEADER ---
+    // --- 2. GLOBAL COMPONENTS & DROPDOWNS ---
+    
+    // Mobile Sidebar Logic (FIXED)
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebarContainer = document.getElementById('sidebar-container');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    if (mobileMenuToggle && sidebarContainer && sidebarOverlay) {
+        // Toggle menu open/closed when clicking the hamburger button
+        mobileMenuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isActive = sidebarContainer.classList.contains('active');
+            
+            if (isActive) {
+                // Close it
+                sidebarContainer.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                const innerSidebar = document.querySelector('.sidebar');
+                if (innerSidebar) innerSidebar.classList.remove('active');
+            } else {
+                // Open it
+                sidebarContainer.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                const innerSidebar = document.querySelector('.sidebar');
+                if (innerSidebar) innerSidebar.classList.add('active');
+            }
+        });
+
+        // Close menu by clicking the dark overlay
+        sidebarOverlay.addEventListener('click', () => {
+            sidebarContainer.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            const innerSidebar = document.querySelector('.sidebar');
+            if (innerSidebar) innerSidebar.classList.remove('active');
+        });
+    }
+
+    // Dropdown Elements
+    const profileToggle = document.getElementById('profile-dropdown-toggle');
+    const profileMenu = document.getElementById('profile-menu');
+    const notifToggle = document.getElementById('notification-toggle');
+    const notifMenu = document.getElementById('notification-menu');
+
+    // Profile Dropdown Toggle
+    if (profileToggle && profileMenu) {
+        profileToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileMenu.classList.toggle('show');
+            profileToggle.classList.toggle('active-state');
+            
+            // Close notif if open
+            if (notifMenu) notifMenu.classList.add('hidden'); 
+        });
+    }
+
+    // Global Click Listener to Close Dropdowns and Sidebar
+    document.addEventListener('click', (e) => {
+        // Close Profile Menu
+        if (profileMenu && profileMenu.classList.contains('show') && !profileToggle.contains(e.target)) {
+            profileMenu.classList.remove('show');
+            profileToggle.classList.remove('active-state');
+        }
+
+        // Close Mobile Sidebar if clicking outside of it
+        if (sidebarContainer && sidebarContainer.classList.contains('active') && !sidebarContainer.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+            sidebarContainer.classList.remove('active');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+            const innerSidebar = document.querySelector('.sidebar');
+            if (innerSidebar) innerSidebar.classList.remove('active');
+        }
+    });
+
+    // --- 3. LOAD PROFILE DATA INTO HEADER ---
     async function loadProfile() {
         try {
-            // Fetch profile AND the associated school name using a foreign key join
             const { data: profile } = await window.supabaseClient
                 .from('profiles')
                 .select('*, schools(name)') 
@@ -21,16 +93,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             if (profile) {
-                // Ensure ONLY admins can access this page
                 if (profile.role !== 'admin') {
                     window.location.href = 'student-dashboard.html';
                     return;
                 }
 
-                // Lock the dashboard to this admin's school
                 adminSchoolId = profile.school_id;
-
-                // Update Header Name & Avatar
                 const firstName = profile.first_name || 'Admin';
                 const lastName = profile.last_name || '';
 
@@ -42,7 +110,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
 
-                // Update School Display under the welcome message
                 if (document.getElementById('admin-school-display')) {
                     const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
                     document.getElementById('admin-school-display').innerHTML = `<i class="fas fa-university"></i> Assigned to: <strong>${schoolName}</strong>`;
@@ -53,158 +120,265 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- 3. FETCH & RENDER DASHBOARD DATA ---
+    // --- 4. DATE FILTER LOGIC ---
+    const getDateRange = (filter) => {
+        const now = new Date();
+        let startDate = new Date();
+        let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        switch (filter) {
+            case 'Today':
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case 'This Week':
+                const firstDay = now.getDate() - now.getDay();
+                startDate = new Date(now.setDate(firstDay));
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case 'This Month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'Current Semester':
+                const semStartMonth = now.getMonth() >= 5 ? 5 : 0; 
+                startDate = new Date(now.getFullYear(), semStartMonth, 1);
+                break;
+            case 'Current School Year':
+                const syStartYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+                startDate = new Date(syStartYear, 7, 1);
+                break;
+            default:
+                startDate = new Date(2000, 0, 1); 
+        }
+        return { start: startDate.toISOString(), end: endDate.toISOString() };
+    };
+
+    // Filter Dropdown Listener
+    const filterSelect = document.getElementById('dashboard-date-filter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+            currentFilter = e.target.value;
+            loadDashboardData(); 
+        });
+    }
+
+    // --- 5. FETCH & RENDER DASHBOARD DATA ---
     const loadDashboardData = async () => {
-        if (!adminSchoolId) return; // Safety check: stop if no school is assigned
+        if (!adminSchoolId) return; 
+
+        const { start, end } = getDateRange(currentFilter);
 
         try {
-            // 1. Fetch Scholarships EXPLICITLY for this admin's school
+            // Fetch ALL Scholarships for this school
             const { data: scholarships, error: scholError } = await window.supabaseClient
                 .from('scholarships')
                 .select('*')
-                .eq('school_id', adminSchoolId); 
+                .eq('school_id', adminSchoolId);
             
             if (scholError) throw scholError;
 
-            // 2. Fetch Applications ONLY for the scholarships belonging to this school
+            // Fetch Applications
             let applications = [];
-            
-            // Only fetch applications if the school actually has scholarships created
-            if (scholarships.length > 0) {
+            if (scholarships && scholarships.length > 0) {
                 const scholIds = scholarships.map(s => s.id);
-                
                 const { data: apps, error: appError } = await window.supabaseClient
                     .from('applications')
-                    .select(`*, scholarships(title)`)
-                    .in('scholarship_id', scholIds) 
+                    .select(`*, scholarships(title, category)`)
+                    .in('scholarship_id', scholIds)
+                    .gte('created_at', start)
+                    .lte('created_at', end)
                     .order('created_at', { ascending: false });
                 
                 if (appError) throw appError;
-                applications = apps;
+                applications = apps || [];
             }
 
-            // Execute rendering functions
+            // Fetch Audit Logs
+            const { data: auditLogs, error: auditError } = await window.supabaseClient
+                .from('audit_logs')
+                .select('*, profiles(first_name, last_name)')
+                .eq('school_id', adminSchoolId)
+                .gte('created_at', start)
+                .lte('created_at', end)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (auditError) console.warn("Audit logs error:", auditError);
+
+            // Fetch Notifications for Recent Activity
+            const { data: recentNotifs, error: notifError } = await window.supabaseClient
+                .from('notifications')
+                .select('*')
+                .eq('admin_id', adminId)
+                .gte('created_at', start)
+                .lte('created_at', end)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            if (notifError) console.warn("Notifications error:", notifError);
+
+            // Combine both logs for Recent Activity timeline
+            const combinedActivity = [
+                ...(auditLogs || []).map(l => ({ ...l, type: 'audit', message: `${l.action} - ${l.module}` })),
+                ...(recentNotifs || []).map(n => ({ ...n, type: 'notification' }))
+            ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+
             renderTopMetrics(scholarships, applications);
-            renderNotifications(applications);
-            renderRecentActivity(applications);
+            renderRecentActivity(combinedActivity);
+            renderAuditTrail(auditLogs || []);
             renderApplicationOverview(applications);
             renderScholarshipOverview(scholarships);
             renderTopScholarships(scholarships, applications);
             renderScholarshipPerformance(scholarships, applications);
 
         } catch (error) {
-            console.error("Dashboard Loading Error:", error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Data Load Failed',
+                text: error.message || 'Unable to refresh dashboard data.'
+            });
         }
     };
 
     const renderTopMetrics = (scholarships, applications) => {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        const totalSchol = scholarships.length;
         const activeSchol = scholarships.filter(s => s.status === 'Active').length;
-
         const totalApps = applications.length;
-        const appsThisMonth = applications.filter(a => new Date(a.created_at) >= startOfMonth).length;
-
+        
         const pending = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
         const approved = applications.filter(a => a.status === 'Approved');
         const rejected = applications.filter(a => a.status === 'Rejected');
 
-        const approvedThisMonth = approved.filter(a => new Date(a.created_at) >= startOfMonth).length;
-        const rejectedThisMonth = rejected.filter(a => new Date(a.created_at) >= startOfMonth).length;
+        const updateEl = (id, val) => { if (document.getElementById(id)) document.getElementById(id).innerText = val; };
 
-        if (document.getElementById('metric-total-scholarships')) document.getElementById('metric-total-scholarships').innerText = totalSchol;
-        if (document.getElementById('metric-active-scholarships')) document.getElementById('metric-active-scholarships').innerText = activeSchol;
-        if (document.getElementById('metric-total-applications')) document.getElementById('metric-total-applications').innerText = totalApps;
-        if (document.getElementById('metric-apps-this-month')) document.getElementById('metric-apps-this-month').innerText = `This Month: ${appsThisMonth}`;
-        if (document.getElementById('metric-pending-review')) document.getElementById('metric-pending-review').innerText = pending.length;
-        if (document.getElementById('metric-approved')) document.getElementById('metric-approved').innerText = approved.length;
-        if (document.getElementById('metric-approved-this-month')) document.getElementById('metric-approved-this-month').innerText = `This Month: ${approvedThisMonth}`;
-        if (document.getElementById('metric-rejected')) document.getElementById('metric-rejected').innerText = rejected.length;
-        if (document.getElementById('metric-rejected-this-month')) document.getElementById('metric-rejected-this-month').innerText = `This Month: ${rejectedThisMonth}`;
+        updateEl('metric-total-scholarships', scholarships.length);
+        updateEl('metric-active-scholarships', activeSchol);
+        updateEl('metric-total-applications', totalApps);
+        updateEl('metric-pending-review', pending.length);
+        updateEl('metric-approved', approved.length);
+        updateEl('metric-rejected', rejected.length);
     };
 
-    const renderNotifications = (applications) => {
-        const list = document.getElementById('notification-list');
-        const badge = document.getElementById('nav-notification-badge');
-        if (!list || !badge) return;
-
-        // Filter for applications that require admin attention
-        const pendingApps = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
-
-        // Update the red badge number
-        if (pendingApps.length > 0) {
-            badge.innerText = pendingApps.length;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
-
-        if (pendingApps.length === 0) {
-            list.innerHTML = '<div style="padding: 30px 15px; text-align: center; color: #94a3b8; font-size: 13px;">You are all caught up!<br>No pending applications.</div>';
-            return;
-        }
-
-        list.innerHTML = '';
-
-        // Show only the 5 most recent pending applications in the dropdown
-        pendingApps.slice(0, 5).forEach(app => {
-            const dateObj = new Date(app.created_at);
-            const timeString = dateObj.toLocaleDateString() === new Date().toLocaleDateString()
-                ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : dateObj.toLocaleDateString();
-
-            const scholTitle = app.scholarships ? app.scholarships.title : 'Scholarship Program';
-
-            list.innerHTML += `
-                <div class="notif-item" onclick="window.location.href='admin-applications.html'">
-                    <div class="notif-icon">📄</div>
-                    <div class="notif-content">
-                        <p><strong>Action Required:</strong> A new application for <em>${scholTitle}</em> is waiting for your review.</p>
-                        <span class="notif-time">${timeString}</span>
-                    </div>
-                </div>
-            `;
-        });
-    };
-
-    const renderRecentActivity = (applications) => {
+    const renderRecentActivity = (notifs) => {
         const container = document.getElementById('recent-activity-list');
         if (!container) return;
         container.innerHTML = '';
 
-        const recentApps = applications.slice(0, 4);
-
-        if (recentApps.length === 0) {
-            container.innerHTML = '<div style="padding: 15px; text-align: center; color: #64748b;">No recent activity found.</div>';
+        if (notifs.length === 0) {
+            container.innerHTML = '<div class="text-center p-4 text-gray-400 text-sm">No recent activity found in this period.</div>';
             return;
         }
 
-        recentApps.forEach(app => {
-            const dateObj = new Date(app.created_at);
-            const timeString = dateObj.toLocaleDateString() === new Date().toLocaleDateString()
-                ? 'Today, ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : dateObj.toLocaleDateString();
+        const grouped = {};
+        notifs.forEach(notif => {
+            const dateObj = new Date(notif.created_at);
+            const today = new Date();
+            const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+            
+            let groupName = dateObj.toLocaleDateString();
+            if (dateObj.toDateString() === today.toDateString()) groupName = 'Today';
+            else if (dateObj.toDateString() === yesterday.toDateString()) groupName = 'Yesterday';
 
-            let icon = '📄';
-            let iconClass = 'icon-blue';
-            let actionText = 'New application submitted';
+            if (!grouped[groupName]) grouped[groupName] = [];
+            grouped[groupName].push(notif);
+        });
 
-            if (app.status === 'Approved') { icon = '✅'; iconClass = 'icon-light-green'; actionText = 'Application was approved'; }
-            if (app.status === 'Rejected') { icon = '❌'; iconClass = 'icon-red'; actionText = 'Application was rejected'; }
+        const timeAgo = (date) => {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " minutes ago";
+            return Math.floor(seconds) + " seconds ago";
+        };
 
-            const scholTitle = app.scholarships ? app.scholarships.title : 'Scholarship Program';
+        let html = '';
+        Object.keys(grouped).forEach(dateGroup => {
+            html += `<div class="activity-date-group mb-5">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">${dateGroup}</h4>`;
+            
+            grouped[dateGroup].forEach((notif, index) => {
+                let iconClass = 'fa-bell text-gray-500';
+                let borderColor = 'border-gray-500';
+                let title = notif.message;
+                let desc = 'System Update';
+                let actionUser = '';
 
-            container.innerHTML += `
-                <div class="activity-item">
-                    <div class="activity-icon ${iconClass}">${icon}</div>
-                    <div class="activity-details">
-                        <p><strong>${actionText}</strong></p>
-                        <span>${scholTitle}</span>
+                if (notif.type === 'audit') {
+                    if (notif.action.includes('Announcement')) { iconClass = 'fa-bullhorn text-blue-500'; borderColor = 'border-blue-500'; }
+                    else if (notif.action.includes('Educational Assistance')) { iconClass = 'fa-graduation-cap text-indigo-500'; borderColor = 'border-indigo-500'; }
+                    else if (notif.action.includes('Beneficiary') || notif.action.includes('Applicant')) { iconClass = 'fa-user-check text-green-500'; borderColor = 'border-green-500'; }
+                    else { iconClass = 'fa-cog text-gray-500'; borderColor = 'border-gray-500'; }
+                    
+                    title = notif.action;
+                    try {
+                        const d = JSON.parse(notif.details);
+                        desc = d.title || d.details || notif.module;
+                    } catch(e) { desc = notif.details || notif.module; }
+
+                    if (notif.profiles) {
+                        actionUser = `<div class="flex items-center gap-1 mb-1 text-xs text-gray-500"><i class="fas fa-user-circle"></i> ${notif.profiles.first_name} ${notif.profiles.last_name}</div>`;
+                    }
+                } else {
+                    if (notif.type === 'application') { iconClass = 'fa-file-signature text-blue-500'; borderColor = 'border-blue-500'; }
+                    else if (notif.type === 'document') { iconClass = 'fa-file-upload text-indigo-500'; borderColor = 'border-indigo-500'; }
+                    else if (notif.type === 'alert') { iconClass = 'fa-exclamation-triangle text-red-500'; borderColor = 'border-red-500'; }
+                    else if (notif.type === 'comment') { iconClass = 'fa-comment-dots text-purple-500'; borderColor = 'border-purple-500'; }
+                    else if (notif.type === 'status') { iconClass = 'fa-check-circle text-green-500'; borderColor = 'border-green-500'; }
+
+                    if (notif.message.includes(' - ')) {
+                        const parts = notif.message.split(' - ');
+                        title = parts[0];
+                        desc = parts.slice(1).join(' - ');
+                    }
+                }
+
+                html += `
+                <div class="activity-item border-l-2 ${borderColor} pl-3 mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded-r transition-colors" onclick="if('${notif.action_link}' && '${notif.action_link}' !== '#' && '${notif.action_link}' !== 'undefined') window.location.href='${notif.action_link}'">
+                    ${actionUser}
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fas ${iconClass}"></i>
+                        <span class="font-bold text-sm text-gray-800">${title}</span>
                     </div>
-                    <div class="activity-time">${timeString}</div>
-                </div>
+                    <p class="text-sm text-gray-600 mb-1">${desc}</p>
+                    <span class="text-xs text-gray-400">${timeAgo(notif.created_at)}</span>
+                </div>`;
+                
+                if (index < grouped[dateGroup].length - 1) {
+                    html += `<hr class="my-4 border-gray-100">`;
+                }
+            });
+            html += `</div>`;
+        });
+        container.innerHTML = html;
+    };
+
+    const renderAuditTrail = (logs) => {
+        const tbody = document.getElementById('audit-trail-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-6">No audit logs found for this period.</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const timeString = new Date(log.created_at).toLocaleString();
+            const userName = log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown Admin';
+            
+            tbody.innerHTML += `
+                <tr class="border-b hover:bg-gray-50 transition-colors">
+                    <td class="py-3 px-4 text-xs text-gray-500">${timeString}</td>
+                    <td class="py-3 px-4 text-sm text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-1"></i>${userName}</td>
+                    <td class="py-3 px-4 text-sm font-medium text-gray-800">${log.action}</td>
+                    <td class="py-3 px-4 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full inline-block mt-2 px-2 py-1">${log.module}</td>
+                    <td class="py-3 px-4 text-xs text-gray-500">${log.details || '-'}</td>
+                </tr>
             `;
         });
     };
@@ -216,17 +390,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (total === 0) return;
 
         const pending = apps.filter(a => a.status === 'Pending').length;
-        const eval = apps.filter(a => a.status === 'Under Review').length;
+        const evalCount = apps.filter(a => a.status === 'Under Review').length;
         const approved = apps.filter(a => a.status === 'Approved').length;
         const rejected = apps.filter(a => a.status === 'Rejected').length;
 
         const pPct = ((pending / total) * 100);
-        const ePct = ((eval / total) * 100);
+        const ePct = ((evalCount / total) * 100);
         const aPct = ((approved / total) * 100);
         const rPct = ((rejected / total) * 100);
 
         if (document.getElementById('app-legend-pending')) document.getElementById('app-legend-pending').innerText = `${pending} (${pPct.toFixed(1)}%)`;
-        if (document.getElementById('app-legend-eval')) document.getElementById('app-legend-eval').innerText = `${eval} (${ePct.toFixed(1)}%)`;
+        if (document.getElementById('app-legend-eval')) document.getElementById('app-legend-eval').innerText = `${evalCount} (${ePct.toFixed(1)}%)`;
         if (document.getElementById('app-legend-approved')) document.getElementById('app-legend-approved').innerText = `${approved} (${aPct.toFixed(1)}%)`;
         if (document.getElementById('app-legend-rejected')) document.getElementById('app-legend-rejected').innerText = `${rejected} (${rPct.toFixed(1)}%)`;
 
@@ -235,9 +409,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const aStop = eStop + aPct;
 
         const gradient = `conic-gradient(
-            #eab308 0% ${pStop}%, 
+            #facc15 0% ${pStop}%, 
             #3b82f6 ${pStop}% ${eStop}%, 
-            #10b981 ${eStop}% ${aStop}%, 
+            #22c55e ${eStop}% ${aStop}%, 
             #ef4444 ${aStop}% 100%
         )`;
         if (document.getElementById('app-overview-chart')) document.getElementById('app-overview-chart').style.background = gradient;
@@ -251,7 +425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!container) return;
 
         if (total === 0) {
-            container.innerHTML = '<div style="text-align: center; color: var(--text-muted);">No active scholarships</div>';
+            container.innerHTML = '<div class="text-center text-gray-400 text-sm">No active scholarships</div>';
             return;
         }
 
@@ -275,9 +449,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             gradientStops.push(`${color} ${currentPct}% ${nextPct}%`);
 
             legendHTML += `
-                <div class="legend-item">
-                    <span class="dot" style="background:${color}"></span> ${cat} 
-                    <span class="val">${count} (${pct.toFixed(1)}%)</span>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background-color:${color}"></span> ${cat}</span> 
+                    <span class="font-medium">${count} (${pct.toFixed(1)}%)</span>
                 </div>`;
 
             currentPct = nextPct;
@@ -302,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const top5 = counts.slice(0, 5);
 
         if (top5.length === 0 || top5[0].count === 0) {
-            tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--text-muted);">Not enough data yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-gray-400 py-4">Not enough data yet.</td></tr>';
             return;
         }
 
@@ -310,9 +484,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         top5.forEach((item, index) => {
             if (item.count > 0) {
                 tbody.innerHTML += `
-                    <tr>
-                        <td><span class="rank-badge">${index + 1}</span> ${item.title}</td>
-                        <td class="text-right"><span class="count-badge">${item.count}</span></td>
+                    <tr class="border-b hover:bg-gray-50 transition-colors">
+                        <td class="py-3 px-2 text-sm text-gray-800"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2 font-bold">${index + 1}</span> ${item.title}</td>
+                        <td class="text-right py-3 px-2"><span class="font-bold text-gray-800">${item.count}</span></td>
                     </tr>
                 `;
             }
@@ -330,14 +504,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const approvalRate = total === 0 ? 0 : (approved / total) * 100;
             const shortTitle = schol.title.split(' ').slice(0, 2).join('<br>');
 
-            return { title: shortTitle, rate: approvalRate, totalApps: total };
+            return { title: shortTitle, rate: approvalRate, totalApps: total, fullTitle: schol.title };
         });
 
         stats.sort((a, b) => b.totalApps - a.totalApps);
         const top5Stats = stats.slice(0, 5);
 
         if (top5Stats.length === 0 || top5Stats[0].totalApps === 0) {
-            container.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-muted); align-self: center;">No performance data available.</div>';
+            container.innerHTML = '<div class="w-full text-center text-gray-400 mt-10">No performance data available.</div>';
             return;
         }
 
@@ -345,96 +519,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         top5Stats.forEach(stat => {
             const barHeight = Math.max(stat.rate, 2);
             container.innerHTML += `
-                <div class="bar-col">
-                    <span class="bar-val">${stat.rate.toFixed(1)}%</span>
-                    <div class="bar bg-green" style="height: ${barHeight}%;"></div>
-                    <span class="bar-label">${stat.title}</span>
+                <div class="bar-col group cursor-pointer" title="${stat.fullTitle} - ${stat.rate.toFixed(1)}% Approved">
+                    <span class="text-xs mb-1 font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">${stat.rate.toFixed(1)}%</span>
+                    <div class="bar bg-green-500 hover:bg-green-600 shadow-sm" style="height: ${barHeight}%;"></div>
+                    <span class="absolute -bottom-8 text-[10px] text-gray-500 leading-tight w-16 text-center">${stat.title}</span>
                 </div>
             `;
         });
     };
 
-    // --- 4. INTERACTIVE DROPDOWN LOGIC ---
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
-    const notifToggle = document.getElementById('notification-toggle');
-    const notifMenu = document.getElementById('notification-menu');
-
-    // Toggle Profile
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (notifMenu) notifMenu.classList.remove('show'); // Close bell
-            profileMenu.classList.toggle('show');
-        });
-    }
-
-    // Toggle Notifications
-    if (notifToggle && notifMenu) {
-        notifToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (profileMenu) profileMenu.classList.remove('show'); // Close profile
-            notifMenu.classList.toggle('show');
-        });
-    }
-
-    // Click outside to close both
+    // --- 6. LOGOUT MODAL LOGIC WITH SWEETALERT ---
     document.addEventListener('click', (e) => {
-        if (profileMenu && profileToggle && !profileToggle.contains(e.target)) {
-            profileMenu.classList.remove('show');
-        }
-        if (notifMenu && notifToggle && !notifToggle.contains(e.target)) {
-            notifMenu.classList.remove('show');
-        }
-    });
-
-    // --- 5. LOGOUT MODAL LOGIC ---
-    const logoutModal = document.getElementById('logout-modal');
-    const modalCancel = document.getElementById('modal-cancel');
-    const modalConfirm = document.getElementById('modal-confirm');
-
-    const logoutBtns = [
-        document.getElementById('sidebar-logout-btn'),
-        document.getElementById('dropdown-logout-btn')
-    ];
-
-    logoutBtns.forEach(btn => {
-        if (btn) {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                logoutModal.style.display = 'flex';
-                if (profileMenu) profileMenu.classList.remove('show');
+        if (e.target.closest('#sidebar-logout-btn') || e.target.closest('#dropdown-logout-btn')) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your session.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Yes, logout'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Swal.fire({
+                            title: 'Logging out...',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+                        await window.supabaseClient.auth.signOut();
+                        window.location.href = 'login.html';
+                    } catch (error) {
+                        console.error("Logout error:", error);
+                        Swal.fire('Error!', 'Failed to logout. Please try again.', 'error');
+                    }
+                }
             });
         }
     });
-
-    if (modalCancel) {
-        modalCancel.addEventListener('click', () => {
-            logoutModal.style.display = 'none';
-        });
-    }
-
-    if (logoutModal) {
-        logoutModal.addEventListener('click', (e) => {
-            if (e.target === logoutModal) logoutModal.style.display = 'none';
-        });
-    }
-
-    if (modalConfirm) {
-        modalConfirm.addEventListener('click', async () => {
-            try {
-                modalConfirm.innerText = "Logging out...";
-                modalConfirm.disabled = true;
-                await window.supabaseClient.auth.signOut();
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error("Logout error:", error);
-                alert("Failed to logout. Please try again.");
-                modalConfirm.innerText = "Logout";
-                modalConfirm.disabled = false;
-            }
-        });
-    }
 
     // --- BOOT PROCESS ---
     await loadProfile();

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let activeTabStatus = 'Pending';
     let activeIndividualAppId = null; 
     let currentAdminSchoolId = null;
+    let currentAdminSchool = null;
     let currentAdminRole = null; // Store role for policy override checks
 
     const formatText = (text, rule) => {
@@ -87,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 currentAdminSchoolId = profile.school_id;
+                currentAdminSchool = profile.school;
                 currentAdminRole = profile.role;
 
                 const firstName = profile.first_name || 'Admin';
@@ -111,15 +113,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 3. SYSTEM LOGGING UTILITY ---
     async function logSystemAction(action, details, targetUserId = null) {
         try {
-            await window.supabaseClient.from('system_logs').insert([{
+            await window.supabaseClient.from('audit_logs').insert([{
                 admin_id: adminId,
                 school_id: currentAdminSchoolId,
                 action: action,
-                details: details,
-                target_user_id: targetUserId
+                module: 'Applications',
+                details: JSON.stringify({ details, targetUserId })
             }]);
         } catch (e) {
-            console.warn("System logging failed:", e);
+            console.warn("Audit logging failed:", e);
         }
     }
 
@@ -511,11 +513,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
 
-        // 1. Applicant Responses (Now rendering HTML formatting set by admin)
+        // 1. Applicant Responses
         if (app.form_responses && Object.keys(app.form_responses).length > 0) {
             html += `<h3 style="font-size:16px; color:var(--text-main); margin-bottom:15px; margin-top:30px;"><i class="fa-solid fa-clipboard-question"></i> Form Responses</h3>`;
             
-            // Map the responses back to the original schema to preserve order and formatting
             const schema = activeScholarshipData?.form_fields || activeScholarshipData?.form_schema || [];
             
             schema.forEach(field => {
@@ -556,8 +557,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const fileUrl = doc.file_url || doc.url;
                 let previewContent = '';
                 
-                const fullViewLink = fileUrl 
-                    ? `<a href="${fileUrl}" target="_blank" style="font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-expand"></i> Full View</a>` 
+                // NEW: Full View Modal and Download button (no new tab required for viewing)
+                const actionLinks = fileUrl 
+                    ? `<div style="display: flex; gap: 15px; align-items: center;">
+                           <button onclick="viewDocumentFull('${fileUrl}')" style="background:none; border:none; font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-expand"></i> Full View</button>
+                           <button onclick="forceDownload('${fileUrl}', '${doc.name || 'document'}')" style="background:none; border:none; font-size:13px; color:#10b981; text-decoration:none; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-download"></i> Download</button>
+                       </div>` 
                     : '';
 
                 if (fileUrl) {
@@ -622,7 +627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <i class="fa-solid fa-paperclip"></i> ${doc.name} 
                                 <span style="font-size:10px; font-weight:bold; color:#166534; background:#dcfce7; padding:4px 8px; border-radius:4px; margin-left:8px;">${doc.status || 'Attached'}</span>
                             </div>
-                            ${fullViewLink}
+                            ${actionLinks}
                         </div>
                         
                         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -637,6 +642,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         gformContent.innerHTML = html;
+    };
+
+    // --- NEW: DOCUMENT VIEWER MODAL AND DOWNLOAD LOGIC ---
+    window.viewDocumentFull = (url) => {
+        const isPdf = url.toLowerCase().includes('.pdf');
+        const contentHtml = isPdf
+            ? `<iframe src="${url}#toolbar=0" style="width:100%; height:80vh; border:none; display:block;"></iframe>`
+            : `<img src="${url}" style="max-width:100%; max-height:80vh; object-fit:contain; display:block; margin: 0 auto;">`;
+
+        Swal.fire({
+            title: 'Document Viewer',
+            html: contentHtml,
+            width: '85%',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal-wide-doc'
+            }
+        });
+    };
+
+    window.forceDownload = async (url, filename) => {
+        try {
+            Swal.fire({ title: 'Downloading...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            
+            // Set extension if missing
+            let downloadName = filename;
+            if (!downloadName.includes('.')) {
+                const ext = url.split('.').pop().split(/\#|\?/)[0]; 
+                downloadName += `.${ext}`;
+            }
+            
+            a.download = downloadName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            
+            window.URL.revokeObjectURL(blobUrl);
+            Swal.close();
+        } catch (e) {
+            console.error('Download error, falling back to new tab:', e);
+            // Fallback just in case of strict CORS blocking fetch
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            Swal.close();
+        }
     };
 
 
@@ -818,16 +881,79 @@ document.addEventListener('DOMContentLoaded', async () => {
                 notifMsg = `We regret to inform you that your application for the ${schName} has been rejected.`;
             }
 
-            const { error: notifError } = await window.supabaseClient
-                .from('notifications')
-                .insert([{
-                    user_id: targetApp.student_id, 
-                    title: notifTitle,
-                    message: notifMsg,
-                    is_read: false
-                }]);
+            const payload = {
+                userIds: [targetApp.student_id],
+                eventType: 'applications',
+                subject: notifTitle,
+                message: notifMsg,
+                htmlContent: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
+                        <h2 style="color: ${newStatus === 'Approved' ? '#10b981' : '#ef4444'};">${notifTitle}</h2>
+                        <p>${notifMsg}</p>
+                        <p>Log in to your student dashboard for more information.</p>
+                    </div>
+                `
+            };
 
-            if (notifError) console.error("Notification trigger failed:", notifError);
+            await fetch('http://localhost:3000/api/dispatch-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.error("Notification dispatch failed:", e));
+
+            // Notify Coordinators of Final Decision or Pending Review
+            if (currentAdminSchoolId) {
+                if (newStatus === 'Approved' || newStatus === 'Declined' || newStatus === 'Rejected') {
+                    const decisionStr = newStatus === 'Approved' ? 'Approved' : 'Rejected';
+                    const studentName = targetApp.profiles ? `${targetApp.profiles.first_name || ''} ${targetApp.profiles.last_name || ''}`.trim() : 'A student';
+                    
+                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            schoolId: currentAdminSchoolId,
+                            eventType: 'DECISION_MADE',
+                            subject: 'Application Decision Reached',
+                            message: `Decision reached on ${studentName}'s application (Status: ${decisionStr})`,
+                            resourceId: appId
+                        })
+                    }).catch(e => console.error("Coordinator notification failed:", e));
+                    
+                    if (newStatus === 'Approved' && targetApp.scholarships && targetApp.scholarships.slots) {
+                        const { count: currentApprovedCount } = await window.supabaseClient
+                            .from('applications')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('scholarship_id', targetApp.scholarship_id)
+                            .eq('status', 'Approved');
+                            
+                        if (currentApprovedCount >= targetApp.scholarships.slots) {
+                            await fetch('http://localhost:3000/api/notify-coordinators', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    schoolId: currentAdminSchoolId,
+                                    eventType: 'SLOT_LIMIT_REACHED',
+                                    subject: 'Slot Limit Reached',
+                                    message: `The maximum slot limit (${targetApp.scholarships.slots}) for ${targetApp.scholarships.title} has been reached.`,
+                                    resourceId: targetApp.scholarship_id
+                                })
+                            }).catch(e => console.error("Slot limit notification failed:", e));
+                        }
+                    }
+                } else if (newStatus === 'Pending' || newStatus === 'Under Review' || newStatus === 'Pending Review') {
+                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            schoolId: currentAdminSchoolId,
+                            eventType: 'PENDING_REVIEW_REMINDER',
+                            subject: 'Application Requires Action',
+                            message: `An application for ${schName} has been marked as ${newStatus} and requires review.`,
+                            resourceId: appId
+                        })
+                    }).catch(e => console.error("Pending review notification failed:", e));
+                }
+            }
 
             await Swal.fire('Success!', `Applicant successfully ${newStatus === 'Approved' ? 'Approved' : 'Rejected'}.`, 'success');
             loadApplicationsForActiveTab();
@@ -879,8 +1005,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         switchTab('Individual');
     };
 
-    // --- 9. EXPORT TO EXCEL ---
-    window.exportByStatus = (targetStatus) => {
+    // --- 9. EXPORT OPTIONS (CSV AND PDF) ---
+    window.exportByStatus = async (targetStatus) => {
         const appsToExport = currentApplications.filter(app => {
             const normalizedStatus = normalizeApplicantStatus(app.status);
             if (targetStatus === 'Pending') return normalizedStatus === 'pending' || normalizedStatus === 'under review';
@@ -893,12 +1019,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // New Selection Modal
+        const { value: format } = await Swal.fire({
+            title: `Export ${targetStatus} Applicants`,
+            text: `Select the desired file format for exporting ${appsToExport.length} records:`,
+            icon: 'question',
+            input: 'select',
+            inputOptions: {
+                'csv': 'CSV Excel (.csv)',
+                'pdf': 'PDF Document (.pdf)'
+            },
+            inputPlaceholder: 'Select an export format',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            confirmButtonText: 'Export'
+        });
+
+        if (!format) return;
+
+        if (format === 'csv') {
+            exportToCSV(appsToExport, targetStatus);
+        } else if (format === 'pdf') {
+            exportToPDF(appsToExport, targetStatus);
+        }
+    };
+
+    function exportToCSV(appsToExport, targetStatus) {
         let csvContent = "data:text/csv;charset=utf-8,";
         
         // Base profile headers
         csvContent += "Student ID,Last Name,First Name,Middle Name,Email,Contact Number,Program,Year Level,Evaluation Status,Date Applied";
         
-        // Dynamic Question Headers (Based on the Scholarship Schema and Formatting Rules)
+        // Dynamic Question Headers
         const schema = activeScholarshipData?.form_fields || activeScholarshipData?.form_schema || [];
         const questionFields = schema.filter(f => f.type !== 'heading' && f.type !== 'text');
         
@@ -945,7 +1097,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
+    }
+
+    function exportToPDF(appsToExport, targetStatus) {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            Swal.fire('Missing Library', 'jsPDF is required to export to PDF. Please ensure jsPDF and jsPDF-AutoTable are linked in your HTML.', 'error');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape', 'pt', 'a4');
+
+        doc.setFontSize(16);
+        doc.text(`${targetStatus} Applicants - ${activeScholarshipData.title}`, 40, 40);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 55);
+
+        const tableColumn = ["Student ID", "Full Name", "Program & Year", "Contact", "Email", "Date Applied"];
+        const tableRows = [];
+
+        appsToExport.forEach(app => {
+            const sid = app.profiles?.id_number || 'N/A';
+            const fname = app.profiles?.first_name || '';
+            const mname = app.profiles?.middle_name || '';
+            const lname = app.profiles?.last_name || '';
+            const fullName = `${lname}, ${fname} ${mname}`.trim();
+            const program = app.profiles?.program || 'N/A';
+            const yearLevel = app.profiles?.year_level || 'N/A';
+            const progYear = `${program}\n(${yearLevel})`;
+            const contact = app.profiles?.contact_number || 'N/A';
+            const email = app.profiles?.email || 'N/A';
+            const date = new Date(app.created_at).toLocaleDateString();
+
+            tableRows.push([sid, fullName, progYear, contact, email, date]);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 70,
+            styles: { fontSize: 8, cellPadding: 4 },
+            headStyles: { fillColor: [59, 130, 246] },
+            alternateRowStyles: { fillColor: [248, 250, 252] }
+        });
+
+        doc.save(`${targetStatus}_Applicants_Export_${new Date().getTime()}.pdf`);
+    }
 
     window.exportPendingList = () => exportByStatus('Pending');
     window.exportApprovedList = () => exportByStatus('Approved');

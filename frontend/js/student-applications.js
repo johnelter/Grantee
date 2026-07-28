@@ -123,7 +123,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = '';
 
         apps.forEach(app => {
-            const programName = app.scholarships ? app.scholarships.title : 'Unknown Program';
+            // FIX: Check for internal program title first, fallback to outside assistance name
+            const programName = app.scholarships?.title || app.outside_assistance_name || 'Unknown Program';
 
             const dateObj = new Date(app.created_at);
             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
@@ -186,7 +187,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (apps.length === 0) return;
 
         const latestApp = apps[0]; 
-        const programName = latestApp.scholarships ? latestApp.scholarships.title : '';
+        
+        // FIX: Also look for outside_assistance_name here
+        const programName = latestApp.scholarships?.title || latestApp.outside_assistance_name || 'Program';
         const createdDate = new Date(latestApp.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
         if(document.getElementById('latest-app-title')) document.getElementById('latest-app-title').innerText = `(${programName})`;
@@ -235,6 +238,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const statusColor = (app.status === 'Approved' || app.status === 'Grantee') ? '#166534' : ((app.status === 'Rejected' || app.status === 'Declined') ? '#991b1b' : '#b45309');
         const statusBg = (app.status === 'Approved' || app.status === 'Grantee') ? '#dcfce7' : ((app.status === 'Rejected' || app.status === 'Declined') ? '#fee2e2' : '#fef3c7');
         const displayStatus = (app.status === 'Pending' || app.status === 'Under Review') ? 'Under Review' : (app.status === 'Grantee' ? 'Approved' : (app.status === 'Declined' ? 'Rejected' : app.status));
+
+        // FIX: Ensure the modal title reads outside programs properly
+        const modalTitle = app.scholarships?.title || app.outside_assistance_name || 'Program Application';
 
         // 1. Applicant Profile
         const fname = currentProfile?.first_name || '';
@@ -377,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border-color); padding-bottom:15px; margin-bottom:25px;">
                         <div>
-                            <h2 style="margin:0; font-size:20px; color:var(--text-main); font-weight:700;">${app.scholarships?.title || 'Program Application'}</h2>
+                            <h2 style="margin:0; font-size:20px; color:var(--text-main); font-weight:700;">${modalTitle}</h2>
                             <div style="display:flex; align-items:center; gap: 10px; margin-top: 8px;">
                                 <span style="font-size:13px; color:var(--text-muted);">Application ID: ${app.id.substring(0, 8).toUpperCase()}</span>
                                 <span style="background:${statusBg}; color:${statusColor}; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:12px;">${displayStatus}</span>
@@ -411,12 +417,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-    };
-
-    // --- AI CHAT TOGGLE ---
-    window.toggleChat = () => {
-        const widget = document.getElementById('ai-chat-widget');
-        if(widget) widget.classList.toggle('open');
     };
 
     // Boot

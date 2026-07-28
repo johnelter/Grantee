@@ -23,42 +23,22 @@
 body {
     background-color: var(--bg-main);
     color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
 }
 
-a {
-    text-decoration: none;
-}
+a { text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
 
-button {
-    font-family: inherit;
-    cursor: pointer;
-}
-
-/* UTILITIES */
-.mt-10 {
-    margin-top: 10px;
-}
-
-.text-red {
-    color: var(--danger-color) !important;
-}
-
-.text-muted {
-    color: var(--text-muted) !important;
-}
-
-.text-center {
-    text-align: center;
-}
-
-/* --- Layout & Sidebar --- */
+/* =========================================================
+   1. LAYOUT & SIDEBAR
+========================================================= */
 .app-layout {
     display: flex;
     height: 100vh;
     overflow: hidden;
 }
 
-/* .sidebar {
+.sidebar {
     width: 260px;
     background: var(--sidebar-bg);
     border-right: 1px solid var(--border-dark);
@@ -67,6 +47,24 @@ button {
     padding: 24px 20px;
     flex-shrink: 0;
     overflow-y: auto;
+    transition: transform 0.3s ease;
+    z-index: 1001; /* Elevated to sit above overlay */
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
 }
 
 .sidebar-brand {
@@ -74,11 +72,13 @@ button {
     align-items: center;
     gap: 12px;
     margin-bottom: 40px;
-} */
+}
 
-/* .logo-icon {
+.logo-icon, .logo img {
     font-size: 28px;
     color: var(--primary-color);
+    width: 32px;
+    height: 32px;
 }
 
 .sidebar-brand h2 {
@@ -90,15 +90,16 @@ button {
 .sub-brand {
     font-size: 11px;
     color: var(--text-muted);
+    display: block;
 }
 
-.sidebar-menu {
+.sidebar-menu, .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
-.menu-item {
+.menu-item, .sidebar-nav a {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -110,18 +111,31 @@ button {
     transition: 0.2s;
 }
 
-.menu-item:hover {
+.menu-item:hover, .sidebar-nav a:hover {
     background: #f8fafc;
     color: var(--text-main);
 }
 
-.menu-item.active {
+.menu-item.active, .sidebar-nav a.active {
     background: #ecfdf5;
     color: var(--primary-color);
     font-weight: 600;
 }
 
-.menu-icon { font-size: 18px; } */
+.menu-icon {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+}
+
+.badge {
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 10px;
+    margin-left: auto;
+}
 
 /* =========================================================
    2. MAIN CONTENT & HEADER
@@ -131,29 +145,34 @@ button {
     overflow-y: auto;
     padding: 40px;
     background: var(--bg-main);
-    display: block !important;
-    /* Prevents global flex centering */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .content-wrapper {
     width: 100%;
-    /* max-width: 1400px; */
     margin: 0 auto;
 }
 
 .content-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: center;
     margin-bottom: 30px;
+    background-color: var(--bg-main);
+    z-index: 100;
+    width: 100%;
+    flex-shrink: 0; 
 }
 
 .header-titles-wrapper {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    flex: 1;
 }
 
 .header-titles h1 {
@@ -171,59 +190,42 @@ button {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-left: auto;
+    gap: 16px;
 }
 
-.header-action-icons {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: auto;
-}
-
-.header-actions .user-profile {
-    margin-right: auto;
-}
-
-.notification-bell,
-.hamburger-btn {
+.notification-bell {
+    background: #fff;
+    border: 1px solid var(--border-dark);
+    border-radius: 50%;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--border-dark);
-    background: #fff;
-    color: var(--text-main);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.notification-bell {
     cursor: pointer;
-}
-
-.hamburger-btn {
-    display: none;
+    color: var(--text-muted);
 }
 
 .notification-bell .badge {
     position: absolute;
-    top: -2px;
-    right: -2px;
-    background: var(--danger-color);
+    top: -5px;
+    right: -5px;
+    background: var(--primary-color);
     color: #fff;
-    border-radius: 999px;
     font-size: 10px;
-    font-weight: 700;
-    min-width: 18px;
+    font-weight: bold;
+    width: 18px;
     height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 4px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.hamburger-btn {
+    display: none;
 }
 
 /* =========================================================
@@ -247,10 +249,11 @@ button {
     background: #f8fafc;
 }
 
-.dropdown-toggle.active-state {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+.dropdown-toggle.active-state, 
+.dropdown-toggle:active {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;     
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .avatar-img {
@@ -273,9 +276,8 @@ button {
 }
 
 .dropdown-arrow {
-    font-size: 12px;
+    font-size: 10px;
     color: var(--text-muted);
-    transition: none;
 }
 
 .profile-dropdown-menu {
@@ -287,10 +289,11 @@ button {
     border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
     min-width: 200px;
+    max-width: calc(100vw - 32px);
     padding: 8px 0;
     display: none;
     flex-direction: column;
-    z-index: 100;
+    z-index: 1050;
 }
 
 .profile-dropdown-menu.show {
@@ -303,8 +306,9 @@ button {
     font-size: 14px;
     font-weight: 500;
     transition: 0.2s;
-    display: flex;
-    align-items: center;
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
 }
 
 .profile-dropdown-menu a:hover {
@@ -318,7 +322,7 @@ button {
 }
 
 /* =========================================================
-   4. DATA PANELS & FILTERS
+   4. DATA PANELS, STATS & FILTERS
 ========================================================= */
 .data-panel {
     background: #fff;
@@ -334,19 +338,13 @@ button {
     border: 1px solid var(--border-dark);
     border-radius: 8px;
     font-size: 13px;
-    /* Slightly smaller for dense filters */
     outline: none;
     background: #fff;
     color: var(--text-main);
 }
 
-.form-input:focus {
-    border-color: var(--primary-color);
-}
-
-.filter-group select.form-input {
-    cursor: pointer;
-}
+.form-input:focus { border-color: var(--primary-color); }
+.filter-group select.form-input { cursor: pointer; }
 
 .btn-primary {
     background: var(--primary-color);
@@ -358,11 +356,13 @@ button {
     border: none;
     transition: 0.2s;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
-.btn-primary:hover {
-    background: var(--primary-hover);
-}
+.btn-primary:hover { background: var(--primary-hover); }
 
 .btn-outline {
     background: #fff;
@@ -374,22 +374,21 @@ button {
     font-size: 13px;
     transition: 0.2s;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .btn-outline:hover {
     background: #f8fafc;
-    border-color: var(--border-dark);
+    border-color: #cbd5e1;
 }
 
-/* Keep the dropdown toggle visually stable without any spinning effect */
-.dropdown-arrow {
-    font-size: 12px;
-    color: var(--text-muted);
-    transition: none;
-}
+.text-red { color: var(--danger-color) !important; }
 
 /* =========================================================
-   5. EXPANDED DATA TABLE
+   5. TABLE
 ========================================================= */
 .table-responsive {
     overflow-x: auto;
@@ -399,7 +398,6 @@ button {
 .data-table {
     width: 100%;
     min-width: 1100px;
-    /* Safe width for all the new expanded columns */
     border-collapse: collapse;
 }
 
@@ -417,29 +415,30 @@ button {
 
 .data-table td {
     padding: 16px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-dark);
     font-size: 13px;
     color: var(--text-main);
     vertical-align: middle;
 }
 
-.data-table tbody tr {
-    transition: background 0.2s;
-}
+.data-table tbody tr { transition: background 0.2s; }
+.data-table tbody tr:hover { background: #f9fafb; }
 
-.data-table tbody tr:hover {
-    background: #f9fafb;
+.category-correction-select {
+    outline: none;
+    transition: all 0.2s;
+    background: #fff;
+    color: var(--text-main);
+    cursor: pointer;
 }
+.category-correction-select:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
 
 /* =========================================================
-   6. MODAL STYLES (If Not Globally Handled)
+   6. MODALS & DROPZONES
 ========================================================= */
-.modal-overlay {
+.global-modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(4px);
     display: flex;
@@ -448,7 +447,7 @@ button {
     z-index: 2000;
 }
 
-.modal-content-sm {
+.global-modal-content {
     background: #fff;
     padding: 30px;
     border-radius: 16px;
@@ -474,70 +473,126 @@ button {
 }
 
 @keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================================================
-   7. RESPONSIVE ADJUSTMENTS
+   7. RESPONSIVE LAYOUTS (MOBILE & TABLET)
 ========================================================= */
 @media (max-width: 1024px) {
-    .filter-group {
-        flex-wrap: wrap;
-    }
-
-    .filter-group>div,
-    .filter-group select {
+    .filter-group { flex-wrap: wrap; }
+    .filter-group>div, .filter-group select {
         flex: 1 1 calc(50% - 10px);
         max-width: none !important;
+    }
+
+    .sidebar, #sidebar-container {
+        position: fixed;
+        top: 0; left: 0; height: 100%;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease-in-out;
+        z-index: 1000;
+    }
+
+    .sidebar.active, #sidebar-container.active {
+        transform: translateX(0);
     }
 }
 
 @media (max-width: 768px) {
-    .main-content {
-        padding: 20px;
+    .main-content { padding: 24px; }
+    
+    /* Stats Grid Stacking */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
     }
-
+    
+    /* Updated Mobile Header Reordering */
     .content-header {
-        flex-direction: column;
+        flex-direction: column; /* Updated to normal column because HTML order changed */
         align-items: stretch;
-        gap: 15px;
+        gap: 20px;
+        position: relative;
+        padding-top: 0;
+        margin-bottom: 24px;
     }
 
     .header-actions {
-        justify-content: flex-end;
-        align-items: center;
-        gap: 10px;
         width: 100%;
-        order: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
-    .header-titles-wrapper {
+    /* Push Profile to the left */
+    #profile-dropdown-toggle {
+        order: 1;
+        margin-right: auto;
+    }
+
+    /* Bell next to hamburger */
+    #notification-container {
         order: 2;
     }
 
-    .header-action-icons {
-        margin-left: auto;
-    }
-
+    /* Circular Hamburger on the far right */
     .hamburger-btn {
+        order: 3;
         display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        border: 1px solid var(--border-dark);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        color: var(--text-main);
+        cursor: pointer;
+        margin-left: 0;
     }
 
-    .filter-group {
+    /* Display profile name inline on mobile */
+    .profile-info { display: block !important; }
+
+    .header-titles-wrapper {
+        order: 2;
         flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
     }
 
-    .filter-group>div,
-    .filter-group select {
-        width: 100%;
+    /* Filters and Action Buttons Stacking */
+    .data-panel > div[style*="display: flex"] {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 15px;
+    }
+    
+    .filter-group { flex-direction: column; width: 100%; }
+    .filter-group > div, .filter-group select {
+        width: 100%; 
         flex: none;
+        max-width: 100% !important;
+    }
+
+    /* Make action buttons (Export, Add, Bulk Import) full width on mobile */
+    .data-panel .btn-primary, 
+    .data-panel .btn-outline {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .data-panel > div > div[style*="display: flex; gap: 10px"] {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    /* Modals handling for mobile screens */
+    .global-modal-content {
+        width: 95% !important;
+        padding: 20px !important;
     }
 }

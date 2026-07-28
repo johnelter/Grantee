@@ -13,6 +13,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     let filteredScholarships = [];
     let currentAdminSchoolId = null;
 
+    // Change Hardcoded Emojis to FontAwesome Icons in the Stats Grid
+    const statIcons = document.querySelectorAll('.stat-icon');
+    if (statIcons.length >= 3) {
+        statIcons[0].innerHTML = '<i class="fa-solid fa-book"></i>';
+        statIcons[1].innerHTML = '<i class="fa-solid fa-envelope-open-text"></i>';
+        statIcons[2].innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+    }
+
     // --- 2. LOAD PROFILE DATA INTO HEADER ---
     async function loadProfile() {
         try {
@@ -23,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             if (profile) {
-                // Ensure only admins can access this page
                 if (profile.role !== 'admin') {
                     window.location.href = 'student-dashboard.html';
                     return;
@@ -31,7 +38,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 currentAdminSchoolId = profile.school_id;
 
-                // Update Header Name & Avatar
                 const firstName = profile.first_name || 'Admin';
                 const lastName = profile.last_name || '';
 
@@ -43,7 +49,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
 
-                // Call loadScholarships only after we have the school ID
                 loadScholarships();
             }
         } catch (error) {
@@ -51,7 +56,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- 3. INTERACTIVE DROPDOWN & MODAL LOGIC ---
+    // --- 3. INTERACTIVE DROPDOWN & MOBILE LOGIC ---
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebarContainer = document.getElementById('sidebar-container');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    if (mobileMenuToggle && sidebarContainer && sidebarOverlay) {
+        mobileMenuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isActive = sidebarContainer.classList.contains('active');
+            if (isActive) {
+                sidebarContainer.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                const innerSidebar = document.querySelector('.sidebar');
+                if (innerSidebar) innerSidebar.classList.remove('active');
+            } else {
+                sidebarContainer.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                const innerSidebar = document.querySelector('.sidebar');
+                if (innerSidebar) innerSidebar.classList.add('active');
+            }
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebarContainer.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            const innerSidebar = document.querySelector('.sidebar');
+            if (innerSidebar) innerSidebar.classList.remove('active');
+        });
+    }
+
     const profileToggle = document.getElementById('profile-dropdown-toggle');
     const profileMenu = document.getElementById('profile-menu');
 
@@ -59,46 +93,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         profileToggle.addEventListener('click', (e) => {
             e.stopPropagation();
             profileMenu.classList.toggle('show');
+            profileToggle.classList.toggle('active-state');
         });
         document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) profileMenu.classList.remove('show');
+            if (!profileToggle.contains(e.target)) {
+                profileMenu.classList.remove('show');
+                profileToggle.classList.remove('active-state');
+            }
         });
     }
 
-    // Logout Modal
-    const logoutModal = document.getElementById('logout-modal');
-    const modalCancel = document.getElementById('modal-cancel');
-    const modalConfirm = document.getElementById('modal-confirm');
+    // LOGOUT LOGIC WITH SWEETALERT
     const logoutBtns = [document.getElementById('dropdown-logout-btn')];
-
     logoutBtns.forEach(btn => {
         if (btn) {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                logoutModal.style.display = 'flex';
                 if (profileMenu) profileMenu.classList.remove('show');
+                
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You will be logged out of your session.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3b82f6',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Yes, logout'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            Swal.fire({
+                                title: 'Logging out...',
+                                allowOutsideClick: false,
+                                didOpen: () => Swal.showLoading()
+                            });
+                            await window.supabaseClient.auth.signOut();
+                            window.location.href = 'login.html';
+                        } catch (error) {
+                            console.error("Logout error:", error);
+                            Swal.fire('Error!', 'Failed to logout. Please try again.', 'error');
+                        }
+                    }
+                });
             });
         }
     });
 
-    if (modalCancel) modalCancel.addEventListener('click', () => logoutModal.style.display = 'none');
-    if (logoutModal) logoutModal.addEventListener('click', (e) => { if (e.target === logoutModal) logoutModal.style.display = 'none'; });
-
-    if (modalConfirm) {
-        modalConfirm.addEventListener('click', async () => {
-            try {
-                modalConfirm.innerText = "Logging out...";
-                modalConfirm.disabled = true;
-                await window.supabaseClient.auth.signOut();
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error("Logout error:", error);
-                alert("Failed to logout. Please try again.");
-                modalConfirm.innerText = "Logout";
-                modalConfirm.disabled = false;
-            }
-        });
-    }
+    // Remove old modal logic if it exists in HTML to prevent conflicts
+    const oldLogoutModal = document.getElementById('logout-modal');
+    if (oldLogoutModal) oldLogoutModal.remove();
 
     // --- 4. DATA LOGIC (Formatters, Filters, UI Render) ---
     const formatDate = (dateString) => {
@@ -147,7 +190,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'Closed';
     };
 
-    // Fetch programs specifically for this Admin's School
     const loadScholarships = async () => {
         try {
             if (!currentAdminSchoolId) {
@@ -165,9 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             allScholarships = rawData.map(sch => {
                 const totalAppsCount = sch.applications ? sch.applications.length : 0;
-
                 const passedAppsCount = sch.applications ? sch.applications.filter(app => app.status === 'Passed').length : 0;
-
                 let isUnlimited = sch.slots === 'Open' || !sch.slots;
                 let remaining = null;
 
@@ -193,13 +233,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('Error fetching data:', error);
             tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding: 40px;">Failed to load data from database.</td></tr>`;
+            Swal.fire('Error', 'Failed to load data from database.', 'error');
         }
     };
 
     const updateTopStats = (data) => {
         if (document.getElementById('count-total')) document.getElementById('count-total').innerText = data.length;
         if (document.getElementById('count-active')) document.getElementById('count-active').innerText = data.filter(s => s.dynamic_status === 'Active').length;
-        if (document.getElementById('count-upcoming')) document.getElementById('count-upcoming').innerText = data.filter(s => s.dynamic_status === 'Upcoming').length;
         if (document.getElementById('count-closed')) document.getElementById('count-closed').innerText = data.filter(s => s.dynamic_status === 'Closed' || s.dynamic_status === 'Draft').length;
     };
 
@@ -224,14 +264,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 slotsDisplay = `<div style="font-size:11px; margin-top:4px; font-weight:bold; color:#10b981;">${sch.remaining_slots}/${sch.slots} Slot(s) Left</div>`;
             }
 
+            // Stripping HTML from description for the table preview
+            let rawTextDesc = 'No description';
+            if (sch.description) {
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = sch.description;
+                rawTextDesc = tempDiv.textContent || tempDiv.innerText || "";
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
                     <div class="scholarship-name-cell">
-                        <div style="width:36px;height:36px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">🎓</div>
+                        <div style="width:36px;height:36px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--primary-color);">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
                         <div>
                             <strong>${sch.title}</strong>
-                            <span>${sch.description ? sch.description.substring(0, 40) + '...' : 'No description'}</span>
+                            <span>${rawTextDesc.substring(0, 40) + (rawTextDesc.length > 40 ? '...' : '')}</span>
                         </div>
                     </div>
                 </td>
@@ -244,12 +294,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div style="font-weight:600;">${sch.applications_count || 0} Apps</div>
                     ${slotsDisplay}
                 </td>
-                
-                <!-- FIX: Replaced td class with inline vertical alignment and a flexbox inner div to prevent staggered rows -->
                 <td style="vertical-align: middle;">
                     <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
-                        <button class="action-edit" data-id="${sch.id}" title="Edit" style="padding: 6px 16px; border: 1px solid #3b82f6; background: #dbeafe; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;">Edit</button>
-                        <button class="action-delete" data-id="${sch.id}" title="Delete" style="padding: 6px 16px; border: 1px solid #ef4444; background: #fee2e2; color: #ef4444; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;">Delete</button>
+                        <button class="action-view" data-id="${sch.id}" title="View Application Form" style="padding: 6px 16px; border: 1px solid #3b82f6; background: #dbeafe; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;"><i class="fa-solid fa-eye" style="margin-right: 4px;"></i> View</button>
+                        <button class="action-delete" data-id="${sch.id}" title="Delete" style="padding: 6px 16px; border: 1px solid #ef4444; background: #fee2e2; color: #ef4444; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </td>
             `;
@@ -302,35 +350,315 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('filter-scholarship-type')) document.getElementById('filter-scholarship-type').addEventListener('change', applyFilters); 
     if (document.getElementById('sort-by')) document.getElementById('sort-by').addEventListener('change', applyFilters);
 
-    // ACTION BUTTONS (DELETE LOGIC)
+    // --- 5. PREVIEW MODAL LOGIC (ACCURATE APPLICATION VIEW VIA SWEETALERT) ---
+    const showPreviewModal = (sch) => {
+        let dateText = "Not Set";
+        if (sch.end_date) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            dateText = new Date(sch.end_date).toLocaleDateString('en-US', options);
+        }
+
+        const safeParse = (data) => {
+            if (typeof data === 'string') {
+                try { return JSON.parse(data); } catch(e) { return []; }
+            }
+            return Array.isArray(data) ? data : [];
+        };
+
+        const formFields = safeParse(sch.form_fields);
+        const docConfigs = safeParse(sch.document_configurations);
+        const eligibilityYears = safeParse(sch.eligibility_years);
+
+        let html = `
+        <style>
+            /* Mobile responsiveness for the SweetAlert modal */
+            .preview-mockup-body { padding: 30px; }
+            .preview-split { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 30px; }
+            .preview-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            
+            @media (max-width: 768px) {
+                .preview-mockup-body { padding: 15px !important; }
+                .preview-split { grid-template-columns: 1fr !important; gap: 15px !important; }
+                .preview-field-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+                .swal2-popup.preview-swal-popup { width: 95% !important; max-width: 100% !important; padding: 0 !important; }
+            }
+        </style>
+        <div class="preview-mockup" style="text-align: left; width: 100%;">
+            <div class="preview-mockup-header" style="background: #1e293b; color: #fff; padding: 12px 20px; font-size: 14px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
+                <span><i class="fa-solid fa-graduation-cap" style="margin-right: 6px;"></i> Educational Assistance Application Form</span>
+            </div>
+            
+            <div class="preview-mockup-body" style="max-height: 80vh; overflow-y: auto;">
+                <div class="preview-badges" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <span class="preview-badge-cat" style="background: #065f46; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">${sch.category || 'Institution-Funded'}</span>
+                    <span class="preview-badge-type" style="background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">${sch.scholarship_type || 'Merit-Based'}</span>
+                </div>
+                
+                <h2 class="preview-title" style="font-size: 24px; font-weight: 800; margin-bottom: 5px; color: #0f172a; line-height: 1.3;">${sch.title || 'Untitled Educational Assistance'}</h2>
+                <div class="preview-subtitle" style="color: #64748b; font-size: 13px; margin-bottom: 25px;">General Admin</div>
+
+                <!-- Handled by responsive class .preview-split -->
+                <div class="preview-split">
+                    <div>
+                        <h4 style="font-size:16px; margin-bottom:10px; color:#0f172a;">About this Educational Assistance</h4>
+                        
+                        <!-- Rich Text formatting strictly maintained here -->
+                        <div style="font-size:13.5px; color:#334155; margin-bottom:20px; line-height:1.6; word-break: break-word;">${sch.description || 'No description provided.'}</div>
+                        
+                        <h4 style="font-size:16px; margin-bottom:10px; color:#0f172a;">Eligibility Requirements</h4>
+                        <ul style="list-style:none; font-size:13.5px; color:#334155; padding:0;">
+                            ${sch.min_college_gwa ? `<li style="margin-bottom:6px;"><i class="fa-solid fa-check text-green" style="color: #10b981; margin-right: 6px;"></i> Must have a College GWA of <b>${sch.min_college_gwa}</b> or better.</li>` : ''}
+                            ${sch.min_college_subject_grade ? `<li style="margin-bottom:6px;"><i class="fa-solid fa-check text-green" style="color: #10b981; margin-right: 6px;"></i> Must have NO individual College subject grade lower than <b>${sch.min_college_subject_grade}</b>.</li>` : ''}
+                            <li style="margin-bottom:6px;"><i class="fa-solid fa-check text-green" style="color: #10b981; margin-right: 6px;"></i> Open to Year Levels: <b>${eligibilityYears.length > 0 ? eligibilityYears.join(', ') : 'Any'}</b>.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="preview-info-box" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; background: #f8fafc; height: fit-content;">
+                        <div class="preview-info-label" style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Application Deadline</div>
+                        <div class="preview-info-value" style="font-size: 14px; color: #ef4444; font-weight: 600; margin-bottom: 15px;">${dateText}</div>
+                        
+                        <div class="preview-info-label" style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Available Slots</div>
+                        <div class="preview-info-value" style="font-size: 14px; color: #0f172a; font-weight: 600; margin-bottom: 15px;">${sch.slots || 'Open'}</div>
+                        
+                        <div class="preview-info-label" style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Status</div>
+                        <div class="preview-info-value" style="font-size: 14px; color: #10b981; font-weight: 600;">ACTIVE</div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; margin-bottom:30px; border-top: 1px solid #e2e8f0; padding-top: 30px;">
+                    <h2 style="font-size:22px; margin-bottom:5px; color: #0f172a;">Application Form</h2>
+                    <p style="color:#64748b; font-size:13px;">Complete the required fields below.</p>
+                </div>
+
+                <div class="preview-section-title" style="font-size: 18px; font-weight: 700; margin-bottom: 5px; color: #0f172a;">1. Applicant Profile</div>
+                <p style="font-size:12px; color:#64748b; margin-bottom:15px;">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
+                
+                <!-- Handled by responsive class .preview-field-grid -->
+                <div class="preview-field-grid" style="margin-bottom: 30px;">
+                    <div style="display: flex; flex-direction: column;"><label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Student ID Number</label><input type="text" value="202302709" readonly style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; color: #94a3b8; font-size: 13px;"></div>
+                    <div style="display: flex; flex-direction: column;"><label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Email Address</label><input type="text" value="student@gmail.com" readonly style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; color: #94a3b8; font-size: 13px;"></div>
+                    <div style="display: flex; flex-direction: column; grid-column: 1 / -1;"><label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Full Name</label><input type="text" value="John Jeffrey T. Cañete" readonly style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; color: #94a3b8; font-size: 13px;"></div>
+                    <div style="display: flex; flex-direction: column;"><label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Gender</label><input type="text" value="Male" readonly style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; color: #94a3b8; font-size: 13px;"></div>
+                    <div style="display: flex; flex-direction: column;"><label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Program</label><input type="text" value="BS Information Technology" readonly style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; color: #94a3b8; font-size: 13px;"></div>
+                    <div style="display: flex; flex-direction: column;"><label style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Year Level</label><input type="text" value="3rd year" readonly style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; color: #94a3b8; font-size: 13px;"></div>
+                </div>
+
+                <div class="preview-section-title" style="font-size: 18px; font-weight: 700; margin-bottom: 15px; color: #0f172a;">2. Questionnaire</div>
+                ${formFields.length === 0 ? '<p style="font-size:13px; color:#64748b; margin-bottom:30px;">No custom questions added.</p>' : ''}
+                
+                <div style="margin-bottom: 30px;">
+                    ${formFields.map(f => `
+                        <div style="margin-bottom:15px; display: flex; flex-direction: column;">
+                            <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">${f.label} ${f.required ? '<span style="color: #ef4444;">*</span>' : ''}</label>
+                            ${['Dropdown', 'Selection'].includes(f.type) 
+                                ? `<select style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; cursor: not-allowed;" disabled><option>Select option...</option>${(f.options || []).map(o=>`<option>${o}</option>`).join('')}</select>`
+                                : `<input type="text" placeholder="Enter your answer..." style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; cursor: not-allowed;" disabled>`
+                            }
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="preview-section-title" style="font-size: 18px; font-weight: 700; margin-bottom: 15px; color: #0f172a;">3. Document Uploads</div>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 6px; color: #1e40af; font-size: 12px; display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px;">
+                    <i class="fa-solid fa-robot" style="font-size:18px; margin-top: 2px;"></i>
+                    <div>
+                        <strong>AI Verification Active:</strong> Please ensure your documents are clear and legible. Our AI system will scan the contents to verify authenticity.
+                    </div>
+                </div>
+
+                ${docConfigs.length === 0 ? '<p style="font-size:13px; color:#64748b;">No documents required.</p>' : ''}
+                
+                <!-- Handled by responsive class .preview-field-grid -->
+                <div class="preview-field-grid">
+                    ${docConfigs.map(d => `
+                        <div style="border: 1px dashed #cbd5e1; padding: 20px; border-radius: 8px; text-align: center; background: #f8fafc;">
+                            <label style="font-size:13px; font-weight:700; color:#0f172a; display:block; margin-bottom:5px;">
+                                <i class="fa-solid fa-file-arrow-up" style="margin-right: 4px;"></i> Upload ${d.name} ${d.required ? '<span style="color: #ef4444;">*</span>' : ''}
+                            </label>
+                            <div style="font-size:11px; color:#64748b; margin-bottom:10px;">Allowed: PDF, JPG, PNG (Max: ${d.max_size}MB)</div>
+                            <button type="button" style="padding:8px 20px; background:#fff; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; cursor:not-allowed;" disabled>Choose File</button>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="text-align: right; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                    <button type="button" style="background: var(--primary-color, #10b981); color: #fff; padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: not-allowed; opacity: 0.7;" disabled>Submit Application</button>
+                </div>
+            </div>
+        </div>`;
+
+        Swal.fire({
+            html: html,
+            width: '800px',
+            padding: '0',
+            showConfirmButton: false,
+            showCloseButton: true,
+            allowOutsideClick: false,
+            allowEscapeKey: true,
+            customClass: {
+                popup: 'preview-swal-popup'
+            }
+        });
+    };
+
+    // ACTION BUTTONS (VIEW & DELETE LOGIC WITH SWEETALERT)
     tbody.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
 
         const scholarshipId = btn.getAttribute('data-id');
+        const targetScholarship = allScholarships.find(s => s.id == scholarshipId);
 
-        if (btn.classList.contains('action-edit')) {
-            window.location.href = `edit-scholarship.html?id=${scholarshipId}`;
+        if (btn.classList.contains('action-view')) {
+            if (targetScholarship) showPreviewModal(targetScholarship);
         } else if (btn.classList.contains('action-delete')) {
-            const confirmDelete = confirm('Are you sure you want to permanently delete this educational assistance program? All related applications will also be affected.');
-            if (confirmDelete) {
-                try {
-                    btn.disabled = true;
-                    btn.innerText = "⏳";
-                    const { error } = await window.supabaseClient.from('scholarships').delete().eq('id', scholarshipId);
-                    if (error) throw error;
+            
+            Swal.fire({
+                title: 'Delete this program?',
+                text: "Are you sure you want to permanently delete this educational assistance program? All related applications will be lost.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-trash-can"></i> Yes, delete it'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const originalHtml = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                        
+                        const { error } = await window.supabaseClient.from('scholarships').delete().eq('id', scholarshipId);
+                        if (error) throw error;
 
-                    alert('Educational assistance program deleted successfully.');
-                    loadScholarships();
-                } catch (error) {
-                    console.error('Delete error:', error);
-                    alert('Error deleting educational assistance program. Please check if there are existing applications tied to this program blocking the deletion.');
-                    btn.disabled = false;
-                    btn.innerText = "Delete";
+                        Swal.fire('Deleted!', 'Educational assistance program deleted successfully.', 'success');
+                        loadScholarships();
+                    } catch (error) {
+                        console.error('Delete error:', error);
+                        Swal.fire('Error!', 'Cannot delete this program. There may be existing applications tied to it.', 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                    }
                 }
-            }
+            });
         }
     });
+
+    // --- 6. EXPORT TO CSV & PDF LOGIC ---
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            // Check if there is data to export
+            if (filteredScholarships.length === 0) {
+                Swal.fire('No Data', 'There is no data to export based on your current filters.', 'info');
+                return;
+            }
+
+            // Ask the user which format they prefer
+            Swal.fire({
+                title: 'Export Data',
+                text: 'Choose the format you want to export:',
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-file-csv" style="margin-right: 4px;"></i> CSV',
+                denyButtonText: '<i class="fa-solid fa-file-pdf" style="margin-right: 4px;"></i> PDF',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3b82f6', // Blue for CSV
+                denyButtonColor: '#ef4444'     // Red for PDF
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    exportToCSV();
+                } else if (result.isDenied) {
+                    exportToPDF();
+                }
+            });
+        });
+    }
+
+    function exportToCSV() {
+        let csvContent = "Educational Assistance Name,Category,Type,Opening Date,Deadline,Status,Total Applications,Remaining Slots\n";
+
+        filteredScholarships.forEach(sch => {
+            const name = `"${(sch.title || 'Untitled').replace(/"/g, '""')}"`;
+            const category = `"${sch.category || 'General'}"`;
+            const type = `"${sch.scholarship_type || 'Merit-Based'}"`;
+            const start = formatDate(sch.start_date);
+            const end = formatDate(sch.end_date);
+            const status = sch.dynamic_status || 'Unknown';
+            const appsCount = sch.applications_count || 0;
+            const slots = sch.is_unlimited ? 'Unlimited' : sch.remaining_slots;
+
+            csvContent += `${name},${category},${type},${start},${end},${status},${appsCount},${slots}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const today = new Date().toISOString().split('T')[0];
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Educational_Assistance_Export_${today}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function exportToPDF() {
+        // Ensure the jsPDF library loaded correctly
+        if (!window.jspdf) {
+            Swal.fire('Error', 'PDF library failed to load. Please check your internet connection.', 'error');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        // Create a landscape document to fit all the columns nicely
+        const doc = new jsPDF('landscape'); 
+
+        // Add a title to the PDF
+        doc.setFontSize(14);
+        doc.text("Educational Assistance Programs Report", 14, 15);
+        doc.setFontSize(10);
+        
+        const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        doc.text(`Generated on: ${today}`, 14, 22);
+
+        // Define Table Columns and Rows
+        const tableColumn = ["Program Name", "Category", "Type", "Start Date", "Deadline", "Status", "Apps", "Slots"];
+        const tableRows = [];
+
+        filteredScholarships.forEach(sch => {
+            const rowData = [
+                sch.title || 'Untitled',
+                sch.category || 'General',
+                sch.scholarship_type || 'Merit-Based',
+                formatDate(sch.start_date),
+                formatDate(sch.end_date),
+                sch.dynamic_status || 'Unknown',
+                sch.applications_count || 0,
+                sch.is_unlimited ? 'Unlimited' : sch.remaining_slots
+            ];
+            tableRows.push(rowData);
+        });
+
+        // Generate the auto-table
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 28,
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [16, 185, 129] }, // Matches your var(--primary-color)
+            columnStyles: {
+                0: { cellWidth: 50 }, // Give the title column a bit more room
+            }
+        });
+
+        // Trigger Download
+        const dateStr = new Date().toISOString().split('T')[0];
+        doc.save(`Educational_Assistance_Export_${dateStr}.pdf`);
+    }
 
     // INIT
     loadProfile();

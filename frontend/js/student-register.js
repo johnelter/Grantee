@@ -272,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     program: studentData.program,
                     year_level: studentData.year_level, // Synced from Masterlist update
                     gender: studentData.gender,         // Synced from Masterlist update
+                    school_id: assignedSchoolId,        // Syncing with enrolled_masterlist
                     email: emailInput.value.trim(),
                     is_approved: true // Auto-approved because they passed masterlist verification
                 })

@@ -61,7 +61,7 @@ button {
     flex-shrink: 0;
     overflow-y: auto;
     transition: transform 0.3s ease;
-    z-index: 1000;
+    z-index: 1001; /* Elevated */
 }
 
 .sidebar-brand {
@@ -152,27 +152,23 @@ button {
 
 .content-header {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 30px;
     gap: 20px;
 }
 
-/* Hamburger Button */
+/* Hamburger Button Desktop (Hidden) */
 .hamburger-btn {
     display: none;
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-main);
-    cursor: pointer;
-    padding: 5px;
 }
 
 .header-titles-wrapper {
     display: flex;
-    align-items: center;
-    gap: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
 }
 
 .header-titles h1 {
@@ -187,19 +183,19 @@ button {
 }
 
 .breadcrumbs {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-muted);
     font-weight: 500;
 }
 
 .breadcrumbs a {
-    color: var(--text-muted);
+    color: var(--primary-color);
     text-decoration: none;
     transition: 0.2s;
 }
 
 .breadcrumbs a:hover {
-    color: var(--primary-color);
+    color: var(--primary-hover);
 }
 
 .breadcrumbs span {
@@ -209,39 +205,57 @@ button {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: flex-end;
+    gap: 16px;
 }
 
-/* --- Profile Dropdown --- */
-.dropdown-toggle {
+/* --- EXACT MATCH Profile Dropdown UI --- */
+.user-profile.dropdown-toggle {
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
     position: relative;
-    padding: 6px 16px 6px 6px;
-    border-radius: 30px;
+    padding: 6px 14px 6px 6px;
+    border-radius: 999px;
     border: 1px solid var(--border-dark);
     background: #fff;
     transition: 0.2s;
     user-select: none;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.02);
 }
 
-.dropdown-toggle:hover {
+.user-profile.dropdown-toggle:hover {
     background: #f8fafc;
 }
 
+.user-profile.dropdown-toggle.active-state {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;     
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
 .avatar-img {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+    margin-right: 6px;
+    line-height: 1.2;
 }
 
 .profile-info strong {
     display: block;
     font-size: 14px;
     color: var(--text-main);
+    font-weight: 700;
 }
 
 .profile-info span {
@@ -257,17 +271,17 @@ button {
 
 .profile-dropdown-menu {
     position: absolute;
-    top: 110%;
+    top: 115%;
     right: 0;
     background: #fff;
     border: 1px solid var(--border-dark);
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-    min-width: 200px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    min-width: 210px;
     padding: 8px 0;
     display: none;
     flex-direction: column;
-    z-index: 100;
+    z-index: 1050;
 }
 
 .profile-dropdown-menu.show {
@@ -280,6 +294,8 @@ button {
     font-size: 14px;
     font-weight: 500;
     transition: 0.2s;
+    display: flex;
+    align-items: center;
 }
 
 .profile-dropdown-menu a:hover {
@@ -290,6 +306,42 @@ button {
     height: 1px;
     background: var(--border-dark);
     margin: 4px 0;
+}
+
+/* --- Notifications --- */
+.notification-bell {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-dark);
+    background: #fff;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.02);
+}
+
+.notification-bell:hover { background: #f1f5f9; }
+
+.notification-bell .badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--danger-color);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #fff;
 }
 
 /* --- Stats Grid --- */
@@ -467,37 +519,78 @@ button {
     #search-input {
         min-width: 100%;
     }
+    .sidebar, #sidebar-container {
+        position: fixed;
+        top: 0; left: 0; height: 100%;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease-in-out;
+        z-index: 1000;
+    }
+    .sidebar.active, #sidebar-container.active {
+        transform: translateX(0);
+    }
 }
 
 /* Mobile View (Max 768px) */
 @media (max-width: 768px) {
-    /* 1. Show Hamburger and Header Adjustments */
-    .hamburger-btn {
-        display: block;
-    }
+    /* 1. Header Adjustments */
     .content-header {
         flex-direction: column;
         align-items: stretch;
-    }
-    .header-actions {
-        justify-content: flex-end;
-        width: 100%;
-        border-top: 1px solid var(--border-dark);
-        padding-top: 15px;
+        gap: 20px;
+        position: relative;
+        padding-top: 0;
+        margin-bottom: 24px;
     }
 
-    /* 2. Transform Sidebar into Off-Canvas Menu */
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100%;
-        transform: translateX(-100%);
-        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    /* Force Profile & Actions always on TOP */
+    .header-actions {
+        order: 1; 
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
     }
-    .sidebar.active {
-        transform: translateX(0);
+
+    /* Force Titles and Breadcrumbs directly beneath */
+    .header-titles-wrapper {
+        order: 2; 
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
     }
+
+    /* Target inner mobile elements for exact matching */
+    #profile-dropdown-toggle {
+        order: 1;
+        margin-right: auto; /* Pushes the bell and hamburger to the far right */
+    }
+
+    #notification-container {
+        order: 2;
+    }
+
+    .hamburger-btn {
+        order: 3;
+        display: flex !important; /* Ensure hamburger shows up */
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        border: 1px solid var(--border-dark);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        color: var(--text-main);
+        cursor: pointer;
+        margin-left: 0;
+        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.02);
+    }
+
+    /* Force Profile info display on mobile */
+    .profile-info { display: flex !important; }
 
     /* 3. Stack Elements Vertically */
     .stats-grid {

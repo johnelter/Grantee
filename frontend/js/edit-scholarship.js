@@ -571,6 +571,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(error.message || "Unknown database error");
             }
 
+            try {
+                await window.supabaseClient.from('audit_logs').insert([{
+                    admin_id: adminId,
+                    school_id: currentAdminSchoolId,
+                    action: 'Educational Assistance edited',
+                    module: 'Scholarships',
+                    details: JSON.stringify({ title: payload.title, id: scholarshipId })
+                }]);
+            } catch (e) { console.warn("Audit logging failed:", e); }
+
             alert(`Educational Assistance successfully updated!`);
             window.location.href = 'admin-scholarships.html';
 

@@ -158,9 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (stat === 'Draft') {
                 return { text: 'Continue Application', class: 'btn-primary', action: 'apply', msg: '' };
             }
-            if (['Pending', 'Under Review', 'Approved', 'Grantee', 'Revision Requested'].includes(stat)) {
-                return { text: 'View Application', class: 'btn-outline', action: 'view', msg: 'You already have an existing application for this educational assistance.' };
-            }
+            return { text: 'Already Applied', class: 'btn-disabled', action: 'restricted', msg: 'You already have an existing application for this educational assistance.' };
         }
 
         // 3. Availability Validation (Dates & Status)
@@ -394,7 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#10b981'
             }).then((res) => {
-                if(res.isConfirmed) window.location.href = 'student-profile-settings.html';
+                if(res.isConfirmed) window.location.href = 'profile-settings.html';
             });
         } else if (action === 'view') {
             Swal.fire({

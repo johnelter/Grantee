@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    
+
     // --- 1. INJECT SIDEBAR ---
     const sidebarContainer = document.getElementById('sidebar-container');
     if (sidebarContainer) {
-        const isStudentPage = window.location.pathname.includes('student') || window.location.pathname.includes('apply');
-        const sidebarFile = isStudentPage ? 'components/student-sidebar.html' : 'components/admin-sidebar.html';
+        const path = window.location.pathname;
+        const isAdminPage = path.includes('admin') || path.includes('create-scholarship');
+        const sidebarFile = isAdminPage ? 'components/admin-sidebar.html' : 'components/student-sidebar.html';
 
         try {
             const response = await fetch(sidebarFile);
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (modalResponse.ok) {
             const modalHtml = await modalResponse.text();
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
+
             initGlobalLogoutLogic(); // Start logic once modal is in the DOM
         }
     } catch (error) {
@@ -67,7 +68,7 @@ function initGlobalLogoutLogic() {
     const modalCancel = document.getElementById('modal-cancel');
     const modalConfirm = document.getElementById('modal-confirm');
     const profileMenu = document.getElementById('profile-menu');
-    
+
     // Find any button with these IDs (in the header or sidebar)
     const logoutTriggers = document.querySelectorAll('#dropdown-logout-btn, #sidebar-logout-btn, .logout-trigger');
 
@@ -76,7 +77,7 @@ function initGlobalLogoutLogic() {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             if (logoutModal) logoutModal.style.display = 'flex';
-            if (profileMenu) profileMenu.classList.remove('show'); 
+            if (profileMenu) profileMenu.classList.remove('show');
         });
     });
 
@@ -101,7 +102,7 @@ function initGlobalLogoutLogic() {
                 try {
                     modalConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
                     modalConfirm.disabled = true;
-                    
+
                     await window.supabaseClient.auth.signOut();
                     window.location.href = 'login.html';
                 } catch (error) {

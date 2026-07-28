@@ -374,48 +374,78 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Save button not found: #btn-save-policies');
     }
 
-    // --- 5. PROFILE DROPDOWN LOGIC ---
+    // ==========================================
+    // 2. DROPDOWN & LOGOUT MODAL LOGIC
+    // ==========================================
     const profileToggle = document.getElementById('profile-dropdown-toggle');
     const profileMenu = document.getElementById('profile-menu');
 
     if (profileToggle && profileMenu) {
-        const setMenuState = (isOpen) => {
-            profileMenu.classList.toggle('show', isOpen);
-            profileToggle.classList.toggle('active-state', isOpen);
-            profileToggle.setAttribute('aria-expanded', String(isOpen));
-            profileMenu.setAttribute('aria-hidden', String(!isOpen));
-        };
-
         profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setMenuState(!profileMenu.classList.contains('show'));
+            e.stopPropagation(); 
+            profileMenu.classList.toggle('show');
         });
-
-        profileToggle.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setMenuState(!profileMenu.classList.contains('show'));
-            } else if (e.key === 'Escape') {
-                setMenuState(false);
-            }
-        });
-
-        profileMenu.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-
         document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
-                setMenuState(false);
-            }
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                setMenuState(false);
-            }
+            if (!profileToggle.contains(e.target)) profileMenu.classList.remove('show');
         });
     }
+
+    const logoutModal = document.getElementById('logout-modal');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalConfirm = document.getElementById('modal-confirm');
+    const logoutBtn = document.getElementById('dropdown-logout-btn');
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (logoutModal) logoutModal.style.display = 'flex';
+            if (profileMenu) profileMenu.classList.remove('show'); 
+        });
+    }
+
+    if (modalCancel) modalCancel.addEventListener('click', () => logoutModal.style.display = 'none');
+    if (logoutModal) logoutModal.addEventListener('click', (e) => { if (e.target === logoutModal) logoutModal.style.display = 'none'; });
+
+    if (modalConfirm) {
+        modalConfirm.addEventListener('click', async () => {
+            modalConfirm.innerText = "Logging out...";
+            modalConfirm.disabled = true;
+            await window.supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        });
+    }
+
+    // ==========================================
+    // 8. MOBILE HAMBURGER MENU TOGGLE
+    // ==========================================
+    const hamburgerBtn = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar') || document.getElementById('sidebar-container');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (hamburgerBtn && sidebar && overlay) {
+        hamburgerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isActive = sidebar.classList.contains('active');
+            if (isActive) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+                const innerSidebar = document.querySelector('.sidebar');
+                if (innerSidebar) innerSidebar.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+                const innerSidebar = document.querySelector('.sidebar');
+                if (innerSidebar) innerSidebar.classList.add('active');
+            }
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            const innerSidebar = document.querySelector('.sidebar');
+            if (innerSidebar) innerSidebar.classList.remove('active');
+        });
+    } 
 
     init();
 });

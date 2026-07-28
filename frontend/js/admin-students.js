@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let allStudents = [];
     
     let pendingImportPayload = [];
+    let currentAdminSchool = null;
     let pendingDuplicateRecords = [];
 
     // ==========================================
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
-    // 2. HEADER PROFILE & LOGOUT
+    // 2. HEADER PROFILE, DROPDOWN & LOGOUT
     // ==========================================
     async function initProfile() {
         try {
@@ -67,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
+                currentAdminSchool = profile.school;
 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
                 document.getElementById('header-name').innerText = name;
@@ -79,21 +81,58 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Profile Dropdown Functionality
     const profileToggle = document.getElementById('profile-dropdown-toggle');
     const profileMenu = document.getElementById('profile-menu');
+
     if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => { e.stopPropagation(); profileMenu.classList.toggle('show'); });
-        document.addEventListener('click', (e) => { if (!profileToggle.contains(e.target)) profileMenu.classList.remove('show'); });
+        profileToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileMenu.classList.toggle('show');
+            profileToggle.classList.toggle('active-state');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!profileToggle.contains(e.target)) {
+                profileMenu.classList.remove('show');
+                profileToggle.classList.remove('active-state');
+            }
+        });
     }
 
-    document.getElementById('dropdown-logout-btn').addEventListener('click', (e) => {
-        e.preventDefault(); document.getElementById('logout-modal').style.display = 'flex'; profileMenu.classList.remove('show');
-    });
-    if(document.getElementById('modal-cancel')) document.getElementById('modal-cancel').addEventListener('click', () => document.getElementById('logout-modal').style.display = 'none');
-    if(document.getElementById('modal-confirm')) document.getElementById('modal-confirm').addEventListener('click', async () => {
-        await window.supabaseClient.auth.signOut();
-        window.location.href = 'login.html';
-    });
+    // Logout Modal Logic
+    const logoutBtn = document.getElementById('dropdown-logout-btn');
+    const logoutModal = document.getElementById('logout-modal');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalConfirm = document.getElementById('modal-confirm');
+
+    if (logoutBtn && logoutModal) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logoutModal.style.display = 'flex';
+            if (profileMenu) profileMenu.classList.remove('show');
+            if (profileToggle) profileToggle.classList.remove('active-state');
+        });
+    }
+
+    if (modalCancel) {
+        modalCancel.addEventListener('click', () => {
+            logoutModal.style.display = 'none';
+        });
+    }
+
+    if (modalConfirm) {
+        modalConfirm.addEventListener('click', async () => {
+            try {
+                Swal.fire({ title: 'Logging out...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                const { error } = await window.supabaseClient.auth.signOut();
+                if (error) throw error;
+                window.location.href = 'login.html';
+            } catch (err) {
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            }
+        });
+    }
 
     // ==========================================
     // 3. FETCH & RENDER ENROLLED STUDENTS
@@ -656,6 +695,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // SWEET ALERT SUCCESS MESSAGE
                 Swal.fire('Success!', `Successfully imported ${pendingImportPayload.length} students!`, 'success');
                 
+                // Notify coordinators of successful import
+                if (currentAdminSchoolId) {
+                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            schoolId: currentAdminSchoolId,
+                            eventType: 'IMPORT_COMPLETED',
+                            subject: 'Bulk Import Finished',
+                            message: `CSV Import completed successfully. ${pendingImportPayload.length} records imported.`
+                        })
+                    }).catch(e => console.error("Notification failed:", e));
+                }
+
                 importModal.style.display = 'none';
                 resetImportModal();
                 fetchEnrolledStudents();
@@ -663,6 +716,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch(err) {
                 console.error("Database Insert Error:", err);
                 importStatus.innerHTML = `<div class="text-red" style="text-align:left; background:#fee2e2; padding:10px; border-radius:6px; border:1px solid #ef4444;">Import failed: ${err.message}</div>`;
+                
+                // Notify coordinators of failed import
+                if (currentAdminSchoolId) {
+                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            schoolId: currentAdminSchoolId,
+                            eventType: 'IMPORT_FAILED',
+                            subject: 'Import Errors',
+                            message: `CSV Import encountered validation errors: ${err.message}`
+                        })
+                    }).catch(e => console.error("Notification failed:", e));
+                }
+
                 btnConfirmImport.disabled = false;
                 btnConfirmImport.innerText = "Try Again";
             }
@@ -673,18 +741,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. MOBILE HAMBURGER MENU TOGGLE
     // ==========================================
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-    if (mobileMenuToggle && sidebar && sidebarOverlay) {
+    if (mobileMenuToggle && sidebarOverlay) {
         mobileMenuToggle.addEventListener('click', () => {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
+            // Because sidebar is injected via JS, query it inside the click handler
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarContainer = document.getElementById('sidebar-container');
+            
+            if (sidebar) sidebar.classList.toggle('active');
+            if (sidebarContainer) sidebarContainer.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
         });
 
-        // Close sidebar when clicking outside
+        // Close sidebar when clicking outside (on the overlay)
         sidebarOverlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarContainer = document.getElementById('sidebar-container');
+            
+            if (sidebar) sidebar.classList.remove('active');
+            if (sidebarContainer) sidebarContainer.classList.remove('active');
             sidebarOverlay.classList.remove('active');
         });
     }

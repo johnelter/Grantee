@@ -1,158 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistance Policies - Grantee Admin</title>
-    
-    <link rel="stylesheet" href="css/sidebar.css">
+
+    <!-- <link rel="stylesheet" href="css/sidebar.css">  -->
     <link rel="stylesheet" href="css/admin-policies.css">
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <style>
-        .swal2-container { z-index: 99999 !important; }
-        @media (max-width: 768px) {
-            .header-actions { width: 100%; justify-content: flex-end; margin-top: 15px; }
-            .content-header { flex-direction: column; align-items: stretch; }
-            .hamburger-btn { display: flex !important; }
+        .swal2-container {
+            z-index: 99999 !important;
         }
     </style>
+    <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="light-theme">
     <div class="app-layout">
-        
+
         <!-- DYNAMIC SIDEBAR INJECTION POINT -->
         <div id="sidebar-container"></div>
 
         <main class="main-content">
             <div class="content-wrapper">
-                
+
                 <!-- HEADER RESTRUCTURED -->
-                <header class="content-header" style="display: flex; flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 30px;">
-                    
-                    <!-- TOP ROW: Action Icons (Profile, Bell, Hamburger) -->
-                    <div class="header-actions" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: 100%;">
-                        
-                        <div class="notification-bell" aria-label="Notifications" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-color); background: #fff; color: var(--text-main); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;">
-                            <i class="fa-regular fa-bell"></i>
-                            <span class="badge" style="position: absolute; top: -2px; right: -2px; background: var(--danger-color); color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #fff;">5</span>
-                        </div>
+                <header class="content-header">
 
-                        <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="profile-menu" style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 6px 16px 6px 6px; border-radius: 30px; border: 1px solid var(--border-color); background: #fff; position: relative;">
-                            <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
+                    <!-- Titles & Save Button -->
+                    <div class="header-titles-wrapper">
+                        <!-- Added Breadcrumbs to match your design image -->
+                        <div class="breadcrumbs" style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                            <a href="admin-dashboard.html" style="color: var(--primary-color);">Dashboard</a> &gt;
+                            <span>Assistance Policies</span>
+                        </div>
+                        <div class="header-titles">
+                            <h1>Assistance Policies</h1>
+                            <p class="welcome-text">Configure global educational assistance rules and application limits
+                                for all students.</p>
+                        </div>
+                        <div class="header-actions-bottom">
+                            <button type="button" class="btn-primary" id="btn-save-policies">
+                                <i class="fa-solid fa-floppy-disk"></i> Save All Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Actions & Mobile Menu -->
+                    <div class="header-actions">
+                        <div id="notification-container" class="relative"></div>
+
+                        <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
+                            <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%2394a3b8%22><path d=%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22/></svg>'">
                             <div class="profile-info">
-                                <strong id="header-name" style="display: block; font-size: 14px; color: var(--text-main);">Loading...</strong>
-                                <span id="header-role" style="display: block; font-size: 12px; color: var(--text-muted);">Coordinator</span>
+                                <strong id="header-name">Loading...</strong>
+                                <span id="header-role">Coordinator</span>
                             </div>
-                            <span class="dropdown-arrow" style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-caret-down"></i></span>
+                            <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
 
-                            <div class="profile-dropdown-menu" id="profile-menu" aria-hidden="true" style="position: absolute; top: 115%; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); min-width: 200px; padding: 8px 0;">
-                                <a href="admin-profile-settings.html" style="padding: 10px 20px; color: var(--text-main); font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
-                                <div class="dropdown-divider" style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
-                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger" style="padding: 10px 20px; color: #ef4444; font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                            <div class="profile-dropdown-menu" id="profile-menu">
+                                <a href="admin-profile-settings.html"><i class="fa-solid fa-user"
+                                        style="margin-right: 8px;"></i> Profile Settings</a>
+                                <div class="dropdown-divider"></div>
+                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                        class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
                             </div>
                         </div>
 
-                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Open menu" style="display: none; background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer;">
+                        <!-- HAMBURGER BUTTON (Mobile Only) -->
+                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
                             <i class="fa-solid fa-bars"></i>
                         </button>
                     </div>
-
-                    <!-- MIDDLE ROW: Titles -->
-                    <div class="header-titles-wrapper">
-                        <div class="header-titles">
-                            <h1 style="font-size: 28px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Assistance Policies</h1>
-                            <p class="welcome-text" style="color: var(--text-muted); font-size: 14px;">Configure global educational assistance rules and application limits for all students.</p>
-                        </div>
-                    </div>
-
-                    <!-- BOTTOM ROW: Save Button -->
-                    <div class="header-actions-bottom" style="display: flex; justify-content: flex-start; margin-top: 5px;">
-                        <button type="button" class="btn-primary" id="btn-save-policies" style="background: var(--primary-color); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-floppy-disk"></i> Save All Changes
-                        </button>
-                    </div>
-
                 </header>
 
-                <div class="info-banner mb-24" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 24px; color: #1e3a8a;">
-                    <strong style="display: flex; align-items: center; font-size: 15px; margin-bottom: 8px;"><i class="fa-solid fa-circle-info" style="margin-right: 8px; color: #3b82f6;"></i> About Educational Assistance Policies</strong>
-                    <p style="font-size: 13px; line-height: 1.5; margin: 0; color: #1e40af;">These policies define the global rules that apply to all educational assistance programs in the institution. You can set the maximum number of assistances a student can hold, per-category limits, and combination rules.</p>
+                <div class="info-banner mb-24">
+                    <strong><i class="fa-solid fa-circle-info" style="margin-right: 8px; color: #3b82f6;"></i> About
+                        Educational Assistance Policies</strong>
+                    <p>These policies define the global rules that apply to all educational assistance programs in the
+                        institution. You can set the maximum number of assistances a student can hold, per-category
+                        limits, and combination rules.</p>
                 </div>
 
                 <form id="policies-form">
-                    <div class="policy-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
-                        
+                    <div class="policy-grid">
+
                         <!-- 1. Global Limit -->
-                        <div class="policy-card" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
-                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div class="policy-card">
+                            <div class="card-header">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <h3 style="font-size: 16px; margin: 0;">1. Global Assistance Limit</h3>
-                                    <span class="status-badge" id="global-limit-status" style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Enabled</span>
+                                    <h3>1. Global Assistance Limit</h3>
+                                    <span class="status-badge" id="global-limit-status">Enabled</span>
                                 </div>
-                                <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-                                    <input type="checkbox" id="pol-global-enabled" checked style="opacity: 0; width: 0; height: 0;">
-                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pol-global-enabled" checked>
+                                    <span class="slider"></span>
                                 </label>
                             </div>
-                            <p class="hint-text mb-20" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Set the maximum number of active educational assistance programs a student can have across all categories.</p>
-                            
-                            <div class="input-group" style="margin-bottom: 10px;">
-                                <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Maximum Active Assistance Per Student (All Categories)</label>
-                                <input type="number" id="pol-global-limit" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;" value="3" min="0">
+                            <p class="hint-text mb-20">Set the maximum number of active educational assistance programs
+                                a student can have across all categories.</p>
+
+                            <div class="input-group">
+                                <label>Maximum Active Assistance Per Student (All Categories)</label>
+                                <input type="number" id="pol-global-limit" class="form-input" value="3" min="0">
                             </div>
-                            <p class="text-link mt-10" style="font-size: 12px; color: #3b82f6; cursor: pointer; font-weight: 500;" id="btn-set-unlimited-global">Set to 0 for unlimited assistance.</p>
+                            <p class="text-link mt-10" id="btn-set-unlimited-global">Set to 0 for unlimited assistance.
+                            </p>
                         </div>
 
                         <!-- 2. Category Limits (Dynamic Container) -->
-                        <div class="policy-card" id="category-limits-container" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                        <div class="policy-card" id="category-limits-container">
                             <!-- Injected via JS -->
                         </div>
 
                         <!-- 3. Combination Rules (Dynamic Container) -->
-                        <div class="policy-card" id="matrix-container" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                        <div class="policy-card" id="matrix-container">
                             <!-- Injected via JS -->
                         </div>
 
                         <!-- 4. Other Settings -->
-                        <div class="policy-card" style="background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                        <div class="policy-card">
                             <div class="card-header" style="margin-bottom: 10px;">
-                                <h3 style="font-size: 16px; margin: 0;">4. Other Policy Settings</h3>
+                                <h3>4. Other Policy Settings</h3>
                             </div>
-                            
-                            <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0;">
+
+                            <div class="setting-row">
                                 <div class="setting-text">
-                                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Auto-validate limits on application</strong>
-                                    <span style="font-size: 12px; color: var(--text-muted);">Automatically block application if limit is reached.</span>
+                                    <strong>Auto-validate limits on application</strong>
+                                    <span>Automatically block application if limit is reached.</span>
                                 </div>
-                                <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0;">
-                                    <input type="checkbox" id="pol-auto-validate" checked style="opacity: 0; width: 0; height: 0;">
-                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pol-auto-validate" checked>
+                                    <span class="slider"></span>
                                 </label>
                             </div>
-                            <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0;">
+                            <div class="setting-row">
                                 <div class="setting-text">
-                                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Allow override for administrators</strong>
-                                    <span style="font-size: 12px; color: var(--text-muted);">Admins can manually approve even if limit is exceeded.</span>
+                                    <strong>Allow override for administrators</strong>
+                                    <span>Admins can manually approve even if limit is exceeded.</span>
                                 </div>
-                                <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0;">
-                                    <input type="checkbox" id="pol-allow-override" checked style="opacity: 0; width: 0; height: 0;">
-                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pol-allow-override" checked>
+                                    <span class="slider"></span>
                                 </label>
                             </div>
                         </div>
 
                         <!-- 5. Summary (Dynamic Container) -->
-                        <div class="policy-card full-width" id="summary-container" style="grid-column: 1 / -1; background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px;">
+                        <div class="policy-card full-width" id="summary-container">
                             <!-- Injected via JS -->
                         </div>
 
                     </div>
                 </form>
+
             </div>
         </main>
+    </div>
+
+    <!-- LOGOUT MODAL -->
+    <div id="logout-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content-sm" style="text-align: center; padding: 30px;">
+            <div style="font-size: 40px; margin-bottom: 10px; color: var(--danger-color);">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 20px; margin-bottom: 8px; color: var(--text-main);">Logout</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Are you sure you want to log out
+                of the Admin Dashboard?</p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button id="modal-cancel" class="btn-outline">Cancel</button>
+                <button id="modal-confirm" class="btn-danger"
+                    style="background: var(--danger-color); color: white; border: none; padding: 8px 24px; border-radius: 6px; font-weight: 600; cursor:pointer;">
+                    <i class="fa-solid fa-power-off"></i> Logout
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- MOBILE SIDEBAR OVERLAY -->
@@ -162,6 +191,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/sidebar-loader.js"></script>
+    <script src="js/components/admin-notifications.js"></script>
     <script src="js/admin-policies.js"></script>
+
+    
 </body>
 </html>

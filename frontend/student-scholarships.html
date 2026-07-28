@@ -91,39 +91,53 @@
         <main class="main-content">
             <div class="content-wrapper">
 
-                <header class="top-header">
-                    
-                    <div class="header-actions">
-                        
-                        <div class="notification-bell" aria-label="Notifications" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-color); background: #fff; color: var(--text-main); display: flex; align-items: center; justify-content: center; position: relative;">
-                            <i class="fa-regular fa-bell"></i>
-                            <span class="badge" style="position: absolute; top: -2px; right: -2px; background: var(--danger-color); color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #fff;">2</span>
-                        </div>
+                <header class="top-header" style="flex-direction: column; align-items: stretch; gap: 15px;">
+                    <!-- TOP ROW: Actions & Mobile Menu -->
+                    <div class="header-actions" style="width: 100%; justify-content: flex-end;">
 
-                        <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle" role="button" aria-expanded="false" aria-controls="profile-menu" tabindex="0" style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 6px 16px 6px 6px; border-radius: 30px; border: 1px solid var(--border-color); background: #fff; position: relative;">
-                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile" class="avatar-img" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
-                            <div class="profile-info">
-                                <strong id="header-name" style="display: block; font-size: 14px; color: var(--text-main);">Loading...</strong>
-                                <span id="header-program" style="display: block; font-size: 12px; color: var(--text-muted);">Student Profile</span>
+                        <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
+                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><path d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/></svg>'">
+                            <div>
+                                <strong id="header-name">Student Name</strong>
+                                <span id="header-program">Program</span>
                             </div>
-                            <span class="dropdown-arrow" style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-caret-down"></i></span>
+                            <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
 
-                            <div class="profile-dropdown-menu" id="profile-menu" aria-hidden="true" style="position: absolute; top: 115%; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); min-width: 200px; padding: 8px 0; display: none; flex-direction: column; z-index: 100;">
-                                <a href="student-profile-settings.html" style="padding: 10px 20px; color: var(--text-main); font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
-                                <div class="dropdown-divider" style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
-                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger" style="padding: 10px 20px; color: #ef4444; font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                            <div class="profile-dropdown-menu" id="profile-menu">
+                                <a href="profile-settings.html"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
+                                <div class="dropdown-divider"></div>
+                                <a href="#" id="dropdown-logout-btn" class="text-red"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
                             </div>
                         </div>
 
-                        <!-- Hamburger Menu for Mobile -->
-                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle" style="display: none; background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer; padding: 6px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-color); background: #fff;">
+                        <div style="position: relative;">
+                            <button class="btn-notification" id="notification-bell" type="button">
+                                <i class="fa-regular fa-bell" style="font-size: 22px;"></i>
+                                <span class="badge" id="notification-badge" style="display:none;">0</span>
+                            </button>
+
+                            <div id="notification-dropdown" class="notification-dropdown" style="display: none; position: absolute; right: 0; top: 35px; width: 300px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; z-index: 1000; border: 1px solid #e2e8f0; overflow: hidden; text-align: left;">
+                                <div class="notification-header" style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: 14px;">
+                                    <strong>Notifications</strong>
+                                </div>
+                                <div id="notification-list" class="notification-list-body" style="max-height: 300px; overflow-y: auto;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HAMBURGER BUTTON (Mobile Only) -->
+                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
                             <i class="fa-solid fa-bars"></i>
                         </button>
                     </div>
 
-                    <div class="header-titles">
-                        <h1>Available Educational Assistance</h1>
-                        <p style="color: var(--text-muted); font-size: 14px;">Discover and apply for assistance programs that match your profile.</p>
+                    <!-- BOTTOM ROW: Titles -->
+                    <div class="header-titles-wrapper">
+                        <div class="header-titles">
+                            <h1>Available Educational Assistance</h1>
+                            <p style="color: var(--text-muted); font-size: 14px;">Discover and apply for assistance programs that match your profile.</p>
+                        </div>
                     </div>
                 </header>
 
@@ -202,7 +216,7 @@
                                 <a href="student-applications.html" class="quick-link" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; color: var(--text-main); font-weight: 500; transition: 0.2s;">
                                     <span><i class="fa-solid fa-file-lines" style="color: var(--primary-color); margin-right: 8px;"></i> My Applications</span> <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
                                 </a>
-                                <a href="student-profile-settings.html" class="quick-link" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; color: var(--text-main); font-weight: 500; transition: 0.2s;">
+                                <a href="profile-settings.html" class="quick-link" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; color: var(--text-main); font-weight: 500; transition: 0.2s;">
                                     <span><i class="fa-solid fa-user-pen" style="color: #3b82f6; margin-right: 8px;"></i> Update Profile</span> <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
                                 </a>
                             </div>
@@ -218,10 +232,11 @@
     <!-- MOBILE SIDEBAR OVERLAY -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    <!-- SCRIPTS -->
+    <!-- JS Setup -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <!-- Use sidebar-loader for the common UI components like the dropdown & logout modal -->
+    <script src="js/components/student-notifications.js"></script>
+    <script src="js/components/ai-assistant.js"></script>
     <script src="js/sidebar-loader.js"></script>
     <script src="js/student-scholarships.js"></script>
 

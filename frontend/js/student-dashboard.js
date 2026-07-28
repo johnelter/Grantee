@@ -132,29 +132,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(document.getElementById('stat-approved')) document.getElementById('stat-approved').innerText = approvedCount;
             if(document.getElementById('stat-rejected')) document.getElementById('stat-rejected').innerText = rejectedCount;
 
-            // B. Render "My Recent Applications" (Limit to 3 for UI cleanliness)
+            // B. Render "My Recent Applications" (Limit to 5 for UI cleanliness)
             const recentList = document.getElementById('recent-applications-list');
             if (!recentList) return;
             
             if (applications.length === 0) {
-                recentList.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b; font-size:13px;">You haven't submitted any applications yet.</div>`;
+                recentList.innerHTML = `<div class="list-empty-state">You have not submitted any educational assistance applications yet.</div>`;
                 return;
             }
 
             recentList.innerHTML = '';
-            applications.slice(0, 3).forEach(app => {
+            applications.slice(0, 5).forEach(app => {
                 const title = app.scholarships ? app.scholarships.title : 'Unknown Scholarship';
                 const dateStr = new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
                 
                 // Determine Badge styling based on status
                 let badgeClass = 'badge-pending';
-                let iconStr = '🎓';
+                let iconStr = '📄';
                 let iconBg = '#f1f5f9';
                 let iconColor = '#475569';
 
+                if(app.status === 'Submitted') { badgeClass = 'badge-pending'; iconStr = '📄'; iconBg = '#f1f5f9'; iconColor = '#475569'; }
                 if(app.status === 'Under Review') { badgeClass = 'badge-review'; iconStr = '⏳'; iconBg = '#fef3c7'; iconColor = '#d97706'; }
+                if(app.status === 'Request Revision') { badgeClass = 'badge-revision'; iconStr = '📝'; iconBg = '#ffedd5'; iconColor = '#c2410c'; }
                 if(app.status === 'Approved') { badgeClass = 'badge-approved'; iconStr = '✓'; iconBg = '#dcfce7'; iconColor = '#10b981'; }
-                if(app.status === 'Rejected') { badgeClass = 'badge-rejected'; iconStr = '🏛️'; iconBg = '#e0e7ff'; iconColor = '#3b82f6'; } 
+                if(app.status === 'Rejected') { badgeClass = 'badge-rejected'; iconStr = '✕'; iconBg = '#fee2e2'; iconColor = '#ef4444'; } 
+                if(app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconStr = '🚫'; iconBg = '#e2e8f0'; iconColor = '#475569'; }
 
                 recentList.innerHTML += `
                     <div class="list-item">
@@ -164,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <p>Academic Year ${new Date().getFullYear()}-${new Date().getFullYear() + 1}</p>
                         </div>
                         <div class="item-meta">
-                            <span class="badge-status ${badgeClass}">${app.status || 'Pending'}</span>
+                            <span class="badge-status ${badgeClass}">${app.status || 'Submitted'}</span>
                             <span class="meta-date">Applied on ${dateStr}</span>
                         </div>
                     </div>
@@ -182,21 +185,110 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 4. FETCH RECOMMENDED SCHOLARSHIPS ---
     async function loadRecommendations() {
         try {
-            // Get active scholarships
+            const recList = document.getElementById('recommended-scholarships-list');
+            if (!recList) return;
+
+            // Helper to safely parse JSON arrays
+            const parseArray = (val) => {
+                if (!val) return [];
+                if (Array.isArray(val)) return val;
+                try {
+                    const parsed = JSON.parse(val);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    if (typeof val === 'string') return val.split(',').map(s => s.trim());
+                    return [];
+                }
+            };
+
+            // Fetch profile
+            const { data: profile } = await window.supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', studentId)
+                .single();
+
+            // Fetch applications
+            const { data: userApps } = await window.supabaseClient
+                .from('applications')
+                .select('*, scholarships ( category )')
+                .eq('student_id', studentId);
+            
+            const allUserApps = userApps || [];
+
+            // Fetch school policies
+            const { data: policies } = await window.supabaseClient
+                .from('school_policies')
+                .select('*')
+                .single();
+            const policyData = policies || null;
+
+            // Fetch active scholarships
             const { data: scholarships, error } = await window.supabaseClient
                 .from('scholarships')
                 .select('*')
                 .eq('status', 'Active')
-                .order('created_at', { ascending: false })
-                .limit(2); // Match UI by showing just top 2
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            const recList = document.getElementById('recommended-scholarships-list');
-            if (!recList) return;
-            
             if (!scholarships || scholarships.length === 0) {
-                recList.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b; font-size:13px;">No active scholarships available at the moment.</div>`;
+                recList.innerHTML = `<div class="list-empty-state">No active educational assistance available at the moment.</div>`;
+                return;
+            }
+
+            // Filter Recommendations (Do not display if completely ineligible)
+            const filteredSch = scholarships.filter(sch => {
+                // 1. Check if closed or expired
+                if (sch.display_status === 'Closed') return false;
+                if (sch.end_date && new Date(sch.end_date) < new Date()) return false;
+                
+                // 2. Check slots
+                if (sch.slots !== 'Open' && sch.available_slots === 0) return false;
+
+                // 3. Check if already applied
+                const hasApplied = allUserApps.some(a => a.scholarship_id === sch.id);
+                if (hasApplied) return false;
+
+                if (!profile) return false;
+
+                // 4. Program Eligibility
+                const rawProgs = parseArray(sch.eligibility_programs);
+                const eligibleProgs = rawProgs.map(p => p.toLowerCase().trim());
+                const studentProgLower = (profile.program || profile.course || '').toLowerCase().trim();
+                const progOpenKeywords = ['open to all', 'all programs', 'all departments', 'any'];
+                const isProgOpen = eligibleProgs.length === 0 || eligibleProgs.some(p => progOpenKeywords.includes(p));
+                if (!isProgOpen) {
+                    if (!studentProgLower) return false;
+                    const matchesProg = eligibleProgs.some(p => p === studentProgLower || p.includes(studentProgLower) || studentProgLower.includes(p));
+                    if (!matchesProg) return false;
+                }
+
+                // 5. Year Level Eligibility
+                const rawYears = parseArray(sch.eligibility_years);
+                const eligibleYears = rawYears.map(y => y.toLowerCase().trim());
+                const studentYearLower = (profile.year_level || '').toLowerCase().trim();
+                const yearOpenKeywords = ['open to all', 'all year levels', 'any'];
+                const isYearOpen = eligibleYears.length === 0 || eligibleYears.some(y => yearOpenKeywords.includes(y));
+                if (!isYearOpen) {
+                    if (!studentYearLower) return false;
+                    const matchesYear = eligibleYears.some(y => y === studentYearLower || y.includes(studentYearLower) || studentYearLower.includes(y));
+                    if (!matchesYear) return false;
+                }
+
+                // 6. GWA Eligibility
+                if (sch.min_college_gwa && parseFloat(sch.min_college_gwa) > 0) {
+                    const studentGwa = parseFloat(profile.gwa);
+                    if (isNaN(studentGwa)) return false; 
+                    if (studentGwa > parseFloat(sch.min_college_gwa)) return false;
+                }
+
+                return true;
+            });
+
+            // If none pass the filter
+            if (filteredSch.length === 0) {
+                recList.innerHTML = `<div class="list-empty-state">No educational assistance currently matches your academic profile.</div>`;
                 return;
             }
 
@@ -206,14 +298,74 @@ document.addEventListener('DOMContentLoaded', async () => {
             const bgs = ['#ecfccb', '#ffe4e6', '#fef3c7', '#e0e7ff'];
             const colors = ['#65a30d', '#e11d48', '#d97706', '#4f46e5'];
 
-            scholarships.forEach((sch, index) => {
+            // Determine if Profile is Complete
+            const requiredProfileFields = ['first_name', 'last_name', 'program', 'year_level'];
+            const isProfileComplete = profile && requiredProfileFields.every(field => profile[field] && profile[field].toString().trim() !== '');
+
+            // Take Top 2 Recommendations to show
+            filteredSch.slice(0, 2).forEach((sch, index) => {
                 const icon = icons[index % icons.length];
                 const bg = bgs[index % bgs.length];
                 const color = colors[index % colors.length];
                 
                 const deadline = sch.end_date ? new Date(sch.end_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'No Deadline';
-                // Strip HTML from description if it exists
                 const cleanDesc = sch.description ? sch.description.replace(/<[^>]*>?/gm, '').substring(0, 70) + '...' : 'Open for applications.';
+                
+                // Format Min GWA for display
+                const minGwaDisplay = sch.min_college_gwa ? sch.min_college_gwa : 'N/A';
+
+                // Check Button Disabled Logic
+                let btnDisabled = false;
+                let btnText = 'Apply Now';
+                let btnClass = 'btn-apply';
+
+                if (!isProfileComplete) {
+                    btnDisabled = true;
+                    btnText = 'Profile Incomplete';
+                    btnClass = 'btn-apply btn-disabled';
+                } else if (policyData && policyData.global_enabled) {
+                    const activeApps = allUserApps.filter(a => ['Approved', 'Grantee'].includes(a.status));
+                    const targetCat = sch.category;
+                    
+                    if (activeApps.length >= (policyData.global_limit || 0) && (policyData.global_limit || 0) > 0) {
+                        btnDisabled = true;
+                        btnText = 'Limit Reached';
+                        btnClass = 'btn-apply btn-disabled';
+                    }
+
+                    const catLimits = policyData.category_limits || {};
+                    const comboRules = policyData.combination_rules || {};
+
+                    if (!btnDisabled && catLimits[targetCat] && !catLimits[targetCat].unlimited) {
+                        const activeInTargetCat = activeApps.filter(a => 
+                            (a.scholarships?.category || a.outside_assistance_name) === targetCat
+                        ).length;
+                        if (activeInTargetCat >= catLimits[targetCat].limit) {
+                            btnDisabled = true;
+                            btnText = 'Category Full';
+                            btnClass = 'btn-apply btn-disabled';
+                        }
+                    }
+
+                    if (!btnDisabled) {
+                        for (let activeApp of activeApps) {
+                            const activeCat = activeApp.scholarships?.category || activeApp.outside_assistance_name;
+                            if (activeCat && activeCat !== targetCat) {
+                                const comboKey = `${activeCat}::${targetCat}`;
+                                if (comboRules[comboKey] === false) {
+                                    btnDisabled = true;
+                                    btnText = 'Not Allowed';
+                                    btnClass = 'btn-apply btn-disabled';
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                const btnHTML = btnDisabled ? 
+                    `<button class="${btnClass}" disabled title="${btnText}">${btnText}</button>` : 
+                    `<a href="apply-scholarships.html?id=${sch.id}" class="${btnClass}">${btnText}</a>`;
 
                 recList.innerHTML += `
                     <div class="list-item">
@@ -221,10 +373,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="item-details">
                             <h4>${sch.title}</h4>
                             <p>${cleanDesc}</p>
-                            <p style="margin-top:6px; font-size:11px; font-weight:600; color:#10b981;">Deadline: ${deadline}</p>
+                            <p style="margin-top:6px; font-size:11px; font-weight:600; color:#475569;">Min College GWA: <strong style="color:var(--text-color);">${minGwaDisplay}</strong></p>
+                            <p style="margin-top:2px; font-size:11px; font-weight:600; color:#10b981;">Deadline: ${deadline}</p>
                         </div>
                         <div class="item-meta" style="justify-content:center;">
-                            <a href="apply-scholarships.html?id=${sch.id}" class="btn-apply">Apply Now</a>
+                            ${btnHTML}
                         </div>
                     </div>
                 `;
@@ -233,16 +386,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error("Error loading recommendations:", error);
             if(document.getElementById('recommended-scholarships-list')) {
-                document.getElementById('recommended-scholarships-list').innerHTML = `<div style="padding:20px; color:red; font-size:13px;">Error loading recommendations.</div>`;
+                document.getElementById('recommended-scholarships-list').innerHTML = `<div class="list-empty-state" style="color:var(--danger-color);">Error loading recommendations.</div>`;
             }
         }
     }
 
-    // --- 5. AI CHAT TOGGLE (Global Window Function) ---
-    window.toggleChat = () => {
-        const widget = document.getElementById('ai-chat-widget');
-        if(widget) widget.classList.toggle('open');
-    };
+
 
     // --- 6. DROP-DOWN PROFILE MENU LOGIC ---
     const profileToggle = document.getElementById('profile-dropdown-toggle');
@@ -309,97 +458,149 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- 8. NOTIFICATION BELL LOGIC ---
-    const notifBell = document.getElementById('notification-bell');
-    const notifDropdown = document.getElementById('notification-dropdown');
-    const notifBadge = document.getElementById('notification-badge');
-    const notifList = document.getElementById('notification-list');
-
-    async function loadNotifications() {
-        if (!notifList) return; 
-
+    // --- X. FETCH ANNOUNCEMENTS ---
+    async function loadAnnouncements() {
         try {
-            const { data: notifications, error } = await window.supabaseClient
-                .from('notifications')
+            const container = document.getElementById('announcements-list-container');
+            if (!container) return;
+
+            const { data: profile } = await window.supabaseClient
+                .from('profiles')
                 .select('*')
-                .eq('user_id', studentId) 
-                .order('created_at', { ascending: false })
-                .limit(10);
+                .eq('id', studentId)
+                .single();
+
+            const { data: userApps } = await window.supabaseClient
+                .from('applications')
+                .select('*, scholarships(title)')
+                .eq('student_id', studentId)
+                .order('created_at', { ascending: false });
+
+            const userApp = (userApps && userApps.length > 0) ? userApps[0] : null;
+
+            let query = window.supabaseClient
+                .from('announcements')
+                .select('*, profiles:author_id ( first_name, last_name )')
+                .eq('status', 'Published')
+                .order('is_pinned', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (profile && profile.school_id) {
+                query = query.eq('school_id', profile.school_id);
+            }
+
+            const { data: announcements, error } = await query;
 
             if (error) throw error;
 
-            if (!notifications || notifications.length === 0) {
-                notifList.innerHTML = '<div style="padding: 15px; text-align: center; color: #64748b; font-size: 13px;">No new notifications</div>';
-                if (notifBadge) notifBadge.style.display = 'none';
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = `<div class="list-empty-state">No announcements available at the moment.</div>`;
                 return;
             }
 
-            const unreadCount = notifications.filter(n => !n.is_read).length;
-            if (notifBadge) {
-                if (unreadCount > 0) {
-                    notifBadge.textContent = unreadCount;
-                    notifBadge.style.display = 'flex';
-                } else {
-                    notifBadge.style.display = 'none';
-                }
-            }
-
-            notifList.innerHTML = notifications.map(n => `
-                <div class="notification-item" style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; background: ${n.is_read ? '#fff' : '#f8fafc'}; text-align: left;">
-                    <strong style="display: block; font-size: 13px; color: #0f172a;">${n.title || 'Notification'}</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: #475569; line-height: 1.4;">${n.message}</p>
-                    <span style="display: block; margin-top: 6px; font-size: 10px; color: #94a3b8;">${new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-            `).join('');
-
-        } catch (err) {
-            console.error("Error loading notifications:", err);
-            notifList.innerHTML = '<div style="padding: 15px; text-align: center; color: #ef4444; font-size: 13px;">Make sure the "notifications" table exists in Supabase!</div>';
-        }
-    }
-
-    if (notifBell && notifDropdown) {
-        notifBell.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const isHidden = notifDropdown.style.display === 'none' || notifDropdown.style.display === '';
-            
-            if (isHidden) {
-                notifDropdown.style.display = 'block';
-                notifDropdown.classList.add('show');
+            function isAudienceMatch(announcement, profile, applications) {
+                const aud = announcement.audience_type;
+                if (!aud) return true;
                 
-                if (notifBadge && notifBadge.style.display !== 'none') {
-                    notifBadge.style.display = 'none'; 
-                    
-                    window.supabaseClient
-                        .from('notifications')
-                        .update({ is_read: true })
-                        .eq('user_id', studentId)
-                        .eq('is_read', false)
-                        .then(({error}) => {
-                            if (error) console.error("Could not mark as read:", error);
-                        });
+                const audStr = aud.toLowerCase().trim();
+                
+                if (audStr === 'all_students' || audStr === 'all_enrolled_students' || audStr === 'all') return true;
+                
+                if (audStr.startsWith('prog_') && profile && profile.program) {
+                    return profile.program.toLowerCase() === audStr.replace('prog_', '').toLowerCase();
                 }
-            } else {
-                notifDropdown.style.display = 'none';
-                notifDropdown.classList.remove('show');
-            }
-        });
 
-        document.addEventListener('click', (e) => {
-            if (!notifBell.contains(e.target) && !notifDropdown.contains(e.target)) {
-                notifDropdown.style.display = 'none';
-                notifDropdown.classList.remove('show');
+                if (audStr.startsWith('app_')) {
+                    const scholarshipKeyword = audStr.replace('app_', '').toLowerCase();
+                    
+                    if (applications && applications.length > 0) {
+                        return applications.some(app => {
+                            const title = app.scholarships?.title?.toLowerCase() || '';
+                            return title.includes(scholarshipKeyword);
+                        });
+                    }
+                    return false;
+                }
+                
+                if (audStr.includes('active') || audStr.includes('approved')) {
+                    if (applications && applications.length > 0) {
+                        return applications.some(app => app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'grantee');
+                    }
+                    return profile && profile.is_approved === true;
+                }
+                
+                if (audStr.includes('pending')) {
+                    if (applications && applications.length > 0) {
+                        return applications.some(app => app.status.toLowerCase() === 'pending');
+                    }
+                    return profile && profile.is_approved === false;
+                }
+
+                if (audStr.includes('rejected')) {
+                    if (applications && applications.length > 0) {
+                        return applications.some(app => app.status.toLowerCase() === 'rejected');
+                    }
+                    return false; 
+                }
+                
+                return false; 
             }
-        });
+
+            function getCategoryIcon(category) {
+                if (!category) return { icon: '📢', bg: '#f1f5f9', color: '#475569' };
+                const cat = category.toLowerCase();
+                if (cat.includes('educational assistance')) return { icon: '🎓', bg: '#dcfce7', color: '#10b981' };
+                if (cat.includes('reminder')) return { icon: '📅', bg: '#e0e7ff', color: '#3b82f6' };
+                if (cat.includes('event')) return { icon: '🗓️', bg: '#fef3c7', color: '#d97706' };
+                return { icon: '📢', bg: '#f1f5f9', color: '#475569' };
+            }
+
+            let filtered = announcements.filter(ann => isAudienceMatch(ann, profile, userApps || []));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="list-empty-state">No announcements available for you at the moment.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            filtered.slice(0, 5).forEach(ann => {
+                const dateStr = new Date(ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                let tempDiv = document.createElement("div");
+                tempDiv.innerHTML = ann.content || "";
+                let excerpt = tempDiv.textContent || tempDiv.innerText || "";
+                if (excerpt.length > 80) excerpt = excerpt.substring(0, 80) + '...';
+
+                const catIcon = getCategoryIcon(ann.category);
+
+                container.innerHTML += `
+                    <div class="list-item" style="cursor:pointer;" onclick="window.location.href='student-announcements.html?id=${ann.id}'">
+                        <div class="item-icon" style="background:${catIcon.bg}; color:${catIcon.color};">${catIcon.icon}</div>
+                        <div class="item-details">
+                            <h4>${ann.title || 'Untitled'}</h4>
+                            <p>${excerpt}</p>
+                        </div>
+                        <div class="item-meta">
+                            <span class="meta-date">${dateStr}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+        } catch (error) {
+            console.error("Error loading announcements:", error);
+            if(document.getElementById('announcements-list-container')) {
+                document.getElementById('announcements-list-container').innerHTML = `<div class="list-empty-state" style="color:var(--danger-color);">Error loading announcements.</div>`;
+            }
+        }
     }
 
     // --- INIT ---
     loadProfile();
     loadApplications();
     loadRecommendations();
-    loadNotifications();
+    loadAnnouncements();
     
     // Explicitly call loadMyApplications if it's meant to be run on load
     // loadMyApplications(); 

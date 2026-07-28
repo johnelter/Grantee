@@ -1,283 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Announcements - Grantee Student</title>
+
+    <!-- External Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Standalone CSS Sheets -->
+    <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/student-announcements.css">
 </head>
+
 <body class="bg-main text-main">
     <div class="app-layout">
-        
-        <aside class="sidebar">
-            <div class="logo">
-                <img src="assets/grantee-logo.png" alt="Grantee" width="32" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>'">
-                <div>
-                    <h2>Grantee</h2>
-                    <span>Smart Scholarship Management</span>
-                </div>
-            </div>
 
-            <nav class="sidebar-nav mt-20">
-                <a href="student-dashboard.html">🏠 Dashboard</a>
-                <a href="student-scholarships.html">🎓 Available Scholarships</a>
-                <a href="student-applications.html">📄 My Applications</a>
-                <a href="student-announcements.html" class="active">📢 Announcements <span class="badge" style="background:#10b981; color:#fff; border-radius:50%; padding:2px 6px; font-size:10px; margin-left:auto;">3</span></a>
-                <a href="profile-settings.html">👤 Profile Settings</a>
-                <!-- <a href="#">🔒 Password and Security</a> -->
-            </nav>
-
-            <div class="nav-divider"></div>
-
-            <!-- <nav class="sidebar-nav" style="margin-top: 0;">
-                <a href="#" id="sidebar-logout-btn" class="text-red">🚪 Logout</a>
-            </nav>
-
-            <div class="ai-help-box">
-                <div class="ai-icon-large">🤖</div>
-                <h4>Need help?</h4>
-                <p>Chat with our AI Assistant 24/7 to get quick answers about scholarships.</p>
-                <button class="btn-ai" onclick="toggleChat()">💬 Chat with AI</button>
-            </div> -->
-        </aside>
+        <!-- DYNAMIC SIDEBAR INJECTION POINT -->
+        <div id="sidebar-container"></div>
 
         <main class="main-content">
-            
-            <div class="content-wrapper">
+            <!-- Ensure content-wrapper naturally expands -->
+            <div class="content-wrapper" style="display: flex; flex-direction: column; height: 100%;">
 
                 <header class="top-header">
+                    <!-- LEFT: Titles -->
                     <div class="header-titles">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 24px; color: var(--primary-color);">📢</span>
-                            <h1>Announcements</h1>
-                        </div>
-                        <p style="margin-top: 4px;">Stay updated with the latest news and important updates.</p>
+                        <h1>Announcements</h1>
+                        <p>Stay updated with the latest news and important updates.</p>
                     </div>
-                    
+
+                    <!-- RIGHT: Actions & Mobile Menu -->
                     <div class="header-actions">
-                        <button class="icon-btn">
-                            🔔<span class="badge-icon">3</span>
-                        </button>
-                        
+
                         <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
-                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22>👤</text></svg>'">
-                            <div>
+                            <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><path d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/></svg>'">
+
+                            <div class="profile-text-container">
                                 <strong id="header-name">Student Name</strong>
                                 <span id="header-program">Program</span>
                             </div>
-                            <span class="dropdown-arrow">▼</span>
+                            <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
 
                             <div class="profile-dropdown-menu" id="profile-menu">
-                                <a href="profile-settings.html">👤 Profile Settings</a>
+                                <a href="profile-settings.html"><i class="fa-solid fa-user icon-margin"></i> Profile Settings</a>
                                 <div class="dropdown-divider"></div>
-                                <a href="#" id="dropdown-logout-btn" class="text-red">🚪 Logout</a>
+                               <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
                             </div>
                         </div>
+
+                        <div style="position: relative;">
+                            <button class="btn-notification" id="notification-bell" type="button">
+                                <i class="fa-regular fa-bell" style="font-size: 22px;"></i>
+                                <span class="badge" id="notification-badge" style="display:none;">0</span>
+                            </button>
+
+                            <div id="notification-dropdown" class="notification-dropdown" style="display: none; position: absolute; right: 0; top: 35px; width: 300px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; z-index: 1000; border: 1px solid #e2e8f0; overflow: hidden; text-align: left;">
+                                <div class="notification-header" style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: 14px;">
+                                    <strong>Notifications</strong>
+                                </div>
+                                <div id="notification-list" class="notification-list-body" style="max-height: 300px; overflow-y: auto;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HAMBURGER BUTTON (Mobile Only) -->
+                        <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
                     </div>
                 </header>
 
-                <div class="announcements-grid">
-                    
-                    <section class="announcement-list-section">
-                        
+                <div class="three-column-grid">
+
+                    <!-- COLUMN 1: FEED -->
+                    <div class="feed-column">
                         <div class="tabs-nav">
                             <button class="tab-btn active">All</button>
                             <button class="tab-btn">General</button>
-                            <button class="tab-btn">Scholarships</button>
-                            <button class="tab-btn">Reminders</button>
-                            <button class="tab-btn">Events</button>
+                            <button class="tab-btn">Educational Assistance</button>
+                            <button class="tab-btn">Reminder</button>
+                            <button class="tab-btn">Event</button>
                         </div>
-
-                        <div class="search-filter-bar">
+                        <div class="search-filter-row">
                             <div class="search-box">
-                                <span>🔍</span>
-                                <input type="text" placeholder="Search announcements...">
-                            </div>
-                            <button class="btn-filter">
-                                <span>♈</span> Filter <span>▼</span>
-                            </button>
-                        </div>
-
-                        <div class="announcements-list">
-                            
-                            <div class="announcement-card active" onclick="showDetail('scholarship')">
-                                <div class="active-indicator"></div>
-                                <div class="card-icon" style="color: var(--primary-color); background: #ecfdf5;">📢</div>
-                                <div class="card-content">
-                                    <div class="card-header-row">
-                                        <h4>New Scholarship Available!</h4>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <span class="badge-tag tag-green">Scholarships</span>
-                                            <span class="card-date">May 28, 2026</span>
-                                        </div>
-                                    </div>
-                                    <p>The Leadership Excellence Scholarship is now open for applications. Check the scholarshi...</p>
-                                    <div class="card-footer-row">
-                                        <span>By Scholarship Office</span>
-                                        <span class="comment-link">💬 Comment</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="announcement-card" onclick="showDetail('reminder')">
-                                <div class="active-indicator"></div>
-                                <div class="card-icon" style="color: #3b82f6; background: #eff6ff;">📄</div>
-                                <div class="card-content">
-                                    <div class="card-header-row">
-                                        <h4>Document Submission Reminder</h4>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <span class="badge-tag tag-blue">Reminders</span>
-                                            <span class="card-date">May 25, 2026</span>
-                                        </div>
-                                    </div>
-                                    <p>Please ensure all required documents are uploaded before the deadline to avoid...</p>
-                                    <div class="card-footer-row">
-                                        <span>By Scholarship Office</span>
-                                        <span class="comment-link">💬 Comment</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="announcement-card" onclick="showDetail('event')">
-                                <div class="active-indicator"></div>
-                                <div class="card-icon" style="color: #8b5cf6; background: #f5f3ff;">📅</div>
-                                <div class="card-content">
-                                    <div class="card-header-row">
-                                        <h4>Scholarship Orientation Schedule</h4>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <span class="badge-tag tag-purple">Events</span>
-                                            <span class="card-date">May 22, 2026</span>
-                                        </div>
-                                    </div>
-                                    <p>Join us for the scholarship orientation on May 30, 2026 at 1:00 PM via Zoom.</p>
-                                    <div class="card-footer-row">
-                                        <span>By Scholarship Office</span>
-                                        <span class="comment-link">💬 Comment</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="announcement-card">
-                                <div class="active-indicator"></div>
-                                <div class="card-icon" style="color: #f59e0b; background: #fffbeb;">🛡️</div>
-                                <div class="card-content">
-                                    <div class="card-header-row">
-                                        <h4>Important Update: Application Process</h4>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <span class="badge-tag tag-orange">General</span>
-                                            <span class="card-date">May 20, 2026</span>
-                                        </div>
-                                    </div>
-                                    <p>We have updated the application process. Please review the new guidelines in the scholarship...</p>
-                                    <div class="card-footer-row">
-                                        <span>By System Admin</span>
-                                        <span class="comment-link">💬 Comment</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </section>
-
-                    <section class="announcement-detail-section">
-                        <div class="detail-pane" id="detail-pane">
-                            
-                            <div class="detail-top-bar">
-                                <span class="badge-tag tag-green">Scholarships</span>
-                                <button class="btn-close" onclick="closeDetail()">✕</button>
-                            </div>
-
-                            <h2 class="detail-title">New Scholarship Available!</h2>
-                            <div class="detail-meta">
-                                <span>📅 May 28, 2026</span>
-                                <span class="dot-divider">•</span>
-                                <span>By Scholarship Office</span>
-                            </div>
-
-                            <div class="detail-hero-image" style="background-image: linear-gradient(135deg, #1e293b, #0f172a);">
-                                <h2 style="color: #fff; font-size: 28px; line-height: 1.2;">Leadership<br>Excellence<br>Scholarship</h2>
-                                <button class="btn-hero-action">APPLY NOW!</button>
-                            </div>
-
-                            <div class="detail-body">
-                                <p>We are excited to announce that the Leadership Excellence Scholarship is now open for applications!</p>
-                                <p>This scholarship aims to support outstanding students who demonstrate leadership potential, academic excellence, and a commitment to making a positive impact in their community.</p>
-
-                                <h4>Eligibility Criteria:</h4>
-                                <ul>
-                                    <li>Currently enrolled full-time student</li>
-                                    <li>Minimum GWA of 1.75</li>
-                                    <li>Demonstrated leadership experience</li>
-                                    <li>Good moral character</li>
-                                </ul>
-
-                                <h4>Application Period:</h4>
-                                <p>May 28, 2026 – June 30, 2026</p>
-                                <p>For more details and to apply, visit the Scholarship page.</p>
-
-                                <button class="btn-primary full-width mt-20">View Scholarship Details</button>
+                                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                <input type="text" id="search-input" placeholder="Search announcements...">
                             </div>
                         </div>
-                        
-                        <div class="detail-pane" id="empty-pane" style="display: none; align-items: center; justify-content: center; text-align: center; color: #94a3b8;">
+                        <div class="feed-list" id="announcements-list-container">
+                            <div class="text-center text-muted loading-padded">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COLUMN 2: DETAILS -->
+                    <div class="detail-column">
+                        <div class="detail-pane hidden padded-pane" id="detail-pane">
+                            <div id="detail-content-container">
+                                <!-- Dynamic Post Details Injected Here -->
+                            </div>
+                        </div>
+                        <div class="detail-pane empty-state-pane" id="empty-pane">
                             <div>
-                                <div style="font-size: 40px; margin-bottom: 10px;">📢</div>
+                                <div class="empty-icon"><i class="fa-solid fa-bullhorn" style="color: #cbd5e1;"></i>
+                                </div>
                                 <p>Select an announcement to view details.</p>
                             </div>
                         </div>
-                    </section>
-                </div>
-            </div>
+                    </div>
 
-            <div class="chat-widget" id="ai-chat-widget">
-                <div class="chat-header">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="background:#fff; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:18px;">🤖</div>
-                        <div>
-                            <strong style="display:block; font-size:14px;">AI Assistant</strong>
-                            <span style="font-size:11px; opacity:0.8;">Your scholarship helper</span>
+                    <!-- COLUMN 3: COMMENTS & CHAT -->
+                    <div class="detail-column" id="comments-column">
+                        <!-- COMMENTS PANE -->
+                        <div class="detail-pane no-padding flex-col-pane">
+                            <div class="comments-header">
+                                <h3 id="comments-count-header">Comments (0)</h3>
+                            </div>
+                            <div class="feed-list comments-body" id="comments-list-container">
+                                <div class="text-center text-muted" style="padding: 20px;">
+                                    <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                            <div id="comment-input-area" class="comment-input-area">
+                                <input type="text" id="student-comment-input" placeholder="Write a comment...">
+                                <button id="btn-send-comment" class="btn-send-comment">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <button class="close-chat" onclick="toggleChat()">✕</button>
+
                 </div>
-                <div class="chat-body">
-                    <div class="chat-message bot-message">
-                        <div class="msg-avatar">🤖</div>
-                        <div class="msg-bubble">
-                            <strong>Hi there! 👋</strong><br>
-                            I'm your AI assistant. I can help you with scholarships, requirements, application status, and more.
-                            <span class="msg-time">10:30 AM</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-input-area">
-                    <input type="text" placeholder="Type your message...">
-                    <button class="send-btn">➤</button>
-                </div>
+
             </div>
-
-            <button class="floating-chat-btn" onclick="toggleChat()">
-                🤖 AI Assistant
-                <span class="status-dot"></span>
-            </button>
-
         </main>
     </div>
 
-    <div id="logout-modal" class="modal-overlay" style="display: none;">
+    <!-- LOGOUT MODAL -->
+    <!-- <div id="logout-modal" class="modal-overlay hidden">
         <div class="modal-content-sm">
             <div class="modal-icon">🚪</div>
             <h3>Logout</h3>
-            <p style="font-size: 14px; color: #64748b; margin-bottom: 20px;">Do you want to logout?</p>
+            <p class="modal-subtitle">Do you want to logout?</p>
             <div class="modal-actions">
-                <button id="modal-cancel" class="btn-outline" style="width: auto;">No</button>
+                <button id="modal-cancel" class="btn-outline modal-cancel-btn">No</button>
                 <button id="modal-confirm" class="btn-danger">Yes</button>
             </div>
         </div>
-    </div>
+    </div> -->
 
+    <div id="modal-root"></div>
+
+    <!-- MOBILE SIDEBAR OVERLAY -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- DEPENDENCIES & SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/components/ai-assistant.js"></script>
+
     <script src="js/supabase-config.js"></script>
+    <script src="js/sidebar-loader.js"></script>
     <script src="js/student-announcements.js"></script>
+    <script src="js/components/student-notifications.js"></script>
+
+    
+    <!-- MOBILE SIDEBAR TOGGLE SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            
+            // Function to strictly close both the sidebar and the blur overlay
+            function closeSidebar(e) {
+                if (e && e.cancelable) e.preventDefault();
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) sidebar.classList.remove('show');
+                if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+            }
+            
+            // Toggle sidebar open
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar) sidebar.classList.toggle('show');
+                    if (sidebarOverlay) sidebarOverlay.classList.toggle('show');
+                });
+            }
+
+            // Close sidebar instantly when tapping the blurred overlay
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebar);
+                sidebarOverlay.addEventListener('touchstart', closeSidebar, { passive: false });
+            }
+        });
+    </script>
 </body>
+
 </html>

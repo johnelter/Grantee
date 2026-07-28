@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    
+
     // --- 1. INJECT MODAL HTML FOR FULL VIEW ---
     const modalHtml = `
         <div id="full-view-modal" class="doc-modal-overlay">
@@ -33,22 +33,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 3. AUTH CHECK ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
-    if (sessionError || !session) { 
-        window.location.href = 'login.html'; 
-        return; 
+    if (sessionError || !session) {
+        window.location.href = 'login.html';
+        return;
     }
-    
+
     const studentId = session.user.id;
     const studentEmail = session.user.email;
 
     let requiredDocsCount = 0;
     let validatedDocsCount = 0;
     let uploadedDocumentsList = [];
-    let extractedDataStore = {}; 
-    
+    let extractedDataStore = {};
+
     let currentScholarship = null;
     let studentFullName = '';
-    
+    let studentSchoolId = null;
+
     window.tempFileUrls = {}; // Global store for local blob URLs for the Full View
 
     // --- TEXT FORMATTING UTILITY ---
@@ -65,29 +66,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             // A. Fetch Educational Assistance Details First (To get formatting rules)
             const { data: sch } = await window.supabaseClient.from('scholarships').select('*').eq('id', scholarshipId).single();
-            currentScholarship = sch; 
+            currentScholarship = sch;
             const autoFmt = sch.auto_collected_formats || {};
-            
-            if(document.getElementById('sch-category')) document.getElementById('sch-category').innerText = sch.category || 'Institution-Funded Educational Assistance';
-            if(document.getElementById('sch-type')) document.getElementById('sch-type').innerText = sch.scholarship_type || 'Merit-Based';
-            if(document.getElementById('sch-title')) document.getElementById('sch-title').innerText = sch.title;
-            if(document.getElementById('sch-provider')) document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
-            if(document.getElementById('sch-description')) document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
-            
+
+            if (document.getElementById('sch-category')) document.getElementById('sch-category').innerText = sch.category || 'Institution-Funded Educational Assistance';
+            if (document.getElementById('sch-type')) document.getElementById('sch-type').innerText = sch.scholarship_type || 'Merit-Based';
+            if (document.getElementById('sch-title')) document.getElementById('sch-title').innerText = sch.title;
+            if (document.getElementById('sch-provider')) document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
+            if (document.getElementById('sch-description')) document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
+
             const dateObj = sch.end_date ? new Date(sch.end_date) : null;
-            if(document.getElementById('sch-deadline')) document.getElementById('sch-deadline').innerText = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No Deadline';
-            
+            if (document.getElementById('sch-deadline')) document.getElementById('sch-deadline').innerText = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No Deadline';
+
             // Batch, Semester, and School Year Integrations
-            if(document.getElementById('sch-batch')) document.getElementById('sch-batch').innerText = sch.batch || 'N/A';
-            if(document.getElementById('sch-semester')) document.getElementById('sch-semester').innerText = sch.semester || 'N/A';
-            if(document.getElementById('sch-school-year')) document.getElementById('sch-school-year').innerText = sch.school_year || 'N/A';
-            
-            if(document.getElementById('sch-slots')) document.getElementById('sch-slots').innerText = sch.slots || 'Unlimited';
+            if (document.getElementById('sch-batch')) document.getElementById('sch-batch').innerText = sch.batch || 'N/A';
+            if (document.getElementById('sch-semester')) document.getElementById('sch-semester').innerText = sch.semester || 'N/A';
+            if (document.getElementById('sch-school-year')) document.getElementById('sch-school-year').innerText = sch.school_year || 'N/A';
+
+            if (document.getElementById('sch-slots')) document.getElementById('sch-slots').innerText = sch.slots || 'Unlimited';
 
             // B. Fetch Student Profile
             const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', studentId).single();
-            
-            if(profile) {
+
+            // DUPLICATE CHECK: Prevent applying if already applied
+            const { data: existingApp } = await window.supabaseClient.from('applications').select('status').eq('scholarship_id', scholarshipId).eq('student_id', studentId).neq('status', 'Draft').maybeSingle();
+
+            if (existingApp) {
+                await Swal.fire({
+                    title: 'Already Applied',
+                    text: 'You have already submitted an application for this educational assistance.',
+                    icon: 'warning',
+                    confirmButtonText: 'Go Back',
+                    allowOutsideClick: false
+                });
+                window.location.href = 'student-scholarships.html';
+                return;
+            }
+
+            if (profile) {
+                studentSchoolId = profile.school_id || null;
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
                 studentFullName = `${firstName} ${profile.middle_name ? profile.middle_name + ' ' : ''}${lastName}`.trim();
@@ -106,29 +123,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                if(document.getElementById('header-name')) document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
-                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = masterProgram || 'Student Profile';
-                if(profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
+                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
+                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = masterProgram || 'Student Profile';
+                if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
-                if(document.getElementById('prof-id')) document.getElementById('prof-id').value = profile.id_number || 'N/A';
-                if(document.getElementById('prof-email')) document.getElementById('prof-email').value = studentEmail || 'N/A';
-                if(document.getElementById('prof-dob')) document.getElementById('prof-dob').value = profile.date_of_birth || 'N/A';
-                if(document.getElementById('prof-contact')) document.getElementById('prof-contact').value = profile.contact_number || 'N/A';
-                
+                if (document.getElementById('prof-id')) document.getElementById('prof-id').value = profile.id_number || 'N/A';
+                if (document.getElementById('prof-email')) document.getElementById('prof-email').value = studentEmail || 'N/A';
+                if (document.getElementById('prof-dob')) document.getElementById('prof-dob').value = profile.date_of_birth || 'N/A';
+                if (document.getElementById('prof-contact')) document.getElementById('prof-contact').value = profile.contact_number || 'N/A';
+
                 // Formatted Auto-Collected Profile Information
-                if(document.getElementById('prof-fullname')) document.getElementById('prof-fullname').value = formatText(studentFullName, autoFmt['Full Name']);
-                if(document.getElementById('prof-gender')) document.getElementById('prof-gender').value = formatText(profile.gender || 'N/A', autoFmt['Gender']);
-                if(document.getElementById('prof-address')) document.getElementById('prof-address').value = formatText(profile.address || 'N/A', autoFmt['Address']);
-                if(document.getElementById('prof-program')) document.getElementById('prof-program').value = formatText(masterProgram || 'N/A', autoFmt['Program']);
-                if(document.getElementById('prof-year')) document.getElementById('prof-year').value = formatText(profile.year_level || 'N/A', autoFmt['Year Level']);
+                if (document.getElementById('prof-fullname')) document.getElementById('prof-fullname').value = formatText(studentFullName, autoFmt['Full Name']);
+                if (document.getElementById('prof-gender')) document.getElementById('prof-gender').value = formatText(profile.gender || 'N/A', autoFmt['Gender']);
+                if (document.getElementById('prof-address')) document.getElementById('prof-address').value = formatText(profile.address || 'N/A', autoFmt['Address']);
+                if (document.getElementById('prof-program')) document.getElementById('prof-program').value = formatText(masterProgram || 'N/A', autoFmt['Program']);
+                if (document.getElementById('prof-year')) document.getElementById('prof-year').value = formatText(profile.year_level || 'N/A', autoFmt['Year Level']);
             }
 
             // C. Render Eligibility Rules
             const elList = document.getElementById('sch-eligibility');
             if (elList) {
-                elList.innerHTML = ''; 
+                elList.innerHTML = '';
                 let hasRules = false;
-                
+
                 if (sch.min_college_gwa) {
                     elList.innerHTML += `<li>Must have a College GWA of <strong>${sch.min_college_gwa}</strong> or better (1.0 is highest).</li>`;
                     hasRules = true;
@@ -164,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     div.style.marginBottom = '20px';
                     const reqStr = field.required ? 'required' : '';
                     const reqIcon = field.required ? '<span style="color:#ef4444; margin-left:4px;">*</span>' : '';
-                    
+
                     let inputHtml = '';
                     if (field.type === 'Selection') {
                         const inputType = field.allow_multiple ? 'checkbox' : 'radio';
@@ -183,10 +200,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const formatRule = field.format_rule || 'No formatting';
                         inputHtml = `<input type="${htmlType}" class="dynamic-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr} data-format="${formatRule}">`;
                     }
-                    
+
                     div.innerHTML = `<label style="display:block; font-size:13px; font-weight:600; color:#1e293b; margin-bottom:8px;">${field.label}${reqIcon}</label>${inputHtml}`;
-                    if(field.type === 'Textarea' || field.type === 'Text') div.style.gridColumn = '1 / -1';
-                    
+                    if (field.type === 'Textarea' || field.type === 'Text') div.style.gridColumn = '1 / -1';
+
                     questionsContainer.appendChild(div);
                 });
 
@@ -206,7 +223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // E. Render Document Uploads
             const ocrContainer = document.getElementById('ocr-documents-container');
-            
+
             let docsConfigList = [];
             if (sch.document_configurations && sch.document_configurations.length > 0) {
                 docsConfigList = sch.document_configurations;
@@ -219,19 +236,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (docsConfigList.length > 0 && ocrContainer) {
                 docsConfigList.forEach((docConfig, i) => {
                     const docName = docConfig.name;
-                    const isReq = docConfig.required !== false; 
-                    const isOcr = docConfig.ocr_enabled !== false; 
+                    const isReq = docConfig.required !== false;
+                    const isOcr = docConfig.ocr_enabled !== false;
                     const maxSize = docConfig.max_size || 5;
 
                     if (isReq) requiredDocsCount++;
-                    
+
                     const reqMarker = isReq ? `<span style="color:#ef4444;">*</span>` : `<span style="font-size:12px; color:#64748b; font-weight:normal; margin-left:4px;">(Optional)</span>`;
                     const ocrBadge = isOcr ? `<span style="font-size:10px; background:#e0e7ff; color:#3730a3; padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle;"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Scan</span>` : '';
-                    
+
                     const div = document.createElement('div');
                     div.className = 'doc-dashed-box';
                     div.id = `block_${i}`;
-                    
+
                     div.innerHTML = `
                         <div id="zone_${i}">
                             <div class="doc-title"><i class="fa-solid fa-file-arrow-up"></i> Upload ${docName} ${reqMarker} ${ocrBadge}</div>
@@ -272,11 +289,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     document.getElementById(`file_${i}`).addEventListener('change', (e) => {
                         const file = e.target.files[0];
-                        if(!file) return;
+                        if (!file) return;
 
                         if (file.size > maxSize * 1024 * 1024) {
                             Swal.fire('File Too Large', `Maximum allowed size for this document is ${maxSize}MB.`, 'error');
-                            e.target.value = ''; 
+                            e.target.value = '';
                             return;
                         }
 
@@ -298,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 5. BACKEND OCR OR BYPASS LOGIC ---
     async function processDocumentSelection(file, index, expectedDocName, isOcrEnabled) {
         document.getElementById(`zone_${index}`).style.display = 'none';
-        
+
         const fileUrl = URL.createObjectURL(file);
         window.tempFileUrls[index] = { url: fileUrl, type: file.type };
 
@@ -312,8 +329,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!isOcrEnabled) {
             const dataContainer = document.getElementById(`extracted_data_${index}`);
-            if(dataContainer) dataContainer.innerHTML = `<div style="color: #64748b; text-align: center; margin-top: 80px;">AI Scan Disabled by Admin. Proceed to upload.</div>`;
-            
+            if (dataContainer) dataContainer.innerHTML = `<div style="color: #64748b; text-align: center; margin-top: 80px;">AI Scan Disabled by Admin. Proceed to upload.</div>`;
+
             const badge = document.getElementById(`status_badge_${index}`);
             badge.innerText = "Ready ✓";
             badge.style.background = '#e2e8f0';
@@ -325,7 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             confirmBtn.style.cursor = 'pointer';
 
             document.getElementById(`grid_${index}`).style.display = 'block';
-            return; 
+            return;
         }
 
         const loader = document.getElementById(`loader_${index}`);
@@ -338,12 +355,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             formData.append('applicantName', studentFullName);
             formData.append('minHsAvg', currentScholarship.min_hs_average || 0);
             formData.append('minCollegeGwa', currentScholarship.min_college_gwa || 5.0);
-            
+
             formData.append('minHsSubject', currentScholarship.min_hs_subject_grade || 0);
             formData.append('minCollegeSubject', currentScholarship.min_college_subject_grade || 5.0);
 
-            const BACKEND_URL = 'http://localhost:3000/api/validate-document'; 
-            
+            const BACKEND_URL = 'http://localhost:3000/api/validate-document';
+
             const response = await fetch(BACKEND_URL, {
                 method: 'POST',
                 body: formData
@@ -352,10 +369,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!response.ok) throw new Error("Backend validation failed.");
 
             const validationResult = await response.json();
-            
-            extractedDataStore[index] = validationResult.extracted_data || {}; 
+
+            extractedDataStore[index] = validationResult.extracted_data || {};
             const dataContainer = document.getElementById(`extracted_data_${index}`);
-            
+
             if (validationResult.extracted_data) {
                 let html = `
                     <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
@@ -364,7 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column; gap:8px;">
                 `;
-                
+
                 for (const [key, value] of Object.entries(validationResult.extracted_data)) {
                     let displayValue = '';
 
@@ -375,7 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                             return item;
                         }).join('<div style="height:1px; background:#e2e8f0; margin:6px 0;"></div>');
-                        
+
                     } else if (typeof value === 'object' && value !== null) {
                         displayValue = Object.entries(value).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
                     } else {
@@ -410,12 +427,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 confirmBtn.disabled = true;
                 confirmBtn.style.opacity = '0.5';
                 confirmBtn.style.cursor = 'not-allowed';
-                
+
                 let errorMsg = `Upload Rejected: ${validationResult.rejection_reason || 'Document does not meet requirements.'}`;
                 if (validationResult.missing_information && validationResult.missing_information.length > 0) {
                     errorMsg += `\nMissing Fields: ${validationResult.missing_information.join(', ')}`;
                 }
-                
+
                 setTimeout(() => Swal.fire('Verification Failed', errorMsg, 'error'), 500);
             }
 
@@ -432,9 +449,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function uploadFileToSupabase(file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${studentId}/${scholarshipId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
+
         const { data, error } = await window.supabaseClient.storage
-            .from('scholarship-docs') 
+            .from('scholarship-docs')
             .upload(fileName, file);
 
         if (error) throw new Error("Storage permission denied. Ensure your Supabase RLS policy allows authenticated uploads.");
@@ -450,14 +467,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.openFullView = (index) => {
         const fileData = window.tempFileUrls[index];
         if (!fileData) return;
-        
+
         const contentContainer = document.getElementById('full-view-content');
         if (fileData.type === 'application/pdf') {
             contentContainer.innerHTML = `<iframe src="${fileData.url}#toolbar=0" width="100%" height="100%" style="border:none; display:block;"></iframe>`;
         } else {
             contentContainer.innerHTML = `<img src="${fileData.url}" style="width:100%; height:100%; object-fit:contain; display:block; background:#000;">`;
         }
-        
+
         document.getElementById('full-view-modal').style.display = 'flex';
     };
 
@@ -467,8 +484,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById(`zone_${index}`).style.display = 'block';
         document.getElementById(`grid_${index}`).style.display = 'none';
         document.getElementById(`loader_${index}`).style.display = 'none';
-        extractedDataStore[index] = {}; 
-        delete window.tempFileUrls[index]; 
+        extractedDataStore[index] = {};
+        delete window.tempFileUrls[index];
     };
 
     window.confirmData = async (index, isRequired, docName) => {
@@ -489,11 +506,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fileUrl = await uploadFileToSupabase(file);
             }
 
-            uploadedDocumentsList.push({ 
-                name: docName, 
-                status: 'Attached', 
+            uploadedDocumentsList.push({
+                name: docName,
+                status: 'Attached',
                 file_url: fileUrl,
-                extracted_data: extractedDataStore[index] || {} 
+                extracted_data: extractedDataStore[index] || {}
             });
 
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Uploaded';
@@ -501,9 +518,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.style.color = '#475569';
             btn.style.cursor = 'not-allowed';
 
-            if(isRequired) validatedDocsCount++;
-            
-            if(validatedDocsCount >= requiredDocsCount) {
+            if (isRequired) validatedDocsCount++;
+
+            if (validatedDocsCount >= requiredDocsCount) {
                 document.getElementById('btn-submit-app').disabled = false;
             }
 
@@ -522,14 +539,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 7. FINAL FORM SUBMISSION ---
     document.getElementById('scholarship-application-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const submitBtn = document.getElementById('btn-submit-app');
         const formResponses = {};
-        
+
         if (currentScholarship && currentScholarship.form_fields) {
             for (let i = 0; i < currentScholarship.form_fields.length; i++) {
                 const field = currentScholarship.form_fields[i];
-                
+
                 if (field.type === 'Selection') {
                     const inputs = document.querySelectorAll(`[name="q_${i}"]:checked`);
                     if (field.required && inputs.length === 0) {
@@ -567,9 +584,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { error } = await window.supabaseClient.from('applications').insert([payload]);
             if (error) throw error;
 
+            // Existing dispatch notification for the student
+            const notifPayload = {
+                userIds: [studentId], // This has been updated correctly from currentUserId
+                eventType: 'applications',
+                subject: 'Application Submitted',
+                message: 'Your educational assistance application has been successfully submitted and is under review.',
+                htmlContent: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
+                        <h2 style="color: #10b981;">Application Submitted</h2>
+                        <p>Your application has been successfully submitted and is now under review by the administrators.</p>
+                        <p>We will notify you once a decision has been made.</p>
+                    </div>
+                `
+            };
+
+            await fetch('http://localhost:3000/api/dispatch-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(notifPayload)
+            }).catch(e => console.error("Notification dispatch failed:", e));
+
+            // Notify Coordinators of new application
+            if (studentSchoolId) {
+                await fetch('http://localhost:3000/api/notify-coordinators', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        schoolId: studentSchoolId,
+                        eventType: 'NEW_APPLICATION',
+                        subject: 'New Application Received',
+                        message: `New application received from ${studentFullName} for ${currentScholarship?.title || 'Educational Assistance'}.`,
+                        resourceId: scholarshipId
+                    })
+                }).catch(e => console.error("Coordinator notification failed:", e));
+            }
+
             await Swal.fire('Success!', 'Educational Assistance Application Submitted Successfully!', 'success');
             window.location.href = 'student-applications.html';
-            
+
         } catch (err) {
             console.error("Submission Error:", err);
             Swal.fire('Submission Failed', "Failed to submit application: " + err.message, 'error');

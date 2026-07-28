@@ -5,6 +5,11 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const supabase = require('./supabaseClient');
 const { validateDocumentWithGemini } = require('./ocrService');
+const { moderateComment } = require('./aiModerationService');
+const { handleStudentChat } = require('./aiAssistantService');
+
+// --- NEW CONTROLLER IMPORTS ---
+const { createAnnouncement } = require('./controllers/announcementController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +73,21 @@ app.post('/api/validate-document', upload.single('document'), async (req, res) =
 
 
 // ============================================================================
+// 1.5 AI COMMENT MODERATOR
+// ============================================================================
+app.post('/api/moderate-comment', async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: "Text is required" });
+        const result = await moderateComment(text);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ============================================================================
 // 2. MASTERLIST VALIDATOR ROUTE
 // ============================================================================
 app.post('/api/validate-student', async (req, res) => {
@@ -101,7 +121,10 @@ app.post('/api/validate-student', async (req, res) => {
             });
         }
 
-        res.status(200).json({ message: "Verification confirmed. Student is actively enrolled." });
+        res.status(200).json({ 
+            message: "Verification confirmed. Student is actively enrolled.",
+            school_id: masterlistRow.school_id 
+        });
 
     } catch (err) {
         res.status(500).json({ error: "Internal validation server error: " + err.message });
@@ -235,6 +258,25 @@ app.get('/api/scholarships', async (req, res) => {
     }
 });
 
+
+// ============================================================================
+// 5.5 AI ASSISTANT CHAT ROUTE
+// ============================================================================
+app.post('/api/student/ai-chat', async (req, res) => {
+    try {
+        const { studentId, messages } = req.body;
+        
+        if (!studentId || !messages || !Array.isArray(messages)) {
+            return res.status(400).json({ error: "Invalid request payload." });
+        }
+
+        const reply = await handleStudentChat(studentId, messages);
+        res.status(200).json({ reply });
+    } catch (error) {
+        console.error("AI Chat Route Error:", error);
+        res.status(500).json({ error: "Failed to process AI chat." });
+    }
+});
 
 // ============================================================================
 // 6. STUDENT: FETCH AVAILABLE SCHOLARSHIPS 
@@ -398,17 +440,10 @@ app.post('/api/verify-id', async (req, res) => {
 });
 
 // ============================================================================
-// REAL EMAIL OTP SYSTEM (Using Nodemailer)
+// REAL EMAIL OTP SYSTEM (Using Brevo)
 // ============================================================================
 const otpDatabase = {}; // Temporarily holds codes in memory
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const { sendNotification, notifyCoordinators } = require('./notificationService');
 
 app.post('/api/send-otp', async (req, res) => {
     const { email } = req.body;
@@ -417,28 +452,33 @@ app.post('/api/send-otp', async (req, res) => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     otpDatabase[email] = code;
 
-    const mailOptions = {
-        from: `"Grantee System" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Grantee - Your Verification Code',
-        html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; background-color: #f8fafc; border-radius: 10px;">
-                <h2 style="color: #10b981;">Grantee Scholarship Management</h2>
-                <p>Hello,</p>
-                <p>You requested an email verification for your student registration.</p>
-                <h1 style="font-size: 40px; letter-spacing: 5px; color: #1e293b; background: white; padding: 10px; border-radius: 8px; display: inline-block;">${code}</h1>
-                <p style="color: #64748b; font-size: 12px;">This code will expire shortly. Do not share it with anyone.</p>
-            </div>
-        `
-    };
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; background-color: #f8fafc; border-radius: 10px;">
+            <h2 style="color: #10b981;">Grantee Scholarship Management</h2>
+            <p>Hello,</p>
+            <p>You requested an email verification for your student registration.</p>
+            <h1 style="font-size: 40px; letter-spacing: 5px; color: #1e293b; background: white; padding: 10px; border-radius: 8px; display: inline-block;">${code}</h1>
+            <p style="color: #64748b; font-size: 12px;">This code will expire shortly. Do not share it with anyone.</p>
+        </div>
+    `;
 
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Real email successfully sent to ${email}`);
+        await sendNotification({
+            userId: null, // No user ID during registration
+            recipientEmail: email,
+            eventType: 'security',
+            resourceId: null, // Not needed for OTP
+            subject: 'Grantee - Your Verification Code',
+            message: null, // Don't send in-app notification for OTP
+            htmlContent: htmlContent,
+            sendEmail: true,
+            sendInApp: false
+        });
+        console.log(`Verification email sent via Brevo to ${email}`);
 
         res.status(200).json({ message: 'Verification code sent to your inbox!' });
     } catch (error) {
-        console.error('Nodemailer Error:', error);
+        console.error('Brevo Error:', error);
         res.status(500).json({ error: 'Failed to send email. Check your server credentials.' });
     }
 });
@@ -458,11 +498,188 @@ app.post('/api/verify-otp', (req, res) => {
 });
 
 // ============================================================================
-// START THE SERVER
+// DISPATCH NOTIFICATION EVENT
+// ============================================================================
+app.post('/api/dispatch-notification', async (req, res) => {
+    const { userIds, eventType, subject, message, htmlContent, resourceId } = req.body;
+    
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ error: 'Valid userIds array is required.' });
+    }
+
+    try {
+        // Fetch emails for these users
+        const { data: profiles, error } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .in('id', userIds);
+            
+        if (error) throw error;
+        
+        let dispatchCount = 0;
+        
+        // Loop through each user and send notification
+        for (const profile of profiles) {
+            await sendNotification({
+                userId: profile.id,
+                recipientEmail: profile.email,
+                eventType: eventType,
+                resourceId: resourceId ? `${resourceId}_${profile.id}` : null, 
+                subject: subject,
+                message: message,
+                htmlContent: htmlContent,
+                sendEmail: true,
+                sendInApp: true
+            });
+            dispatchCount++;
+        }
+        
+        res.status(200).json({ message: `Dispatched ${dispatchCount} notifications successfully.` });
+    } catch (error) {
+        console.error('Error dispatching notifications:', error);
+        res.status(500).json({ error: 'Failed to dispatch notifications.' });
+    }
+});
+
+// ============================================================================
+// NOTIFY COORDINATORS EVENT
+// ============================================================================
+app.post('/api/notify-coordinators', async (req, res) => {
+    const { schoolId, eventType, subject, message, resourceId, htmlContent } = req.body;
+    
+    if (!eventType || !subject) {
+        return res.status(400).json({ error: 'eventType and subject are required.' });
+    }
+
+    try {
+        const result = await notifyCoordinators({
+            schoolId,
+            eventType,
+            subject,
+            message,
+            resourceId,
+            htmlContent
+        });
+        
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error notifying coordinators:', error);
+        res.status(500).json({ error: 'Failed to notify coordinators.' });
+    }
+});
+
+// ============================================================================
+// UPDATE NOTIFICATION PREFERENCES
+// ============================================================================
+app.post('/api/update-notification-preferences', async (req, res) => {
+    const { userId, preferences } = req.body;
+    
+    if (!userId || !preferences) {
+        return res.status(400).json({ error: 'User ID and preferences are required.' });
+    }
+
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ email_preferences: preferences })
+            .eq('id', userId);
+            
+        if (error) throw error;
+        
+        res.status(200).json({ message: 'Preferences updated successfully!' });
+    } catch (error) {
+        console.error('Error updating preferences:', error);
+        res.status(500).json({ error: 'Failed to update preferences.' });
+    }
+});
+
+// ============================================================================
+// 11. ADMIN: ANNOUNCEMENTS CONTROLLER ROUTE (NEW)
+// ============================================================================
+app.post('/api/announcements', createAnnouncement);
+
+
+// ============================================================================
+// START THE SERVER & SCHEDULED JOBS
 // ============================================================================
 app.get('/api/test', (req, res) => {
     res.json({ message: "Backend is reachable!" });
 });
+
+// A simple daily job to check for pending reviews and deadlines
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+setInterval(async () => {
+    try {
+        console.log('[System Cron] Running daily checks...');
+        
+        // 1. Check for Pending Reviews (older than 3 days)
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        
+        const { data: pendingApps, error: pendingError } = await supabase
+            .from('applications')
+            .select('id, profiles!inner(school_id)')
+            .eq('status', 'Pending')
+            .lt('created_at', threeDaysAgo.toISOString());
+            
+        if (!pendingError && pendingApps && pendingApps.length > 0) {
+            // Group by school
+            const appsBySchool = pendingApps.reduce((acc, app) => {
+                const schoolId = app.profiles.school_id;
+                if (!acc[schoolId]) acc[schoolId] = 0;
+                acc[schoolId]++;
+                return acc;
+            }, {});
+            
+            for (const [schoolId, count] of Object.entries(appsBySchool)) {
+                await notifyCoordinators({
+                    schoolId: schoolId,
+                    eventType: 'PENDING_REVIEW_REMINDER',
+                    subject: 'Pending Reviews Reminder',
+                    message: `${count} applications have been pending review for more than 3 days.`
+                });
+            }
+        }
+
+        // 2. Check for Deadlines (7 days, 3 days, 1 day) & Expirations
+        // (Assuming a 'scholarships' table exists with a 'deadline' column)
+        const today = new Date();
+        const { data: scholarships, error: scholError } = await supabase
+            .from('scholarships')
+            .select('id, title, deadline, school_id');
+            
+        if (!scholError && scholarships) {
+            for (const schol of scholarships) {
+                if (!schol.deadline) continue;
+                const deadlineDate = new Date(schol.deadline);
+                const diffTime = deadlineDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if ([7, 3, 1].includes(diffDays)) {
+                    await notifyCoordinators({
+                        schoolId: schol.school_id || null, 
+                        eventType: 'DEADLINE_REMINDER',
+                        subject: 'Application Deadline Approaching',
+                        message: `${schol.title} closes in ${diffDays} day(s).`,
+                        resourceId: schol.id
+                    });
+                } else if (diffDays === 0 || diffDays === -1) { // 0 or -1 to catch just expired
+                    // Fire just once when it expires
+                    await notifyCoordinators({
+                        schoolId: schol.school_id || null,
+                        eventType: 'EDUCATIONAL_ASSISTANCE_CLOSED',
+                        subject: 'Educational Assistance Expired',
+                        message: `The application period for ${schol.title} has ended.`,
+                        resourceId: schol.id
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[System Cron] Error during daily checks:', err);
+    }
+}, ONE_DAY_MS);
+
 
 app.listen(PORT, () => {
     console.log(`Grantee Master Backend running on port ${PORT}`);

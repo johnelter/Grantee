@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             modalConfirm.disabled = true;
             await window.supabaseClient.auth.signOut();
             window.location.href = 'login.html';
-        });
+        }); 
     }
 
     // ==========================================
@@ -638,6 +638,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { error } = await window.supabaseClient.from('scholarships').insert([payload]);
 
             if (error) throw error;
+
+            try {
+                await window.supabaseClient.from('audit_logs').insert([{
+                    admin_id: adminId,
+                    school_id: adminSchoolId,
+                    action: 'Educational Assistance created',
+                    module: 'Scholarships',
+                    details: JSON.stringify({ title: payload.title, status: status })
+                }]);
+            } catch (e) { console.warn("Audit logging failed:", e); }
 
             await Swal.fire({
                 title: 'Success!',

@@ -87,7 +87,7 @@
                 const firstName = nameParts[0];
                 const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''; // Safely joins everything after the first name as the last name
 
-                // 5. Verification Passed! Save to profiles table INCLUDING the school
+                // 5. Verification Passed! Save to profiles table INCLUDING the school and school_id
                 const { error: profileError } = await supabaseClient.from('profiles').insert([{
                     id: session.user.id,
                     role: 'student',
@@ -95,6 +95,7 @@
                     last_name: lastName,
                     id_number: studentId,
                     school: selectedSchool,
+                    school_id: validationData.school_id, // Syncing with enrolled_masterlist
                     email: email,
                     is_approved: true
                 }]);

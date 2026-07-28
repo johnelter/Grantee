@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.2",
     "@google/generative-ai": "^0.24.1",
     "multer": "^2.2.0",
     "resend": "^6.12.4"

@@ -126,7 +126,7 @@ function getNotificationMetadata(eventType, resourceId) {
             type = 'deadline'; priority = 'low'; actionLink = `admin-scholarships.html${idParam}`; break;
         case 'BENEFICIARY_UPDATE':
         case 'DECISION_MADE':
-            type = 'status'; priority = 'low'; actionLink = `admin-students.html${idParam}`; break;
+            type = 'status'; priority = 'low'; actionLink = `admin-active-scholars.html${idParam}`; break;
         case 'EDUCATIONAL_ASSISTANCE_CLOSED':
             type = 'alert'; priority = 'low'; actionLink = `admin-scholarships.html${idParam}`; break;
 

@@ -1,45 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grantee - Admin Dashboard</title>
-    
+
     <!-- Fonts and Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Tailwind CSS (Required for the dynamic JS classes) --> 
+
+    <!-- Tailwind CSS (Required for the dynamic JS classes) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- SweetAlert2 for Modals -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/admin-dashboard.css">
 </head>
+
 <body class="light-theme bg-gray-50 font-sans">
     <div class="dashboard-container flex h-screen overflow-hidden">
-        
+
         <!-- SIDEBAR COMPONENT CONTAINER -->
         <!-- This will be populated by your sidebar component logic -->
         <div id="sidebar-container"></div>
 
         <main class="main-content flex-1 overflow-y-auto p-4 lg:p-8">
-            
+
             <header class="content-header">
                 <!-- Titles -->
                 <div class="header-titles-wrapper flex flex-col lg:flex-row lg:items-center lg:justify-between w-full">
                     <div class="header-titles">
-                        <h1 class="text-2xl font-bold text-gray-800">Dashboard <i class="fas fa-hand-sparkles text-yellow-500"></i></h1>
+                        <h1 class="text-2xl font-bold text-gray-800">Dashboard <i
+                                class="fas fa-hand-sparkles text-yellow-500"></i></h1>
                         <p class="welcome-text text-sm text-gray-500">Welcome back, Scholarship Coordinator!</p>
                         <p id="admin-school-display" class="text-sm text-blue-600 mt-1 font-medium">
                             <i class="fas fa-university"></i> Loading assigned school...
                         </p>
                     </div>
-                    
+
                     <div class="flex items-center gap-4 mt-4 lg:mt-0">
-                        <select id="dashboard-date-filter" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="dashboard-date-filter"
+                            class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="Today">Today</option>
                             <option value="This Week">This Week</option>
                             <option value="This Month" selected>This Month</option>
@@ -47,7 +51,8 @@
                             <option value="Current School Year">Current School Year</option>
                             <option value="Custom Date Range">Custom Date Range</option>
                         </select>
-                        <a href="create-scholarship.html" class="btn-create bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
+                        <a href="create-scholarship.html"
+                            class="btn-create bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
                             <i class="fas fa-plus mr-1"></i> Create
                         </a>
                     </div>
@@ -66,57 +71,74 @@
                         <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i class="fa-solid fa-user"
+                                    style="margin-right: 8px;"></i> Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                   <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                 </div>
             </header>
 
             <section class="metrics-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl"><i class="fas fa-graduation-cap"></i></div>
+                <div
+                    class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div
+                        class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl">
+                        <i class="fas fa-graduation-cap"></i></div>
                     <div class="card-info">
                         <h3 class="text-sm text-gray-500 font-medium">Total Scholarships</h3>
                         <p class="metric-value text-2xl font-bold text-gray-800" id="metric-total-scholarships">0</p>
-                        <span class="text-xs text-gray-400">Active: <span class="text-green-500 font-semibold" id="metric-active-scholarships">0</span></span>
+                        <span class="text-xs text-gray-400">Active: <span class="text-green-500 font-semibold"
+                                id="metric-active-scholarships">0</span></span>
                     </div>
                 </div>
-                
-                <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 text-xl"><i class="fas fa-file-alt"></i></div>
+
+                <div
+                    class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div
+                        class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 text-xl">
+                        <i class="fas fa-file-alt"></i></div>
                     <div class="card-info">
                         <h3 class="text-sm text-gray-500 font-medium">Total Applications</h3>
                         <p class="metric-value text-2xl font-bold text-gray-800" id="metric-total-applications">0</p>
                     </div>
                 </div>
-                
-                <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-600 text-xl"><i class="fas fa-hourglass-half"></i></div>
+
+                <div
+                    class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div
+                        class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-600 text-xl">
+                        <i class="fas fa-hourglass-half"></i></div>
                     <div class="card-info">
                         <h3 class="text-sm text-gray-500 font-medium">Pending Review</h3>
                         <p class="metric-value text-2xl font-bold text-gray-800" id="metric-pending-review">0</p>
                         <span class="text-xs text-gray-400">Awaiting action</span>
                     </div>
                 </div>
-                
-                <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl"><i class="fas fa-check-circle"></i></div>
+
+                <div
+                    class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div
+                        class="card-icon w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl">
+                        <i class="fas fa-check-circle"></i></div>
                     <div class="card-info">
                         <h3 class="text-sm text-gray-500 font-medium">Approved / Rejected</h3>
-                        <p class="metric-value text-xl font-bold text-gray-800"><span id="metric-approved" class="text-green-600">0</span> / <span id="metric-rejected" class="text-red-600">0</span></p>
+                        <p class="metric-value text-xl font-bold text-gray-800"><span id="metric-approved"
+                                class="text-green-600">0</span> / <span id="metric-rejected"
+                                class="text-red-600">0</span></p>
                     </div>
                 </div>
             </section>
 
             <div class="dashboard-row grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                
+
                 <!-- Recent Activity Panel -->
                 <div class="data-panel bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1">
                     <div class="panel-header flex justify-between items-center mb-4">
@@ -124,7 +146,8 @@
                         <a href="admin-applications.html" class="text-sm text-blue-600 hover:underline">View All</a>
                     </div>
                     <div class="activity-list flex flex-col gap-2" id="recent-activity-list">
-                        <div class="text-center p-4 text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Loading activity...</div>
+                        <div class="text-center p-4 text-gray-400 text-sm"><i
+                                class="fas fa-spinner fa-spin mr-2"></i>Loading activity...</div>
                     </div>
                 </div>
 
@@ -134,17 +157,27 @@
                         <h3 class="font-bold text-gray-800">Application Overview</h3>
                     </div>
                     <div class="chart-container flex flex-col items-center">
-                        <div class="donut-chart relative w-32 h-32 rounded-full mb-4 flex items-center justify-center" id="app-overview-chart" style="background: conic-gradient(#e2e8f0 0% 100%);">
-                            <div class="donut-inner absolute w-24 h-24 bg-white rounded-full flex flex-col items-center justify-center">
+                        <div class="donut-chart relative w-32 h-32 rounded-full mb-4 flex items-center justify-center"
+                            id="app-overview-chart" style="background: conic-gradient(#e2e8f0 0% 100%);">
+                            <div
+                                class="donut-inner absolute w-24 h-24 bg-white rounded-full flex flex-col items-center justify-center">
                                 <strong id="app-overview-total" class="text-xl font-bold">0</strong>
                                 <span class="text-xs text-gray-500">Total</span>
                             </div>
                         </div>
                         <div class="chart-legend w-full text-sm space-y-2">
-                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-400"></span> Pending Review</span> <span class="font-medium" id="app-legend-pending">0 (0%)</span></div>
-                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500"></span> Under Evaluation</span> <span class="font-medium" id="app-legend-eval">0 (0%)</span></div>
-                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-green-500"></span> Approved</span> <span class="font-medium" id="app-legend-approved">0 (0%)</span></div>
-                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500"></span> Rejected</span> <span class="font-medium" id="app-legend-rejected">0 (0%)</span></div>
+                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span
+                                        class="w-3 h-3 rounded-full bg-yellow-400"></span> Pending Review</span> <span
+                                    class="font-medium" id="app-legend-pending">0 (0%)</span></div>
+                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span
+                                        class="w-3 h-3 rounded-full bg-blue-500"></span> Under Evaluation</span> <span
+                                    class="font-medium" id="app-legend-eval">0 (0%)</span></div>
+                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span
+                                        class="w-3 h-3 rounded-full bg-green-500"></span> Approved</span> <span
+                                    class="font-medium" id="app-legend-approved">0 (0%)</span></div>
+                            <div class="flex justify-between items-center"><span class="flex items-center gap-2"><span
+                                        class="w-3 h-3 rounded-full bg-red-500"></span> Rejected</span> <span
+                                    class="font-medium" id="app-legend-rejected">0 (0%)</span></div>
                         </div>
                     </div>
                 </div>
@@ -156,29 +189,35 @@
                         <a href="admin-scholarships.html" class="text-sm text-blue-600 hover:underline">View All</a>
                     </div>
                     <div class="chart-container flex flex-col items-center">
-                        <div class="donut-chart relative w-32 h-32 rounded-full mb-4 flex items-center justify-center" id="schol-overview-chart" style="background: conic-gradient(#e2e8f0 0% 100%);">
-                            <div class="donut-inner absolute w-24 h-24 bg-white rounded-full flex flex-col items-center justify-center">
+                        <div class="donut-chart relative w-32 h-32 rounded-full mb-4 flex items-center justify-center"
+                            id="schol-overview-chart" style="background: conic-gradient(#e2e8f0 0% 100%);">
+                            <div
+                                class="donut-inner absolute w-24 h-24 bg-white rounded-full flex flex-col items-center justify-center">
                                 <strong id="schol-overview-total" class="text-xl font-bold">0</strong>
                                 <span class="text-xs text-gray-500">Total</span>
                             </div>
                         </div>
                         <div class="chart-legend w-full text-sm space-y-2" id="schol-legend-container">
-                            <div class="text-center text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Loading categories...</div>
+                            <div class="text-center text-gray-400 text-sm"><i
+                                    class="fas fa-spinner fa-spin mr-2"></i>Loading categories...</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="dashboard-row grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                
+
                 <!-- Scholarship Performance Bars -->
-                <div class="data-panel bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1 lg:col-span-2">
+                <div
+                    class="data-panel bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1 lg:col-span-2">
                     <div class="panel-header mb-6">
                         <h3 class="font-bold text-gray-800">Scholarship Performance (Approval Rates)</h3>
                     </div>
                     <div class="bar-chart-wrapper h-48 border-l border-b border-gray-200 relative flex pl-2 pb-2">
-                        <div class="bars-container w-full h-full flex justify-around items-end pt-4" id="performance-bars-container">
-                            <div class="text-center w-full text-gray-400 text-sm self-center"><i class="fas fa-spinner fa-spin mr-2"></i>Loading performance metrics...</div>
+                        <div class="bars-container w-full h-full flex justify-around items-end pt-4"
+                            id="performance-bars-container">
+                            <div class="text-center w-full text-gray-400 text-sm self-center"><i
+                                    class="fas fa-spinner fa-spin mr-2"></i>Loading performance metrics...</div>
                         </div>
                     </div>
                 </div>
@@ -190,7 +229,10 @@
                     </div>
                     <table class="w-full text-sm text-left">
                         <tbody id="top-scholarships-tbody">
-                            <tr><td colspan="2" class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading data...</td></tr>
+                            <tr>
+                                <td colspan="2" class="text-center text-gray-400 py-4"><i
+                                        class="fas fa-spinner fa-spin mr-2"></i>Loading data...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -200,7 +242,8 @@
             <div class="dashboard-row">
                 <div class="data-panel bg-white p-6 rounded-xl shadow-sm border border-gray-100 w-full mb-8">
                     <div class="panel-header flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-800"><i class="fas fa-list-alt text-gray-500 mr-2"></i>Audit Trail</h3>
+                        <h3 class="font-bold text-gray-800"><i class="fas fa-list-alt text-gray-500 mr-2"></i>Audit
+                            Trail</h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -215,7 +258,8 @@
                             </thead>
                             <tbody id="audit-trail-tbody" class="text-sm">
                                 <tr>
-                                    <td colspan="5" class="text-center text-gray-400 py-6"><i class="fas fa-spinner fa-spin mr-2"></i>Loading audit logs...</td>
+                                    <td colspan="5" class="text-center text-gray-400 py-6"><i
+                                            class="fas fa-spinner fa-spin mr-2"></i>Loading audit logs...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -231,12 +275,13 @@
     <!-- External Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    
+
     <!-- Component Loaders -->
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
-    
+
     <!-- Main Dashboard Logic -->
     <script src="js/dashboard-admin.js"></script>
 </body>
+
 </html>

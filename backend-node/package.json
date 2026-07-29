@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,6 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "@getbrevo/brevo": "^6.0.2",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.107.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

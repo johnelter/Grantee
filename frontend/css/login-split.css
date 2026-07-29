@@ -122,7 +122,7 @@
 }
 
 .student-accent-bg {
-    background-color: #b9ecdb;;
+    background: linear-gradient(135deg, #b9ecdb 0%, #86ecd2 100%);
     color: var(--text-primary);
 }
 
@@ -204,11 +204,43 @@
 }
 
 .form-input-block input {
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 0.9rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
     outline: none;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.form-input-block input:focus {
+    background: white;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Space for the eye icon */
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: var(--text-primary);
 }
 
 .form-utils-row {
@@ -228,14 +260,23 @@
 
 .btn-execute-login-action {
     width: 100%;
-    padding: 0.85rem;
+    padding: 0.9rem;
     background: #10b981;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-execute-login-action:hover {
+    background: #059669;
+}
+
+.btn-execute-login-action:active {
+    transform: scale(0.98);
 }
 
 .bg-midnight {
@@ -284,4 +325,40 @@
     color: var(--accent-blue);
     text-decoration: none;
     font-weight: 600;
+}
+
+/* --- Responsive Layout (Tablet & Mobile) --- */
+@media (max-width: 900px) {
+    .login-split-layout {
+        flex-direction: column;
+    }
+    .split-graphic-side {
+        padding: 2rem;
+        min-height: 250px;
+        flex: none;
+    }
+    .vector-art {
+        max-width: 150px;
+        margin-bottom: 1rem;
+    }
+    .graphic-center-art h3 {
+        font-size: 1.2rem;
+    }
+    .split-form-side {
+        padding: 3rem 1.5rem;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .split-graphic-side {
+        display: none; /* Hide graphic completely on very small screens to save space */
+    }
+    .split-form-side {
+        padding: 2rem 1.5rem;
+        align-items: center;
+    }
+    .compact-form-box {
+        margin-top: 2rem;
+    }
 }

@@ -208,6 +208,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .eq('id', studentId)
                 .single();
 
+            let studentSchoolId = profile ? profile.school_id : null;
+            if (profile && !studentSchoolId && profile.id_number) {
+                const { data: masterlistData } = await window.supabaseClient
+                    .from('enrolled_masterlist')
+                    .select('school_id')
+                    .eq('id_number', profile.id_number)
+                    .single();
+                if (masterlistData) studentSchoolId = masterlistData.school_id;
+            }
+
             // Fetch applications
             const { data: userApps } = await window.supabaseClient
                 .from('applications')
@@ -217,18 +227,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             const allUserApps = userApps || [];
 
             // Fetch school policies
-            const { data: policies } = await window.supabaseClient
-                .from('school_policies')
-                .select('*')
-                .single();
+            let policyQuery = window.supabaseClient.from('school_policies').select('*');
+            if (studentSchoolId) {
+                policyQuery = policyQuery.eq('school_id', studentSchoolId);
+            }
+            const { data: policies } = await policyQuery.single();
             const policyData = policies || null;
 
             // Fetch active scholarships
-            const { data: scholarships, error } = await window.supabaseClient
+            let schQuery = window.supabaseClient
                 .from('scholarships')
                 .select('*')
                 .eq('status', 'Active')
                 .order('created_at', { ascending: false });
+            
+            if (studentSchoolId) {
+                schQuery = schQuery.eq('school_id', studentSchoolId);
+            }
+            
+            const { data: scholarships, error } = await schQuery;
 
             if (error) throw error;
 

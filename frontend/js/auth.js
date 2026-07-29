@@ -145,7 +145,12 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
 
         // Block entry if a STUDENT account is flagged as not approved (Admins bypass this)
         if (profile.role !== 'admin' && profile.is_approved === false) {
-            alert('Your account access is currently set to pending. Please wait for an administrator to approve your account.');
+            Swal.fire({
+                title: 'Pending Approval',
+                text: 'Your account access is currently set to pending. Please wait for an administrator to approve your account.',
+                icon: 'info',
+                confirmButtonColor: '#10b981'
+            });
             await supabaseClient.auth.signOut();
             if(submitBtn) {
                 submitBtn.innerText = originalBtnText;
@@ -154,22 +159,26 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
             return;
         }
 
-        const successModal = document.getElementById('success-alert-modal');
-        const successMsg = document.getElementById('success-alert-message');
-        const successBtn = document.getElementById('success-alert-btn');
-        
         const targetDashboard = (profile.role === 'admin') ? 'admin-dashboard.html' : 'student-dashboard.html';
 
-        if (successModal && successMsg && successBtn) {
-            successMsg.innerText = 'Login successful!';
-            successModal.style.display = 'flex';
-            successBtn.onclick = () => { window.location.href = targetDashboard; };
-        } else {
-            alert('Login successful!');
-            window.location.href = targetDashboard;
+        if(submitBtn) {
+            submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.8';
         }
+
+        // Add a tiny delay just to show the beautiful signing in state before the browser navigates away
+        setTimeout(() => {
+            window.location.href = targetDashboard;
+        }, 500);
+
     } catch (error) {
-        alert('Failed to route user profile: ' + error.message);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to route user profile: ' + error.message,
+            icon: 'error',
+            confirmButtonColor: '#10b981'
+        });
         if(submitBtn) {
             submitBtn.innerText = originalBtnText;
             submitBtn.disabled = false;
@@ -269,7 +278,12 @@ const handleLoginSubmit = async (emailId, passwordId) => {
         }
 
     } catch (error) {
-        alert('Authentication failed: ' + error.message);
+        Swal.fire({
+            title: 'Authentication Failed',
+            text: error.message,
+            icon: 'error',
+            confirmButtonColor: '#10b981'
+        });
         submitBtn.innerText = originalBtnText;
         submitBtn.disabled = false;
     }
@@ -313,71 +327,81 @@ googleBtns.forEach(btn => {
     });
 });
 
-// --- 4. FORGOT PASSWORD LOGIC (CUSTOM UI) ---
+// --- 4. FORGOT PASSWORD LOGIC (SWEETALERT) ---
 document.addEventListener('DOMContentLoaded', () => {
     const forgotPasswordLinks = document.querySelectorAll('a[href="#"], .forgot-password-link');
-    const forgotModal = document.getElementById('forgot-password-modal');
-    const forgotForm = document.getElementById('forgot-password-form');
-    const forgotCancelBtn = document.getElementById('forgot-cancel-btn');
-    const forgotEmailInput = document.getElementById('forgot-email-input');
-    const forgotSubmitBtn = document.getElementById('forgot-submit-btn');
-
-    if (!forgotModal) return;
 
     forgotPasswordLinks.forEach(link => {
         if (link.innerText.toLowerCase().includes('forgot password')) {
-            link.addEventListener('click', (e) => {
+            link.addEventListener('click', async (e) => {
                 e.preventDefault();
-                forgotEmailInput.value = ''; 
-                forgotModal.style.display = 'flex';
-                forgotEmailInput.focus();
+                
+                const { value: email } = await Swal.fire({
+                    title: 'Reset Password',
+                    input: 'email',
+                    inputLabel: 'Enter your registered email address',
+                    inputPlaceholder: 'name@example.com',
+                    showCancelButton: true,
+                    confirmButtonText: 'Send Link',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#cbd5e1'
+                });
+                
+                if (email) {
+                    try {
+                        const client = typeof window.supabaseClient !== 'undefined' ? window.supabaseClient : supabaseClient;
+                        if (!client) throw new Error("Supabase connection not found.");
+                        
+                        Swal.fire({
+                            title: 'Sending...',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        const { error } = await client.auth.resetPasswordForEmail(email, {
+                            redirectTo: window.location.origin + '/frontend/reset-password.html' 
+                        });
+
+                        if (error) throw error;
+
+                        Swal.fire({
+                            title: 'Sent!',
+                            text: `Password reset instructions have been sent to ${email}. Please check your inbox (and spam folder).`,
+                            icon: 'success',
+                            confirmButtonColor: '#10b981'
+                        });
+
+                    } catch (error) {
+                        Swal.fire({
+                            title: 'Error',
+                            text: `Error sending password reset: ${error.message}`,
+                            icon: 'error',
+                            confirmButtonColor: '#10b981'
+                        });
+                    }
+                }
             });
         }
     });
+});
 
-    if (forgotCancelBtn) {
-        forgotCancelBtn.addEventListener('click', () => {
-            forgotModal.style.display = 'none';
-        });
-    }
+// --- 5. PASSWORD VISIBILITY TOGGLE ---
+document.addEventListener('DOMContentLoaded', () => {
+    const togglePassword = document.getElementById('toggleLoginPassword');
+    const passwordInput = document.getElementById('loginPassword');
 
-    forgotModal.addEventListener('click', (e) => {
-        if (e.target === forgotModal) forgotModal.style.display = 'none';
-    });
-
-    if (forgotForm) {
-        forgotForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
             
-            const email = forgotEmailInput.value.trim();
-
-            if (!email.includes('@')) {
-                alert("Please enter a valid email address.");
-                return;
-            }
-
-            forgotSubmitBtn.innerText = "Sending...";
-            forgotSubmitBtn.disabled = true;
-
-            try {
-                const client = typeof window.supabaseClient !== 'undefined' ? window.supabaseClient : supabaseClient;
-                if (!client) throw new Error("Supabase connection not found.");
-
-                const { error } = await client.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + '/frontend/reset-password.html' 
-                });
-
-                if (error) throw error;
-
-                alert(`Password reset instructions have been sent to ${email}. Please check your inbox (and spam folder).`);
-                forgotModal.style.display = 'none';
-
-            } catch (error) {
-                console.error("Password reset error:", error);
-                alert(`Error sending password reset: ${error.message}`);
-            } finally {
-                forgotSubmitBtn.innerText = "Send Link";
-                forgotSubmitBtn.disabled = false;
+            const icon = togglePassword.querySelector('i');
+            if (type === 'text') {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
         });
     }

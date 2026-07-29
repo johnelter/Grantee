@@ -34,13 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const inputField = targetId ? document.getElementById(targetId) : this.previousElementSibling;
 
             if (inputField && inputField.tagName === 'INPUT') {
+                const iTag = this.querySelector('i');
                 if (inputField.type === 'password') {
                     inputField.type = 'text';
-                    this.style.opacity = '0.5'; // Visual feedback that it's active
+                    if (iTag) {
+                        iTag.classList.remove('fa-eye');
+                        iTag.classList.add('fa-eye-slash');
+                    }
                     this.title = "Hide Password";
                 } else {
                     inputField.type = 'password';
-                    this.style.opacity = '1';
+                    if (iTag) {
+                        iTag.classList.remove('fa-eye-slash');
+                        iTag.classList.add('fa-eye');
+                    }
                     this.title = "Show Password";
                 }
             }
@@ -202,7 +209,12 @@ document.addEventListener('DOMContentLoaded', () => {
             btnRegister.classList.remove('disabled-style');
 
         } catch (error) {
-            alert(error.message);
+            Swal.fire({
+                title: 'Verification Failed',
+                text: error.message,
+                icon: 'error',
+                confirmButtonColor: '#10b981'
+            });
         }
     });
 
@@ -218,7 +230,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmPass = passConfirmInput.value;
 
         if (pass !== confirmPass) {
-            alert("Passwords do not match!");
+            Swal.fire({
+                title: 'Passwords Mismatch',
+                text: 'The passwords you entered do not match. Please try again.',
+                icon: 'warning',
+                confirmButtonColor: '#10b981'
+            });
             return;
         }
 
@@ -226,7 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Requires: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special character
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/;
         if (!strongPasswordRegex.test(pass)) {
-            alert("Security Requirement: Password must be at least 8 characters long and contain:\n\n• One uppercase letter (A-Z)\n• One lowercase letter (a-z)\n• One number (0-9)\n• One special character (e.g., !@#$%^&*)");
+            Swal.fire({
+                title: 'Weak Password',
+                html: 'Password must be at least 8 characters long and contain:<br><br>• One uppercase letter (A-Z)<br>• One lowercase letter (a-z)<br>• One number (0-9)<br>• One special character (e.g., !@#$%^&*)',
+                icon: 'warning',
+                confirmButtonColor: '#10b981'
+            });
             return;
         }
 
@@ -280,12 +302,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (profileError) throw profileError;
 
-            alert("Registration Successful! You can now log in.");
-            window.location.href = "login.html";
+            Swal.fire({
+                title: 'Success!',
+                text: 'Registration Successful! You can now log in.',
+                icon: 'success',
+                confirmButtonText: 'Login Now',
+                confirmButtonColor: '#10b981'
+            }).then(() => {
+                window.location.href = "login.html";
+            });
 
         } catch (error) {
             console.error(error);
-            alert("Registration failed: " + error.message);
+            Swal.fire({
+                title: 'Registration Failed',
+                text: error.message,
+                icon: 'error',
+                confirmButtonColor: '#10b981'
+            });
             btnRegister.innerText = "Complete Registration";
             btnRegister.disabled = false;
             btnRegister.classList.remove('disabled-style');

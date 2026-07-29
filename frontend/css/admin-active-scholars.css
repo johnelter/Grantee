@@ -207,6 +207,10 @@ button { font-family: inherit; cursor: pointer; }
     color: var(--text-muted);
 }
 
+.notification-bell.dropdown-toggle {
+    padding: 0;
+}
+
 .notification-bell .badge {
     position: absolute;
     top: -5px;

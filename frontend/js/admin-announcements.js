@@ -44,17 +44,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Header Profile & Dropdown
     const profileToggle = document.getElementById('profile-dropdown-toggle');
     const profileMenu = document.getElementById('profile-menu');
-    
+
     if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => { 
-            e.stopPropagation(); 
-            profileMenu.classList.toggle('show'); 
+        profileToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileMenu.classList.toggle('show');
             profileToggle.classList.toggle('active-state');
         });
-        
-        document.addEventListener('click', (e) => { 
+
+        document.addEventListener('click', (e) => {
             if (!profileToggle.contains(e.target)) {
-                profileMenu.classList.remove('show'); 
+                profileMenu.classList.remove('show');
                 profileToggle.classList.remove('active-state');
             }
         });
@@ -75,16 +75,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (logoutModal) logoutModal.style.display = 'none';
     });
 
-    document.getElementById('modal-confirm')?.addEventListener('click', async () => {
-        try {
-            Swal.fire({ title: 'Logging out...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            const { error } = await window.supabaseClient.auth.signOut();
-            if (error) throw error;
-            window.location.href = 'login.html';
-        } catch (err) {
-            Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-        }
-    });
+    // document.getElementById('modal-confirm')?.addEventListener('click', async () => {
+    //     try {
+    //         Swal.fire({ title: 'Logging out...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    //         const { error } = await window.supabaseClient.auth.signOut();
+    //         if (error) throw error;
+    //         window.location.href = 'login.html';
+    //     } catch (err) {
+    //         Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+    //     }
+    // });
 
     // ==========================================
     // 8. MOBILE HAMBURGER MENU TOGGLE
@@ -374,9 +374,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i class="fa-solid fa-${ann.allow_comments !== false ? 'lock' : 'unlock'}" style="width:16px;"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
                             <button class="btn-duplicate-ann" data-id="${ann.id}"><i class="fa-regular fa-copy" style="width:16px;"></i> Duplicate</button>
                             ${ann.status === 'Archived'
-                                ? `<button class="btn-unarchive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-open" style="width:16px;"></i> Unarchive</button>`
-                                : `<button class="btn-archive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-archive" style="width:16px;"></i> Archive</button>`
-                            }
+                ? `<button class="btn-unarchive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-open" style="width:16px;"></i> Unarchive</button>`
+                : `<button class="btn-archive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-archive" style="width:16px;"></i> Archive</button>`
+            }
                             <button class="btn-delete-ann" data-id="${ann.id}" style="color:#ef4444;"><i class="fa-regular fa-trash-can" style="width:16px;"></i> Delete</button>
                         </div>
                     </div>
@@ -493,24 +493,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const editor = document.getElementById('ann-content');
     document.querySelectorAll('.rte-btn').forEach(btn => {
-        btn.addEventListener('mousedown', function (e) { 
-            e.preventDefault(); 
+        btn.addEventListener('mousedown', function (e) {
+            e.preventDefault();
         });
-        
-        btn.addEventListener('click', function(e) {
+
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
             const command = this.getAttribute('data-command');
             let value = this.getAttribute('data-value') || null;
-            
+
             if (command === 'createLink') {
                 value = prompt('Enter URL:');
                 if (!value) return;
             }
-            
+
             if (document.activeElement !== editor) {
                 editor.focus();
             }
-            
+
             document.execCommand(command, false, value);
             updateRteToolbarState();
         });
@@ -525,14 +525,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.rte-btn').forEach(btn => {
             const command = btn.getAttribute('data-command');
             try {
-                if(command && document.queryCommandState(command)) {
+                if (command && document.queryCommandState(command)) {
                     btn.classList.add('active');
                     btn.style.background = '#e2e8f0';
                 } else {
                     btn.classList.remove('active');
                     btn.style.background = 'transparent';
                 }
-            } catch(e) {
+            } catch (e) {
                 // Ignore unsupported commands for queryCommandState like formatBlock
             }
         });
@@ -820,7 +820,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 content: contentHtml,
                 status: status,
                 allow_comments: document.getElementById('ann-allow-comments').checked,
-                image_urls: finalImageUrls, 
+                image_urls: finalImageUrls,
                 attachments: finalAttachments,
                 scheduled_at: status === 'Scheduled' ? new Date(document.getElementById('ann-scheduled-at').value).toISOString() : null,
                 expires_at: document.getElementById('ann-expires-at').value ? new Date(document.getElementById('ann-expires-at').value).toISOString() : null,
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     module: 'Announcements',
                     details: JSON.stringify({ title: payload.title, id: insertedId, status: status })
                 }]);
-            } catch(e) {}
+            } catch (e) { }
 
             const annModal = document.getElementById('announcement-modal');
             if (annModal) annModal.style.display = 'none';
@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const commentsList = document.getElementById('comments-list');
         const replyBox = document.getElementById('comment-input-area');
         const commentsHeader = document.getElementById('comments-count-header');
-        
+
         if (!commentsList) return;
 
         if (!commentsEnabled) {
@@ -900,7 +900,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
-            
+
             if (commentsHeader) commentsHeader.innerText = `Comments (${data.length})`;
             renderComments(data, commentsEnabled);
         } catch (err) {
@@ -965,7 +965,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
             `;
-            
+
             commentsList.insertAdjacentHTML('beforeend', commentHtml);
         });
         commentsList.scrollTop = commentsList.scrollHeight;
@@ -1034,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const payload = { announcement_id: annId, user_id: adminId, content: text };
             await window.supabaseClient.from('announcement_comments').insert([payload]);
             input.value = '';
-            
+
             const ann = allAnnouncements.find(a => a.id === annId);
             window.loadComments(annId, ann ? ann.allow_comments !== false : true);
         } catch (err) {
@@ -1070,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function sendNotifications(audience, title) {
         try {
             let query = window.supabaseClient.from('profiles').select('id').eq('school_id', currentAdminSchoolId);
-            
+
             if (audience === 'approved_students') {
                 query = query.eq('is_approved', true);
             } else if (audience.startsWith('prog_')) {
@@ -1121,29 +1121,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (imgSrc) {
                 const modal = document.getElementById('media-viewer-modal');
-                if(!modal) return;
+                if (!modal) return;
                 document.getElementById('viewer-image').src = imgSrc;
                 document.getElementById('viewer-image').style.display = 'block';
                 document.getElementById('viewer-iframe').style.display = 'none';
                 modal.style.display = 'flex';
             }
         }
-        
+
         const fileBtn = e.target.closest('.btn-view-file');
         if (fileBtn) {
-            e.preventDefault(); 
+            e.preventDefault();
             const fileUrl = fileBtn.href;
             const modal = document.getElementById('media-viewer-modal');
-            if(!modal) return;
+            if (!modal) return;
             document.getElementById('viewer-iframe').src = fileUrl;
             document.getElementById('viewer-iframe').style.display = 'block';
             document.getElementById('viewer-image').style.display = 'none';
             modal.style.display = 'flex';
         }
-        
+
         if (e.target.closest('#close-media-viewer') || e.target.id === 'media-viewer-modal') {
             document.getElementById('media-viewer-modal').style.display = 'none';
-            document.getElementById('viewer-iframe').src = ''; 
+            document.getElementById('viewer-iframe').src = '';
             document.getElementById('viewer-image').src = '';
         }
     });
@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.togglePin = async (id, isPinned) => {
         try {
             await window.supabaseClient.from('announcements').update({ is_pinned: !isPinned }).eq('id', id);
-            
+
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -1173,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.toggleCommentsStatus = async (id, currentStatus) => {
         try {
             await window.supabaseClient.from('announcements').update({ allow_comments: !currentStatus }).eq('id', id);
-            
+
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -1255,15 +1255,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showConfirmButton: false,
                 timer: 2000
             });
-            
+
             fetchAnnouncements();
-            
+
             if (data && data[0]) {
                 setTimeout(() => {
                     window.editAnnouncement(data[0].id);
                 }, 1000);
             }
-            
+
         } catch (err) {
             console.error("Error duplicating:", err);
             Swal.fire('Error', 'Failed to duplicate announcement.', 'error');
@@ -1286,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await window.supabaseClient.from('announcement_comments').delete().eq('announcement_id', id);
                 await window.supabaseClient.from('announcement_reads').delete().eq('announcement_id', id);
                 await window.supabaseClient.from('announcements').delete().eq('id', id);
-                
+
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -1296,7 +1296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     timer: 2000
                 });
                 fetchAnnouncements();
-                
+
                 const annModal = document.getElementById('announcement-modal');
                 if (annModal && annModal.style.display !== 'none' && currentSelectedAnnId === id) {
                     annModal.style.display = 'none';

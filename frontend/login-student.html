@@ -1,23 +1,32 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Login - Grantee</title>
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/login-split.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
+
+<body class="login-body-bg">
     <div class="login-split-layout">
         <div class="split-graphic-side student-accent-bg">
             <div class="brand-watermark">
-                <h2>🛡️ Grantee</h2>
+                <div class="brand-header">
+                    <img src="./assets/grantee_logo.png" alt="logo" class="logo-img">
+                    <h2>Grantee</h2>
+                </div>
                 <p>Smart Scholarship Management System</p>
             </div>
-            <div class="graphic-center-art">
+            <!-- <div class="graphic-center-art">
                 <img src="assets/hero-students.png" alt="Student Art" class="vector-art">
                 <h3>Your journey to a<br>brighter future starts here.</h3>
-            </div>
+            </div> -->
+            <object type="image/svg+xml" data="assets/tablet-login-animate.svg" width="500" height="500">
+            </object>
         </div>
 
         <div class="split-form-side">
@@ -32,67 +41,31 @@
                     </div>
                     <div class="form-input-block">
                         <label>Password</label>
-                        <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                            <span class="toggle-password" id="toggleLoginPassword"><i
+                                    class="fa-regular fa-eye"></i></span>
+                        </div>
                     </div>
                     <div class="form-utils-row">
                         <label><input type="checkbox"> Remember me</label>
                         <a href="#" class="forgot-password-link">Forgot Password?</a>
                     </div>
                     <button type="submit" class="btn-execute-login-action">Log in</button>
-                    
-                    <div class="oauth-divider"><span>or continue with</span></div>
-                    <button type="button" class="btn-google-oauth"><img src="assets/google-icon.png" alt=""> Sign in with Google</button>
-                    
-                    <p class="bottom-route-p">Don't have an account? <a href="student-register.html">Register as a student</a></p>
+
+
+                    <p class="bottom-route-p">Don't have an account? <a href="student-register.html">Register as a
+                            student</a></p>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="forgot-password-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm text-center">
-            <div class="modal-icon" style="font-size: 48px; margin-bottom: 10px;">📧</div>
-            <h3 style="margin-top: 0; margin-bottom: 8px; color: #0f172a; font-size: 20px;">Reset Password</h3>
-            <p style="font-size: 13px; color: #64748b; margin-bottom: 24px; line-height: 1.5;">Please enter your registered email address to receive password reset instructions.</p>
 
-            <form id="forgot-password-form">
-                <input type="email" id="forgot-email-input" required placeholder="Enter your email address" 
-                    style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; margin-bottom: 20px; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
 
-                <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center;">
-                    <button type="button" id="forgot-cancel-btn" 
-                        style="background: #fff; border: 1px solid #cbd5e1; color: #0f172a; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; flex: 1; transition: 0.2s;">Cancel</button>
-                    <button type="submit" id="forgot-submit-btn" 
-                        style="background: #10b981; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; flex: 1; transition: 0.2s;">Send Link</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="success-alert-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm text-center">
-            <div class="modal-icon" style="font-size: 50px; margin-bottom: 10px; line-height: 1;">✅</div>
-            <h3 style="margin-top: 0; margin-bottom: 8px; color: #0f172a; font-size: 20px;">Success!</h3>
-            <p id="success-alert-message" style="font-size: 14px; color: #64748b; margin-bottom: 24px; line-height: 1.5;">Login successful!</p>
-
-            <div class="modal-actions" style="display: flex; justify-content: center;">
-                <button type="button" id="success-alert-btn" 
-                    style="background: #10b981; color: #fff; border: none; padding: 12px 30px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s;">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content-sm { background: #fff; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); padding: 30px; animation: modalFadeIn 0.3s ease; width: 100%; max-width: 340px; box-sizing: border-box; }
-        #forgot-email-input:focus { border-color: #10b981; }
-        #forgot-cancel-btn:hover { background: #f8fafc; }
-        #forgot-submit-btn:hover { background: #059669; }
-        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/auth.js"></script>
 
 </body>
+
 </html>

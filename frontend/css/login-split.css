@@ -96,10 +96,29 @@
 }
 
 /* Split Panels Matrix Design System Properties values mappings config details elements */
+.login-body-bg {
+    background-color: #f4f7f6;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+/* Split Panels Matrix Design System Properties values mappings config details elements */
 .login-split-layout {
     display: flex;
-    min-height: 100vh;
     width: 100%;
+    max-width: 1000px;
+    height: 90vh;
+    max-height: 700px;
+    min-height: 600px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
 }
 
 .split-graphic-side {
@@ -107,9 +126,16 @@
     display: flex;
     flex-direction: column;
     padding: 3rem;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
     position: relative;
     overflow: hidden;
+}
+
+.split-graphic-side object {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
 }
 
 .split-form-side {
@@ -139,15 +165,33 @@
     opacity: 0.7;
 }
 
-.brand-watermark h2 {
+.brand-watermark {
+    position: absolute;
+    top: 2.5rem;
+    left: 2.5rem;
+}
+
+.brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-header img.logo-img {
+    height: 36px;
+    width: auto;
+}
+
+.brand-header h2 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: 800;
 }
 
 .brand-watermark p {
     margin: 4px 0 0 0;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
+    color: rgba(0,0,0,0.7);
 }
 
 .graphic-center-art {
@@ -329,13 +373,24 @@
 
 /* --- Responsive Layout (Tablet & Mobile) --- */
 @media (max-width: 900px) {
+    .login-body-bg {
+        padding: 1rem;
+    }
     .login-split-layout {
         flex-direction: column;
+        height: auto;
+        max-height: none;
     }
     .split-graphic-side {
         padding: 2rem;
-        min-height: 250px;
+        min-height: 350px;
         flex: none;
+        justify-content: center;
+    }
+    .brand-watermark {
+        position: absolute;
+        top: 1.5rem;
+        left: 1.5rem;
     }
     .vector-art {
         max-width: 150px;
@@ -351,14 +406,43 @@
 }
 
 @media (max-width: 480px) {
+    .login-body-bg {
+        padding: 0; /* Full bleed on mobile */
+        align-items: flex-start; /* Align to top */
+        background-color: transparent; /* Background applied to layout instead */
+    }
+    .login-split-layout {
+        border-radius: 0;
+        min-height: 100vh;
+        background: transparent;
+        box-shadow: none;
+    }
     .split-graphic-side {
-        display: none; /* Hide graphic completely on very small screens to save space */
+        display: flex; /* Override previous if any */
+        padding: 2rem 1.5rem;
+        min-height: 350px;
+    }
+    .brand-watermark {
+        top: 1.5rem;
+        left: 1.5rem;
+    }
+    .split-graphic-side object {
+        max-height: 200px;
+        margin-top: 2rem;
     }
     .split-form-side {
-        padding: 2rem 1.5rem;
-        align-items: center;
+        padding: 2.5rem 1.5rem;
+        align-items: flex-start;
+        background: white;
+        border-radius: 30px 30px 0 0;
+        margin-top: -40px; /* Overlap effect */
+        position: relative;
+        z-index: 10;
+        flex: 1;
+        box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
     }
     .compact-form-box {
-        margin-top: 2rem;
+        margin-top: 0;
+        width: 100%;
     }
 }

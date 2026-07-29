@@ -97,7 +97,7 @@ if (studentRegisterForm) {
                 return;
             }
 
-            const response = await fetch('http://localhost:3000/api/validate-student', {
+            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/validate-student', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ firstName, middleName, lastName, studentId })

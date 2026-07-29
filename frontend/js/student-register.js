@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnVerifyId.disabled = true;
             btnVerifyId.classList.add('disabled-style');
 
-            const response = await fetch('http://localhost:3000/api/verify-id', {
+            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/verify-id', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id_number: idVal })
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSendOtp.classList.add('disabled-style');
             emailInput.disabled = true; // Temporarily lock the input while waiting
 
-            const response = await fetch('http://localhost:3000/api/send-otp', {
+            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: emailVal })
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const emailVal = emailInput.value.trim();
 
         try {
-            const response = await fetch('http://localhost:3000/api/verify-otp', {
+            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: emailVal, code: code })

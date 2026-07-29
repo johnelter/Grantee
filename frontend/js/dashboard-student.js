@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 4. Fetch dashboard data from your local Node API
     try {
-        const response = await fetch(`http://localhost:3000/api/student-dashboard/${user.id}`);
+        const response = await fetch(`https://grantee-backend-n5f4.onrender.com/api/student-dashboard/${user.id}`);
         const data = await response.json();
 
         if (response.ok) {

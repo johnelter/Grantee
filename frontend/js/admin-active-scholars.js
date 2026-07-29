@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const app = activeBeneficiaries.find(a => a.id === appId);
                 if (app && currentAdminSchoolId) {
                     const studentName = app.profiles ? `${app.profiles.first_name || ''} ${app.profiles.last_name || ''}`.trim() : 'A student';
-                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                    await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

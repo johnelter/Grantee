@@ -895,7 +895,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `
             };
 
-            await fetch('http://localhost:3000/api/dispatch-notification', {
+            await fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const decisionStr = newStatus === 'Approved' ? 'Approved' : 'Rejected';
                     const studentName = targetApp.profiles ? `${targetApp.profiles.first_name || ''} ${targetApp.profiles.last_name || ''}`.trim() : 'A student';
                     
-                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                    await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -927,7 +927,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             .eq('status', 'Approved');
                             
                         if (currentApprovedCount >= targetApp.scholarships.slots) {
-                            await fetch('http://localhost:3000/api/notify-coordinators', {
+                            await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -941,7 +941,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 } else if (newStatus === 'Pending' || newStatus === 'Under Review' || newStatus === 'Pending Review') {
-                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                    await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

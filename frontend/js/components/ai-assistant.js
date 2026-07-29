@@ -456,7 +456,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     content: m.content
                 }));
 
-            const response = await fetch('http://localhost:3000/api/student/ai-chat', {
+            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/student/ai-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

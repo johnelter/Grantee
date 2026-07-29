@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             formData.append('minHsSubject', currentScholarship.min_hs_subject_grade || 0);
             formData.append('minCollegeSubject', currentScholarship.min_college_subject_grade || 5.0);
 
-            const BACKEND_URL = 'http://localhost:3000/api/validate-document';
+            const BACKEND_URL = 'https://grantee-backend-n5f4.onrender.com/api/validate-document';
 
             const response = await fetch(BACKEND_URL, {
                 method: 'POST',
@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `
             };
 
-            await fetch('http://localhost:3000/api/dispatch-notification', {
+            await fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(notifPayload)
@@ -607,7 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Notify Coordinators of new application
             if (studentSchoolId) {
-                await fetch('http://localhost:3000/api/notify-coordinators', {
+                await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -527,7 +527,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/moderate-comment', {
+            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/moderate-comment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text })
@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Notify admin of AI moderation alert
                 const schoolId = studentProfile?.school_id;
                 if (schoolId) {
-                    await fetch('http://localhost:3000/api/notify-coordinators', {
+                    await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

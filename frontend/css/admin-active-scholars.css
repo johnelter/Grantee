@@ -457,6 +457,63 @@ button { font-family: inherit; cursor: pointer; }
     overflow-y: auto;
 }
 
+.global-modal-icon { 
+    font-size: 44px; 
+    color: #ef4444; 
+    margin-bottom: 15px; 
+}
+
+.global-modal-content h3 { 
+    font-size: 20px; 
+    color: #0f172a; 
+    margin-bottom: 8px; 
+    font-weight: 700; 
+}
+
+.global-modal-content p { 
+    font-size: 14px; 
+    color: #64748b; 
+    margin-bottom: 24px; 
+    line-height: 1.5; 
+}
+
+.global-modal-actions { 
+    display: flex; 
+    justify-content: center; 
+    gap: 12px; 
+}
+
+.global-btn-cancel { 
+    background: #fff; 
+    border: 1px solid #cbd5e1; 
+    color: #334155; 
+    padding: 10px 24px; 
+    border-radius: 8px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    flex: 1; 
+}
+.global-btn-cancel:hover { background: #f1f5f9; }
+
+.global-btn-confirm { 
+    background: #ef4444; 
+    color: white; 
+    border: none; 
+    padding: 10px 24px; 
+    border-radius: 8px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    flex: 1; 
+}
+.global-btn-confirm:hover { background: #dc2626; }
+
+@keyframes globalModalFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .upload-dropzone {
     border: 2px dashed var(--border-dark);
     border-radius: 12px;

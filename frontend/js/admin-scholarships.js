@@ -104,40 +104,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // LOGOUT LOGIC WITH SWEETALERT
-    const logoutBtns = [document.getElementById('dropdown-logout-btn')];
-    logoutBtns.forEach(btn => {
-        if (btn) {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (profileMenu) profileMenu.classList.remove('show');
+    // const logoutBtns = [document.getElementById('dropdown-logout-btn')];
+    // logoutBtns.forEach(btn => {
+    //     if (btn) {
+    //         btn.addEventListener('click', (e) => {
+    //             e.preventDefault();
+    //             if (profileMenu) profileMenu.classList.remove('show');
                 
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "You will be logged out of your session.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3b82f6',
-                    cancelButtonColor: '#ef4444',
-                    confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Yes, logout'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        try {
-                            Swal.fire({
-                                title: 'Logging out...',
-                                allowOutsideClick: false,
-                                didOpen: () => Swal.showLoading()
-                            });
-                            await window.supabaseClient.auth.signOut();
-                            window.location.href = 'login.html';
-                        } catch (error) {
-                            console.error("Logout error:", error);
-                            Swal.fire('Error!', 'Failed to logout. Please try again.', 'error');
-                        }
-                    }
-                });
-            });
-        }
-    });
+    //             Swal.fire({
+    //                 title: 'Are you sure?',
+    //                 text: "You will be logged out of your session.",
+    //                 icon: 'warning',
+    //                 showCancelButton: true,
+    //                 confirmButtonColor: '#3b82f6',
+    //                 cancelButtonColor: '#ef4444',
+    //                 confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Yes, logout'
+    //             }).then(async (result) => {
+    //                 if (result.isConfirmed) {
+    //                     try {
+    //                         Swal.fire({
+    //                             title: 'Logging out...',
+    //                             allowOutsideClick: false,
+    //                             didOpen: () => Swal.showLoading()
+    //                         });
+    //                         await window.supabaseClient.auth.signOut();
+    //                         window.location.href = 'login.html';
+    //                     } catch (error) {
+    //                         console.error("Logout error:", error);
+    //                         Swal.fire('Error!', 'Failed to logout. Please try again.', 'error');
+    //                     }
+    //                 }
+    //             });
+    //         });
+    //     }
+    // });
 
     // Remove old modal logic if it exists in HTML to prevent conflicts
     const oldLogoutModal = document.getElementById('logout-modal');

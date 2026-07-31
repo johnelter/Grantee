@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 const { error } = await window.supabaseClient.from('applications').update({ 
-                    status: 'Rejected', 
+                    status: 'Revoked', 
                     remarks: 'Assistance Revoked by Administrator' 
                 }).eq('id', appId);
                 if (error) throw error;

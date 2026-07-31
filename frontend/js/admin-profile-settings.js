@@ -355,19 +355,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             start2faBtn.disabled = true;
 
             try {
-                const { data, error } = await window.supabaseClient.auth.mfa.enroll({ factorType: 'totp' });
+                const { data, error } = await window.supabaseClient.auth.mfa.enroll({
+                    factorType: 'totp',
+                    issuer: 'Grantee System Admin',
+                    friendlyName: `Admin App ${Math.floor(Math.random() * 10000)}`
+                });
                 if (error) throw error;
 
                 factorId = data.id;
 
-                qrCodeContainer.innerHTML = data.totp.qr_code;
+                qrCodeContainer.innerHTML = `<div style="display: inline-block; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 0 auto;">
+                    ${data.totp.qr_code}
+                </div>`;
+                
+                const svgEl = qrCodeContainer.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.width = '200px';
+                    svgEl.style.height = '200px';
+                    svgEl.style.display = 'block';
+                    svgEl.style.margin = '0 auto';
+                }
                 qrCodeContainer.innerHTML += `
-                    <p style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
+                    <div style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
                         Can't scan the QR code? Enter this secret key manually into your app:<br>
-                        <strong style="color: #0f172a; font-family: monospace; font-size: 16px; letter-spacing: 2px; word-break: break-all; display: inline-block; margin-top: 5px; background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">
-                            ${data.totp.secret}
-                        </strong>
-                    </p>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
+                            <strong style="color: #0f172a; font-family: monospace; font-size: 16px; letter-spacing: 2px; background: #f1f5f9; padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                ${data.totp.secret}
+                            </strong>
+                            <button type="button" onclick="navigator.clipboard.writeText('${data.totp.secret}'); this.innerHTML = '<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(() => this.innerHTML = '<i class=\\'fa-regular fa-copy\\'></i>', 2000);" title="Copy Secret Key" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
                 `;
                 
                 setup2faSection.style.display = 'block';
@@ -377,6 +396,66 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Swal.fire({ icon: 'error', title: 'Setup Error', text: error.message });
                 start2faBtn.innerText = "Set Up 2FA";
                 start2faBtn.disabled = false;
+            }
+        });
+    }
+
+    // Check initial 2FA state
+    async function check2FAStatus() {
+        try {
+            const { data: factors, error } = await window.supabaseClient.auth.mfa.listFactors();
+            if (error) throw error;
+            
+            const is2faEnabled = factors.totp && factors.totp.some(f => f.status === 'verified');
+            const active2faSection = document.getElementById('active-2fa-section');
+            if (is2faEnabled) {
+                if (start2faBtn) start2faBtn.style.display = 'none';
+                if (active2faSection) active2faSection.style.display = 'block';
+            }
+        } catch (err) {
+            console.error("Error checking 2FA status:", err);
+        }
+    }
+    check2FAStatus();
+
+    const disable2faBtn = document.getElementById('disable-2fa-btn');
+    if (disable2faBtn) {
+        disable2faBtn.addEventListener('click', async () => {
+            const confirm = await Swal.fire({
+                title: 'Turn Off 2FA?',
+                text: "Are you sure you want to disable Two-Factor Authentication? This will make your account less secure.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, turn it off'
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            disable2faBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Turning Off...';
+            disable2faBtn.disabled = true;
+
+            try {
+                const { data: factors, error: listError } = await window.supabaseClient.auth.mfa.listFactors();
+                if (listError) throw listError;
+
+                const activeFactor = factors.totp.find(f => f.status === 'verified');
+                if (!activeFactor) throw new Error("No active 2FA factor found.");
+
+                const { error: unenrollError } = await window.supabaseClient.auth.mfa.unenroll({ factorId: activeFactor.id });
+                if (unenrollError) throw unenrollError;
+
+                Swal.fire({ icon: 'success', title: '2FA Disabled', text: 'Two-Factor Authentication has been turned off.' });
+                
+                document.getElementById('active-2fa-section').style.display = 'none';
+                start2faBtn.style.display = 'block';
+
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+            } finally {
+                disable2faBtn.innerText = 'Turn Off 2FA';
+                disable2faBtn.disabled = false;
             }
         });
     }
@@ -406,8 +485,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 Swal.fire({ icon: 'success', title: '2FA Enabled', text: 'You will be asked for a code next time you log in.' });
                 
-                setup2faSection.style.borderTop = 'none';
-                setup2faSection.innerHTML = '<p style="color: #10b981; font-weight: bold; margin: 0;"><i class="fa-solid fa-circle-check"></i> 2FA is currently Active.</p>';
+                setup2faSection.style.display = 'none';
+                const active2faSection = document.getElementById('active-2fa-section');
+                if (active2faSection) active2faSection.style.display = 'block';
 
             } catch (error) {
                 Swal.fire({ icon: 'error', title: 'Verification Failed', text: 'Invalid code. Please try again. ' + error.message });
@@ -510,3 +590,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     loadProfile();
 });
+
+window.togglePasswordVisibility = function(inputId, button) {
+    const input = document.getElementById(inputId);
+    const icon = button.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    }
+};

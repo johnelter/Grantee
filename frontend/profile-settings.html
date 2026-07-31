@@ -212,23 +212,26 @@
                         <h3>Security Settings</h3>
                         <p class="text-sm">Change your account password securely.</p>
                         <form id="password-form" class="mt-16">
-                            <div class="input-group" style="margin-bottom: 12px;">
+                            <div class="input-group" style="margin-bottom: 12px; position: relative;">
                                 <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">Current Password <span class="text-red">*</span></label>
                                 <input type="password" id="current-password" class="form-input" required
                                     placeholder="Enter current password"
-                                    style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                    style="width: 100%; padding: 8px 40px 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <button type="button" onclick="togglePasswordVisibility('current-password', this)" style="position: absolute; right: 10px; bottom: 9px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 14px;"><i class="fa-solid fa-eye-slash"></i></button>
                             </div>
-                            <div class="input-group" style="margin-bottom: 12px;">
+                            <div class="input-group" style="margin-bottom: 12px; position: relative;">
                                 <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">New Password <span class="text-red">*</span></label>
                                 <input type="password" id="new-password" class="form-input" minlength="8" required
                                     placeholder="Minimum 8 characters"
-                                    style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                    style="width: 100%; padding: 8px 40px 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <button type="button" onclick="togglePasswordVisibility('new-password', this)" style="position: absolute; right: 10px; bottom: 9px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 14px;"><i class="fa-solid fa-eye-slash"></i></button>
                             </div>
-                            <div class="input-group" style="margin-bottom: 16px;">
+                            <div class="input-group" style="margin-bottom: 16px; position: relative;">
                                 <label style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; display: block;">Confirm New Password <span class="text-red">*</span></label>
                                 <input type="password" id="confirm-password" class="form-input" minlength="8" required
                                     placeholder="Retype new password"
-                                    style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                    style="width: 100%; padding: 8px 40px 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <button type="button" onclick="togglePasswordVisibility('confirm-password', this)" style="position: absolute; right: 10px; bottom: 9px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 14px;"><i class="fa-solid fa-eye-slash"></i></button>
                             </div>
                             <button type="submit" id="btn-save-password" class="btn-primary" style="width: 100%;">Update Password</button>
                         </form>

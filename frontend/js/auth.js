@@ -358,8 +358,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             didOpen: () => { Swal.showLoading(); }
                         });
 
+                        let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
                         const { error } = await client.auth.resetPasswordForEmail(email, {
-                            redirectTo: window.location.origin + '/frontend/reset-password.html' 
+                            redirectTo: window.location.origin + basePath + 'reset-password.html' 
                         });
 
                         if (error) throw error;
@@ -397,11 +398,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const icon = togglePassword.querySelector('i');
             if (type === 'text') {
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
+            } else {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             }
         });
     }

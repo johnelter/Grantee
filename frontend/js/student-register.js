@@ -38,15 +38,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (inputField.type === 'password') {
                     inputField.type = 'text';
                     if (iTag) {
-                        iTag.classList.remove('fa-eye');
-                        iTag.classList.add('fa-eye-slash');
+                        iTag.classList.remove('fa-eye-slash');
+                        iTag.classList.add('fa-eye');
                     }
                     this.title = "Hide Password";
                 } else {
                     inputField.type = 'password';
                     if (iTag) {
-                        iTag.classList.remove('fa-eye-slash');
-                        iTag.classList.add('fa-eye');
+                        iTag.classList.remove('fa-eye');
+                        iTag.classList.add('fa-eye-slash');
                     }
                     this.title = "Show Password";
                 }

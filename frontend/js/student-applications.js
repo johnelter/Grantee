@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const total = apps.length;
         const review = apps.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
         const approved = apps.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
-        const rejected = apps.filter(a => a.status === 'Rejected' || a.status === 'Declined').length;
+        const rejected = apps.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
 
         if(document.getElementById('count-total')) document.getElementById('count-total').innerText = total;
         if(document.getElementById('count-review')) document.getElementById('count-review').innerText = review;
@@ -143,6 +143,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 progress = 100;
                 barColor = '#10b981'; // success green
                 displayStatus = 'Approved';
+            } else if (statusLower === 'revoked') {
+                badgeClass = 'badge-rejected'; // using rejected badge styling for revoked
+                progress = 100;
+                barColor = '#ef4444'; // danger red
+                displayStatus = 'Revoked';
             } else if (statusLower === 'rejected' || statusLower === 'declined') {
                 badgeClass = 'badge-rejected';
                 progress = 100;
@@ -217,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(line1) line1.classList.add('active');
             if(stepRev) stepRev.classList.add('active');
         }
-        else if (statusLower === 'approved' || statusLower === 'rejected' || statusLower === 'grantee' || statusLower === 'declined') {
+        else if (statusLower === 'approved' || statusLower === 'rejected' || statusLower === 'grantee' || statusLower === 'declined' || statusLower === 'revoked') {
             if(stepRev) stepRev.classList.add('active');
             if(stepFinal) stepFinal.classList.add('active');
             if(line1) line1.classList.add('active');
@@ -236,8 +241,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const existingModal = document.getElementById('app-details-modal');
         if (existingModal) existingModal.remove();
 
-        const statusColor = (app.status === 'Approved' || app.status === 'Grantee') ? '#166534' : ((app.status === 'Rejected' || app.status === 'Declined') ? '#991b1b' : '#b45309');
-        const statusBg = (app.status === 'Approved' || app.status === 'Grantee') ? '#dcfce7' : ((app.status === 'Rejected' || app.status === 'Declined') ? '#fee2e2' : '#fef3c7');
+        const statusColor = (app.status === 'Approved' || app.status === 'Grantee') ? '#166534' : ((app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') ? '#991b1b' : '#b45309');
+        const statusBg = (app.status === 'Approved' || app.status === 'Grantee') ? '#dcfce7' : ((app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') ? '#fee2e2' : '#fef3c7');
         const displayStatus = (app.status === 'Pending' || app.status === 'Under Review') ? 'Under Review' : (app.status === 'Grantee' ? 'Approved' : (app.status === 'Declined' ? 'Rejected' : app.status));
 
         // FIX: Ensure the modal title reads outside programs properly

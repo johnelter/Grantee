@@ -362,23 +362,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const randomId = Math.floor(Math.random() * 10000);
                 const { data, error } = await window.supabaseClient.auth.mfa.enroll({
                     factorType: 'totp',
+                    issuer: 'Grantee System',
                     friendlyName: `Grantee App ${randomId}`
                 });
 
                 if (error) throw error;
                 factorId = data.id;
 
-                qrCodeContainer.innerHTML = `<div style="display: inline-block; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 220px; height: 220px; margin: 0 auto;">
-                    ${data.totp.qr_code.replace('<svg', '<svg width="200" height="200" style="display:block; margin:0 auto;"')}
+                qrCodeContainer.innerHTML = `<div style="display: inline-block; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 0 auto;">
+                    ${data.totp.qr_code}
                 </div>`;
+                
+                const svgEl = qrCodeContainer.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.width = '200px';
+                    svgEl.style.height = '200px';
+                    svgEl.style.display = 'block';
+                    svgEl.style.margin = '0 auto';
+                }
 
                 qrCodeContainer.innerHTML += `
-                    <p style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
+                    <div style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
                         Can't scan the QR code? Enter this secret key manually into your app:<br>
-                        <strong style="color: #0f172a; font-family: monospace; font-size: 16px; letter-spacing: 2px; word-break: break-all; display: inline-block; margin-top: 5px; background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">
-                            ${data.totp.secret}
-                        </strong>
-                    </p>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
+                            <strong style="color: #0f172a; font-family: monospace; font-size: 16px; letter-spacing: 2px; background: #f1f5f9; padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                ${data.totp.secret}
+                            </strong>
+                            <button type="button" onclick="navigator.clipboard.writeText('${data.totp.secret}'); this.innerHTML = '<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(() => this.innerHTML = '<i class=\\'fa-regular fa-copy\\'></i>', 2000);" title="Copy Secret Key" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
                 `;
 
                 setup2faSection.style.display = 'block';
@@ -577,3 +591,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Page
     loadProfileData();
 });
+
+window.togglePasswordVisibility = function(inputId, button) {
+    const input = document.getElementById(inputId);
+    const icon = button.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    }
+};

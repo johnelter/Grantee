@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.innerHTML = html;
     };
 
-    const renderAuditTrail = (logs) => {
+    const renderAuditTrail = async (logs) => {
         const tbody = document.getElementById('audit-trail-tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -367,20 +367,75 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Pre-fetch target users to avoid N+1 queries
+        let targetUserIds = [];
+        logs.forEach(log => {
+            try {
+                if (log.details && log.details.startsWith('{')) {
+                    const parsed = JSON.parse(log.details);
+                    if (parsed.targetUserId && !targetUserIds.includes(parsed.targetUserId)) {
+                        targetUserIds.push(parsed.targetUserId);
+                    }
+                }
+            } catch(e) {}
+        });
+
+        let targetUserProfiles = {};
+        if (targetUserIds.length > 0) {
+            const { data: profiles } = await window.supabaseClient
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .in('id', targetUserIds);
+            
+            if (profiles) {
+                profiles.forEach(p => {
+                    targetUserProfiles[p.id] = `${p.first_name} ${p.last_name}`;
+                });
+            }
+        }
+
+        let html = '';
         logs.forEach(log => {
             const timeString = new Date(log.created_at).toLocaleString();
             const userName = log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown Admin';
             
-            tbody.innerHTML += `
+            let detailsText = log.details || '-';
+            try {
+                if (log.details && log.details.startsWith('{')) {
+                    const parsed = JSON.parse(log.details);
+                    let dText = parsed.details || '';
+                    
+                    if (!dText) {
+                        const parts = [];
+                        for (const [key, value] of Object.entries(parsed)) {
+                            if (key !== 'targetUserId') {
+                                // Capitalize first letter of key for better readability
+                                const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                parts.push(`${formattedKey}: ${value}`);
+                            }
+                        }
+                        dText = parts.join(', ');
+                    }
+
+                    if (parsed.targetUserId) {
+                        const targetName = targetUserProfiles[parsed.targetUserId] || 'Unknown User';
+                        dText += dText ? ` (Target User: ${targetName})` : `Target User: ${targetName}`;
+                    }
+                    detailsText = dText;
+                }
+            } catch (e) {}
+
+            html += `
                 <tr class="border-b hover:bg-gray-50 transition-colors">
                     <td class="py-3 px-4 text-xs text-gray-500">${timeString}</td>
                     <td class="py-3 px-4 text-sm text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-1"></i>${userName}</td>
                     <td class="py-3 px-4 text-sm font-medium text-gray-800">${log.action}</td>
                     <td class="py-3 px-4 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full inline-block mt-2 px-2 py-1">${log.module}</td>
-                    <td class="py-3 px-4 text-xs text-gray-500">${log.details || '-'}</td>
+                    <td class="py-3 px-4 text-xs text-gray-500">${detailsText}</td>
                 </tr>
             `;
         });
+        tbody.innerHTML = html;
     };
 
     const renderApplicationOverview = (apps) => {

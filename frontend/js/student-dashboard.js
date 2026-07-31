@@ -124,8 +124,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // A. Update Overview Stats
             const submittedCount = applications.filter(a => a.status === 'Pending').length;
             const reviewCount = applications.filter(a => a.status === 'Under Review').length;
-            const approvedCount = applications.filter(a => a.status === 'Approved').length;
-            const rejectedCount = applications.filter(a => a.status === 'Rejected').length;
+            const approvedCount = applications.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
+            const rejectedCount = applications.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
 
             if(document.getElementById('stat-submitted')) document.getElementById('stat-submitted').innerText = submittedCount;
             if(document.getElementById('stat-review')) document.getElementById('stat-review').innerText = reviewCount;
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             recentList.innerHTML = '';
             applications.slice(0, 5).forEach(app => {
-                const title = app.scholarships ? app.scholarships.title : 'Unknown Scholarship';
+                const title = app.scholarships?.title || app.outside_assistance_name || 'Unknown Program';
                 const dateStr = new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
                 
                 // Determine Badge styling based on status
@@ -152,11 +152,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let iconBg = '#f1f5f9';
                 let iconColor = '#475569';
 
-                if(app.status === 'Submitted') { badgeClass = 'badge-pending'; iconStr = '📄'; iconBg = '#f1f5f9'; iconColor = '#475569'; }
+                if(app.status === 'Submitted' || app.status === 'Pending') { badgeClass = 'badge-pending'; iconStr = '📄'; iconBg = '#f1f5f9'; iconColor = '#475569'; }
                 if(app.status === 'Under Review') { badgeClass = 'badge-review'; iconStr = '⏳'; iconBg = '#fef3c7'; iconColor = '#d97706'; }
                 if(app.status === 'Request Revision') { badgeClass = 'badge-revision'; iconStr = '📝'; iconBg = '#ffedd5'; iconColor = '#c2410c'; }
-                if(app.status === 'Approved') { badgeClass = 'badge-approved'; iconStr = '✓'; iconBg = '#dcfce7'; iconColor = '#10b981'; }
-                if(app.status === 'Rejected') { badgeClass = 'badge-rejected'; iconStr = '✕'; iconBg = '#fee2e2'; iconColor = '#ef4444'; } 
+                if(app.status === 'Approved' || app.status === 'Grantee') { badgeClass = 'badge-approved'; iconStr = '✓'; iconBg = '#dcfce7'; iconColor = '#10b981'; }
+                if(app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') { badgeClass = 'badge-rejected'; iconStr = '✕'; iconBg = '#fee2e2'; iconColor = '#ef4444'; } 
                 if(app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconStr = '🚫'; iconBg = '#e2e8f0'; iconColor = '#475569'; }
 
                 recentList.innerHTML += `

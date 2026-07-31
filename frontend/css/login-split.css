@@ -191,7 +191,7 @@
 .brand-watermark p {
     margin: 4px 0 0 0;
     font-size: 0.85rem;
-    color: rgba(0,0,0,0.7);
+    color: rgba(0, 0, 0, 0.7);
 }
 
 .graphic-center-art {
@@ -271,7 +271,8 @@
 
 .password-input-wrapper input {
     width: 100%;
-    padding-right: 40px; /* Space for the eye icon */
+    padding-right: 40px;
+    /* Space for the eye icon */
 }
 
 .toggle-password {
@@ -368,7 +369,11 @@
 .bottom-route-p a {
     color: var(--accent-blue);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
+}
+
+.bottom-route-p a:hover {
+    text-decoration: underline;
 }
 
 /* --- Responsive Layout (Tablet & Mobile) --- */
@@ -376,29 +381,35 @@
     .login-body-bg {
         padding: 1rem;
     }
+
     .login-split-layout {
         flex-direction: column;
         height: auto;
         max-height: none;
     }
+
     .split-graphic-side {
         padding: 2rem;
         min-height: 350px;
         flex: none;
         justify-content: center;
     }
+
     .brand-watermark {
         position: absolute;
         top: 1.5rem;
         left: 1.5rem;
     }
+
     .vector-art {
         max-width: 150px;
         margin-bottom: 1rem;
     }
+
     .graphic-center-art h3 {
         font-size: 1.2rem;
     }
+
     .split-form-side {
         padding: 3rem 1.5rem;
         align-items: flex-start;
@@ -407,40 +418,51 @@
 
 @media (max-width: 480px) {
     .login-body-bg {
-        padding: 0; /* Full bleed on mobile */
-        align-items: flex-start; /* Align to top */
-        background-color: transparent; /* Background applied to layout instead */
+        padding: 0;
+        /* Full bleed on mobile */
+        align-items: flex-start;
+        /* Align to top */
+        background-color: transparent;
+        /* Background applied to layout instead */
     }
+
     .login-split-layout {
         border-radius: 0;
         min-height: 100vh;
         background: transparent;
         box-shadow: none;
     }
+
     .split-graphic-side {
-        display: flex; /* Override previous if any */
+        display: flex;
+        /* Override previous if any */
         padding: 2rem 1.5rem;
         min-height: 350px;
     }
+
     .brand-watermark {
         top: 1.5rem;
         left: 1.5rem;
     }
+
     .split-graphic-side object {
         max-height: 200px;
         margin-top: 2rem;
     }
+
     .split-form-side {
         padding: 2.5rem 1.5rem;
         align-items: flex-start;
         background: white;
         border-radius: 30px 30px 0 0;
-        margin-top: -40px; /* Overlap effect */
+        margin-top: -40px;
+        /* Overlap effect */
         position: relative;
         z-index: 10;
         flex: 1;
-        box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+        box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.05);
     }
+
     .compact-form-box {
         margin-top: 0;
         width: 100%;

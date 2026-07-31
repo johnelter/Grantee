@@ -272,6 +272,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        const evalTabBtn = document.getElementById('tab-evaluate-applicant');
+        if (evalTabBtn) {
+            if (status === 'Individual') {
+                evalTabBtn.style.display = 'flex';
+            } else {
+                evalTabBtn.style.display = 'none';
+            }
+        }
+
         const tableView = document.getElementById('table-view-container');
         const indivView = document.getElementById('individual-view-container');
         const badge = document.getElementById('main-status-badge');
@@ -374,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div style="display:flex; gap:8px;">
                         <button class="btn-approve" onclick="confirmUpdateStatus('${app.id}', 'Approved', 'Approve')"><i class="fa-solid fa-check"></i> Approve</button>
                         <button class="btn-reject" onclick="confirmUpdateStatus('${app.id}', 'Rejected', 'Reject')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                        <button class="btn-outline" style="padding:6px 12px; font-size:13px;" onclick="viewApplicantDetails('${app.id}')"><i class="fa-solid fa-eye"></i> View</button>
+                        <button class="btn-outline" style="padding:6px 12px; font-size:13px;" onclick="viewApplicantDetails('${app.id}')"><i class="fa-solid fa-eye"></i> View Responses</button>
                     </div>
                 `;
             } else if (activeTabStatus === 'Approved') {

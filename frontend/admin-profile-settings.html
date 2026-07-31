@@ -136,19 +136,22 @@
 
                             <form id="password-form">
                                 <div class="form-row">
-                                    <div class="input-group">
+                                    <div class="input-group" style="position: relative;">
                                         <label>Current Password <span class="text-red">*</span></label>
-                                        <input type="password" id="current-password" class="form-input" required placeholder="Enter current password">
+                                        <input type="password" id="current-password" class="form-input" required placeholder="Enter current password" style="padding-right: 40px;">
+                                        <button type="button" onclick="togglePasswordVisibility('current-password', this)" style="position: absolute; right: 10px; bottom: 10px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 14px;"><i class="fa-solid fa-eye-slash"></i></button>
                                     </div>
                                 </div>
                                 <div class="form-row">
-                                    <div class="input-group">
+                                    <div class="input-group" style="position: relative;">
                                         <label>New Password <span class="text-red">*</span></label>
-                                        <input type="password" id="new-password" class="form-input" minlength="8" required placeholder="Minimum 8 characters">
+                                        <input type="password" id="new-password" class="form-input" minlength="8" required placeholder="Minimum 8 characters" style="padding-right: 40px;">
+                                        <button type="button" onclick="togglePasswordVisibility('new-password', this)" style="position: absolute; right: 10px; bottom: 10px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 14px;"><i class="fa-solid fa-eye-slash"></i></button>
                                     </div>
-                                    <div class="input-group">
+                                    <div class="input-group" style="position: relative;">
                                         <label>Confirm New Password <span class="text-red">*</span></label>
-                                        <input type="password" id="confirm-password" class="form-input" minlength="8" required placeholder="Retype new password">
+                                        <input type="password" id="confirm-password" class="form-input" minlength="8" required placeholder="Retype new password" style="padding-right: 40px;">
+                                        <button type="button" onclick="togglePasswordVisibility('confirm-password', this)" style="position: absolute; right: 10px; bottom: 10px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 14px;"><i class="fa-solid fa-eye-slash"></i></button>
                                     </div>
                                 </div>
                                 <div class="form-actions mt-20">
@@ -163,6 +166,11 @@
                             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Secure your admin account with a TOTP authenticator app.</p>
                             
                             <button id="start-2fa-btn" class="btn-outline" type="button" style="border-color: #3b82f6; color: #3b82f6; width: 100%;">Set Up 2FA</button>
+
+                            <div id="active-2fa-section" style="display: none; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; margin-bottom: 15px;">
+                                <p style="color: #166534; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-shield-halved"></i> 2FA is currently Enabled</p>
+                                <button id="disable-2fa-btn" class="btn-outline" type="button" style="border-color: #ef4444; color: #ef4444; width: 100%;">Turn Off 2FA</button>
+                            </div>
 
                             <div id="setup-2fa-section" style="display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
                                 <p style="font-size: 13px; color: #475569; margin-bottom: 10px;"><strong>1. Scan this QR code with your Authenticator App:</strong></p>

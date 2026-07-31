@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +10,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="bg-main text-main register-page-bg">
-    
-    <div class="brand-header">
-        Grantee
-    </div>
 
-    <div class="register-container">
+<body class="bg-main text-main register-page-bg">
+
+    <div class="split-layout">
+        <div class="split-left">
+            <div class="brand-header">
+                <div class="brand-logo-container">
+                    <img src="./assets/grantee_logo.png" alt="Grantee Logo" style="width: 32px; height: 32px;">
+                    <h1 class="brand-title">Grantee</h1>
+                </div>
+                <p class="brand-subtitle">Smart Scholarship Management System</p>
+            </div>
+            <div class="illustration-container">
+                <img src="./assets/register-animate.svg" alt="Registration Illustration">
+            </div>
+        </div>
+        
+        <div class="split-right">
+            <div class="register-container">
         <div class="logo-area">
             <div class="icon-circle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
             </div>
             <h2>Create Your Account</h2>
             <p>Verify your student identity to get started with Grantee.</p>
@@ -39,10 +55,14 @@
 
             <div id="autofill-section" class="identity-box" style="display:none;">
                 <div class="identity-header">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
                     IDENTITY CONFIRMED
                 </div>
-                
+
                 <div class="identity-grid">
                     <div class="id-field">
                         <span class="id-label">FIRST NAME</span>
@@ -72,7 +92,8 @@
                 </div>
                 <div class="verify-flex">
                     <input type="email" id="reg_email" placeholder="student@school.edu.ph" disabled required>
-                    <button type="button" id="btn-send-otp" class="btn-primary btn-verify disabled-style" disabled>Verify</button>
+                    <button type="button" id="btn-send-otp" class="btn-primary btn-verify disabled-style"
+                        disabled>Verify</button>
                 </div>
                 <small id="email-status" class="status-msg"></small>
             </div>
@@ -90,29 +111,39 @@
             <div class="input-group">
                 <label>Password</label>
                 <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="reg_pass" placeholder="Create a strong password" disabled required style="width: 100%; padding-right: 40px;">
-                    <span class="toggle-password" data-target="reg_pass" style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;" title="Show Password"><i class="fa-regular fa-eye"></i></span>
-                </div>
-            </div>
-            
-            <div class="input-group mt-20">
-                <label>Confirm Password</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="reg_pass_confirm" placeholder="Repeat password" disabled required style="width: 100%; padding-right: 40px;">
-                    <span class="toggle-password" data-target="reg_pass_confirm" style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;" title="Show Password"><i class="fa-regular fa-eye"></i></span>
+                    <input type="password" id="reg_pass" placeholder="Create a strong password" disabled required
+                        style="width: 100%; padding-right: 40px;">
+                    <span class="toggle-password" data-target="reg_pass"
+                        style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;"
+                        title="Show Password"><i class="fa-regular fa-eye-slash"></i></span>
                 </div>
             </div>
 
-            <button type="submit" id="btn-register" class="btn-primary btn-submit mt-24 disabled-style" disabled>Complete Registration</button>
+            <div class="input-group mt-20">
+                <label>Confirm Password</label>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="reg_pass_confirm" placeholder="Repeat password" disabled required
+                        style="width: 100%; padding-right: 40px;">
+                    <span class="toggle-password" data-target="reg_pass_confirm"
+                        style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;"
+                        title="Show Password"><i class="fa-regular fa-eye-slash"></i></span>
+                </div>
+            </div>
+
+            <button type="submit" id="btn-register" class="btn-primary btn-submit mt-24 disabled-style"
+                disabled>Complete Registration</button>
         </form>
-        
+
         <p class="footer-text">
             Already have an account? <a href="login.html">Login here</a>
         </p>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/student-register.js"></script>
 </body>
+
 </html>

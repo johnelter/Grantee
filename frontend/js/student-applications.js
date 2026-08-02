@@ -89,11 +89,66 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (fetchError) throw fetchError;
 
-            applicationsData = apps || [];
+            // Filter out applications added by admin (they have null form_responses)
+            applicationsData = (apps || []).filter(app => app.form_responses !== null);
 
             updateMetrics(applicationsData);
-            renderTable(applicationsData);
             updateStatusTracker(applicationsData);
+
+            // Handle status filtering
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) {
+                statusFilter.addEventListener('change', (e) => {
+                    const filterValue = e.target.value;
+                    let filteredApps = applicationsData;
+                    
+                    if (filterValue !== 'all') {
+                        filteredApps = applicationsData.filter(app => {
+                            const statusLower = (app.status || 'pending').toLowerCase();
+                            if (filterValue === 'under_review') {
+                                return statusLower === 'pending' || statusLower === 'under review';
+                            } else if (filterValue === 'approved') {
+                                return statusLower === 'approved' || statusLower === 'grantee';
+                            } else if (filterValue === 'rejected') {
+                                return statusLower === 'rejected' || statusLower === 'declined';
+                            } else if (filterValue === 'revoked') {
+                                return statusLower === 'revoked';
+                            }
+                            return true;
+                        });
+                    }
+                    renderTable(filteredApps);
+                });
+                
+                // Apply filter from URL if present
+                const urlParams = new URLSearchParams(window.location.search);
+                const filterParam = urlParams.get('filter');
+                if (filterParam && [...statusFilter.options].some(o => o.value === filterParam)) {
+                    statusFilter.value = filterParam;
+                    statusFilter.dispatchEvent(new Event('change'));
+                } else {
+                    renderTable(applicationsData);
+                }
+                
+                // Apply app_id auto-open and highlight
+                const appIdParam = urlParams.get('app_id');
+                if (appIdParam) {
+                    setTimeout(() => {
+                        const row = document.getElementById(`app-row-${appIdParam}`);
+                        if (row) {
+                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            row.style.transition = 'background-color 0.5s';
+                            row.style.backgroundColor = '#fef3c7'; // Light yellow highlight
+                            setTimeout(() => { row.style.backgroundColor = ''; }, 2500);
+                        }
+                        if (typeof window.viewDetails === 'function') {
+                            window.viewDetails(appIdParam);
+                        }
+                    }, 400);
+                }
+            } else {
+                renderTable(applicationsData);
+            }
 
         } catch (error) {
             console.error("Error loading applications:", error);
@@ -161,6 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const tr = document.createElement('tr');
+            tr.id = `app-row-${app.id}`;
             tr.innerHTML = `
                 <td>
                     <strong style="color: var(--text-main);">${programName}</strong>

@@ -119,11 +119,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            const applications = apps || [];
+            
+            // Filter out applications added by admin (they have null form_responses)
+            const applications = (apps || []).filter(app => app.form_responses !== null);
 
             // A. Update Overview Stats
-            const submittedCount = applications.filter(a => a.status === 'Pending').length;
-            const reviewCount = applications.filter(a => a.status === 'Under Review').length;
+            const submittedCount = applications.length;
+            const reviewCount = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
             const approvedCount = applications.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
             const rejectedCount = applications.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
 
@@ -160,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if(app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconStr = '🚫'; iconBg = '#e2e8f0'; iconColor = '#475569'; }
 
                 recentList.innerHTML += `
-                    <div class="list-item">
+                    <div class="list-item" style="cursor:pointer; transition:0.2s;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor=''" onclick="window.location.href='student-applications.html?app_id=${app.id}'">
                         <div class="item-icon" style="background:${iconBg}; color:${iconColor};">${iconStr}</div>
                         <div class="item-details">
                             <h4>${title}</h4>

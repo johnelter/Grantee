@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const adminId = session.user.id;
     let adminSchoolId = null; 
-    let currentFilter = 'This Month'; // Default filter
+    let currentFilter = localStorage.getItem('admin_dashboard_filter') || 'This Month';
 
     // --- 2. GLOBAL COMPONENTS & DROPDOWNS ---
     
@@ -126,6 +126,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         let startDate = new Date();
         let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
+        // Check for Custom Dates from localStorage
+        const customKey = `admin_dates_${filter.replace(/\\s+/g, '_')}`;
+        const savedDates = localStorage.getItem(customKey);
+
+        if (savedDates && (filter === 'Current Semester' || filter === 'Current School Year' || filter === 'Custom Date Range')) {
+            try {
+                const parsed = JSON.parse(savedDates);
+                if (parsed.start && parsed.end) {
+                    const parsedStart = new Date(parsed.start);
+                    const parsedEnd = new Date(parsed.end);
+                    parsedEnd.setHours(23, 59, 59, 999);
+                    return { start: parsedStart.toISOString(), end: parsedEnd.toISOString() };
+                }
+            } catch(e) {}
+        }
+
         switch (filter) {
             case 'Today':
                 startDate.setHours(0, 0, 0, 0);
@@ -146,19 +162,68 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const syStartYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
                 startDate = new Date(syStartYear, 7, 1);
                 break;
+            case 'Custom Date Range':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1); // fallback
+                break;
             default:
                 startDate = new Date(2000, 0, 1); 
         }
         return { start: startDate.toISOString(), end: endDate.toISOString() };
     };
 
-    // Filter Dropdown Listener
+    // Filter Dropdown and UI Logic
     const filterSelect = document.getElementById('dashboard-date-filter');
+    const customWrapper = document.getElementById('custom-date-wrapper');
+    const customStart = document.getElementById('custom-start-date');
+    const customEnd = document.getElementById('custom-end-date');
+
+    const updateCustomDateUI = () => {
+        if (!customWrapper) return;
+        const needsCustom = ['Current Semester', 'Current School Year', 'Custom Date Range'].includes(currentFilter);
+        
+        if (needsCustom) {
+            customWrapper.classList.remove('hidden');
+            customWrapper.classList.add('flex');
+            
+            const range = getDateRange(currentFilter);
+            if(customStart && customEnd) {
+                customStart.value = range.start.split('T')[0];
+                customEnd.value = range.end.split('T')[0];
+            }
+        } else {
+            customWrapper.classList.add('hidden');
+            customWrapper.classList.remove('flex');
+        }
+    };
+
     if (filterSelect) {
+        if ([...filterSelect.options].some(o => o.value === currentFilter)) {
+            filterSelect.value = currentFilter;
+        }
+
         filterSelect.addEventListener('change', (e) => {
             currentFilter = e.target.value;
+            localStorage.setItem('admin_dashboard_filter', currentFilter);
+            updateCustomDateUI();
             loadDashboardData(); 
         });
+
+        if (customStart && customEnd) {
+            const handleCustomDateChange = () => {
+                if (customStart.value && customEnd.value) {
+                    const customKey = `admin_dates_${currentFilter.replace(/\\s+/g, '_')}`;
+                    localStorage.setItem(customKey, JSON.stringify({
+                        start: customStart.value,
+                        end: customEnd.value
+                    }));
+                    loadDashboardData();
+                }
+            };
+            customStart.addEventListener('change', handleCustomDateChange);
+            customEnd.addEventListener('change', handleCustomDateChange);
+        }
+
+        updateCustomDateUI();
     }
 
     // --- 5. FETCH & RENDER DASHBOARD DATA ---

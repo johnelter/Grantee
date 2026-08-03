@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const togglePasswordIcons = document.querySelectorAll('.toggle-password');
     togglePasswordIcons.forEach(icon => {
-        icon.addEventListener('click', function() {
+        icon.addEventListener('click', function () {
             // Find the input field based on the data-target attribute
             const targetId = this.getAttribute('data-target');
             const inputField = targetId ? document.getElementById(targetId) : this.previousElementSibling;
@@ -135,9 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) throw new Error('Failed to send OTP');
 
-            emailStatus.innerText = "Code sent! Please check your inbox (or terminal).";
+            emailStatus.innerText = "Code sent! Please check your email inbox.";
             emailStatus.className = "status-msg msg-success";
-            
+
             // Show OTP Input and the "Change Email" button
             otpSection.style.display = 'block';
             if (btnChangeEmail) btnChangeEmail.style.display = 'inline-block';
@@ -157,21 +157,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     if (btnChangeEmail) {
         btnChangeEmail.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            
+            e.preventDefault();
+
             // Unlock the email input and reset the send button
             emailInput.disabled = false;
             btnSendOtp.disabled = false;
             btnSendOtp.classList.remove('disabled-style');
             btnSendOtp.innerText = "Verify";
-            
+
             // Hide the OTP section and the change button
             otpSection.style.display = 'none';
             btnChangeEmail.style.display = 'none';
-            
+
             // Clear the status text and old OTP inputs
             emailStatus.innerText = "";
-            otpInput.value = ""; 
+            otpInput.value = "";
         });
     }
 
@@ -196,11 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
             isEmailVerified = true;
             otpSection.style.display = 'none';
             btnSendOtp.style.display = 'none';
-            if (btnChangeEmail) btnChangeEmail.style.display = 'none'; 
-            
+            if (btnChangeEmail) btnChangeEmail.style.display = 'none';
+
             emailStatus.innerText = "✓ Email verified securely.";
             emailStatus.className = "status-msg msg-success";
-            emailInput.disabled = true; 
+            emailInput.disabled = true;
 
             // Unlock Password & Register button
             passInput.disabled = false;
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Pull the school_id securely from the verified Masterlist Data
             const assignedSchoolId = studentData.school_id;
-            
+
             if (!assignedSchoolId) {
                 throw new Error("Your masterlist record is missing an assigned school. Please contact your coordinator.");
             }
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 password: pass,
                 options: {
                     data: {
-                        school_id: assignedSchoolId 
+                        school_id: assignedSchoolId
                     }
                 }
             });
@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const { error: profileError } = await window.supabaseClient
                 .from('profiles')
                 .update({
-                    role: 'student', 
+                    role: 'student',
                     id_number: studentData.id_number,
                     first_name: studentData.first_name,
                     middle_name: studentData.middle_name,

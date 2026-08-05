@@ -48,12 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             profile = prof;
 
             // Check Profile Completeness
-            const studentProgram = profile.program || profile.course;
             isProfileComplete = !!(
-                profile.first_name && profile.last_name && 
-                profile.id_number && profile.email && 
-                profile.contact_number && profile.address && 
-                studentProgram && profile.year_level
+                profile.first_name && profile.middle_name && profile.last_name && 
+                profile.email && profile.id_number && profile.date_of_birth && 
+                profile.gender && profile.contact_number && profile.address
             );
 
             // Fetch school_id from masterlist

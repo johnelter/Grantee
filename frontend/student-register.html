@@ -26,117 +26,128 @@
                 <img src="./assets/register-animate.svg" alt="Registration Illustration">
             </div>
         </div>
-        
+
         <div class="split-right">
             <div class="register-container">
-        <div class="logo-area">
-            <div class="icon-circle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                </svg>
-            </div>
-            <h2>Create Your Account</h2>
-            <p>Verify your student identity to get started with Grantee.</p>
-        </div>
-
-        <form id="register-form">
-            <div class="input-group">
-                <div class="label-row">
-                    <label>Student ID Number</label>
-                    <span class="badge-required">REQUIRED</span>
-                </div>
-                <div class="verify-flex">
-                    <input type="text" id="reg_id" placeholder="Ex. 2021-00123" required>
-                    <button type="button" id="btn-verify-id" class="btn-primary btn-verify">Verify</button>
-                </div>
-                <small id="id-status" class="status-msg"></small>
-            </div>
-
-            <div id="autofill-section" class="identity-box" style="display:none;">
-                <div class="identity-header">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        <path d="M9 12l2 2 4-4" />
-                    </svg>
-                    IDENTITY CONFIRMED
-                </div>
-
-                <div class="identity-grid">
-                    <div class="id-field">
-                        <span class="id-label">FIRST NAME</span>
-                        <input type="text" id="reg_first" readonly class="invisible-input">
+                <div class="logo-area">
+                    <div class="icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                            <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                        </svg>
                     </div>
-                    <div class="id-field">
-                        <span class="id-label">LAST NAME</span>
-                        <input type="text" id="reg_last" readonly class="invisible-input">
+                    <h2>Create Your Account</h2>
+                    <p>Verify your student identity to get started with Grantee.</p>
+                </div>
+
+                <form id="register-form">
+                    <div class="input-group">
+                        <div class="label-row">
+                            <label>Student ID Number</label>
+                            <span class="badge-required">REQUIRED</span>
+                        </div>
+                        <div class="verify-flex">
+                            <input type="text" id="reg_id" placeholder="Ex. 2021-00123" required>
+                            <button type="button" id="btn-verify-id" class="btn-primary btn-verify">Verify</button>
+                        </div>
+                        <small id="id-status" class="status-msg"></small>
                     </div>
-                    <div class="id-field">
-                        <span class="id-label">MIDDLE NAME</span>
-                        <input type="text" id="reg_middle" readonly class="invisible-input">
+
+                    <div id="autofill-section" class="identity-box" style="display:none;">
+                        <div class="identity-header">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                <path d="M9 12l2 2 4-4" />
+                            </svg>
+                            IDENTITY CONFIRMED
+                        </div>
+
+                        <div class="identity-grid">
+                            <div class="id-field">
+                                <span class="id-label">FIRST NAME</span>
+                                <input type="text" id="reg_first" readonly class="invisible-input">
+                            </div>
+                            <div class="id-field">
+                                <span class="id-label">LAST NAME</span>
+                                <input type="text" id="reg_last" readonly class="invisible-input">
+                            </div>
+                            <div class="id-field">
+                                <span class="id-label">MIDDLE NAME</span>
+                                <input type="text" id="reg_middle" readonly class="invisible-input">
+                            </div>
+                            <div class="id-field">
+                                <span class="id-label">PROGRAM</span>
+                                <input type="text" id="reg_program" readonly class="invisible-input">
+                            </div>
+                        </div>
                     </div>
-                    <div class="id-field">
-                        <span class="id-label">PROGRAM</span>
-                        <input type="text" id="reg_program" readonly class="invisible-input">
+
+                    <hr class="divider">
+
+                    <div class="input-group">
+                        <div class="label-row">
+                            <label>Email Address</label>
+                            <a href="#" id="btn-change-email" class="badge-change" style="display: none;">Change
+                                Email</a>
+                        </div>
+                        <div class="verify-flex">
+                            <input type="email" id="reg_email" placeholder="student@school.edu.ph" disabled required>
+                            <button type="button" id="btn-send-otp" class="btn-primary btn-verify disabled-style"
+                                disabled>Verify</button>
+                        </div>
+                        <small id="email-status" class="status-msg"></small>
                     </div>
-                </div>
-            </div>
 
-            <hr class="divider">
+                    <div id="otp-section" class="input-group mt-20" style="display: none;">
+                        <label>Enter 6-Digit OTP Code</label>
+                        <div class="verify-flex">
+                            <input type="text" id="reg_otp" class="otp-input" placeholder="XXXXXX" maxlength="6">
+                            <button type="button" id="btn-confirm-otp" class="btn-primary btn-verify">Confirm</button>
+                        </div>
+                    </div>
 
-            <div class="input-group">
-                <div class="label-row">
-                    <label>Email Address</label>
-                    <a href="#" id="btn-change-email" class="badge-change" style="display: none;">Change Email</a>
-                </div>
-                <div class="verify-flex">
-                    <input type="email" id="reg_email" placeholder="student@school.edu.ph" disabled required>
-                    <button type="button" id="btn-send-otp" class="btn-primary btn-verify disabled-style"
-                        disabled>Verify</button>
-                </div>
-                <small id="email-status" class="status-msg"></small>
-            </div>
+                    <hr class="divider">
 
-            <div id="otp-section" class="input-group mt-20" style="display: none;">
-                <label>Enter 6-Digit OTP Code</label>
-                <div class="verify-flex">
-                    <input type="text" id="reg_otp" class="otp-input" placeholder="1  2  3  4  5  6" maxlength="6">
-                    <button type="button" id="btn-confirm-otp" class="btn-primary btn-verify">Confirm</button>
-                </div>
-            </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="reg_pass" placeholder="Create a strong password" disabled
+                                required style="width: 100%; padding-right: 40px;">
+                            <span class="toggle-password" data-target="reg_pass"
+                                style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;"
+                                title="Show Password"><i class="fa-regular fa-eye-slash"></i></span>
+                        </div>
+                    </div>
 
-            <hr class="divider">
+                    <div class="input-group mt-20">
+                        <label>Confirm Password</label>
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="reg_pass_confirm" placeholder="Repeat password" disabled required
+                                style="width: 100%; padding-right: 40px;">
+                            <span class="toggle-password" data-target="reg_pass_confirm"
+                                style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;"
+                                title="Show Password"><i class="fa-regular fa-eye-slash"></i></span>
+                        </div>
+                        <div class="password-rules">
+                            <p>Password must be at least 8 characters long and contain:</p>
+                            <ul>
+                                <li>Has uppercase letter (A-Z)</li>
+                                <li>Has lowercase letter (a-z)</li>
+                                <li>Has number (0-9)</li>
+                                <li>Has special character (e.g., !@#$%^&*)</li>
+                            </ul>
+                        </div>
+                    </div>
 
-            <div class="input-group">
-                <label>Password</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="reg_pass" placeholder="Create a strong password" disabled required
-                        style="width: 100%; padding-right: 40px;">
-                    <span class="toggle-password" data-target="reg_pass"
-                        style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;"
-                        title="Show Password"><i class="fa-regular fa-eye-slash"></i></span>
-                </div>
-            </div>
+                    <button type="submit" id="btn-register" class="btn-primary btn-submit mt-24 disabled-style"
+                        disabled>Complete Registration</button>
+                </form>
 
-            <div class="input-group mt-20">
-                <label>Confirm Password</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="reg_pass_confirm" placeholder="Repeat password" disabled required
-                        style="width: 100%; padding-right: 40px;">
-                    <span class="toggle-password" data-target="reg_pass_confirm"
-                        style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px; opacity: 1; transition: opacity 0.2s; color: #64748b;"
-                        title="Show Password"><i class="fa-regular fa-eye-slash"></i></span>
-                </div>
-            </div>
-
-            <button type="submit" id="btn-register" class="btn-primary btn-submit mt-24 disabled-style"
-                disabled>Complete Registration</button>
-        </form>
-
-        <p class="footer-text">
-            Already have an account? <a href="login.html">Login here</a>
-        </p>
+                <p class="footer-text">
+                    Already have an account? <a href="login.html">Login here</a>
+                </p>
             </div>
         </div>
     </div>
@@ -144,6 +155,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/student-register.js"></script>
+    <script src="js/keyboard-avoidance.js"></script>
 </body>
 
 </html>

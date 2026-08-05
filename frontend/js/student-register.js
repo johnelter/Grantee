@@ -230,12 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmPass = passConfirmInput.value;
 
         if (pass !== confirmPass) {
-            Swal.fire({
-                title: 'Passwords Mismatch',
-                text: 'The passwords you entered do not match. Please try again.',
-                icon: 'warning',
-                confirmButtonColor: '#10b981'
-            });
+            showCustomToast('warning', 'Passwords Mismatch', 'The passwords you entered do not match. Please try again.');
             return;
         }
 
@@ -243,12 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Requires: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special character
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/;
         if (!strongPasswordRegex.test(pass)) {
-            Swal.fire({
-                title: 'Weak Password',
-                html: 'Password must be at least 8 characters long and contain:<br><br>• One uppercase letter (A-Z)<br>• One lowercase letter (a-z)<br>• One number (0-9)<br>• One special character (e.g., !@#$%^&*)',
-                icon: 'warning',
-                confirmButtonColor: '#10b981'
-            });
+            showCustomToast('warning', 'Weak Password', 'Password must be at least 8 characters long and contain an uppercase, lowercase, number, and special character.');
             return;
         }
 
@@ -314,15 +304,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
-            Swal.fire({
-                title: 'Registration Failed',
-                text: error.message,
-                icon: 'error',
-                confirmButtonColor: '#10b981'
-            });
+            showCustomToast('error', 'Registration Failed', error.message);
             btnRegister.innerText = "Complete Registration";
             btnRegister.disabled = false;
             btnRegister.classList.remove('disabled-style');
         }
     });
 });
+
+// Custom Toast UI Function
+function showCustomToast(type, title, message) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let iconClass = '';
+    if (type === 'success') iconClass = 'fa-solid fa-circle-check';
+    else if (type === 'error') iconClass = 'fa-solid fa-circle-xmark';
+    else if (type === 'warning') iconClass = 'fa-solid fa-circle-exclamation';
+    else if (type === 'info') iconClass = 'fa-solid fa-circle-info';
+
+    toast.innerHTML = `
+        <i class="${iconClass} toast-icon"></i>
+        <div class="toast-content">
+            <span class="toast-title">${title}</span>
+            <span class="toast-message">${message}</span>
+        </div>
+        <i class="fa-solid fa-xmark toast-close"></i>
+    `;
+    
+    container.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('active'), 10);
+
+    const closeBtn = toast.querySelector('.toast-close');
+    let timer = setTimeout(removeToast, 4000);
+
+    closeBtn.addEventListener('click', removeToast);
+
+    function removeToast() {
+        clearTimeout(timer);
+        toast.classList.remove('active');
+        setTimeout(() => toast.remove(), 500);
+    }
+}

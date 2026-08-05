@@ -317,8 +317,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const bgs = ['#ecfccb', '#ffe4e6', '#fef3c7', '#e0e7ff'];
             const colors = ['#65a30d', '#e11d48', '#d97706', '#4f46e5'];
 
-            // Determine if Profile is Complete
-            const requiredProfileFields = ['first_name', 'last_name', 'program', 'year_level'];
+            // Determine if Profile is Complete (Personal Information)
+            const requiredProfileFields = ['first_name', 'middle_name', 'last_name', 'email', 'id_number', 'date_of_birth', 'gender', 'contact_number', 'address'];
             const isProfileComplete = profile && requiredProfileFields.every(field => profile[field] && profile[field].toString().trim() !== '');
 
             // Take Top 2 Recommendations to show
@@ -337,11 +337,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let btnDisabled = false;
                 let btnText = 'Apply Now';
                 let btnClass = 'btn-apply';
+                let btnLink = `apply-scholarships.html?id=${sch.id}`;
 
                 if (!isProfileComplete) {
-                    btnDisabled = true;
-                    btnText = 'Profile Incomplete';
-                    btnClass = 'btn-apply btn-disabled';
+                    btnText = 'Complete Profile';
+                    btnLink = 'profile-settings.html';
+                    btnClass = 'btn-apply btn-warning';
                 } else if (policyData && policyData.global_enabled) {
                     const activeApps = allUserApps.filter(a => ['Approved', 'Grantee'].includes(a.status));
                     const targetCat = sch.category;
@@ -384,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 const btnHTML = btnDisabled ? 
                     `<button class="${btnClass}" disabled title="${btnText}">${btnText}</button>` : 
-                    `<a href="apply-scholarships.html?id=${sch.id}" class="${btnClass}">${btnText}</a>`;
+                    `<a href="${btnLink}" class="${btnClass}">${btnText}</a>`;
 
                 recList.innerHTML += `
                     <div class="list-item">

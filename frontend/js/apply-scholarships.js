@@ -302,15 +302,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
 
-            if (requiredDocsCount === 0) {
-                document.getElementById('btn-submit-app').disabled = false;
+            const formObj = document.getElementById('scholarship-application-form');
+            if (formObj) {
+                formObj.addEventListener('input', checkFormValidity);
+                formObj.addEventListener('change', checkFormValidity);
             }
+            checkFormValidity();
 
         } catch (err) {
             console.error("Error initializing page:", err);
             Swal.fire('Loading Error', 'Failed to load educational assistance details. Please try again.', 'error');
         }
     }
+
+    const checkFormValidity = () => {
+        let isQuestionsValid = true;
+        if (currentScholarship && currentScholarship.form_fields) {
+            for (let i = 0; i < currentScholarship.form_fields.length; i++) {
+                const field = currentScholarship.form_fields[i];
+                if (!field.required) continue;
+
+                if (field.type === 'Selection') {
+                    const inputs = document.querySelectorAll(`[name="q_${i}"]:checked`);
+                    if (inputs.length === 0) {
+                        isQuestionsValid = false;
+                        break;
+                    }
+                } else {
+                    const input = document.querySelector(`[name="q_${i}"]`);
+                    if (!input || !input.value.trim()) {
+                        isQuestionsValid = false;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        const isDocsValid = validatedDocsCount >= requiredDocsCount;
+        document.getElementById('btn-submit-app').disabled = !(isQuestionsValid && isDocsValid);
+    };
 
     // --- 5. BACKEND OCR OR BYPASS LOGIC ---
     async function processDocumentSelection(file, index, expectedDocName, isOcrEnabled) {
@@ -520,9 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isRequired) validatedDocsCount++;
 
-            if (validatedDocsCount >= requiredDocsCount) {
-                document.getElementById('btn-submit-app').disabled = false;
-            }
+            checkFormValidity();
 
         } catch (err) {
             console.error("Upload error:", err);
@@ -620,8 +648,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }).catch(e => console.error("Coordinator notification failed:", e));
             }
 
-            await Swal.fire('Success!', 'Educational Assistance Application Submitted Successfully!', 'success');
-            window.location.href = 'student-applications.html';
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container';
+                document.body.appendChild(toastContainer);
+            }
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-success';
+            toast.innerHTML = `
+                <div class="toast-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="toast-content">
+                    <span class="toast-title">Success!</span>
+                    <span class="toast-message">Educational Assistance Application Submitted Successfully!</span>
+                </div>
+            `;
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('active'), 10);
+
+            setTimeout(() => {
+                toast.classList.replace('active', 'exit');
+                setTimeout(() => {
+                    window.location.href = 'student-applications.html';
+                }, 400);
+            }, 3000);
 
         } catch (err) {
             console.error("Submission Error:", err);

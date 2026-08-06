@@ -443,12 +443,14 @@
 /* Custom Toast UI Design */
 .toast-container {
     position: fixed;
-    top: 25px;
-    right: 30px;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
     gap: 15px;
     z-index: 9999;
+    align-items: center;
 }
 
 .toast {
@@ -464,12 +466,20 @@
     align-items: center;
     gap: 15px;
     overflow: hidden;
-    transform: translateX(120%);
-    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.35);
+    transform: translateY(-30px);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.35);
 }
 
 .toast.active {
-    transform: translateX(0);
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast.exit {
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.4s ease-in;
 }
 
 .toast::before {
@@ -533,9 +543,7 @@
 /* Responsive Toast */
 @media (max-width: 480px) {
     .toast-container {
-        right: 15px;
-        left: 15px;
-        top: 15px;
+        width: 90%;
     }
     .toast {
         width: 100%;

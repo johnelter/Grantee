@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Header UI
             const name = `${profile.first_name || 'Student'} ${profile.last_name || ''}`.trim();
             if(document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
-            if(document.getElementById('header-program')) document.getElementById('header-program').innerText = studentProgram || 'Student Profile';
+            if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student Profile';
             if(profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
         } catch (error) {

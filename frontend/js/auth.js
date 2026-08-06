@@ -62,6 +62,48 @@ const validatePasswordStrength = (password) => {
     return null; // Valid password
 };
 
+// --- CUSTOM TOAST UI ---
+const showToast = (type, title, message) => {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-circle-xmark';
+    if (type === 'warning') iconClass = 'fa-triangle-exclamation';
+    
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <i class="fa-solid ${iconClass}"></i>
+        </div>
+        <div class="toast-content">
+            <span class="toast-title">${title}</span>
+            <span class="toast-message">${message}</span>
+        </div>
+        <i class="fa-solid fa-xmark toast-close"></i>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('active'), 10);
+    
+    const removeToast = () => {
+        toast.classList.remove('active');
+        toast.classList.add('exit');
+        setTimeout(() => toast.remove(), 500);
+    };
+    
+    toast.querySelector('.toast-close').addEventListener('click', removeToast);
+    setTimeout(removeToast, 5000);
+};
+
 // --- 1. STUDENT REGISTRATION HANDLER ---
 const studentRegisterForm = document.getElementById('student-register-form');
 if (studentRegisterForm) {
@@ -78,22 +120,22 @@ if (studentRegisterForm) {
         const confirmPassword = document.getElementById('confirmPassword').value;
 
         if (password !== confirmPassword) {
-            alert("Passwords do not match!");
+            showToast('error', 'Error', 'Passwords do not match!');
             return;
         }
 
         // Apply Strong Password Rules
         const passwordError = validatePasswordStrength(password);
         if (passwordError) {
-            alert(passwordError);
+            showToast('error', 'Weak Password', passwordError);
             return;
         }
 
         try {
             const selectedSchoolId = localStorage.getItem('granteeSelectedSchoolId');
             if (!selectedSchoolId) {
-                alert("School association missing. Please return to the home page and select a school.");
-                window.location.href = 'index.html';
+                showToast('error', 'Error', 'School association missing. Please return to the home page and select a school.');
+                setTimeout(() => window.location.href = 'index.html', 2000);
                 return;
             }
 
@@ -124,10 +166,12 @@ if (studentRegisterForm) {
             
             if (authError) throw authError;
 
-            alert(`Registration successful! We have sent a verification link to ${email}. You must click the link in your email before you can log in.`);
-            window.location.href = 'login.html';
+            showToast('success', 'Registration Successful', `We have sent a verification link to ${email}. You must click the link before logging in.`);
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 3500);
         } catch (error) {
-            alert(error.message);
+            showToast('error', 'Registration Failed', error.message);
         }
     });
 }
@@ -145,12 +189,7 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
 
         // Block entry if a STUDENT account is flagged as not approved (Admins bypass this)
         if (profile.role !== 'admin' && profile.is_approved === false) {
-            Swal.fire({
-                title: 'Pending Approval',
-                text: 'Your account access is currently set to pending. Please wait for an administrator to approve your account.',
-                icon: 'info',
-                confirmButtonColor: '#10b981'
-            });
+            showToast('info', 'Pending Approval', 'Your account access is currently set to pending. Please wait for an administrator to approve your account.');
             await supabaseClient.auth.signOut();
             if(submitBtn) {
                 submitBtn.innerText = originalBtnText;
@@ -173,12 +212,7 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
         }, 500);
 
     } catch (error) {
-        Swal.fire({
-            title: 'Error',
-            text: 'Failed to route user profile: ' + error.message,
-            icon: 'error',
-            confirmButtonColor: '#10b981'
-        });
+        showToast('error', 'Error', 'Failed to route user profile: ' + error.message);
         if(submitBtn) {
             submitBtn.innerText = originalBtnText;
             submitBtn.disabled = false;
@@ -192,7 +226,7 @@ const handleLoginSubmit = async (emailId, passwordId) => {
 
     const submitBtn = document.querySelector(`#${emailId}`).closest('form').querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerText;
-    submitBtn.innerText = "Authenticating...";
+    // submitBtn.innerText = "Authenticating..."; // Removed as per user request
     submitBtn.disabled = true;
 
     try {
@@ -278,12 +312,7 @@ const handleLoginSubmit = async (emailId, passwordId) => {
         }
 
     } catch (error) {
-        Swal.fire({
-            title: 'Authentication Failed',
-            text: error.message,
-            icon: 'error',
-            confirmButtonColor: '#10b981'
-        });
+        showToast('error', 'Authentication Failed', error.message);
         submitBtn.innerText = originalBtnText;
         submitBtn.disabled = false;
     }

@@ -296,6 +296,13 @@ button {
   max-width: 1150px;
 }
 
+/* Force extra space at the bottom so AI Assistant button doesn't block content */
+.content-wrapper::after {
+  content: '';
+  display: block;
+  height: 80px;
+}
+
 /* --- Header Layout Structure --- */
 .top-header {
   display: flex;

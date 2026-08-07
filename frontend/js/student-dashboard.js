@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    
+
     // --- 1. AUTH CHECK & INITIALIZATION ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
-    if (sessionError || !session) { 
-        window.location.href = 'login.html'; 
-        return; 
+    if (sessionError || !session) {
+        window.location.href = 'login.html';
+        return;
     }
     const studentId = session.user.id;
 
@@ -30,10 +30,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profile) {
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
-                
-                if(document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
-                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student';
-                if(profile.avatar_url && document.getElementById('header-avatar')) {
+
+                if (document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
+                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student';
+                if (profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
             }
@@ -54,8 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error("Error loading applications:", error);
-            const tbody = document.getElementById('applications-tbody'); 
-            if(tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">Error loading data. Check console.</td></tr>`;
+            const tbody = document.getElementById('applications-tbody');
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">Error loading data. Check console.</td></tr>`;
         }
     };
 
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            
+
             // Filter out applications added by admin (they have null form_responses)
             const applications = (apps || []).filter(app => app.form_responses !== null);
 
@@ -129,15 +129,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const approvedCount = applications.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
             const rejectedCount = applications.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
 
-            if(document.getElementById('stat-submitted')) document.getElementById('stat-submitted').innerText = submittedCount;
-            if(document.getElementById('stat-review')) document.getElementById('stat-review').innerText = reviewCount;
-            if(document.getElementById('stat-approved')) document.getElementById('stat-approved').innerText = approvedCount;
-            if(document.getElementById('stat-rejected')) document.getElementById('stat-rejected').innerText = rejectedCount;
+            if (document.getElementById('stat-submitted')) document.getElementById('stat-submitted').innerText = submittedCount;
+            if (document.getElementById('stat-review')) document.getElementById('stat-review').innerText = reviewCount;
+            if (document.getElementById('stat-approved')) document.getElementById('stat-approved').innerText = approvedCount;
+            if (document.getElementById('stat-rejected')) document.getElementById('stat-rejected').innerText = rejectedCount;
 
             // B. Render "My Recent Applications" (Limit to 5 for UI cleanliness)
             const recentList = document.getElementById('recent-applications-list');
             if (!recentList) return;
-            
+
             if (applications.length === 0) {
                 recentList.innerHTML = `<div class="list-empty-state">You have not submitted any educational assistance applications yet.</div>`;
                 return;
@@ -147,19 +147,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             applications.slice(0, 5).forEach(app => {
                 const title = app.scholarships?.title || app.outside_assistance_name || 'Unknown Program';
                 const dateStr = new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-                
+
                 // Determine Badge styling based on status
                 let badgeClass = 'badge-pending';
                 let iconStr = '📄';
                 let iconBg = '#f1f5f9';
                 let iconColor = '#475569';
 
-                if(app.status === 'Submitted' || app.status === 'Pending') { badgeClass = 'badge-pending'; iconStr = '📄'; iconBg = '#f1f5f9'; iconColor = '#475569'; }
-                if(app.status === 'Under Review') { badgeClass = 'badge-review'; iconStr = '⏳'; iconBg = '#fef3c7'; iconColor = '#d97706'; }
-                if(app.status === 'Request Revision') { badgeClass = 'badge-revision'; iconStr = '📝'; iconBg = '#ffedd5'; iconColor = '#c2410c'; }
-                if(app.status === 'Approved' || app.status === 'Grantee') { badgeClass = 'badge-approved'; iconStr = '✓'; iconBg = '#dcfce7'; iconColor = '#10b981'; }
-                if(app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') { badgeClass = 'badge-rejected'; iconStr = '✕'; iconBg = '#fee2e2'; iconColor = '#ef4444'; } 
-                if(app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconStr = '🚫'; iconBg = '#e2e8f0'; iconColor = '#475569'; }
+                if (app.status === 'Submitted' || app.status === 'Pending') { badgeClass = 'badge-pending'; iconStr = '📄'; iconBg = '#f1f5f9'; iconColor = '#475569'; }
+                if (app.status === 'Under Review') { badgeClass = 'badge-review'; iconStr = '⏳'; iconBg = '#fef3c7'; iconColor = '#d97706'; }
+                if (app.status === 'Request Revision') { badgeClass = 'badge-revision'; iconStr = '📝'; iconBg = '#ffedd5'; iconColor = '#c2410c'; }
+                if (app.status === 'Approved' || app.status === 'Grantee') { badgeClass = 'badge-approved'; iconStr = '✓'; iconBg = '#dcfce7'; iconColor = '#10b981'; }
+                if (app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') { badgeClass = 'badge-rejected'; iconStr = '✕'; iconBg = '#fee2e2'; iconColor = '#ef4444'; }
+                if (app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconStr = '🚫'; iconBg = '#e2e8f0'; iconColor = '#475569'; }
 
                 recentList.innerHTML += `
                     <div class="list-item" style="cursor:pointer; transition:0.2s;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor=''" onclick="window.location.href='student-applications.html?app_id=${app.id}'">
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error("Error loading applications:", error);
-            if(document.getElementById('recent-applications-list')) {
+            if (document.getElementById('recent-applications-list')) {
                 document.getElementById('recent-applications-list').innerHTML = `<div style="padding:20px; color:red; font-size:13px;">Error loading applications.</div>`;
             }
         }
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .from('applications')
                 .select('*, scholarships ( category )')
                 .eq('student_id', studentId);
-            
+
             const allUserApps = userApps || [];
 
             // Fetch school policies
@@ -242,11 +242,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .select('*')
                 .eq('status', 'Active')
                 .order('created_at', { ascending: false });
-            
+
             if (studentSchoolId) {
                 schQuery = schQuery.eq('school_id', studentSchoolId);
             }
-            
+
             const { data: scholarships, error } = await schQuery;
 
             if (error) throw error;
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 1. Check if closed or expired
                 if (sch.display_status === 'Closed') return false;
                 if (sch.end_date && new Date(sch.end_date) < new Date()) return false;
-                
+
                 // 2. Check slots
                 if (sch.slots !== 'Open' && sch.available_slots === 0) return false;
 
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 6. GWA Eligibility
                 if (sch.min_college_gwa && parseFloat(sch.min_college_gwa) > 0) {
                     const studentGwa = parseFloat(profile.gwa);
-                    if (isNaN(studentGwa)) return false; 
+                    if (isNaN(studentGwa)) return false;
                     if (studentGwa > parseFloat(sch.min_college_gwa)) return false;
                 }
 
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             recList.innerHTML = '';
-            
+
             const icons = ['🌿', '💖', '⭐', '📚'];
             const bgs = ['#ecfccb', '#ffe4e6', '#fef3c7', '#e0e7ff'];
             const colors = ['#65a30d', '#e11d48', '#d97706', '#4f46e5'];
@@ -326,10 +326,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const icon = icons[index % icons.length];
                 const bg = bgs[index % bgs.length];
                 const color = colors[index % colors.length];
-                
+
                 const deadline = sch.end_date ? new Date(sch.end_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'No Deadline';
                 const cleanDesc = sch.description ? sch.description.replace(/<[^>]*>?/gm, '').substring(0, 70) + '...' : 'Open for applications.';
-                
+
                 // Format Min GWA for display
                 const minGwaDisplay = sch.min_college_gwa ? sch.min_college_gwa : 'N/A';
 
@@ -340,13 +340,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let btnLink = `apply-scholarships.html?id=${sch.id}`;
 
                 if (!isProfileComplete) {
-                    btnText = 'Complete Profile';
+                    btnText = 'Complete Personal Information';
                     btnLink = 'profile-settings.html';
                     btnClass = 'btn-apply btn-warning';
                 } else if (policyData && policyData.global_enabled) {
                     const activeApps = allUserApps.filter(a => ['Approved', 'Grantee'].includes(a.status));
                     const targetCat = sch.category;
-                    
+
                     if (activeApps.length >= (policyData.global_limit || 0) && (policyData.global_limit || 0) > 0) {
                         btnDisabled = true;
                         btnText = 'Limit Reached';
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const comboRules = policyData.combination_rules || {};
 
                     if (!btnDisabled && catLimits[targetCat] && !catLimits[targetCat].unlimited) {
-                        const activeInTargetCat = activeApps.filter(a => 
+                        const activeInTargetCat = activeApps.filter(a =>
                             (a.scholarships?.category || a.outside_assistance_name) === targetCat
                         ).length;
                         if (activeInTargetCat >= catLimits[targetCat].limit) {
@@ -382,9 +382,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 }
-                
-                const btnHTML = btnDisabled ? 
-                    `<button class="${btnClass}" disabled title="${btnText}">${btnText}</button>` : 
+
+                const btnHTML = btnDisabled ?
+                    `<button class="${btnClass}" disabled title="${btnText}">${btnText}</button>` :
                     `<a href="${btnLink}" class="${btnClass}">${btnText}</a>`;
 
                 recList.innerHTML += `
@@ -405,7 +405,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error("Error loading recommendations:", error);
-            if(document.getElementById('recommended-scholarships-list')) {
+            if (document.getElementById('recommended-scholarships-list')) {
                 document.getElementById('recommended-scholarships-list').innerHTML = `<div class="list-empty-state" style="color:var(--danger-color);">Error loading recommendations.</div>`;
             }
         }
@@ -434,9 +434,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutModal = document.getElementById('logout-modal');
     const modalConfirm = document.getElementById('modal-confirm');
     const modalCancel = document.getElementById('modal-cancel');
-    
+
     const logoutTriggers = [
-        document.getElementById('logout-btn'), 
+        document.getElementById('logout-btn'),
         document.getElementById('dropdown-logout-btn')
     ];
 
@@ -521,18 +521,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             function isAudienceMatch(announcement, profile, applications) {
                 const aud = announcement.audience_type;
                 if (!aud) return true;
-                
+
                 const audStr = aud.toLowerCase().trim();
-                
+
                 if (audStr === 'all_students' || audStr === 'all_enrolled_students' || audStr === 'all') return true;
-                
+
                 if (audStr.startsWith('prog_') && profile && profile.program) {
                     return profile.program.toLowerCase() === audStr.replace('prog_', '').toLowerCase();
                 }
 
                 if (audStr.startsWith('app_')) {
                     const scholarshipKeyword = audStr.replace('app_', '').toLowerCase();
-                    
+
                     if (applications && applications.length > 0) {
                         return applications.some(app => {
                             const title = app.scholarships?.title?.toLowerCase() || '';
@@ -541,14 +541,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     return false;
                 }
-                
+
                 if (audStr.includes('active') || audStr.includes('approved')) {
                     if (applications && applications.length > 0) {
                         return applications.some(app => app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'grantee');
                     }
                     return profile && profile.is_approved === true;
                 }
-                
+
                 if (audStr.includes('pending')) {
                     if (applications && applications.length > 0) {
                         return applications.some(app => app.status.toLowerCase() === 'pending');
@@ -560,10 +560,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (applications && applications.length > 0) {
                         return applications.some(app => app.status.toLowerCase() === 'rejected');
                     }
-                    return false; 
+                    return false;
                 }
-                
-                return false; 
+
+                return false;
             }
 
             function getCategoryIcon(category) {
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             filtered.slice(0, 5).forEach(ann => {
                 const dateStr = new Date(ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
+
                 let tempDiv = document.createElement("div");
                 tempDiv.innerHTML = ann.content || "";
                 let excerpt = tempDiv.textContent || tempDiv.innerText || "";
@@ -610,7 +610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error("Error loading announcements:", error);
-            if(document.getElementById('announcements-list-container')) {
+            if (document.getElementById('announcements-list-container')) {
                 document.getElementById('announcements-list-container').innerHTML = `<div class="list-empty-state" style="color:var(--danger-color);">Error loading announcements.</div>`;
             }
         }
@@ -621,7 +621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadApplications();
     loadRecommendations();
     loadAnnouncements();
-    
+
     // Explicitly call loadMyApplications if it's meant to be run on load
     // loadMyApplications(); 
 });

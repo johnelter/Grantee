@@ -1,15 +1,15 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    
+
     // --- 1. AUTH CHECK & GLOBAL STATE ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
-    if (sessionError || !session) { 
-        window.location.href = 'login.html'; 
-        return; 
+    if (sessionError || !session) {
+        window.location.href = 'login.html';
+        return;
     }
     const studentId = session.user.id;
-    
+
     let profile = null;
-    let studentSchoolId = null; 
+    let studentSchoolId = null;
     let policyData = null;
     let allUserApps = [];
     let allScholarships = [];
@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Check Profile Completeness
             isProfileComplete = !!(
-                profile.first_name && profile.middle_name && profile.last_name && 
-                profile.email && profile.id_number && profile.date_of_birth && 
+                profile.first_name && profile.middle_name && profile.last_name &&
+                profile.email && profile.id_number && profile.date_of_birth &&
                 profile.gender && profile.contact_number && profile.address
             );
 
@@ -69,9 +69,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Header UI
             const name = `${profile.first_name || 'Student'} ${profile.last_name || ''}`.trim();
-            if(document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
-            if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student Profile';
-            if(profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
+            if (document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
+            if (document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student Profile';
+            if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
         } catch (error) {
             console.error("Error loading profile:", error);
@@ -111,9 +111,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .eq('school_id', studentSchoolId)
                 .neq('status', 'Draft')
                 .order('created_at', { ascending: false });
-            
+
             if (error) throw error;
-            
+
             allScholarships = rawData.map(sch => ({
                 ...sch,
                 display_status: calculateDynamicStatus(sch)
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- 4. VALIDATION ENGINE ---
-    
+
     // Aggressive JSON Array Parser (Removes nulls, empty brackets, and false values)
     const parseArray = (val) => {
         if (!val || val === 'null' || val === '[]' || val === '[""]') return [];
@@ -133,11 +133,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (Array.isArray(val)) {
             arr = val.map(String);
         } else if (typeof val === 'string') {
-            try { 
-                const parsed = JSON.parse(val); 
+            try {
+                const parsed = JSON.parse(val);
                 arr = Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
-            } catch(e) { 
-                arr = val.includes(',') ? val.split(',').map(s => String(s).trim()) : [String(val).trim()]; 
+            } catch (e) {
+                arr = val.includes(',') ? val.split(',').map(s => String(s).trim()) : [String(val).trim()];
             }
         }
         return arr.filter(item => item && item.toLowerCase() !== 'null' && item.toLowerCase() !== 'undefined');
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function validateEligibility(sch) {
         // 1. Profile Completion Validation
         if (!isProfileComplete) {
-            return { text: 'Complete Profile', class: 'btn-warning', action: 'profile', msg: 'Please complete your profile information before applying for educational assistance.' };
+            return { text: 'Complete Personal Information', class: 'btn-warning', action: 'profile', msg: 'Please complete your profile information before applying for educational assistance.' };
         }
 
         // 2. Duplicate Application Validation
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const studentProgLower = (profile.program || profile.course || '').toLowerCase().trim();
         const progOpenKeywords = ['open to all', 'all programs', 'all departments', 'any'];
         const isProgOpen = eligibleProgs.length === 0 || eligibleProgs.some(p => progOpenKeywords.includes(p));
-                           
+
         if (!isProgOpen) {
             if (!studentProgLower) {
                 return { text: 'Not Eligible (Program)', class: 'btn-disabled', action: 'restricted', msg: 'Please update your academic program in Profile Settings to check eligibility.' };
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (policyData && policyData.global_enabled) {
             const activeApps = allUserApps.filter(a => ['Approved', 'Grantee'].includes(a.status));
             const targetCat = sch.category;
-            
+
             // Global Limit Check
             if (activeApps.length >= (policyData.global_limit || 0) && (policyData.global_limit || 0) > 0) {
                 return { text: 'Not Eligible', class: 'btn-disabled', action: 'restricted', msg: 'You have reached the maximum number of active educational assistance programs allowed by institutional policy.' };
@@ -224,10 +224,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Category Limit Check
             if (catLimits[targetCat] && !catLimits[targetCat].unlimited) {
-                const activeInTargetCat = activeApps.filter(a => 
+                const activeInTargetCat = activeApps.filter(a =>
                     (a.scholarships?.category || a.outside_assistance_name) === targetCat
                 ).length;
-                
+
                 if (activeInTargetCat >= catLimits[targetCat].limit) {
                     return { text: 'Not Eligible', class: 'btn-disabled', action: 'restricted', msg: `You already hold an active ${targetCat} and cannot apply for another.` };
                 }
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const getBadgeHTML = (category) => {
         if (!category) return '';
         const catLower = category.toLowerCase();
-        let bg = 'rgba(16, 185, 129, 0.1)', color = 'var(--primary-color)'; 
+        let bg = 'rgba(16, 185, 129, 0.1)', color = 'var(--primary-color)';
         if (catLower.includes('institution')) { bg = '#e0e7ff'; color = '#4f46e5'; }
         if (catLower.includes('ched')) { bg = '#dcfce7'; color = '#16a34a'; }
         if (catLower.includes('private')) { bg = '#fef3c7'; color = '#d97706'; }
@@ -267,9 +267,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!sch.start_date || !sch.end_date) return sch.status || 'Draft';
 
         const today = new Date();
-        today.setHours(0, 0, 0, 0); 
+        today.setHours(0, 0, 0, 0);
         const start = new Date(sch.start_date); start.setHours(0, 0, 0, 0);
-        const end = new Date(sch.end_date); end.setHours(23, 59, 59, 999); 
+        const end = new Date(sch.end_date); end.setHours(23, 59, 59, 999);
 
         if (today < start) return 'Upcoming';
         if (today > end) return 'Closed';
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const renderCards = (data) => {
-        if(resultCount) resultCount.innerText = data.length;
+        if (resultCount) resultCount.innerText = data.length;
 
         if (data.length === 0) {
             gridContainer.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:60px; color:var(--text-muted); background: #fff; border-radius: 12px; border: 1px solid var(--border-color);">No educational assistance programs match your criteria.</div>`;
@@ -290,11 +290,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         gridContainer.innerHTML = '';
-        
+
         data.forEach(sch => {
             const card = document.createElement('div');
             card.className = 'sch-card';
-            
+
             const btnState = validateEligibility(sch);
             const isClosed = sch.display_status === 'Closed';
             const cardOpacity = isClosed ? 'opacity: 0.7;' : '';
@@ -302,14 +302,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const slotsText = isUnlimitedSlots ? 'Unlimited' : (sch.available_slots !== null ? `${sch.available_slots} Left` : 'Varies');
 
             let btnStyles = '';
-            if(btnState.class === 'btn-disabled') btnStyles = 'background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border: 1px solid #e2e8f0;';
-            if(btnState.class === 'btn-warning') btnStyles = 'background: #fef3c7; color: #d97706; border: 1px solid #fde68a;';
-            if(btnState.class === 'btn-outline') btnStyles = 'background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color);';
+            if (btnState.class === 'btn-disabled') btnStyles = 'background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border: 1px solid #e2e8f0;';
+            if (btnState.class === 'btn-warning') btnStyles = 'background: #fef3c7; color: #d97706; border: 1px solid #fde68a;';
+            if (btnState.class === 'btn-outline') btnStyles = 'background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color);';
 
             // --- FORCED LOGIC: Calculate Subtitle based entirely on Program and Year Level rules ---
             const progs = parseArray(sch.eligibility_programs).map(p => p.trim());
             const years = parseArray(sch.eligibility_years).map(y => y.trim());
-            
+
             const progOpenKeywords = ['open to all', 'all programs', 'all departments', 'any'];
             const yearOpenKeywords = ['open to all', 'all year levels', 'any'];
 
@@ -361,14 +361,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             gridContainer.appendChild(card);
         });
     };
-    
+
     // --- 6. EVENT LISTENERS ---
-    
+
     // Card Button Click Handler
     gridContainer.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-action');
         if (!btn) return;
-        
+
         const action = btn.getAttribute('data-action');
         const id = btn.getAttribute('data-id');
         const msg = btn.getAttribute('data-msg');
@@ -386,11 +386,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 html: msg,
                 icon: 'info',
                 showCancelButton: true,
-                confirmButtonText: 'Complete Profile',
+                confirmButtonText: 'Complete Personal Information',
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#10b981'
             }).then((res) => {
-                if(res.isConfirmed) window.location.href = 'profile-settings.html';
+                if (res.isConfirmed) window.location.href = 'profile-settings.html';
             });
         } else if (action === 'view') {
             Swal.fire({
@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 cancelButtonText: 'Close',
                 confirmButtonColor: '#3b82f6'
             }).then((res) => {
-                if(res.isConfirmed) window.location.href = 'student-applications.html';
+                if (res.isConfirmed) window.location.href = 'student-applications.html';
             });
         } else if (action === 'apply') {
             window.location.href = `apply-scholarships.html?id=${id}`;
@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sideYear = document.getElementById('side-filter-year');
 
         const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        
+
         // Grab values and check for the default "All Categories", "All Programs", "All Year Levels" text
         let catVal = sideCat ? sideCat.value.trim() : '';
         if (catVal.toLowerCase() === 'all categories') catVal = '';
@@ -431,12 +431,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         filteredScholarships = allScholarships.filter(sch => {
             const matchesSearch = (sch.title || '').toLowerCase().includes(searchVal);
             const matchesCat = catVal === '' || sch.category === catVal;
-            
+
             // Program Filter matching
             const eligibleProgs = parseArray(sch.eligibility_programs).map(p => p.toLowerCase().trim());
             const progOpenKeywords = ['open to all', 'all programs', 'all departments', 'any'];
             const isProgOpen = eligibleProgs.length === 0 || eligibleProgs.some(p => progOpenKeywords.includes(p));
-            
+
             const matchesProg = progVal === '' || isProgOpen || eligibleProgs.some(p => p === progVal || p.includes(progVal) || progVal.includes(p));
 
             // Year Level Filter matching
@@ -452,29 +452,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCards(filteredScholarships);
     };
 
-    if(document.getElementById('search-input')) document.getElementById('search-input').addEventListener('input', applyFilters);
-    if(document.getElementById('side-filter-category')) document.getElementById('side-filter-category').addEventListener('change', applyFilters);
-    if(document.getElementById('side-filter-program')) document.getElementById('side-filter-program').addEventListener('change', applyFilters);
-    if(document.getElementById('side-filter-year')) document.getElementById('side-filter-year').addEventListener('change', applyFilters);
-    if(document.getElementById('apply-filters-btn')) document.getElementById('apply-filters-btn').addEventListener('click', applyFilters);
+    if (document.getElementById('search-input')) document.getElementById('search-input').addEventListener('input', applyFilters);
+    if (document.getElementById('side-filter-category')) document.getElementById('side-filter-category').addEventListener('change', applyFilters);
+    if (document.getElementById('side-filter-program')) document.getElementById('side-filter-program').addEventListener('change', applyFilters);
+    if (document.getElementById('side-filter-year')) document.getElementById('side-filter-year').addEventListener('change', applyFilters);
+    if (document.getElementById('apply-filters-btn')) document.getElementById('apply-filters-btn').addEventListener('click', applyFilters);
 
     // Look for elements strictly by the text "Clear all" if ID is not fully mapped
     const clearFiltersLink = document.getElementById('clear-filters') || Array.from(document.querySelectorAll('a')).find(el => el.textContent.trim().toLowerCase() === 'clear all');
-    
-    if(clearFiltersLink) {
+
+    if (clearFiltersLink) {
         clearFiltersLink.addEventListener('click', (e) => {
             e.preventDefault();
-            if(document.getElementById('search-input')) document.getElementById('search-input').value = '';
-            
+            if (document.getElementById('search-input')) document.getElementById('search-input').value = '';
+
             // Reset dropdowns to their first option (which typically is "All...")
             const catDrop = document.getElementById('side-filter-category');
-            if(catDrop) catDrop.selectedIndex = 0;
-            
+            if (catDrop) catDrop.selectedIndex = 0;
+
             const progDrop = document.getElementById('side-filter-program');
-            if(progDrop) progDrop.selectedIndex = 0;
-            
+            if (progDrop) progDrop.selectedIndex = 0;
+
             const yearDrop = document.getElementById('side-filter-year');
-            if(yearDrop) yearDrop.selectedIndex = 0;
+            if (yearDrop) yearDrop.selectedIndex = 0;
 
             applyFilters();
         });
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const setMenuState = (isOpen) => {
             isMenuOpen = isOpen;
             // Using inline style display to override any HTML display:none properties
-            profileMenu.style.display = isOpen ? 'flex' : 'none'; 
+            profileMenu.style.display = isOpen ? 'flex' : 'none';
             profileToggle.classList.toggle('active-state', isOpen);
             profileToggle.setAttribute('aria-expanded', String(isOpen));
             profileMenu.setAttribute('aria-hidden', String(!isOpen));

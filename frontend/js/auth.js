@@ -224,6 +224,15 @@ const handleLoginSubmit = async (emailId, passwordId) => {
     const email = document.getElementById(emailId).value.trim();
     const password = document.getElementById(passwordId).value;
 
+    const rememberMeCheckbox = document.getElementById('rememberMe');
+    if (rememberMeCheckbox) {
+        if (rememberMeCheckbox.checked) {
+            localStorage.setItem('rememberedEmail', email);
+        } else {
+            localStorage.removeItem('rememberedEmail');
+        }
+    }
+
     const submitBtn = document.querySelector(`#${emailId}`).closest('form').querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerText;
     // submitBtn.innerText = "Authenticating..."; // Removed as per user request
@@ -434,5 +443,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon.classList.add('fa-eye-slash');
             }
         });
+    }
+});
+
+// --- 6. REMEMBER ME INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    const loginEmailInput = document.getElementById('loginEmail');
+    const rememberMeCheckbox = document.getElementById('rememberMe');
+    
+    if (loginEmailInput && rememberMeCheckbox) {
+        const rememberedEmail = localStorage.getItem('rememberedEmail');
+        if (rememberedEmail) {
+            loginEmailInput.value = rememberedEmail;
+            rememberMeCheckbox.checked = true;
+        }
     }
 });

@@ -1,4 +1,41 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Toast UI Helper
+    function showUIToast(type, title, message) {
+        let iconClass = 'fa-check';
+        let colorClass = 'toast-success';
+        
+        if (type === 'error') {
+            iconClass = 'fa-xmark';
+            colorClass = 'toast-error';
+        } else if (type === 'info') {
+            iconClass = 'fa-info';
+            colorClass = 'toast-info';
+        } else if (type === 'warning') {
+            iconClass = 'fa-exclamation';
+            colorClass = 'toast-warning';
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top',
+            showConfirmButton: false,
+            timer: 3000,
+            showCloseButton: true,
+            customClass: {
+                popup: 'ui-toast-popup ' + colorClass
+            },
+            html: `
+                <div class="ui-toast-content">
+                    <div class="toast-icon"><i class="fa-solid ${iconClass}"></i></div>
+                    <div class="toast-text">
+                        <h4>${title}</h4>
+                        <p>${message}</p>
+                    </div>
+                </div>
+            `
+        });
+    }
+
 
     // Forms and Buttons
     const personalForm = document.getElementById('personal-info-form');
@@ -169,10 +206,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     const { error: unenrollError } = await window.supabaseClient.auth.mfa.unenroll({ factorId: activeFactorId });
                                     if (unenrollError) throw unenrollError;
 
-                                    await Swal.fire('Disabled!', '2FA has been successfully disabled.', 'success');
+                                    await showUIToast('success', 'Success', '2FA has been successfully disabled.');
                                     window.location.reload();
                                 } catch (err) {
-                                    Swal.fire('Error', 'Failed to disable 2FA: ' + err.message, 'error');
+                                    showUIToast('error', 'Error', 'Failed to disable 2FA: ' + err.message);
                                 }
                             }
                         });
@@ -218,9 +255,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { error } = await window.supabaseClient.from('profiles').update(updates).eq('id', userId);
                     if (error) throw error;
 
-                    Swal.fire('Success!', 'Your personal profile settings have been successfully updated.', 'success');
+                    showUIToast('success', 'Success', 'Your personal profile settings have been successfully updated.');
                 } catch (error) {
-                    Swal.fire('Error', "Failed to save updates: " + error.message, 'error');
+                    showUIToast('error', 'Error', "Failed to save updates: " + error.message);
                 }
             }
         });
@@ -259,9 +296,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         throw error;
                     }
 
-                    Swal.fire('Success!', 'Your academic profile settings have been successfully updated.', 'success');
+                    showUIToast('success', 'Success', 'Your academic profile settings have been successfully updated.');
                 } catch (error) {
-                    Swal.fire('Error', "Failed to save updates: " + error.message, 'error');
+                    showUIToast('error', 'Error', "Failed to save updates: " + error.message);
                 }
             }
         });
@@ -279,12 +316,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const confirmPassword = document.getElementById('confirm-password').value;
 
             if (newPassword !== confirmPassword) {
-                Swal.fire('Error', "New passwords do not match. Please try again.", 'error');
+                showUIToast('error', 'Error', "New passwords do not match. Please try again.");
                 return;
             }
 
             if (currentPassword === newPassword) {
-                Swal.fire('Error', "New password cannot be the same as your current password.", 'error');
+                showUIToast('error', 'Error', "New password cannot be the same as your current password.");
                 return;
             }
 
@@ -332,7 +369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             } catch (err) {
                 console.error("Password change error:", err);
-                Swal.fire('Error', err.message, 'error');
+                showUIToast('error', 'Error', err.message);
             } finally {
                 btn.innerText = "Update Password";
                 btn.disabled = false;
@@ -399,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 start2faBtn.style.display = 'none';
 
             } catch (error) {
-                Swal.fire('Error', "Error starting 2FA setup: " + error.message, 'error');
+                showUIToast('error', 'Error', "Error starting 2FA setup: " + error.message);
                 start2faBtn.innerText = "Set Up 2FA";
                 start2faBtn.disabled = false;
             }
@@ -434,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.reload();
 
             } catch (error) {
-                Swal.fire('Error', "Invalid code. Please try again. " + error.message, 'error');
+                showUIToast('error', 'Error', "Invalid code. Please try again. " + error.message);
                 confirm2faBtn.innerText = "Confirm";
                 confirm2faBtn.disabled = false;
                 verify2faInput.value = '';
@@ -449,6 +486,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnChangePhoto = document.getElementById('change-photo-btn');
     const avatarUploadInput = document.getElementById('avatar-upload');
 
+    // 5.1 Profile Avatar Popup
+    if (profileAvatarImg) {
+        profileAvatarImg.addEventListener('click', () => {
+            Swal.fire({
+                imageUrl: profileAvatarImg.src,
+                imageAlt: 'Profile Avatar',
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: 'auto',
+                padding: '0',
+                background: 'transparent',
+                backdrop: 'rgba(0,0,0,0.8)',
+                customClass: {
+                    popup: 'swal-avatar-popup',
+                    image: 'swal-avatar-img'
+                }
+            });
+        });
+    }
+
     if (btnChangePhoto && avatarUploadInput) {
         btnChangePhoto.addEventListener('click', () => {
             avatarUploadInput.click();
@@ -459,7 +516,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!file) return;
 
             try {
-                btnChangePhoto.innerText = "Uploading...";
                 btnChangePhoto.disabled = true;
 
                 // Optional loading state while upload runs
@@ -491,13 +547,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (profileAvatarImg) profileAvatarImg.src = cacheBustedUrl;
                 if (headerAvatarImg) headerAvatarImg.src = cacheBustedUrl;
 
-                Swal.fire('Success!', 'Profile photo updated successfully.', 'success');
+                showUIToast('success', 'Success', 'Profile photo updated successfully.');
 
             } catch (error) {
                 console.error("Upload error:", error);
-                Swal.fire('Error', "Failed to upload photo: " + error.message, 'error');
+                showUIToast('error', 'Error', "Failed to upload photo: " + error.message);
             } finally {
-                btnChangePhoto.innerText = "Change Photo";
                 btnChangePhoto.disabled = false;
             }
         });
@@ -580,7 +635,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Swal.fire('Success', 'Notification preferences updated.', 'success');
             } catch (err) {
                 console.error('Error saving prefs:', err);
-                Swal.fire('Error', err.message, 'error');
+                showUIToast('error', 'Error', err.message);
             } finally {
                 btn.innerText = 'Save Preferences';
                 btn.disabled = false;

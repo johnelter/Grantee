@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Applications - Grantee</title>
-    
+    <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
     <link rel="stylesheet" href="css/student-applications.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -23,10 +23,10 @@
 
                 <!-- Header Layout: Actions on top, Titles on bottom -->
                 <header class="top-header">
-                    
+
                     <!-- TOP ROW: Actions & Mobile Menu -->
                     <div class="header-actions">
-                        
+
                         <!-- Left Side: Profile Dropdown -->
                         <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
                             <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
@@ -38,9 +38,12 @@
                             <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
 
                             <div class="profile-dropdown-menu" id="profile-menu">
-                                <a href="profile-settings.html"><i class="fa-solid fa-user" style="margin-right: 8px;"></i> Profile Settings</a>
+                                <a href="profile-settings.html"><i class="fa-solid fa-user"
+                                        style="margin-right: 8px;"></i> Profile Settings</a>
                                 <div class="dropdown-divider"></div>
-                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                                <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                        class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>
+                                    Logout</a>
                             </div>
                         </div>
 
@@ -123,10 +126,12 @@
                 </div>
 
                 <div class="card mt-24">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h3 class="card-title" style="margin-bottom: 0;">My Applications</h3>
                         <div class="filter-controls">
-                            <select id="status-filter" class="form-input" style="padding: 8px 12px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: #f8fafc; color: var(--text-main); cursor: pointer;">
+                            <select id="status-filter" class="form-input"
+                                style="padding: 8px 12px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: #f8fafc; color: var(--text-main); cursor: pointer;">
                                 <option value="all">All Applications</option>
                                 <option value="under_review">Under Review</option>
                                 <option value="approved">Approved</option>
@@ -148,7 +153,8 @@
                             </thead>
                             <tbody id="applications-tbody">
                                 <tr>
-                                    <td colspan="5" style="text-align: center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading applications...</td>
+                                    <td colspan="5" style="text-align: center; padding: 20px;"><i
+                                            class="fa-solid fa-spinner fa-spin"></i> Loading applications...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -157,11 +163,15 @@
 
                 <div class="tips-widget mt-24">
                     <div class="tips-header">
-                        <span><i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i></span> <strong>Tips</strong>
+                        <span><i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i></span>
+                        <strong>Tips</strong>
                     </div>
                     <ul>
-                        <li>You will be notified via email and in-app notification once your application status changes.</li>
-                        <li>You can click "View Details" to review your application profile, responses, and OCR-extracted document data. Your application is locked and cannot be withdrawn after submission.</li>
+                        <li>You will be notified via email and in-app notification once your application status changes.
+                        </li>
+                        <li>You can click "View Details" to review your application profile, responses, and
+                            OCR-extracted document data. Your application is locked and cannot be withdrawn after
+                            submission.</li>
                     </ul>
                 </div>
 
@@ -211,7 +221,7 @@
                     profileMenu.classList.toggle('show');
                     profileToggle.classList.toggle('active-state');
                 });
-                
+
                 document.addEventListener('click', (e) => {
                     if (!profileToggle.contains(e.target)) {
                         profileMenu.classList.remove('show');
@@ -226,15 +236,15 @@
             const modalCancel = document.getElementById('modal-cancel');
             const modalConfirm = document.getElementById('modal-confirm');
 
-            if(logoutBtn && logoutModal) {
+            if (logoutBtn && logoutModal) {
                 logoutBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     logoutModal.style.display = 'flex';
                     if (profileMenu) profileMenu.classList.remove('show');
                 });
                 modalCancel.addEventListener('click', () => logoutModal.style.display = 'none');
-                logoutModal.addEventListener('click', (e) => { if(e.target === logoutModal) logoutModal.style.display = 'none'; });
-                
+                logoutModal.addEventListener('click', (e) => { if (e.target === logoutModal) logoutModal.style.display = 'none'; });
+
                 modalConfirm.addEventListener('click', async () => {
                     modalConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
                     await window.supabaseClient.auth.signOut();
@@ -244,4 +254,5 @@
         });
     </script>
 </body>
+
 </html>

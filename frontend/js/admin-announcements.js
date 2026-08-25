@@ -212,81 +212,161 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ==========================================
-    // 4. RENDER MASTER LIST (LEFT COLUMN)
+    // 4. RENDER MASTER LIST (CENTER COLUMN)
     // ==========================================
+    window.toggleSeeMore = (id) => {
+        const el = document.getElementById(`content-${id}`);
+        const btn = document.getElementById(`btn-see-more-${id}`);
+        if (!el || !btn) return;
+        if (el.classList.contains('card-text-truncated')) {
+            el.classList.remove('card-text-truncated');
+            btn.innerText = 'See less';
+        } else {
+            el.classList.add('card-text-truncated');
+            btn.innerText = 'See more';
+        }
+    };
+
+    window.generateImageGrid = (urls, customStyle = 'margin: 0 20px 16px 20px;') => {
+        if (!urls || urls.length === 0) return '';
+        const count = urls.length;
+        let imagesHtml = '';
+        let layoutClass = '';
+
+        if (count === 1) {
+            imagesHtml = `<img src="${urls[0]}" class="fb-img" alt="Announcement Image">`;
+            layoutClass = 'fb-layout-1';
+        } else if (count === 2) {
+            imagesHtml = `<img src="${urls[0]}" class="fb-img"><img src="${urls[1]}" class="fb-img">`;
+            layoutClass = 'fb-layout-2';
+        } else if (count === 3) {
+            imagesHtml = `<img src="${urls[0]}" class="fb-img span-top"><img src="${urls[1]}" class="fb-img"><img src="${urls[2]}" class="fb-img">`;
+            layoutClass = 'fb-layout-3';
+        } else if (count === 4) {
+            imagesHtml = `<img src="${urls[0]}" class="fb-img"><img src="${urls[1]}" class="fb-img"><img src="${urls[2]}" class="fb-img"><img src="${urls[3]}" class="fb-img">`;
+            layoutClass = 'fb-layout-4';
+        } else {
+            imagesHtml = `
+                <img src="${urls[0]}" class="fb-img">
+                <img src="${urls[1]}" class="fb-img">
+                <img src="${urls[2]}" class="fb-img">
+                <img src="${urls[3]}" class="fb-img">
+            `;
+            if (count === 5) {
+                imagesHtml += `<img src="${urls[4]}" class="fb-img">`;
+            } else {
+                imagesHtml += `<div class="more-images-container" data-more="+${count - 5}"><img src="${urls[4]}" class="fb-img"></div>`;
+            }
+            layoutClass = 'fb-layout-5';
+        }
+
+        return `<div class="fb-layout ${layoutClass}" style="${customStyle}">${imagesHtml}</div>`;
+    };
+
     function renderAnnouncementsList(data) {
         if (!container) return;
         if (data.length === 0) {
             container.innerHTML = `<div class="text-center text-muted" style="padding: 40px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #fff;">No announcements found.</div>`;
-            const detailView = document.getElementById('announcement-detail-view');
-            if (detailView) detailView.innerHTML = `<div class="detail-card"><div class="text-center text-muted" style="padding:40px;">No announcement selected.</div></div>`;
             return;
         }
 
         container.innerHTML = '';
         data.forEach(ann => {
-            const dateStr = new Date(ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const dateStr = new Date(ann.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = ann.content || '';
-            let excerpt = tempDiv.textContent || tempDiv.innerText || "";
-            if (excerpt.length > 80) excerpt = excerpt.substring(0, 80) + '...';
-
-            let catIcon = '<i class="fa-solid fa-bullhorn"></i>';
-            if (ann.category === 'Educational Assistance') catIcon = '<i class="fa-solid fa-graduation-cap"></i>';
-            if (ann.category === 'Reminder') catIcon = '<i class="fa-regular fa-clock"></i>';
-            if (ann.category === 'Event') catIcon = '<i class="fa-regular fa-calendar"></i>';
+            let authorName = "System Administrator";
+            let authorAvatar = "assets/admin-avatar.png";
+            if (ann.profiles) {
+                authorName = `${ann.profiles.first_name || ''} ${ann.profiles.last_name || ''}`.trim();
+                if (ann.profiles.avatar_url) authorAvatar = ann.profiles.avatar_url;
+            }
 
             const commentCount = ann.announcement_comments ? ann.announcement_comments.length : 0;
-            const viewsCount = ann.announcement_reads ? ann.announcement_reads.length : 0;
+            const menuId = `menu-feed-${ann.id}`;
 
-            let mediaIcons = [];
-            if (ann.attachments && ann.attachments.length > 0) mediaIcons.push('<i class="fa-solid fa-paperclip"></i>');
-            if (ann.image_urls && ann.image_urls.length > 0) mediaIcons.push('<i class="fa-solid fa-image"></i>');
-            const mediaBadge = mediaIcons.length > 0 ? `<span style="margin-left: 5px; color:#64748b;">${mediaIcons.join(' ')}</span>` : '';
+            let audienceStr = ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Enrolled Students' : 'Targeted';
+            let pinnedBadge = ann.is_pinned ? `<span style="color:#f59e0b; margin-right:4px;" title="Pinned"><i class="fa-solid fa-thumbtack"></i></span>` : '';
 
-            const pinnedBadge = ann.is_pinned ? `<span style="color:#f59e0b; font-size: 14px; margin-right:5px;"><i class="fa-solid fa-thumbtack"></i></span>` : '';
+            // Check if content is long to add "See more"
+            let tempDiv = document.createElement("div");
+            tempDiv.innerHTML = ann.content || '';
+            const plainText = tempDiv.textContent || tempDiv.innerText || "";
+            const isLong = plainText.length > 250;
+
+            let catStyle = "border:1px solid #86efac; color:#16a34a; background:#f0fdf4;";
+            let catIcon = "fa-solid fa-bullhorn";
+            if (ann.category === 'Educational Assistance') {
+                catStyle = "border:1px solid #93c5fd; color:#1d4ed8; background:#eff6ff;";
+                catIcon = "fa-solid fa-graduation-cap";
+            } else if (ann.category === 'Reminder') {
+                catStyle = "border:1px solid #fde047; color:#a16207; background:#fefce8;";
+                catIcon = "fa-regular fa-clock";
+            } else if (ann.category === 'Event') {
+                catStyle = "border:1px solid #d8b4fe; color:#7e22ce; background:#faf5ff;";
+                catIcon = "fa-regular fa-calendar";
+            }
+
+            const commentsBadgeStyle = ann.allow_comments !== false ? 
+                "background:#dcfce7; color:#166534;" : 
+                "background:#fee2e2; color:#991b1b;";
+
+            let coverHtml = window.generateImageGrid(ann.image_urls);
 
             const card = document.createElement('div');
-            card.className = `social-card ${ann.id === currentSelectedAnnId ? 'active-post' : ''}`;
+            card.className = `social-card`;
             card.dataset.id = ann.id;
-            card.onclick = () => window.selectAnnouncement(ann.id);
 
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span class="tag-category" style="font-size:10px; padding:2px 8px;">${catIcon} ${ann.category || 'General'}</span>
-                    <div>
-                        ${pinnedBadge}
-                        <span style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase;">${ann.status}</span>
+                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 20px 20px 10px 20px;">
+                    <div class="card-meta-row" style="display:flex; align-items:center; gap:10px;">
+                        <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">${ann.status}</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <img src="${authorAvatar}" class="card-avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
+                            <span style="font-size:14px; font-weight:500; color:#475569;">${authorName}</span>
+                            <span style="color:#cbd5e1; font-size:10px;">&bull;</span>
+                            <span style="font-size:14px; color:#64748b;">${dateStr}</span>
+                        </div>
+                    </div>
+                    <div class="post-options-container">
+                        <button class="btn-option btn-menu-toggle" data-target="${menuId}" style="background:#fff; border:1px solid #e2e8f0; color:#475569; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display:flex; align-items:center; gap:6px; cursor:pointer;"><i class="fa-solid fa-ellipsis"></i> Options</button>
+                        <div class="post-options-menu" id="${menuId}" style="display:none; position:absolute; right:0; top:35px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); z-index:10; width:170px; overflow:hidden;">
+                            <button class="btn-edit-ann" data-id="${ann.id}"><i class="fa-solid fa-pen" style="width:16px;"></i> Edit</button>
+                            <button class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned}">${pinnedBadge}<i class="fa-solid fa-thumbtack" style="width:16px;"></i> ${ann.is_pinned ? 'Unpin' : 'Pin'}</button>
+                            <button class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i class="fa-solid fa-${ann.allow_comments !== false ? 'lock' : 'unlock'}" style="width:16px;"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
+                            <button class="btn-duplicate-ann" data-id="${ann.id}"><i class="fa-regular fa-copy" style="width:16px;"></i> Duplicate</button>
+                            ${ann.status === 'Archived' ? `<button class="btn-unarchive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-open" style="width:16px;"></i> Unarchive</button>` : `<button class="btn-archive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-archive" style="width:16px;"></i> Archive</button>`}
+                            <button class="btn-delete-ann" data-id="${ann.id}" style="color:#ef4444;"><i class="fa-regular fa-trash-can" style="width:16px;"></i> Delete</button>
+                        </div>
                     </div>
                 </div>
-                <h4 style="margin:0 0 5px 0; font-size:14px; color:#0f172a; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${ann.title} ${mediaBadge}</h4>
-                <p style="margin:0 0 12px 0; font-size:12px; color:#64748b; line-height:1.5;">${excerpt}</p>
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:8px;">
-                    <div><i class="fa-regular fa-calendar"></i> ${dateStr} &bull; <i class="fa-solid fa-users"></i> ${ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Students' : 'Targeted'}</div>
-                    <div><i class="fa-regular fa-eye"></i> ${viewsCount} &nbsp; <i class="fa-regular fa-comment"></i> ${commentCount}</div>
+                <h3 class="card-title" style="margin: 0 20px 10px 20px; font-size: 20px;">${pinnedBadge}${ann.title}</h3>
+                <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 20px 20px; flex-wrap:wrap;">
+                    <span style="border:1px solid #e2e8f0; color:#475569; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; text-transform:uppercase;"><i class="fa-solid fa-users"></i> ${audienceStr}</span>
+                    <span style="${catStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="${catIcon}"></i> ${ann.category || 'General'}</span>
+                    <span style="${commentsBadgeStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-${ann.allow_comments !== false ? 'comments' : 'lock'}"></i> ${ann.allow_comments !== false ? 'Comments Open' : 'Comments Closed'}</span>
+                </div>
+                <div class="card-body" style="padding-top:0;">
+                    <div class="card-text-content ${isLong ? 'card-text-truncated' : ''}" id="content-${ann.id}">
+                        ${ann.content || ''}
+                    </div>
+                    ${isLong ? `<button class="btn-see-more" id="btn-see-more-${ann.id}" onclick="toggleSeeMore('${ann.id}')">See more</button>` : ''}
+                </div>
+                ${coverHtml}
+                <div class="card-actions">
+                    <button class="btn-comment-action" onclick="window.selectAnnouncement('${ann.id}')">
+                        <i class="fa-regular fa-comment"></i> Comment (${commentCount})
+                    </button>
                 </div>
             `;
             container.appendChild(card);
         });
-
-        if (!currentSelectedAnnId || !data.find(a => a.id === currentSelectedAnnId)) {
-            window.selectAnnouncement(data[0].id);
-        } else {
-            window.selectAnnouncement(currentSelectedAnnId);
-        }
     }
 
     // ==========================================
-    // 5. RENDER DETAIL VIEW (CENTER COLUMN)
+    // 5. RENDER DETAIL VIEW MODAL
     // ==========================================
     window.selectAnnouncement = (id) => {
         currentSelectedAnnId = id;
-
-        document.querySelectorAll('#announcements-container .social-card').forEach(card => {
-            card.classList.remove('active-post');
-            if (card.dataset.id === id) card.classList.add('active-post');
-        });
 
         const ann = allAnnouncements.find(a => a.id === id);
         const detailContainer = document.getElementById('announcement-detail-view');
@@ -301,113 +381,89 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (ann.profiles.avatar_url) authorAvatar = ann.profiles.avatar_url;
         }
 
-        let statusPillClass = 'badge-status-published';
-        if (ann.status === 'Draft') statusPillClass = 'badge-status-draft';
-        if (ann.status === 'Archived') statusPillClass = 'badge-status-archived';
-        if (ann.status === 'Scheduled') statusPillClass = 'badge-status-scheduled';
-
-        const menuId = `menu-detail-${ann.id}`;
-
-        let coverHtml = '';
-        if (ann.image_urls && ann.image_urls.length > 0) {
-            const count = ann.image_urls.length;
-            let imagesHtml = '';
-
-            if (count === 1) {
-                imagesHtml = `<img src="${ann.image_urls[0]}" class="fb-img" alt="Announcement Image">`;
-                coverHtml = `<div class="fb-layout fb-layout-1">${imagesHtml}</div>`;
-            } else if (count === 2) {
-                imagesHtml = `<img src="${ann.image_urls[0]}" class="fb-img"><img src="${ann.image_urls[1]}" class="fb-img">`;
-                coverHtml = `<div class="fb-layout fb-layout-2">${imagesHtml}</div>`;
-            } else if (count === 3) {
-                imagesHtml = `<img src="${ann.image_urls[0]}" class="fb-img span-left"><img src="${ann.image_urls[1]}" class="fb-img"><img src="${ann.image_urls[2]}" class="fb-img">`;
-                coverHtml = `<div class="fb-layout fb-layout-3">${imagesHtml}</div>`;
-            } else {
-                imagesHtml = `
-                    <img src="${ann.image_urls[0]}" class="fb-img">
-                    <img src="${ann.image_urls[1]}" class="fb-img">
-                    <img src="${ann.image_urls[2]}" class="fb-img">
-                `;
-                if (count === 4) {
-                    imagesHtml += `<img src="${ann.image_urls[3]}" class="fb-img">`;
-                } else {
-                    imagesHtml += `<div class="more-images-container" data-more="+${count - 4}"><img src="${ann.image_urls[3]}" class="fb-img"></div>`;
-                }
-                coverHtml = `<div class="fb-layout fb-layout-4">${imagesHtml}</div>`;
-            }
-        }
+        let coverHtml = window.generateImageGrid(ann.image_urls);
 
         let attachmentsHtml = '';
         if (ann.attachments && Array.isArray(ann.attachments) && ann.attachments.length > 0) {
             let filesListHtml = ann.attachments.map(file => `
-                <div class="attachment-box-readonly">
-                    <div class="file-icon"><i class="fa-solid fa-file-pdf"></i></div>
-                    <div class="file-info">
-                        <span class="file-name" title="${file.name}">${file.name}</span>
-                        <span class="file-size">${file.size || 'View File'}</span>
+                <div class="attachment-box-readonly" style="padding: 10px; border: 1px solid var(--border-dark); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="file-info" style="display: flex; gap: 10px; align-items: center;">
+                        <i class="fa-solid fa-file-pdf" style="color: #ef4444; font-size: 20px;"></i>
+                        <div>
+                            <span class="file-name" title="${file.name}" style="display: block; font-size: 13px; font-weight: 600;">${file.name}</span>
+                            <span class="file-size" style="font-size: 11px; color: var(--text-muted);">${file.size || 'View File'}</span>
+                        </div>
                     </div>
-                    <a href="${file.url}" target="_blank" class="btn-view-file"><i class="fa-solid fa-eye"></i></a>
+                    <a href="${file.url}" target="_blank" class="btn-view-file" style="color: var(--primary-color);"><i class="fa-solid fa-eye"></i></a>
                 </div>
             `).join('');
 
             attachmentsHtml = `
-                <div class="detail-attachments-section">
-                    <h4 class="detail-attachments-title">Attachments (${ann.attachments.length})</h4>
+                <div class="detail-attachments-section" style="padding: 0 20px 16px 20px;">
+                    <h4 class="detail-attachments-title" style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Attachments (${ann.attachments.length})</h4>
                     <div class="attachment-grid">${filesListHtml}</div>
                 </div>
             `;
         }
 
-        const commentStatusBadge = ann.allow_comments !== false
-            ? `<span class="tag-comments-open"><i class="fa-solid fa-comments"></i> Comments Open</span>`
-            : `<span class="tag-comments-closed"><i class="fa-solid fa-lock"></i> Comments Closed</span>`;
+        let audienceStr = ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Enrolled Students' : 'Targeted';
+        let pinnedBadge = ann.is_pinned ? `<span style="color:#f59e0b; margin-right:4px;" title="Pinned"><i class="fa-solid fa-thumbtack"></i></span>` : '';
 
+        let catStyle = "border:1px solid #86efac; color:#16a34a; background:#f0fdf4;";
+        let catIcon = "fa-solid fa-bullhorn";
+        if (ann.category === 'Educational Assistance') {
+            catStyle = "border:1px solid #93c5fd; color:#1d4ed8; background:#eff6ff;";
+            catIcon = "fa-solid fa-graduation-cap";
+        } else if (ann.category === 'Reminder') {
+            catStyle = "border:1px solid #fde047; color:#a16207; background:#fefce8;";
+            catIcon = "fa-regular fa-clock";
+        } else if (ann.category === 'Event') {
+            catStyle = "border:1px solid #d8b4fe; color:#7e22ce; background:#faf5ff;";
+            catIcon = "fa-regular fa-calendar";
+        }
+
+        const commentsBadgeStyle = ann.allow_comments !== false ? 
+            "background:#dcfce7; color:#166534;" : 
+            "background:#fee2e2; color:#991b1b;";
+
+        // We re-use the exact same styling as the feed card for consistency
         detailContainer.innerHTML = `
-            <div class="detail-card">
-                <div class="detail-header-top">
-                    <h2 class="detail-title">${ann.title}</h2>
-                    <div class="post-options-container" style="position:relative; margin-left:15px;">
-                        <button class="btn-outline-action btn-menu-toggle" data-target="${menuId}" style="padding:6px 12px; border-radius: 8px;"><i class="fa-solid fa-ellipsis"></i> Options</button>
-                        <div class="post-options-menu" id="${menuId}" style="display:none; position:absolute; right:0; top:35px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); z-index:10; width:170px; overflow:hidden;">
-                            <button class="btn-edit-ann" data-id="${ann.id}"><i class="fa-solid fa-pen" style="width:16px;"></i> Edit</button>
-                            <button class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned}"><i class="fa-solid fa-thumbtack" style="width:16px;"></i> ${ann.is_pinned ? 'Unpin' : 'Pin'}</button>
-                            <button class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i class="fa-solid fa-${ann.allow_comments !== false ? 'lock' : 'unlock'}" style="width:16px;"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
-                            <button class="btn-duplicate-ann" data-id="${ann.id}"><i class="fa-regular fa-copy" style="width:16px;"></i> Duplicate</button>
-                            ${ann.status === 'Archived'
-                ? `<button class="btn-unarchive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-open" style="width:16px;"></i> Unarchive</button>`
-                : `<button class="btn-archive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-archive" style="width:16px;"></i> Archive</button>`
-            }
-                            <button class="btn-delete-ann" data-id="${ann.id}" style="color:#ef4444;"><i class="fa-regular fa-trash-can" style="width:16px;"></i> Delete</button>
-                        </div>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 20px 20px 10px 20px;">
+                <div class="card-meta-row" style="display:flex; align-items:center; gap:10px;">
+                    <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">${ann.status}</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="${authorAvatar}" class="card-avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
+                        <span style="font-size:14px; font-weight:500; color:#475569;">${authorName}</span>
+                        <span style="color:#cbd5e1; font-size:10px;">&bull;</span>
+                        <span style="font-size:14px; color:#64748b;">${dateStr}</span>
                     </div>
                 </div>
-                
-                <div class="detail-meta">
-                    <span class="${statusPillClass}">${ann.status}</span>
-                    <img src="${authorAvatar}" class="detail-avatar" alt="Author">
-                    <span class="detail-author">${authorName}</span>
-                    <span class="meta-dot">&bull;</span>
-                    <span class="detail-date">${dateStr}</span>
+                <div class="post-options-container">
+                    <button class="btn-option btn-menu-toggle" style="visibility:hidden; padding: 6px 12px;"><i class="fa-solid fa-ellipsis"></i> Options</button>
                 </div>
-                
-                <div class="detail-tags">
-                    <span class="tag-audience"><i class="fa-solid fa-users"></i> ${ann.audience_type ? ann.audience_type.replace(/_/g, ' ').toUpperCase() : 'ALL'}</span>
-                    <span class="tag-category"><i class="fa-solid fa-layer-group"></i> ${ann.category || 'General'}</span>
-                    ${commentStatusBadge}
-                </div>
-                
-                ${coverHtml}
-                
-                <div class="detail-content">
+            </div>
+            <h3 class="card-title" style="margin: 0 20px 10px 20px; font-size: 20px;">${pinnedBadge}${ann.title}</h3>
+            <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 20px 20px; flex-wrap:wrap;">
+                <span style="border:1px solid #e2e8f0; color:#475569; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; text-transform:uppercase;"><i class="fa-solid fa-users"></i> ${audienceStr}</span>
+                <span style="${catStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="${catIcon}"></i> ${ann.category || 'General'}</span>
+                <span style="${commentsBadgeStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-${ann.allow_comments !== false ? 'comments' : 'lock'}"></i> ${ann.allow_comments !== false ? 'Comments Open' : 'Comments Closed'}</span>
+            </div>
+            <div class="card-body" style="padding-top:0; padding-bottom: 16px;">
+                <div class="card-text-content">
                     ${ann.content || ''}
                 </div>
-
-                ${attachmentsHtml}
-
             </div>
+            ${coverHtml}
+            ${attachmentsHtml}
         `;
 
         loadComments(ann.id, ann.allow_comments !== false);
+        
+        // Open the modal
+        const viewModal = document.getElementById('view-announcement-modal');
+        if (viewModal) {
+            viewModal.style.display = 'flex';
+        }
     };
 
     // ==========================================
@@ -440,6 +496,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             const annModal = document.getElementById('announcement-modal');
             if (annModal) annModal.style.display = 'none';
+            return;
+        }
+
+        if (e.target.closest('#modal-close-view')) {
+            e.preventDefault();
+            const viewModal = document.getElementById('view-announcement-modal');
+            if (viewModal) viewModal.style.display = 'none';
             return;
         }
 
@@ -543,24 +606,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!previewGrid) return;
         if (!fileUrls || fileUrls.length === 0) { previewGrid.innerHTML = ''; return; }
 
-        const count = fileUrls.length;
-        let imagesHtml = '';
-
-        if (count === 1) {
-            imagesHtml = `<img src="${fileUrls[0]}" class="fb-img" style="max-height: 150px;">`;
-            previewGrid.innerHTML = `<div class="fb-layout fb-layout-1" style="margin-bottom:0;">${imagesHtml}</div>`;
-        } else if (count === 2) {
-            imagesHtml = `<img src="${fileUrls[0]}" class="fb-img"><img src="${fileUrls[1]}" class="fb-img">`;
-            previewGrid.innerHTML = `<div class="fb-layout fb-layout-2" style="height:100px; margin-bottom:0;">${imagesHtml}</div>`;
-        } else if (count === 3) {
-            imagesHtml = `<img src="${fileUrls[0]}" class="fb-img span-left"><img src="${fileUrls[1]}" class="fb-img"><img src="${fileUrls[2]}" class="fb-img">`;
-            previewGrid.innerHTML = `<div class="fb-layout fb-layout-3" style="height:100px; margin-bottom:0;">${imagesHtml}</div>`;
-        } else {
-            imagesHtml = `<img src="${fileUrls[0]}" class="fb-img"><img src="${fileUrls[1]}" class="fb-img"><img src="${fileUrls[2]}" class="fb-img">`;
-            if (count === 4) { imagesHtml += `<img src="${fileUrls[3]}" class="fb-img">`; }
-            else { imagesHtml += `<div class="more-images-container" data-more="+${count - 4}"><img src="${fileUrls[3]}" class="fb-img"></div>`; }
-            previewGrid.innerHTML = `<div class="fb-layout fb-layout-4" style="height:100px; margin-bottom:0;">${imagesHtml}</div>`;
-        }
+        previewGrid.innerHTML = window.generateImageGrid(fileUrls, 'height: 150px; margin-bottom: 0;');
     }
 
     window.renderEditingMedia = () => {
@@ -767,6 +813,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         annModal.style.display = 'flex';
     };
 
+    window.duplicateAnnouncement = (id) => {
+        const annModal = document.getElementById('announcement-modal');
+        if (!annModal) return;
+        const ann = allAnnouncements.find(x => x.id === id);
+        if (!ann) return;
+
+        document.getElementById('announcement-id').value = ''; // new id
+        document.getElementById('ann-title').value = ann.title + ' (Copy)';
+        document.getElementById('ann-category').value = ann.category || 'General';
+        document.getElementById('ann-audience').value = ann.audience_type || 'all_students';
+        document.getElementById('ann-content').innerHTML = ann.content || '';
+        document.getElementById('ann-status').value = 'Draft'; // always duplicate to draft
+        document.getElementById('ann-allow-comments').checked = ann.allow_comments !== false;
+
+        window.editingImageUrls = ann.image_urls && Array.isArray(ann.image_urls) ? [...ann.image_urls] : [];
+        window.editingAttachments = ann.attachments && Array.isArray(ann.attachments) ? [...ann.attachments] : [];
+        window.renderEditingMedia();
+
+        document.getElementById('ann-image-upload').value = '';
+        document.getElementById('ann-file-upload').value = '';
+        document.getElementById('new-image-preview-container').innerHTML = '';
+        document.getElementById('new-file-preview-container').innerHTML = '';
+
+        document.getElementById('ann-scheduled-at').value = '';
+        document.getElementById('ann-expires-at').value = '';
+
+        toggleScheduleDate();
+        updateLivePreview();
+        document.getElementById('modal-title').innerText = "Duplicate Announcement";
+        annModal.style.display = 'flex';
+    };
+
     async function uploadMedia(file, folderPath) {
         if (!file) return null;
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -837,7 +915,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 insertedId = data.id;
             }
 
-            if (status === 'Published' && !id) await sendNotifications(payload.audience_type, payload.title);
+            if (status === 'Published' && !id) {
+                sendNotifications(payload.audience_type, payload.title); // Fire and forget so it doesn't block UI
+            }
 
             try {
                 await window.supabaseClient.from('audit_logs').insert([{
@@ -940,10 +1020,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Moderation Tools (ALWAYS DISPLAYED for Admin, regardless of who posted it)
             let modTools = `
-                <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-action" style="color:#f59e0b;" title="Pin"><i class="fa-solid fa-thumbtack"></i> Pin</button>
-                <button onclick="toggleHideComment('${c.id}', ${c.is_hidden || false})" class="btn-comment-action" style="color:#64748b;" title="${c.is_hidden ? 'Unhide' : 'Hide'} Comment"><i class="fa-solid fa-eye${c.is_hidden ? '' : '-slash'}"></i> ${c.is_hidden ? 'Unhide' : 'Hide'}</button>
-                ${isMe ? `<button onclick="editComment('${c.id}', '${c.content.replace(/'/g, "\\'")}')" class="btn-comment-action" style="color:#3b82f6;" title="Edit"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
-                <button onclick="deleteComment('${c.id}')" class="btn-comment-action text-red" title="Delete Permanently"><i class="fa-regular fa-trash-can"></i> Delete</button>
+                <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-mod" style="color:#f59e0b;" title="Pin"><i class="fa-solid fa-thumbtack"></i> Pin</button>
+                <button onclick="toggleHideComment('${c.id}', ${c.is_hidden || false})" class="btn-comment-mod" style="color:#64748b;" title="${c.is_hidden ? 'Unhide' : 'Hide'} Comment"><i class="fa-solid fa-eye${c.is_hidden ? '' : '-slash'}"></i> ${c.is_hidden ? 'Unhide' : 'Hide'}</button>
+                ${isMe ? `<button onclick="editComment('${c.id}', '${c.content.replace(/'/g, "\\'")}')" class="btn-comment-mod" style="color:#3b82f6;" title="Edit"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
+                <button onclick="deleteComment('${c.id}')" class="btn-comment-mod text-red" title="Delete Permanently"><i class="fa-regular fa-trash-can" style="color:#ef4444;"></i> Delete</button>
             `;
 
             const hiddenStyling = c.is_hidden ? 'opacity: 0.6; filter: grayscale(50%);' : '';
@@ -952,14 +1032,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const commentHtml = `
                 <div class="comment-item" style="${hiddenStyling}">
                     <img src="${avatarUrl}" class="comment-avatar" alt="User" onerror="this.src='assets/default-avatar.png'">
-                    <div class="comment-body-wrapper">
-                        <div class="comment-top-row">
-                            <span class="comment-author">${isMe ? "You" : authorName} ${pinnedLabel} ${hiddenLabel}</span>
-                            <span class="comment-time">${timeString}</span>
+                    <div class="comment-body-wrapper" style="flex: 1;">
+                        <div class="comment-top-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <span class="comment-author" style="font-size:13px; font-weight:600; color:var(--text-main);">${isMe ? "You" : authorName} ${pinnedLabel} ${hiddenLabel}</span>
+                            <span class="comment-time" style="font-size:11px; color:#94a3b8;">${timeString}</span>
                         </div>
-                        <div class="comment-text" style="${c.is_hidden ? 'text-decoration: line-through; color: #94a3b8;' : ''}">${c.content}</div>
-                        <div class="comment-actions">
-                            <button class="btn-comment-action" onclick="replyToUser('${rawNameForReply.replace(/'/g, "\\'").trim()}')"><i class="fa-regular fa-comment"></i> Reply</button>
+                        <div class="comment-text" style="${c.is_hidden ? 'text-decoration: line-through; color: #94a3b8;' : 'font-size:13px; color:#334155; line-height:1.5;'}">${c.content}</div>
+                        <div class="comment-actions" style="display:flex; gap:12px; margin-top:6px; align-items:center;">
+                            <button class="btn-comment-mod" onclick="replyToUser('${rawNameForReply.replace(/'/g, "\\'").trim()}')"><i class="fa-regular fa-comment"></i> Reply</button>
                             ${modTools}
                         </div>
                     </div>
@@ -1307,6 +1387,122 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     };
+
+    // ==========================================
+    // 9. LIGHTBOX / MEDIA VIEWER LOGIC
+    // ==========================================
+    let lightboxImages = [];
+    let lightboxCurrentIndex = 0;
+
+    const modalViewer = document.getElementById('media-viewer-modal');
+    const closeViewerBtn = document.getElementById('close-media-viewer');
+    const viewerImg = document.getElementById('viewer-image');
+    const viewerIframe = document.getElementById('viewer-iframe');
+    const btnPrev = document.getElementById('prev-media');
+    const btnNext = document.getElementById('next-media');
+    const mediaCounter = document.getElementById('media-counter');
+
+    function openLightbox(images, startIndex = 0) {
+        if (!images || images.length === 0) return;
+        lightboxImages = images;
+        lightboxCurrentIndex = startIndex;
+        showLightboxImage();
+        if (modalViewer) {
+            modalViewer.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function showLightboxImage() {
+        if (!lightboxImages || lightboxImages.length === 0) return;
+        const url = lightboxImages[lightboxCurrentIndex];
+        
+        if (viewerImg) {
+            viewerImg.src = url;
+            viewerImg.style.display = 'block';
+        }
+        if (viewerIframe) viewerIframe.style.display = 'none';
+
+        if (mediaCounter) {
+            if (lightboxImages.length > 1) {
+                mediaCounter.innerText = `${lightboxCurrentIndex + 1} / ${lightboxImages.length}`;
+                mediaCounter.style.display = 'block';
+                if (btnPrev) btnPrev.style.display = lightboxCurrentIndex > 0 ? 'flex' : 'none';
+                if (btnNext) btnNext.style.display = lightboxCurrentIndex < lightboxImages.length - 1 ? 'flex' : 'none';
+            } else {
+                mediaCounter.style.display = 'none';
+                if (btnPrev) btnPrev.style.display = 'none';
+                if (btnNext) btnNext.style.display = 'none';
+            }
+        }
+    }
+
+    if (closeViewerBtn) {
+        closeViewerBtn.addEventListener('click', () => {
+            if (modalViewer) modalViewer.style.display = 'none';
+            if (viewerImg) viewerImg.src = '';
+            document.body.style.overflow = '';
+        });
+    }
+
+    if (btnPrev) {
+        btnPrev.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (lightboxCurrentIndex > 0) {
+                lightboxCurrentIndex--;
+                showLightboxImage();
+            }
+        });
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (lightboxCurrentIndex < lightboxImages.length - 1) {
+                lightboxCurrentIndex++;
+                showLightboxImage();
+            }
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const fbImg = e.target.closest('.fb-img');
+        const moreContainer = e.target.closest('.more-images-container');
+        
+        if (fbImg || moreContainer) {
+            const card = e.target.closest('.social-card') || e.target.closest('.detail-card');
+            if (!card) return;
+            const annId = card.dataset.id;
+            
+            let targetAnn = null;
+            if (!annId && card.classList.contains('detail-card')) {
+                targetAnn = allAnnouncements.find(a => a.id === currentSelectedAnnId);
+            } else if (annId) {
+                targetAnn = allAnnouncements.find(a => a.id == annId);
+            }
+
+            if (targetAnn && targetAnn.image_urls && targetAnn.image_urls.length > 0) {
+                let index = 0;
+                let clickedImg = null;
+                
+                if (moreContainer) {
+                    clickedImg = moreContainer.querySelector('img');
+                } else if (fbImg) {
+                    clickedImg = fbImg;
+                }
+                
+                if (clickedImg) {
+                    const src = clickedImg.getAttribute('src');
+                    if (src) {
+                        index = targetAnn.image_urls.findIndex(url => url.includes(src) || src.includes(url));
+                    }
+                }
+                
+                if (index === -1) index = 0;
+                openLightbox(targetAnn.image_urls, index);
+            }
+        }
+    });
 
     // Boot
     initProfile();

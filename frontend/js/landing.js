@@ -108,25 +108,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem('granteeSelectedSchoolId', schoolId);
             localStorage.setItem('granteeSelectedSchool', schoolName);
             
-            if(loginBtn) loginBtn.style.display = 'block';
-
             if(scholarshipsSection) scholarshipsSection.classList.remove('hidden');
             if(selectedSchoolTitle) selectedSchoolTitle.innerText = `Available Scholarships at ${schoolName}`;
 
             fetchScholarshipsBySchool(schoolId);
         }
     });
-
-    // --- 4. NAVIGATION SAFETY INTERCEPTOR ---
-    if(loginBtn) {
-        loginBtn.addEventListener('click', (e) => {
-            if (!schoolSelect.value || schoolSelect.value === 'Choose your school...') {
-                e.preventDefault();
-                alert("Please select your school from the dropdown list to proceed.");
-                schoolSelect.focus();
-            }
-        });
-    }
 
     // Boot
     loadSchools();

@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+(async function () {
 
     document.querySelectorAll('form').forEach(f => f.addEventListener('submit', e => e.preventDefault()));
 
@@ -18,20 +18,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function initProfile() {
         try {
-            const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', adminId).single();
+            const { data: profile } = await window.supabaseClient.from('profiles').select('*, schools(name)').eq('id', adminId).single();
             if (profile) {
                 if (!['admin', 'coordinator'].includes(profile.role)) {
                     window.location.href = 'student-dashboard.html';
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
+                const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
+                const fullName = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
+
                 const headerName = document.getElementById('header-name');
-                if (headerName) headerName.innerText = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
+                if (headerName) headerName.innerText = fullName;
 
                 if (profile.avatar_url) {
                     const headerAvatar = document.getElementById('header-avatar');
                     if (headerAvatar) headerAvatar.src = profile.avatar_url;
                 }
+
+                if (document.getElementById('admin-school-display')) {
+                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                        lucide.createIcons();
+                    }
+                }
+
+                sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
+                    name: fullName,
+                    role: profile.role === 'admin' ? 'Coordinator' : profile.role,
+                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    school_name: schoolName,
+                    school_id: profile.school_id
+                }));
 
                 await runAutomatedStatusUpdates();
                 fetchAnnouncements();
@@ -41,82 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Header Profile & Dropdown
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
 
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileMenu.classList.toggle('show');
-            profileToggle.classList.toggle('active-state');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) {
-                profileMenu.classList.remove('show');
-                profileToggle.classList.remove('active-state');
-            }
-        });
-    }
-
-    // ==========================================
-    // LOGOUT MODAL LOGIC (CUSTOM HTML)
-    // ==========================================
-    const logoutModal = document.getElementById('logout-modal');
-    document.getElementById('dropdown-logout-btn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (profileMenu) profileMenu.classList.remove('show');
-        if (profileToggle) profileToggle.classList.remove('active-state');
-        if (logoutModal) logoutModal.style.display = 'flex';
-    });
-
-    document.getElementById('modal-cancel')?.addEventListener('click', () => {
-        if (logoutModal) logoutModal.style.display = 'none';
-    });
-
-    // document.getElementById('modal-confirm')?.addEventListener('click', async () => {
-    //     try {
-    //         Swal.fire({ title: 'Logging out...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    //         const { error } = await window.supabaseClient.auth.signOut();
-    //         if (error) throw error;
-    //         window.location.href = 'login.html';
-    //     } catch (err) {
-    //         Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-    //     }
-    // });
-
-    // ==========================================
-    // 8. MOBILE HAMBURGER MENU TOGGLE
-    // ==========================================
-    const hamburgerBtn = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar') || document.getElementById('sidebar-container');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    if (hamburgerBtn && sidebar && overlay) {
-        hamburgerBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isActive = sidebar.classList.contains('active');
-            if (isActive) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.remove('active');
-            } else {
-                sidebar.classList.add('active');
-                overlay.classList.add('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.add('active');
-            }
-        });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-            const innerSidebar = document.querySelector('.sidebar');
-            if (innerSidebar) innerSidebar.classList.remove('active');
-        });
-    }
 
     // ==========================================
     // 2. BACKGROUND TASKS & STATS
@@ -285,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const menuId = `menu-feed-${ann.id}`;
 
             let audienceStr = ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Enrolled Students' : 'Targeted';
-            let pinnedBadge = ann.is_pinned ? `<span style="color:#f59e0b; margin-right:4px;" title="Pinned"><i class="fa-solid fa-thumbtack"></i></span>` : '';
+            let pinnedBadge = ann.is_pinned ? `<span style="background-color: #10b981; color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-thumbtack"></i> Pinned</span>` : '';
 
             // Check if content is long to add "See more"
             let tempDiv = document.createElement("div");
@@ -306,8 +249,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 catIcon = "fa-regular fa-calendar";
             }
 
-            const commentsBadgeStyle = ann.allow_comments !== false ? 
-                "background:#dcfce7; color:#166534;" : 
+            const commentsBadgeStyle = ann.allow_comments !== false ?
+                "background:#dcfce7; color:#166534;" :
                 "background:#fee2e2; color:#991b1b;";
 
             let coverHtml = window.generateImageGrid(ann.image_urls);
@@ -329,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <div class="post-options-container">
                         <button class="btn-option btn-menu-toggle" data-target="${menuId}" style="background:#fff; border:1px solid #e2e8f0; color:#475569; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display:flex; align-items:center; gap:6px; cursor:pointer;"><i class="fa-solid fa-ellipsis"></i> Options</button>
-                        <div class="post-options-menu" id="${menuId}" style="display:none; position:absolute; right:0; top:35px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); z-index:10; width:170px; overflow:hidden;">
+                        <div class="post-options-menu" id="${menuId}" style="position:absolute; right:0; top:35px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); z-index:10; width:170px; overflow:hidden;">
                             <button class="btn-edit-ann" data-id="${ann.id}"><i class="fa-solid fa-pen" style="width:16px;"></i> Edit</button>
                             <button class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned}">${pinnedBadge}<i class="fa-solid fa-thumbtack" style="width:16px;"></i> ${ann.is_pinned ? 'Unpin' : 'Pin'}</button>
                             <button class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i class="fa-solid fa-${ann.allow_comments !== false ? 'lock' : 'unlock'}" style="width:16px;"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
@@ -339,12 +282,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
                 </div>
-                <h3 class="card-title" style="margin: 0 20px 10px 20px; font-size: 20px;">${pinnedBadge}${ann.title}</h3>
-                <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 20px 20px; flex-wrap:wrap;">
+                <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 10px 20px; flex-wrap:wrap;">
+                    ${pinnedBadge}
                     <span style="border:1px solid #e2e8f0; color:#475569; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; text-transform:uppercase;"><i class="fa-solid fa-users"></i> ${audienceStr}</span>
                     <span style="${catStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="${catIcon}"></i> ${ann.category || 'General'}</span>
                     <span style="${commentsBadgeStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-${ann.allow_comments !== false ? 'comments' : 'lock'}"></i> ${ann.allow_comments !== false ? 'Comments Open' : 'Comments Closed'}</span>
                 </div>
+                <h3 class="card-title" style="margin: 0 20px 20px 20px; font-size: 20px;">${ann.title}</h3>
                 <div class="card-body" style="padding-top:0;">
                     <div class="card-text-content ${isLong ? 'card-text-truncated' : ''}" id="content-${ann.id}">
                         ${ann.content || ''}
@@ -407,7 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let audienceStr = ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Enrolled Students' : 'Targeted';
-        let pinnedBadge = ann.is_pinned ? `<span style="color:#f59e0b; margin-right:4px;" title="Pinned"><i class="fa-solid fa-thumbtack"></i></span>` : '';
+        let pinnedBadge = ann.is_pinned ? `<span style="background-color: #10b981; color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-thumbtack"></i> Pinned</span>` : '';
 
         let catStyle = "border:1px solid #86efac; color:#16a34a; background:#f0fdf4;";
         let catIcon = "fa-solid fa-bullhorn";
@@ -422,8 +366,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             catIcon = "fa-regular fa-calendar";
         }
 
-        const commentsBadgeStyle = ann.allow_comments !== false ? 
-            "background:#dcfce7; color:#166534;" : 
+        const commentsBadgeStyle = ann.allow_comments !== false ?
+            "background:#dcfce7; color:#166534;" :
             "background:#fee2e2; color:#991b1b;";
 
         // We re-use the exact same styling as the feed card for consistency
@@ -442,12 +386,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button class="btn-option btn-menu-toggle" style="visibility:hidden; padding: 6px 12px;"><i class="fa-solid fa-ellipsis"></i> Options</button>
                 </div>
             </div>
-            <h3 class="card-title" style="margin: 0 20px 10px 20px; font-size: 20px;">${pinnedBadge}${ann.title}</h3>
-            <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 20px 20px; flex-wrap:wrap;">
+            <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 10px 20px; flex-wrap:wrap;">
+                ${pinnedBadge}
                 <span style="border:1px solid #e2e8f0; color:#475569; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; text-transform:uppercase;"><i class="fa-solid fa-users"></i> ${audienceStr}</span>
                 <span style="${catStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="${catIcon}"></i> ${ann.category || 'General'}</span>
                 <span style="${commentsBadgeStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-${ann.allow_comments !== false ? 'comments' : 'lock'}"></i> ${ann.allow_comments !== false ? 'Comments Open' : 'Comments Closed'}</span>
             </div>
+            <h3 class="card-title" style="margin: 0 20px 20px 20px; font-size: 20px;">${ann.title}</h3>
             <div class="card-body" style="padding-top:0; padding-bottom: 16px;">
                 <div class="card-text-content">
                     ${ann.content || ''}
@@ -458,7 +403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
 
         loadComments(ann.id, ann.allow_comments !== false);
-        
+
         // Open the modal
         const viewModal = document.getElementById('view-announcement-modal');
         if (viewModal) {
@@ -475,15 +420,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.stopPropagation();
             const targetId = menuToggleBtn.getAttribute('data-target');
             document.querySelectorAll('.post-options-menu').forEach(menu => {
-                if (menu.id !== targetId) menu.style.display = 'none';
+                if (menu.id !== targetId) menu.classList.remove('show');
             });
             const targetMenu = document.getElementById(targetId);
-            if (targetMenu) targetMenu.style.display = targetMenu.style.display === 'none' ? 'block' : 'none';
+            if (targetMenu) targetMenu.classList.toggle('show');
             return;
         }
 
         if (!e.target.closest('.post-options-menu')) {
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.style.display = 'none');
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
         }
 
         if (e.target.closest('#btn-trigger-post')) {
@@ -1020,7 +965,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Moderation Tools (ALWAYS DISPLAYED for Admin, regardless of who posted it)
             let modTools = `
-                <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-mod" style="color:#f59e0b;" title="Pin"><i class="fa-solid fa-thumbtack"></i> Pin</button>
+                <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-mod" style="color:${c.is_pinned ? '#64748b' : '#f59e0b'};" title="${c.is_pinned ? 'Unpin' : 'Pin'}"><i class="fa-solid fa-thumbtack"></i> ${c.is_pinned ? 'Unpin' : 'Pin'}</button>
                 <button onclick="toggleHideComment('${c.id}', ${c.is_hidden || false})" class="btn-comment-mod" style="color:#64748b;" title="${c.is_hidden ? 'Unhide' : 'Hide'} Comment"><i class="fa-solid fa-eye${c.is_hidden ? '' : '-slash'}"></i> ${c.is_hidden ? 'Unhide' : 'Hide'}</button>
                 ${isMe ? `<button onclick="editComment('${c.id}', '${c.content.replace(/'/g, "\\'")}')" class="btn-comment-mod" style="color:#3b82f6;" title="Edit"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
                 <button onclick="deleteComment('${c.id}')" class="btn-comment-mod text-red" title="Delete Permanently"><i class="fa-regular fa-trash-can" style="color:#ef4444;"></i> Delete</button>
@@ -1416,7 +1361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showLightboxImage() {
         if (!lightboxImages || lightboxImages.length === 0) return;
         const url = lightboxImages[lightboxCurrentIndex];
-        
+
         if (viewerImg) {
             viewerImg.src = url;
             viewerImg.style.display = 'block';
@@ -1468,12 +1413,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('click', (e) => {
         const fbImg = e.target.closest('.fb-img');
         const moreContainer = e.target.closest('.more-images-container');
-        
+
         if (fbImg || moreContainer) {
             const card = e.target.closest('.social-card') || e.target.closest('.detail-card');
             if (!card) return;
             const annId = card.dataset.id;
-            
+
             let targetAnn = null;
             if (!annId && card.classList.contains('detail-card')) {
                 targetAnn = allAnnouncements.find(a => a.id === currentSelectedAnnId);
@@ -1484,20 +1429,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (targetAnn && targetAnn.image_urls && targetAnn.image_urls.length > 0) {
                 let index = 0;
                 let clickedImg = null;
-                
+
                 if (moreContainer) {
                     clickedImg = moreContainer.querySelector('img');
                 } else if (fbImg) {
                     clickedImg = fbImg;
                 }
-                
+
                 if (clickedImg) {
                     const src = clickedImg.getAttribute('src');
                     if (src) {
                         index = targetAnn.image_urls.findIndex(url => url.includes(src) || src.includes(url));
                     }
                 }
-                
+
                 if (index === -1) index = 0;
                 openLightbox(targetAnn.image_urls, index);
             }
@@ -1506,4 +1451,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Boot
     initProfile();
-});
+})();

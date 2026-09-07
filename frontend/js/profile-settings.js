@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-
     // Forms and Buttons
     const personalForm = document.getElementById('personal-info-form');
     const academicForm = document.getElementById('academic-info-form');
@@ -125,10 +124,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profile) {
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
+                const fullName = `${firstName} ${lastName}`.trim();
+                const progName = masterProgram || 'Student';
 
-                if (document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
-                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
-                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = masterProgram || 'Student';
+                sessionStorage.setItem('grantee_student_profile', JSON.stringify({
+                    name: fullName,
+                    program: progName,
+                    avatar_url: profile.avatar_url || 'assets/default-avatar.png'
+                }));
+
+                if (document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = fullName;
+                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = fullName;
+                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = progName;
 
                 if (profile.avatar_url) {
                     if (headerAvatarImg) headerAvatarImg.src = profile.avatar_url;

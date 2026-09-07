@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+(async function () {
 
     // --- 1. AUTH CHECK & INITIALIZATION ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
@@ -8,92 +8,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const adminId = session.user.id;
-    let adminSchoolId = null; 
+    let adminSchoolId = null;
     let currentFilter = localStorage.getItem('admin_dashboard_filter') || 'This Month';
-
-    // --- 2. GLOBAL COMPONENTS & DROPDOWNS ---
-    
-    // Mobile Sidebar Logic (FIXED)
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const sidebarContainer = document.getElementById('sidebar-container');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    
-    if (mobileMenuToggle && sidebarContainer && sidebarOverlay) {
-        // Toggle menu open/closed when clicking the hamburger button
-        mobileMenuToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isActive = sidebarContainer.classList.contains('active');
-            
-            if (isActive) {
-                // Close it
-                sidebarContainer.classList.remove('active');
-                sidebarOverlay.classList.remove('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.remove('active');
-            } else {
-                // Open it
-                sidebarContainer.classList.add('active');
-                sidebarOverlay.classList.add('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.add('active');
-            }
-        });
-
-        // Close menu by clicking the dark overlay
-        sidebarOverlay.addEventListener('click', () => {
-            sidebarContainer.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            const innerSidebar = document.querySelector('.sidebar');
-            if (innerSidebar) innerSidebar.classList.remove('active');
-        });
-    }
-
-    // Dropdown Elements
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
-    const notifToggle = document.getElementById('notification-toggle');
-    const notifMenu = document.getElementById('notification-menu');
-
-    // Profile Dropdown Toggle
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileMenu.classList.toggle('show');
-            profileToggle.classList.toggle('active-state');
-            
-            // Close notif if open
-            if (notifMenu) notifMenu.classList.add('hidden'); 
-        });
-    }
-
-    // Global Click Listener to Close Dropdowns and Sidebar
-    document.addEventListener('click', (e) => {
-        // Close Profile Menu
-        if (profileMenu && profileMenu.classList.contains('show') && !profileToggle.contains(e.target)) {
-            profileMenu.classList.remove('show');
-            profileToggle.classList.remove('active-state');
-        }
-
-        // Close Mobile Sidebar if clicking outside of it
-        if (sidebarContainer && sidebarContainer.classList.contains('active') && !sidebarContainer.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
-            sidebarContainer.classList.remove('active');
-            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
-            const innerSidebar = document.querySelector('.sidebar');
-            if (innerSidebar) innerSidebar.classList.remove('active');
-        }
-    });
 
     // --- 3. LOAD PROFILE DATA INTO HEADER ---
     async function loadProfile() {
         try {
             const { data: profile } = await window.supabaseClient
                 .from('profiles')
-                .select('*, schools(name)') 
+                .select('*, schools(name)')
                 .eq('id', adminId)
                 .single();
 
             if (profile) {
-                if (profile.role !== 'admin') {
+                if (!['admin', 'coordinator'].includes(profile.role)) {
                     window.location.href = 'student-dashboard.html';
                     return;
                 }
@@ -101,9 +29,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 adminSchoolId = profile.school_id;
                 const firstName = profile.first_name || 'Admin';
                 const lastName = profile.last_name || '';
+                const fullName = `${firstName} ${lastName}`.trim();
+                const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
 
                 if (document.getElementById('header-name')) {
-                    document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
+                    document.getElementById('header-name').innerText = fullName;
+                }
+
+                if (document.getElementById('header-role')) {
+                    document.getElementById('header-role').innerText = profile.role === 'admin' ? 'Coordinator' : profile.role;
                 }
 
                 if (profile.avatar_url && document.getElementById('header-avatar')) {
@@ -111,9 +45,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (document.getElementById('admin-school-display')) {
-                    const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
-                    document.getElementById('admin-school-display').innerHTML = `<i class="fas fa-university"></i> Assigned to: <strong>${schoolName}</strong>`;
+                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                        lucide.createIcons();
+                    }
                 }
+
+                sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
+                    name: fullName,
+                    role: profile.role === 'admin' ? 'Coordinator' : profile.role,
+                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    school_name: schoolName,
+                    school_id: profile.school_id
+                }));
             }
         } catch (error) {
             console.error("Error loading admin profile:", error);
@@ -139,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     parsedEnd.setHours(23, 59, 59, 999);
                     return { start: parsedStart.toISOString(), end: parsedEnd.toISOString() };
                 }
-            } catch(e) {}
+            } catch (e) { }
         }
 
         switch (filter) {
@@ -155,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 break;
             case 'Current Semester':
-                const semStartMonth = now.getMonth() >= 5 ? 5 : 0; 
+                const semStartMonth = now.getMonth() >= 5 ? 5 : 0;
                 startDate = new Date(now.getFullYear(), semStartMonth, 1);
                 break;
             case 'Current School Year':
@@ -166,29 +110,68 @@ document.addEventListener('DOMContentLoaded', async () => {
                 startDate = new Date(now.getFullYear(), now.getMonth(), 1); // fallback
                 break;
             default:
-                startDate = new Date(2000, 0, 1); 
+                startDate = new Date(2000, 0, 1);
         }
         return { start: startDate.toISOString(), end: endDate.toISOString() };
     };
 
-    // Filter Dropdown and UI Logic
+    // Filter Dropdown and Flatpickr Range Picker UI Logic
     const filterSelect = document.getElementById('dashboard-date-filter');
     const customWrapper = document.getElementById('custom-date-wrapper');
+    const customDateRangeInput = document.getElementById('custom-date-range-picker');
     const customStart = document.getElementById('custom-start-date');
     const customEnd = document.getElementById('custom-end-date');
+    let customDateRangePicker = null;
+
+    if (customDateRangeInput && typeof flatpickr !== 'undefined') {
+        customDateRangePicker = flatpickr(customDateRangeInput, {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "M j, Y",
+            altInputClass: "bg-gray-50 border border-gray-200 text-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-sm cursor-pointer w-60 sm:w-64",
+            static: true,
+            locale: {
+                rangeSeparator: "  to  "
+            },
+            onChange: (selectedDates) => {
+                if (selectedDates.length === 2) {
+                    const d1 = selectedDates[0];
+                    const d2 = selectedDates[1];
+                    const startStr = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, '0')}-${String(d1.getDate()).padStart(2, '0')}`;
+                    const endStr = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
+
+                    if (customStart) customStart.value = startStr;
+                    if (customEnd) customEnd.value = endStr;
+
+                    const customKey = `admin_dates_${currentFilter.replace(/\s+/g, '_')}`;
+                    localStorage.setItem(customKey, JSON.stringify({
+                        start: startStr,
+                        end: endStr
+                    }));
+                    loadDashboardData();
+                }
+            }
+        });
+    }
 
     const updateCustomDateUI = () => {
         if (!customWrapper) return;
         const needsCustom = ['Current Semester', 'Current School Year', 'Custom Date Range'].includes(currentFilter);
-        
+
         if (needsCustom) {
             customWrapper.classList.remove('hidden');
             customWrapper.classList.add('flex');
-            
+
             const range = getDateRange(currentFilter);
-            if(customStart && customEnd) {
-                customStart.value = range.start.split('T')[0];
-                customEnd.value = range.end.split('T')[0];
+            const startStr = range.start.split('T')[0];
+            const endStr = range.end.split('T')[0];
+
+            if (customStart) customStart.value = startStr;
+            if (customEnd) customEnd.value = endStr;
+
+            if (customDateRangePicker) {
+                customDateRangePicker.setDate([startStr, endStr], false);
             }
         } else {
             customWrapper.classList.add('hidden');
@@ -205,30 +188,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentFilter = e.target.value;
             localStorage.setItem('admin_dashboard_filter', currentFilter);
             updateCustomDateUI();
-            loadDashboardData(); 
+            loadDashboardData();
         });
-
-        if (customStart && customEnd) {
-            const handleCustomDateChange = () => {
-                if (customStart.value && customEnd.value) {
-                    const customKey = `admin_dates_${currentFilter.replace(/\\s+/g, '_')}`;
-                    localStorage.setItem(customKey, JSON.stringify({
-                        start: customStart.value,
-                        end: customEnd.value
-                    }));
-                    loadDashboardData();
-                }
-            };
-            customStart.addEventListener('change', handleCustomDateChange);
-            customEnd.addEventListener('change', handleCustomDateChange);
-        }
 
         updateCustomDateUI();
     }
 
     // --- 5. FETCH & RENDER DASHBOARD DATA ---
     const loadDashboardData = async () => {
-        if (!adminSchoolId) return; 
+        if (!adminSchoolId) return;
 
         const { start, end } = getDateRange(currentFilter);
 
@@ -238,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .from('scholarships')
                 .select('*')
                 .eq('school_id', adminSchoolId);
-            
+
             if (scholError) throw scholError;
 
             // Fetch Applications
@@ -252,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .gte('created_at', start)
                     .lte('created_at', end)
                     .order('created_at', { ascending: false });
-                
+
                 if (appError) throw appError;
                 applications = apps || [];
             }
@@ -307,7 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const renderTopMetrics = (scholarships, applications) => {
         const activeSchol = scholarships.filter(s => s.status === 'Active').length;
         const totalApps = applications.length;
-        
+
         const pending = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
         const approved = applications.filter(a => a.status === 'Approved');
         const rejected = applications.filter(a => a.status === 'Rejected');
@@ -337,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dateObj = new Date(notif.created_at);
             const today = new Date();
             const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
-            
+
             let groupName = dateObj.toLocaleDateString();
             if (dateObj.toDateString() === today.toDateString()) groupName = 'Today';
             else if (dateObj.toDateString() === yesterday.toDateString()) groupName = 'Yesterday';
@@ -365,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         Object.keys(grouped).forEach(dateGroup => {
             html += `<div class="activity-date-group mb-5">
                         <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">${dateGroup}</h4>`;
-            
+
             grouped[dateGroup].forEach((notif, index) => {
                 let iconClass = 'fa-bell text-gray-500';
                 let borderColor = 'border-gray-500';
@@ -374,22 +342,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let actionUser = '';
 
                 if (notif.type === 'audit') {
-                    if (notif.action.includes('Announcement')) { iconClass = 'fa-bullhorn text-blue-500'; borderColor = 'border-blue-500'; }
+                    if (notif.action.includes('Announcement')) { iconClass = 'fa-bullhorn text-emerald-500'; borderColor = 'border-emerald-500'; }
                     else if (notif.action.includes('Educational Assistance')) { iconClass = 'fa-graduation-cap text-indigo-500'; borderColor = 'border-indigo-500'; }
                     else if (notif.action.includes('Beneficiary') || notif.action.includes('Applicant')) { iconClass = 'fa-user-check text-green-500'; borderColor = 'border-green-500'; }
                     else { iconClass = 'fa-cog text-gray-500'; borderColor = 'border-gray-500'; }
-                    
+
                     title = notif.action;
                     try {
                         const d = JSON.parse(notif.details);
                         desc = d.title || d.details || notif.module;
-                    } catch(e) { desc = notif.details || notif.module; }
+                    } catch (e) { desc = notif.details || notif.module; }
 
                     if (notif.profiles) {
                         actionUser = `<div class="flex items-center gap-1 mb-1 text-xs text-gray-500"><i class="fas fa-user-circle"></i> ${notif.profiles.first_name} ${notif.profiles.last_name}</div>`;
                     }
                 } else {
-                    if (notif.type === 'application') { iconClass = 'fa-file-signature text-blue-500'; borderColor = 'border-blue-500'; }
+                    if (notif.type === 'application') { iconClass = 'fa-file-signature text-emerald-500'; borderColor = 'border-emerald-500'; }
                     else if (notif.type === 'document') { iconClass = 'fa-file-upload text-indigo-500'; borderColor = 'border-indigo-500'; }
                     else if (notif.type === 'alert') { iconClass = 'fa-exclamation-triangle text-red-500'; borderColor = 'border-red-500'; }
                     else if (notif.type === 'comment') { iconClass = 'fa-comment-dots text-purple-500'; borderColor = 'border-purple-500'; }
@@ -412,7 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p class="text-sm text-gray-600 mb-1">${desc}</p>
                     <span class="text-xs text-gray-400">${timeAgo(notif.created_at)}</span>
                 </div>`;
-                
+
                 if (index < grouped[dateGroup].length - 1) {
                     html += `<hr class="my-4 border-gray-100">`;
                 }
@@ -442,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         targetUserIds.push(parsed.targetUserId);
                     }
                 }
-            } catch(e) {}
+            } catch (e) { }
         });
 
         let targetUserProfiles = {};
@@ -451,7 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .from('profiles')
                 .select('id, first_name, last_name')
                 .in('id', targetUserIds);
-            
+
             if (profiles) {
                 profiles.forEach(p => {
                     targetUserProfiles[p.id] = `${p.first_name} ${p.last_name}`;
@@ -463,13 +431,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         logs.forEach(log => {
             const timeString = new Date(log.created_at).toLocaleString();
             const userName = log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown Admin';
-            
+
             let detailsText = log.details || '-';
             try {
                 if (log.details && log.details.startsWith('{')) {
                     const parsed = JSON.parse(log.details);
                     let dText = parsed.details || '';
-                    
+
                     if (!dText) {
                         const parts = [];
                         for (const [key, value] of Object.entries(parsed)) {
@@ -488,7 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     detailsText = dText;
                 }
-            } catch (e) {}
+            } catch (e) { }
 
             html += `
                 <tr class="border-b hover:bg-gray-50 transition-colors">
@@ -529,10 +497,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const aStop = eStop + aPct;
 
         const gradient = `conic-gradient(
-            #facc15 0% ${pStop}%, 
-            #3b82f6 ${pStop}% ${eStop}%, 
-            #22c55e ${eStop}% ${aStop}%, 
-            #ef4444 ${aStop}% 100%
+            #DCC8A3 0% ${pStop}%, 
+            #4C6A73 ${pStop}% ${eStop}%, 
+            #6B7F4E ${eStop}% ${aStop}%, 
+            #5A4A3A ${aStop}% 100%
         )`;
         if (document.getElementById('app-overview-chart')) document.getElementById('app-overview-chart').style.background = gradient;
     };
@@ -555,7 +523,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             categories[cat] = (categories[cat] || 0) + 1;
         });
 
-        const colors = ['#10b981', '#3b82f6', '#eab308', '#8b5cf6', '#f97316', '#94a3b8'];
+        const colors = ['#1F3D2E', '#6B7F4E', '#A2B5A0', '#DCC8A3', '#4C6A73', '#5A4A3A'];
         let gradientStops = [];
         let currentPct = 0;
         let legendHTML = '';
@@ -605,7 +573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (item.count > 0) {
                 tbody.innerHTML += `
                     <tr class="border-b hover:bg-gray-50 transition-colors">
-                        <td class="py-3 px-2 text-sm text-gray-800"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2 font-bold">${index + 1}</span> ${item.title}</td>
+                        <td class="py-3 px-2 text-sm text-gray-800"><span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded mr-2 font-bold">${index + 1}</span> ${item.title}</td>
                         <td class="text-right py-3 px-2"><span class="font-bold text-gray-800">${item.count}</span></td>
                     </tr>
                 `;
@@ -648,38 +616,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    // --- 6. LOGOUT MODAL LOGIC WITH SWEETALERT ---
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('#sidebar-logout-btn') || e.target.closest('#dropdown-logout-btn')) {
-            e.preventDefault();
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "You will be logged out of your session.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3b82f6',
-                cancelButtonColor: '#ef4444',
-                confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Yes, logout'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        Swal.fire({
-                            title: 'Logging out...',
-                            allowOutsideClick: false,
-                            didOpen: () => Swal.showLoading()
-                        });
-                        await window.supabaseClient.auth.signOut();
-                        window.location.href = 'login.html';
-                    } catch (error) {
-                        console.error("Logout error:", error);
-                        Swal.fire('Error!', 'Failed to logout. Please try again.', 'error');
-                    }
-                }
-            });
-        }
-    });
+
 
     // --- BOOT PROCESS ---
     await loadProfile();
     await loadDashboardData();
-});
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
+})();

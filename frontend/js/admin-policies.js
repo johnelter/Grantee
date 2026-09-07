@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+(async function() {
 
     // --- 1. AUTH CHECK & INITIALIZATION ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const { data: profile } = await window.supabaseClient
                 .from('profiles')
-                .select('*')
+                .select('*, schools(name)')
                 .eq('id', adminId)
                 .single();
 
@@ -56,10 +56,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
+                const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
                 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
                 if(document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
                 if(profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
+
+                if (document.getElementById('admin-school-display')) {
+                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                        lucide.createIcons();
+                    }
+                }
+
+                sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
+                    name: name,
+                    role: profile.role === 'admin' ? 'Coordinator' : profile.role,
+                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    school_name: schoolName,
+                    school_id: profile.school_id
+                }));
 
                 await loadPolicies();
             }
@@ -374,78 +390,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Save button not found: #btn-save-policies');
     }
 
-    // ==========================================
-    // 2. DROPDOWN & LOGOUT MODAL LOGIC
-    // ==========================================
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
 
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            profileMenu.classList.toggle('show');
-        });
-        document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) profileMenu.classList.remove('show');
-        });
-    }
-
-    const logoutModal = document.getElementById('logout-modal');
-    const modalCancel = document.getElementById('modal-cancel');
-    const modalConfirm = document.getElementById('modal-confirm');
-    const logoutBtn = document.getElementById('dropdown-logout-btn');
-
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (logoutModal) logoutModal.style.display = 'flex';
-            if (profileMenu) profileMenu.classList.remove('show'); 
-        });
-    }
-
-    if (modalCancel) modalCancel.addEventListener('click', () => logoutModal.style.display = 'none');
-    if (logoutModal) logoutModal.addEventListener('click', (e) => { if (e.target === logoutModal) logoutModal.style.display = 'none'; });
-
-    if (modalConfirm) {
-        modalConfirm.addEventListener('click', async () => {
-            modalConfirm.innerText = "Logging out...";
-            modalConfirm.disabled = true;
-            await window.supabaseClient.auth.signOut();
-            window.location.href = 'login.html';
-        });
-    }
-
-    // ==========================================
-    // 8. MOBILE HAMBURGER MENU TOGGLE
-    // ==========================================
-    const hamburgerBtn = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar') || document.getElementById('sidebar-container');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    if (hamburgerBtn && sidebar && overlay) {
-        hamburgerBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isActive = sidebar.classList.contains('active');
-            if (isActive) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.remove('active');
-            } else {
-                sidebar.classList.add('active');
-                overlay.classList.add('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.add('active');
-            }
-        });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-            const innerSidebar = document.querySelector('.sidebar');
-            if (innerSidebar) innerSidebar.classList.remove('active');
-        });
-    } 
 
     init();
-});
+})();

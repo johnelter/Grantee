@@ -69,8 +69,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Header UI
             const name = `${profile.first_name || 'Student'} ${profile.last_name || ''}`.trim();
+            const prog = profile.program || profile.course || 'Student Profile';
+            sessionStorage.setItem('grantee_student_profile', JSON.stringify({
+                name: name,
+                program: prog,
+                avatar_url: profile.avatar_url || 'assets/default-avatar.png'
+            }));
+
             if (document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
-            if (document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student Profile';
+            if (document.getElementById('header-program')) document.getElementById('header-program').innerText = prog;
             if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
         } catch (error) {
@@ -480,45 +487,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Profile Dropdown Fix (Overriding inline display styles)
+    // --- 6. PROFILE DROPDOWN & UNIFIED LOGOUT MODAL LOGIC ---
     const profileToggle = document.getElementById('profile-dropdown-toggle');
     const profileMenu = document.getElementById('profile-menu');
+    const logoutModal = document.getElementById('logout-modal');
+    const modalConfirm = document.getElementById('modal-confirm');
+    const modalCancel = document.getElementById('modal-cancel');
+    const logoutBtn = document.getElementById('dropdown-logout-btn');
 
     if (profileToggle && profileMenu) {
-        let isMenuOpen = false;
-
-        const setMenuState = (isOpen) => {
-            isMenuOpen = isOpen;
-            // Using inline style display to override any HTML display:none properties
-            profileMenu.style.display = isOpen ? 'flex' : 'none';
-            profileToggle.classList.toggle('active-state', isOpen);
-            profileToggle.setAttribute('aria-expanded', String(isOpen));
-            profileMenu.setAttribute('aria-hidden', String(!isOpen));
-        };
-
         profileToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            setMenuState(!isMenuOpen);
+            profileMenu.classList.toggle('show');
+            profileToggle.classList.toggle('active-state', profileMenu.classList.contains('show'));
         });
 
         profileToggle.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                setMenuState(!isMenuOpen);
+                profileMenu.classList.toggle('show');
+                profileToggle.classList.toggle('active-state', profileMenu.classList.contains('show'));
             }
         });
 
-        profileMenu.addEventListener('click', (e) => {
-            e.stopPropagation();
+        document.addEventListener('click', (e) => {
+            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('show');
+                profileToggle.classList.remove('active-state');
+            }
         });
 
-        profileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => setMenuState(false));
-        });
-
-        document.addEventListener('click', () => setMenuState(false));
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') setMenuState(false);
+            if (e.key === 'Escape') {
+                profileMenu.classList.remove('show');
+                profileToggle.classList.remove('active-state');
+            }
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (profileMenu) {
+                profileMenu.classList.remove('show');
+            }
+            if (profileToggle) {
+                profileToggle.classList.remove('active-state');
+            }
+            if (logoutModal) {
+                logoutModal.style.display = 'flex';
+            }
+        });
+    }
+
+    if (modalCancel && logoutModal) {
+        modalCancel.addEventListener('click', (e) => {
+            e.preventDefault();
+            logoutModal.style.display = 'none';
+        });
+    }
+
+    if (logoutModal) {
+        logoutModal.addEventListener('click', (e) => {
+            if (e.target === logoutModal) {
+                logoutModal.style.display = 'none';
+            }
+        });
+    }
+
+    if (modalConfirm) {
+        modalConfirm.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                modalConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
+                modalConfirm.disabled = true;
+                if (window.supabaseClient && window.supabaseClient.auth) {
+                    await window.supabaseClient.auth.signOut();
+                }
+                localStorage.removeItem('studentUser');
+                sessionStorage.clear();
+                window.location.replace('login-student.html');
+            } catch (err) {
+                console.error("Logout error:", err);
+                window.location.replace('login-student.html');
+            }
         });
     }
 

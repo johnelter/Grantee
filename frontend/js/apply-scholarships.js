@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalHtml = `
         <div id="full-view-modal" class="doc-modal-overlay">
             <div class="doc-modal-content">
-                <button class="doc-modal-close" onclick="document.getElementById('full-view-modal').style.display='none'">
-                    <i class="fa-solid fa-xmark"></i>
+                <button class="doc-modal-close" onclick="document.getElementById('full-view-modal').style.display='none'" aria-label="Close View">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                 </button>
                 <div id="full-view-content" style="width:100%; height:100%;"></div>
             </div>
@@ -52,13 +52,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.tempFileUrls = {}; // Global store for local blob URLs for the Full View
 
-    // --- TEXT FORMATTING UTILITY ---
+    // --- TEXT FORMATTING & ESCAPING UTILITY ---
+    const escapeHtml = (str) => {
+        if (!str || typeof str !== 'string') return str || '';
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const formatText = (text, rule) => {
         if (!text || typeof text !== 'string') return text;
         if (rule === 'UPPERCASE') return text.toUpperCase();
         if (rule === 'lowercase') return text.toLowerCase();
         if (rule === 'Capitalize Each Word') return text.replace(/\b\w/g, l => l.toUpperCase());
         return text; // 'No formatting' or unknown fallback
+    };
+
+    // Helper to refresh Lucide icons
+    const refreshIcons = () => {
+        if (window.lucide) {
+            lucide.createIcons();
+        }
     };
 
     // --- 4. INIT FUNCTION ---
@@ -69,9 +86,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentScholarship = sch;
             const autoFmt = sch.auto_collected_formats || {};
 
-            if (document.getElementById('sch-category')) document.getElementById('sch-category').innerText = sch.category || 'Institution-Funded Educational Assistance';
+            if (document.getElementById('sch-category')) document.getElementById('sch-category').innerText = sch.category || 'Institution-Funded';
             if (document.getElementById('sch-type')) document.getElementById('sch-type').innerText = sch.scholarship_type || 'Merit-Based';
-            if (document.getElementById('sch-title')) document.getElementById('sch-title').innerText = sch.title;
+            if (document.getElementById('sch-title')) document.getElementById('sch-title').innerText = sch.title || 'Untitled Program';
             if (document.getElementById('sch-provider')) document.getElementById('sch-provider').innerText = sch.department || 'General Admin';
             if (document.getElementById('sch-description')) document.getElementById('sch-description').innerHTML = sch.description || 'No description provided.';
 
@@ -123,12 +140,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
-                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = masterProgram || 'Student Profile';
+                const fullName = `${firstName} ${lastName}`.trim();
+                const progName = masterProgram || 'Student Profile';
+
+                sessionStorage.setItem('grantee_student_profile', JSON.stringify({
+                    name: fullName,
+                    program: progName,
+                    avatar_url: profile.avatar_url || 'assets/default-avatar.png'
+                }));
+
+                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = fullName;
+                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = progName;
                 if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
                 if (document.getElementById('prof-id')) document.getElementById('prof-id').value = profile.id_number || 'N/A';
-                if (document.getElementById('prof-email')) document.getElementById('prof-email').value = studentEmail || 'N/A';
+                if (document.getElementById('prof-email')) document.getElementById('prof-email').value = formatText(studentEmail || 'N/A', autoFmt['Email Address'] || autoFmt['Email']);
                 if (document.getElementById('prof-dob')) document.getElementById('prof-dob').value = profile.date_of_birth || 'N/A';
                 if (document.getElementById('prof-contact')) document.getElementById('prof-contact').value = profile.contact_number || 'N/A';
 
@@ -147,61 +173,63 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let hasRules = false;
 
                 if (sch.min_college_gwa) {
-                    elList.innerHTML += `<li>Must have a College GWA of <strong>${sch.min_college_gwa}</strong> or better (1.0 is highest).</li>`;
+                    elList.innerHTML += `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have a College GWA of <strong>${sch.min_college_gwa}</strong> or better.</span></li>`;
                     hasRules = true;
                 }
                 if (sch.min_hs_average) {
-                    elList.innerHTML += `<li>Must have a High School Average of <strong>${sch.min_hs_average}</strong> or better.</li>`;
+                    elList.innerHTML += `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have a High School Average of <strong>${sch.min_hs_average}</strong> or better.</span></li>`;
                     hasRules = true;
                 }
                 if (sch.min_college_subject_grade) {
-                    elList.innerHTML += `<li>Must have NO individual College subject grade lower than <strong>${sch.min_college_subject_grade}</strong>.</li>`;
+                    elList.innerHTML += `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have NO individual College subject grade lower than <strong>${sch.min_college_subject_grade}</strong>.</span></li>`;
                     hasRules = true;
                 }
                 if (sch.min_hs_subject_grade) {
-                    elList.innerHTML += `<li>Must have NO individual High School subject grade lower than <strong>${sch.min_hs_subject_grade}</strong>.</li>`;
+                    elList.innerHTML += `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have NO individual High School subject grade lower than <strong>${sch.min_hs_subject_grade}</strong>.</span></li>`;
                     hasRules = true;
                 }
                 if (sch.eligibility_years && sch.eligibility_years.length > 0) {
-                    elList.innerHTML += `<li>Open to Year Levels: <strong>${sch.eligibility_years.join(', ')}</strong>.</li>`;
+                    elList.innerHTML += `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Open to Year Levels: <strong>${sch.eligibility_years.join(', ')}</strong>.</span></li>`;
                     hasRules = true;
                 }
                 if (sch.eligibility_programs && sch.eligibility_programs.length > 0) {
-                    elList.innerHTML += `<li>Open to Programs: <strong>${sch.eligibility_programs.join(', ')}</strong>.</li>`;
+                    elList.innerHTML += `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Open to Programs: <strong>${sch.eligibility_programs.length} Programs selected</strong>.</span></li>`;
                     hasRules = true;
                 }
-                if (!hasRules) elList.innerHTML = `<li>No specific eligibility restrictions for this educational assistance program.</li>`;
+                if (!hasRules) elList.innerHTML = `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>No specific eligibility restrictions for this educational assistance program.</span></li>`;
             }
 
             // D. Render Dynamic Questionnaire with Custom Formatting Rules
             const questionsContainer = document.getElementById('dynamic-questions');
             if (sch.form_fields && questionsContainer) {
+                questionsContainer.innerHTML = '';
                 sch.form_fields.forEach((field, i) => {
                     const div = document.createElement('div');
-                    div.style.marginBottom = '20px';
+                    div.className = 'preview-input-group';
+                    div.style.marginBottom = '15px';
                     const reqStr = field.required ? 'required' : '';
-                    const reqIcon = field.required ? '<span style="color:#ef4444; margin-left:4px;">*</span>' : '';
+                    const reqIcon = field.required ? '<span class="text-red">*</span>' : '';
 
                     let inputHtml = '';
                     if (field.type === 'Selection') {
                         const inputType = field.allow_multiple ? 'checkbox' : 'radio';
                         let optionsHtml = '';
                         field.options.forEach((opt) => {
-                            optionsHtml += `<label class="radio-checkbox-label"><input type="${inputType}" name="q_${i}" value="${opt}" ${reqStr}> ${opt}</label>`;
+                            optionsHtml += `<label class="radio-checkbox-label"><input type="${inputType}" name="q_${i}" value="${escapeHtml(opt)}" ${reqStr}> ${escapeHtml(opt)}</label>`;
                         });
-                        inputHtml = `<div style="padding-top:10px;">${optionsHtml}</div>`;
+                        inputHtml = `<div style="padding-top:6px; display:flex; flex-direction:column; gap:8px;">${optionsHtml}</div>`;
                     } else if (field.type === 'Dropdown') {
-                        let optionsHtml = field.options.map(o => `<option value="${o}">${o}</option>`).join('');
-                        inputHtml = `<select class="dynamic-select" name="q_${i}" ${reqStr}><option value="">Select...</option>${optionsHtml}</select>`;
+                        let optionsHtml = (field.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+                        inputHtml = `<select class="preview-input preview-input-active dynamic-select" name="q_${i}" ${reqStr}><option value="">Select option...</option>${optionsHtml}</select>`;
                     } else if (field.type === 'Date') {
-                        inputHtml = `<input type="date" class="dynamic-input" name="q_${i}" ${reqStr}>`;
+                        inputHtml = `<input type="date" class="preview-input preview-input-active dynamic-input" name="q_${i}" ${reqStr}>`;
                     } else {
                         const htmlType = (field.type && field.type.toLowerCase() === 'number') ? 'number' : 'text';
                         const formatRule = field.format_rule || 'No formatting';
-                        inputHtml = `<input type="${htmlType}" class="dynamic-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr} data-format="${formatRule}">`;
+                        inputHtml = `<input type="${htmlType}" class="preview-input preview-input-active dynamic-input" name="q_${i}" placeholder="Enter your answer..." ${reqStr} data-format="${formatRule}">`;
                     }
 
-                    div.innerHTML = `<label style="display:block; font-size:13px; font-weight:600; color:#1e293b; margin-bottom:8px;">${field.label}${reqIcon}</label>${inputHtml}`;
+                    div.innerHTML = `<label>${escapeHtml(field.label)} ${reqIcon}</label>${inputHtml}`;
                     if (field.type === 'Textarea' || field.type === 'Text') div.style.gridColumn = '1 / -1';
 
                     questionsContainer.appendChild(div);
@@ -229,59 +257,110 @@ document.addEventListener('DOMContentLoaded', async () => {
                 docsConfigList = sch.document_configurations;
             } else if (sch.required_documents && sch.required_documents.length > 0) {
                 docsConfigList = sch.required_documents.map(name => ({
-                    name: name, required: true, ocr_enabled: true, max_size: 5
+                    name: name, required: true, ocr_enabled: true, max_size: 5, description: ""
                 }));
             }
 
+            const hasAnyOcr = docsConfigList.some(d => d.ocr_enabled !== false);
+            const aiNoticeBanner = document.getElementById('ai-verification-banner') || document.querySelector('.preview-ai-banner');
+            if (aiNoticeBanner) {
+                aiNoticeBanner.style.display = hasAnyOcr ? 'flex' : 'none';
+            }
+
             if (docsConfigList.length > 0 && ocrContainer) {
+                ocrContainer.innerHTML = '';
                 docsConfigList.forEach((docConfig, i) => {
                     const docName = docConfig.name;
                     const isReq = docConfig.required !== false;
                     const isOcr = docConfig.ocr_enabled !== false;
                     const maxSize = docConfig.max_size || 5;
+                    const docDesc = docConfig.description || '';
 
                     if (isReq) requiredDocsCount++;
 
-                    const reqMarker = isReq ? `<span style="color:#ef4444;">*</span>` : `<span style="font-size:12px; color:#64748b; font-weight:normal; margin-left:4px;">(Optional)</span>`;
-                    const ocrBadge = isOcr ? `<span style="font-size:10px; background:#e0e7ff; color:#3730a3; padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle;"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Scan</span>` : '';
+                    const reqMarker = isReq ? '<span class="text-red">*</span>' : '<span style="font-size:11px; color:var(--text-muted); font-weight:normal; margin-left:2px;">(Optional)</span>';
+                    const ocrBadge = isOcr 
+                        ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Validation Active</span>` 
+                        : `<span class="preview-ocr-badge inactive"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> Standard Upload</span>`;
+
+                    const descHtml = docDesc && docDesc.trim() ? `
+                        <div class="preview-doc-instruction">
+                            <div class="preview-instruction-title">
+                                <i data-lucide="info" style="width: 13px; height: 13px;"></i> Document Description & Student Instructions:
+                            </div>
+                            <div class="preview-instruction-body">${escapeHtml(docDesc).replace(/\n/g, '<br>')}</div>
+                        </div>
+                    ` : '';
 
                     const div = document.createElement('div');
-                    div.className = 'doc-dashed-box';
+                    div.className = 'preview-doc-box';
                     div.id = `block_${i}`;
 
                     div.innerHTML = `
                         <div id="zone_${i}">
-                            <div class="doc-title"><i class="fa-solid fa-file-arrow-up"></i> Upload ${docName} ${reqMarker} ${ocrBadge}</div>
-                            <div class="doc-subtitle">Allowed: PDF, JPG, PNG (Max: ${maxSize}MB)</div>
+                            <div class="preview-doc-header">
+                                <label style="font-size:13.5px; font-weight:700; color: var(--text-main); display:inline-flex; align-items:center; gap:6px; margin:0;">
+                                    <i data-lucide="upload" style="width: 15px; height: 15px; color: var(--forest-shade);"></i> Upload ${escapeHtml(docName)} ${reqMarker}
+                                </label>
+                                <div>${ocrBadge}</div>
+                            </div>
+                            ${descHtml}
+                            <div style="font-size:11px; color: var(--text-muted); margin-bottom:12px;">Allowed formats: PDF, JPG, PNG (Max size: ${maxSize}MB)</div>
                             <input type="file" id="file_${i}" accept="image/*,application/pdf" style="display:none">
-                            <button type="button" class="btn-upload" onclick="document.getElementById('file_${i}').click()">Choose File</button>
-                            <div id="fname_${i}" style="margin-top: 10px; font-size: 12px; color: #64748b;">No file selected</div>
+                            <div style="display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;">
+                                <button type="button" class="btn-choose-file" onclick="document.getElementById('file_${i}').click()"><i data-lucide="folder-open" style="width:14px; height:14px; margin-right:6px;"></i> Choose File</button>
+                                <span id="fname_${i}" style="font-size: 11px; color: var(--text-muted);">No file selected</span>
+                            </div>
                         </div>
 
-                        <div id="loader_${i}" style="display:none; text-align:center; padding: 20px; color: var(--primary-color); font-weight: bold;">
-                            <i class="fa-solid fa-circle-notch fa-spin"></i> AI is validating document... Please wait...
+                        <div id="loader_${i}" style="display:none; text-align:center; padding: 25px 20px; color: var(--forest-shade); font-weight: 600;">
+                            <i data-lucide="loader-2" class="spin-icon" style="width:26px; height:26px; margin-bottom:8px; display:inline-block;"></i>
+                            <div>AI is validating document... Please wait...</div>
                         </div>
 
                         <div id="grid_${i}" style="display:none; text-align:left;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
-                                <h4 style="margin: 0; font-size: 14px; font-weight: bold; color: #0f172a;">${docName}</h4>
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-dark); padding-bottom: 12px; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
                                 <div>
-                                    <button type="button" onclick="openFullView('${i}')" style="font-size:11px; padding:4px 10px; background:#e0e7ff; color:#3730a3; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-right:8px; transition:0.2s;"><i class="fa-solid fa-magnifying-glass"></i> Full View</button>
+                                    <h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-main);">${escapeHtml(docName)}</h4>
+                                    ${docDesc && docDesc.trim() ? `<div style="font-size: 11.5px; color: var(--forest-shade); margin-top: 3px;"><i data-lucide="info" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:3px;"></i> ${escapeHtml(docDesc)}</div>` : ''}
+                                </div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    ${ocrBadge}
                                     <span id="status_badge_${i}" style="font-size:11px; padding:4px 10px; background:#e2e8f0; color:#334155; border-radius:12px; font-weight:bold;">Pending</span>
                                 </div>
                             </div>
                             
-                            <div style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap;">
-                                <div id="preview_container_${i}" style="flex: 1; min-width: 250px; height: 220px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc;"></div>
+                            <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Attached Document</span>
+                                        <button type="button" onclick="openFullView('${i}')" class="btn-full-view" title="Open Full View">
+                                            <i data-lucide="maximize-2"></i> Full View
+                                        </button>
+                                    </div>
+                                    <div id="preview_container_${i}" style="height: 220px; overflow: hidden; border: 1px solid var(--border-dark); border-radius: 6px; background: #f8fafc; position: relative;"></div>
+                                </div>
                                 
-                                <div id="extracted_data_${i}" class="ai-data-box" style="flex: 1; min-width: 250px; height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; padding: 15px; font-size: 13px;">
-                                    <div style="color: #64748b; text-align: center; margin-top: 80px;">Waiting for extraction...</div>
+                                <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column;">
+                                    <div style="margin-bottom: 8px; display: flex; align-items: center; height: 32px;">
+                                        <span style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Verification & Details</span>
+                                    </div>
+                                    <div id="extracted_data_${i}" class="ai-data-box" style="height: 220px; overflow-y: auto; border: 1px solid var(--border-dark); border-radius: 6px; background: #f8fafc; padding: 15px; font-size: 13px;">
+                                        <div style="color: var(--text-muted); text-align: center; margin-top: 80px;">Waiting for extraction...</div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div style="display:flex; justify-content:center; gap:10px;">
-                                <button type="button" style="background:#fff; border:1px solid #ef4444; color:#ef4444; padding:8px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" onclick="removeFile(${i})">Change File</button>
-                                <button type="button" id="confirm_${i}" style="background:var(--primary-color); border:none; color:#fff; padding:8px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" onclick="confirmData(${i}, ${isReq}, '${docName}')">Confirm Upload</button>
+                            <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; padding-top: 6px;">
+                                <button type="button" onclick="openFullView('${i}')" class="btn-full-view" style="padding: 8px 18px;">
+                                    <i data-lucide="expand"></i> Full View
+                                </button>
+                                <button type="button" class="btn-change-file" onclick="removeFile(${i})">
+                                    <i data-lucide="refresh-cw" style="width:13px; height:13px; margin-right:4px;"></i> Change File
+                                </button>
+                                <button type="button" id="confirm_${i}" class="btn-confirm-upload" onclick="confirmData(${i}, ${isReq}, '${escapeHtml(docName)}')">
+                                    <i data-lucide="check" style="width:14px; height:14px; margin-right:4px;"></i> Confirm Upload
+                                </button>
                             </div>
                         </div>
                     `;
@@ -308,6 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 formObj.addEventListener('change', checkFormValidity);
             }
             checkFormValidity();
+            refreshIcons();
 
         } catch (err) {
             console.error("Error initializing page:", err);
@@ -359,12 +439,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!isOcrEnabled) {
             const dataContainer = document.getElementById(`extracted_data_${index}`);
-            if (dataContainer) dataContainer.innerHTML = `<div style="color: #64748b; text-align: center; margin-top: 80px;">AI Scan Disabled by Admin. Proceed to upload.</div>`;
+            if (dataContainer) {
+                dataContainer.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+                        <span style="color:var(--forest-shade);"><i data-lucide="check-circle-2" style="width:16px; height:16px;"></i></span>
+                        <strong style="color:var(--text-main); font-size:14px;">Document Attached</strong>
+                    </div>
+                    <div style="background:#fff; border:1px solid var(--border-dark); padding:12px; border-radius:6px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                        <p style="margin:0 0 6px 0;"><strong style="color:var(--text-main);">File Name:</strong> ${escapeHtml(file.name)}</p>
+                        <p style="margin:0 0 8px 0;"><strong style="color:var(--text-main);">File Size:</strong> ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 10px; border-radius:4px; font-size:11.5px;">
+                            <i data-lucide="check" style="width:13px; height:13px; display:inline-block; vertical-align:middle; margin-right:3px;"></i> Standard document upload. No automated AI scanning is required for this document. Admin will verify this attachment directly upon review.
+                        </div>
+                    </div>
+                `;
+            }
 
             const badge = document.getElementById(`status_badge_${index}`);
             badge.innerText = "Ready ✓";
-            badge.style.background = '#e2e8f0';
-            badge.style.color = '#334155';
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#166534';
 
             const confirmBtn = document.getElementById(`confirm_${index}`);
             confirmBtn.disabled = false;
@@ -372,11 +466,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             confirmBtn.style.cursor = 'pointer';
 
             document.getElementById(`grid_${index}`).style.display = 'block';
+            refreshIcons();
             return;
         }
 
         const loader = document.getElementById(`loader_${index}`);
         loader.style.display = 'block';
+        refreshIcons();
 
         try {
             const formData = new FormData();
@@ -406,8 +502,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (validationResult.extracted_data) {
                 let html = `
                     <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                        <span style="font-size:16px; color:#10b981;"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                        <strong style="color:#0f172a; font-size:14px;">AI Extracted Information</strong>
+                        <span style="color:var(--forest-shade);"><i data-lucide="sparkles" style="width:16px; height:16px;"></i></span>
+                        <strong style="color:var(--text-main); font-size:14px;">AI Extracted Information</strong>
                     </div>
                     <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column; gap:8px;">
                 `;
@@ -421,7 +517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 return Object.entries(item).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
                             }
                             return item;
-                        }).join('<div style="height:1px; background:#e2e8f0; margin:6px 0;"></div>');
+                        }).join('<div style="height:1px; background:var(--border-dark); margin:6px 0;"></div>');
 
                     } else if (typeof value === 'object' && value !== null) {
                         displayValue = Object.entries(value).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
@@ -430,9 +526,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     html += `
-                        <li style="background:#fff; border:1px solid #e2e8f0; padding:8px 10px; border-radius:4px;">
-                            <span style="display:block; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; margin-bottom:4px;">${key}</span>
-                            <div style="color:#1e293b; font-weight:400; font-size:12px; line-height:1.4;">${displayValue}</div>
+                        <li style="background:#fff; border:1px solid var(--border-dark); padding:8px 10px; border-radius:4px;">
+                            <span style="display:block; font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">${key}</span>
+                            <div style="color:var(--text-main); font-weight:400; font-size:12px; line-height:1.4;">${displayValue}</div>
                         </li>
                     `;
                 }
@@ -451,7 +547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 confirmBtn.style.opacity = '1';
                 confirmBtn.style.cursor = 'pointer';
             } else {
-                badge.innerHTML = "Verification Failed <i class='fa-solid fa-xmark'></i>";
+                badge.innerHTML = "Verification Failed <i data-lucide='x' style='width:12px; height:12px;'></i>";
                 badge.style.background = '#fee2e2';
                 badge.style.color = '#991b1b';
                 confirmBtn.disabled = true;
@@ -468,6 +564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             loader.style.display = 'none';
             document.getElementById(`grid_${index}`).style.display = 'block';
+            refreshIcons();
 
         } catch (err) {
             console.error("Validation Error:", err);
@@ -506,6 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         document.getElementById('full-view-modal').style.display = 'flex';
+        refreshIcons();
     };
 
     window.removeFile = (index) => {
@@ -516,16 +614,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById(`loader_${index}`).style.display = 'none';
         extractedDataStore[index] = {};
         delete window.tempFileUrls[index];
+        refreshIcons();
     };
 
     window.confirmData = async (index, isRequired, docName) => {
         const btn = document.getElementById(`confirm_${index}`);
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+        btn.innerHTML = '<i data-lucide="loader-2" class="spin-icon" style="width:14px; height:14px; margin-right:4px;"></i> Uploading...';
         btn.disabled = true;
         btn.style.opacity = '0.6';
         btn.style.cursor = 'wait';
         btn.previousElementSibling.disabled = true;
         btn.previousElementSibling.style.opacity = '0.6';
+        refreshIcons();
 
         try {
             const fileInput = document.getElementById(`file_${index}`);
@@ -543,10 +643,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 extracted_data: extractedDataStore[index] || {}
             });
 
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Uploaded';
+            btn.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; margin-right:4px;"></i> Uploaded';
             btn.style.background = '#e2e8f0';
             btn.style.color = '#475569';
             btn.style.cursor = 'not-allowed';
+            refreshIcons();
 
             if (isRequired) validatedDocsCount++;
 
@@ -555,12 +656,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (err) {
             console.error("Upload error:", err);
             Swal.fire('Upload Error', err.message, 'error');
-            btn.innerText = 'Confirm Upload';
+            btn.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; margin-right:4px;"></i> Confirm Upload';
             btn.disabled = false;
             btn.style.opacity = '1';
             btn.style.cursor = 'pointer';
             btn.previousElementSibling.disabled = false;
             btn.previousElementSibling.style.opacity = '1';
+            refreshIcons();
         }
     };
 
@@ -597,8 +699,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin-icon" style="width:16px; height:16px; margin-right:6px;"></i> Submitting...';
         submitBtn.disabled = true;
+        refreshIcons();
 
         try {
             const payload = {
@@ -614,13 +717,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Existing dispatch notification for the student
             const notifPayload = {
-                userIds: [studentId], // This has been updated correctly from currentUserId
+                userIds: [studentId],
                 eventType: 'applications',
                 subject: 'Application Submitted',
                 message: 'Your educational assistance application has been successfully submitted and is under review.',
                 htmlContent: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
-                        <h2 style="color: #10b981;">Application Submitted</h2>
+                        <h2 style="color: #1F3D2E;">Application Submitted</h2>
                         <p>Your application has been successfully submitted and is now under review by the administrators.</p>
                         <p>We will notify you once a decision has been made.</p>
                     </div>
@@ -657,13 +760,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const toast = document.createElement('div');
             toast.className = 'toast toast-success';
             toast.innerHTML = `
-                <div class="toast-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="toast-icon"><i data-lucide="check-circle-2" style="width:24px; height:24px;"></i></div>
                 <div class="toast-content">
                     <span class="toast-title">Success!</span>
                     <span class="toast-message">Educational Assistance Application Submitted Successfully!</span>
                 </div>
             `;
             toastContainer.appendChild(toast);
+            refreshIcons();
             
             setTimeout(() => toast.classList.add('active'), 10);
 
@@ -679,6 +783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             Swal.fire('Submission Failed', "Failed to submit application: " + err.message, 'error');
             submitBtn.innerText = 'Submit Application';
             submitBtn.disabled = false;
+            refreshIcons();
         }
     });
 

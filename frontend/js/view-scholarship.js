@@ -117,15 +117,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 4. Render Document Requirements
             documentsContainer.innerHTML = '';
-            if (sch.document_requirements && sch.document_requirements.length > 0) {
-                sch.document_requirements.forEach(doc => {
+            const docList = (sch.document_configurations && sch.document_configurations.length > 0) 
+                ? sch.document_configurations 
+                : (sch.document_requirements || []);
+
+            if (docList && docList.length > 0) {
+                docList.forEach(doc => {
                     const docDiv = document.createElement('div');
                     docDiv.className = 'doc-upload-box';
-                    const requiredStar = doc.required ? '<span class="text-red">*</span>' : '';
-                    
+                    const requiredStar = doc.required ? '<span class="text-red">*</span>' : '<span style="font-size:11px; color:#64748b; font-weight:normal;">(Optional)</span>';
+                    const isOcr = doc.ocr_enabled !== false;
+                    const ocrBadge = isOcr
+                        ? `<span style="font-size:11px; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">✨ AI OCR Active</span>`
+                        : `<span style="font-size:11px; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:12px; font-weight:500;">Standard Upload</span>`;
+
+                    const descHtml = doc.description && doc.description.trim() ? `
+                        <div style="margin: 8px 0 10px 0; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 3px solid #10b981; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #166534; text-align: left; line-height: 1.4;">
+                            <strong style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; color:#15803d;">Document Instructions:</strong>
+                            ${doc.description.replace(/\n/g, '<br>')}
+                        </div>
+                    ` : '';
+
                     docDiv.innerHTML = `
-                        <strong>📄 ${doc.name} ${requiredStar}</strong>
-                        <span>Allowed formats: PDF, JPG, PNG (Max size: ${doc.max_size})</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                            <strong>📄 ${doc.name} ${requiredStar}</strong>
+                            <div>${ocrBadge}</div>
+                        </div>
+                        ${descHtml}
+                        <span style="display:block; margin-bottom:8px; font-size:12px; color:#64748b;">Allowed formats: PDF, JPG, PNG (Max size: ${doc.max_size || 5}MB)</span>
                         <div class="fake-upload-btn">Choose File</div>
                     `;
                     documentsContainer.appendChild(docDiv);

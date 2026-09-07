@@ -72,10 +72,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentProfile = profile; // Save globally for the details modal
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
+                const fullName = `${firstName} ${lastName}`.trim();
+                const progName = profile.program || profile.course || 'Student';
+
+                sessionStorage.setItem('grantee_student_profile', JSON.stringify({
+                    name: fullName,
+                    program: progName,
+                    avatar_url: profile.avatar_url || 'assets/default-avatar.png'
+                }));
                 
-                if(document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
-                if(document.getElementById('header-name')) document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
-                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student';
+                if(document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = fullName;
+                if(document.getElementById('header-name')) document.getElementById('header-name').innerText = fullName;
+                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = progName;
                 if(profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }

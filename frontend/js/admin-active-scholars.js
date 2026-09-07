@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+(async function() {
 
     // ==========================================
     // 1. AUTH CHECK & INITIALIZATION
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const { data: profile } = await window.supabaseClient
                 .from('profiles')
-                .select('*')
+                .select('*, schools(name)')
                 .eq('id', adminId)
                 .single();
 
@@ -42,11 +42,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
-                currentAdminSchool = profile.school;
+                const schoolName = profile.schools ? profile.schools.name : (profile.school || 'Unassigned School');
+                currentAdminSchool = schoolName;
 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
                 if (document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
                 if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
+
+                if (document.getElementById('admin-school-display')) {
+                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                        lucide.createIcons();
+                    }
+                }
+
+                sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
+                    name: name,
+                    role: profile.role === 'admin' ? 'Coordinator' : profile.role,
+                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    school_name: schoolName,
+                    school_id: profile.school_id
+                }));
 
                 await fetchMasterlistData();
                 await fetchScholarshipList();
@@ -56,6 +72,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error("Error loading profile:", err);
         }
     }
+
+
 
     // ==========================================
     // 3. FETCH DATA (Masterlist & Programs)
@@ -115,6 +133,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     const tbody = document.getElementById('beneficiaries-tbody') || document.getElementById('scholars-tbody');
 
+    // ---- Multi-select state ----
+    let selectedIds = new Set();
+
+    function updateBulkToolbar() {
+        const bar = document.getElementById('bulk-action-bar');
+        const countEl = document.getElementById('bulk-selected-count');
+        const headerCb = document.getElementById('select-all-checkbox');
+        if (!bar) return;
+        const count = selectedIds.size;
+        if (count > 0) {
+            bar.classList.add('visible');
+            if (countEl) countEl.textContent = `${count.toLocaleString()} beneficiar${count !== 1 ? 'ies' : 'y'} selected`;
+        } else {
+            bar.classList.remove('visible');
+        }
+        if (headerCb) {
+            const allCbs = tbody ? [...tbody.querySelectorAll('.row-checkbox')] : [];
+            const allChecked = allCbs.length > 0 && allCbs.every(cb => cb.checked);
+            const someChecked = allCbs.some(cb => cb.checked);
+            headerCb.checked = allChecked;
+            headerCb.indeterminate = someChecked && !allChecked;
+        }
+    }
+
     async function fetchActiveBeneficiaries() {
         try {
             const { data: schData, error: schError } = await window.supabaseClient
@@ -127,21 +169,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const { data: beneficiaries, error: appError } = await window.supabaseClient
                 .from('applications')
-                .select('*, profiles ( first_name, last_name, middle_name, id_number, email ), scholarships (id, title, category, school_id, batch, semester, school_year, start_date, end_date)')
-                .in('status', ['Grantee', 'Passed', 'Approved'])
+                .select('*, profiles ( first_name, last_name, middle_name, id_number, email, school_id ), scholarships (id, title, category, school_id, batch, semester, school_year, start_date, end_date)')
+                .in('status', ['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved'])
                 .order('created_at', { ascending: false });
 
             if (appError) throw appError;
 
             activeBeneficiaries = (beneficiaries || []).filter(app => {
-                return schIds.includes(app.scholarship_id) || app.scholarship_id === null;
+                if (app.scholarship_id) {
+                    return schIds.includes(app.scholarship_id);
+                }
+                if (currentAdminSchoolId && app.profiles?.school_id) {
+                    return app.profiles.school_id === currentAdminSchoolId;
+                }
+                return true;
             });
 
             if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeBeneficiaries.length;
             applyFilters();
         } catch (err) {
             console.error("Error fetching active beneficiaries:", err);
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:40px;">Failed to load data. Please check the console.</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#ef4444; padding:40px;">Failed to load data. Please check the console.</td></tr>`;
         }
     }
 
@@ -164,7 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!tbody) return;
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b; padding:40px;">No active beneficiaries found matching criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:40px;">No active beneficiaries found matching criteria.</td></tr>`;
             return;
         }
 
@@ -172,13 +220,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         data.forEach(app => {
             const tr = document.createElement('tr');
 
-            const fname = app.profiles?.first_name || '';
-            const mname = app.profiles?.middle_name ? ` ${app.profiles.middle_name.charAt(0)}.` : '';
-            const lname = app.profiles?.last_name || '';
-            const fullName = `${lname}, ${fname}${mname}`;
-            const studentId = app.profiles?.id_number || 'N/A';
-
+            const studentId = app.profiles?.id_number || app.id_number || app.student_id || 'N/A';
             const masterInfo = masterlistMap[studentId] || {};
+
+            const fname = app.profiles?.first_name || masterInfo.first_name || '';
+            const mname = app.profiles?.middle_name ? ` ${app.profiles.middle_name.charAt(0)}.` : (masterInfo.middle_name ? ` ${masterInfo.middle_name.charAt(0)}.` : '');
+            const lname = app.profiles?.last_name || masterInfo.last_name || '';
+            const fullName = (fname || lname) ? `${lname}, ${fname}${mname}`.trim() : (app.profiles?.email || 'Student Record');
+
             const program = masterInfo.program || app.profiles?.program || 'N/A';
             const yearLevel = masterInfo.year_level || app.profiles?.year_level || 'N/A';
 
@@ -197,39 +246,134 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (batch) termDetails.push(`<div><span style="color:var(--text-muted);">Batch:</span> ${batch}</div>`);
             if (semester) termDetails.push(`<div><span style="color:var(--text-muted);">Sem:</span> ${semester}</div>`);
             if (schoolYear) termDetails.push(`<div><span style="color:var(--text-muted);">SY:</span> ${schoolYear}</div>`);
-            const detailsHtml = termDetails.length > 0 ? termDetails.join('') : '';
+            const detailsHtml = termDetails.length > 0 ? termDetails.join('') : '<span style="color:var(--text-muted);">-</span>';
+
+            const email = app.profiles?.email || masterInfo.email || '';
+            const emailHtml = email ? `<div style="font-size:11px; color:var(--text-muted); margin-top:3px; word-break:break-all;">${email}</div>` : '';
 
             tr.innerHTML = `
-                <td>
-                    <strong style="color:#0f172a;">${studentId}</strong>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${app.profiles?.email || ''}</div>
-                </td>
-                <td style="font-weight: 500;">${fullName}</td>
-                <td>
-                    <div style="color:#0f172a; font-weight:600; font-size:12px;">${program}</div>
-                    <div style="font-size:11px; color:var(--text-muted);">${yearLevel}</div>
+                <td style="text-align:center; vertical-align:middle; padding:14px 10px;">
+                    <input type="checkbox" class="row-checkbox" data-id="${app.id}" ${selectedIds.has(app.id) ? 'checked' : ''}>
                 </td>
                 <td>
-                    <strong style="color:var(--primary-color); display:block; margin-bottom:4px;">${schTitle}</strong>
+                    <strong style="color:#0f172a; font-size:13px; display:block;">${studentId}</strong>
+                    ${emailHtml}
+                </td>
+                <td style="font-weight: 600; color:#0f172a; line-height:1.35;">${fullName}</td>
+                <td>
+                    <div style="color:#0f172a; font-weight:600; font-size:12.5px; line-height:1.35;">${program}</div>
+                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${yearLevel}</div>
+                </td>
+                <td>
+                    <strong style="color:var(--primary-color); display:block; margin-bottom:4px; font-size:13px; line-height:1.3;">${schTitle}</strong>
                     ${catBadge}
                 </td>
-                <td style="font-size:12px;">
+                <td style="font-size:12px; line-height:1.4;">
                     ${detailsHtml}
                 </td>
-                <td style="font-size:13px; color:#475569; font-weight:500;">
+                <td style="font-size:12.5px; color:#475569; font-weight:500; white-space:nowrap;">
                     ${dateRewarded}
                 </td>
                 <td>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-weight:600; font-size:13px; color:#334155;">${duration}</span>
-                        <button style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-size:12px;" onclick="editDuration('${app.id}', '${duration}')" title="Edit Duration"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                        <span style="font-weight:600; font-size:12.5px; color:#334155;">${duration}</span>
+                        <button style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-size:12px; padding:2px 4px;" onclick="editDuration('${app.id}', '${duration}')" title="Edit Duration"><i class="fa-solid fa-pen-to-square"></i></button>
                     </div>
                 </td>
-                <td style="text-align: right;">
-                    <button style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')"><i class="fa-solid fa-xmark"></i> Revoke</button>
+                <td style="text-align: right; padding-right:18px;">
+                    <button style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;background:#fee2e2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;cursor:pointer;transition:background 0.2s,transform 0.15s;" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')"
+                        onmouseover="this.style.background='#fecaca';this.style.transform='scale(1.08)'"
+                        onmouseout="this.style.background='#fee2e2';this.style.transform='scale(1)'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                    </button>
                 </td>
             `;
+
+            if (selectedIds.has(app.id)) tr.classList.add('row-selected');
+
+            // Wire checkbox
+            const cb = tr.querySelector('.row-checkbox');
+            cb.addEventListener('change', () => {
+                if (cb.checked) { selectedIds.add(app.id); tr.classList.add('row-selected'); }
+                else { selectedIds.delete(app.id); tr.classList.remove('row-selected'); }
+                updateBulkToolbar();
+            });
+
             tbody.appendChild(tr);
+        });
+
+        updateBulkToolbar();
+    }
+
+    // ---- Select All ----
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (selectAllCb) {
+        selectAllCb.addEventListener('change', () => {
+            const allCbs = tbody ? tbody.querySelectorAll('.row-checkbox') : [];
+            allCbs.forEach(cb => {
+                const id = cb.dataset.id;
+                cb.checked = selectAllCb.checked;
+                const row = cb.closest('tr');
+                if (selectAllCb.checked) { selectedIds.add(id); if (row) row.classList.add('row-selected'); }
+                else { selectedIds.delete(id); if (row) row.classList.remove('row-selected'); }
+            });
+            updateBulkToolbar();
+        });
+    }
+
+    // ---- Clear Selection ----
+    const btnClearSelection = document.getElementById('btn-clear-selection');
+    if (btnClearSelection) {
+        btnClearSelection.addEventListener('click', () => {
+            selectedIds.clear();
+            const allCbs = tbody ? tbody.querySelectorAll('.row-checkbox') : [];
+            allCbs.forEach(cb => { cb.checked = false; const row = cb.closest('tr'); if (row) row.classList.remove('row-selected'); });
+            if (selectAllCb) { selectAllCb.checked = false; selectAllCb.indeterminate = false; }
+            updateBulkToolbar();
+        });
+    }
+
+    // ---- Bulk Revoke ----
+    const btnBulkRevoke = document.getElementById('btn-bulk-revoke');
+    if (btnBulkRevoke) {
+        btnBulkRevoke.addEventListener('click', async () => {
+            if (selectedIds.size === 0) return;
+            const count = selectedIds.size;
+            const result = await Swal.fire({
+                title: `Revoke ${count.toLocaleString()} Beneficiar${count !== 1 ? 'ies' : 'y'}?`,
+                html: `You are about to <strong>revoke educational assistance</strong> for <strong>${count.toLocaleString()} beneficiar${count !== 1 ? 'ies' : 'y'}</strong>.<br><br><span style="color:#64748b;font-size:13px;">They will be removed from the active beneficiary list and policy counts will update.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: `<i class="fa-solid fa-xmark"></i> Yes, Revoke ${count.toLocaleString()}`,
+                cancelButtonText: 'Cancel'
+            });
+
+            if (!result.isConfirmed) return;
+
+            Swal.fire({ title: 'Revoking...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const idsToRevoke = [...selectedIds];
+                const { error } = await window.supabaseClient
+                    .from('applications')
+                    .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator (Bulk Action)' })
+                    .in('id', idsToRevoke);
+
+                if (error) throw error;
+
+                selectedIds.clear();
+                Swal.fire('Revoked!', `${count.toLocaleString()} beneficiar${count !== 1 ? 'ies have' : 'y has'} been revoked.`, 'success');
+                fetchActiveBeneficiaries();
+            } catch (err) {
+                Swal.fire('Error', 'Bulk revoke failed: ' + err.message, 'error');
+            }
         });
     }
 
@@ -333,21 +477,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     function applyFilters() {
-        const term = document.getElementById('search-input')?.value.toLowerCase() || '';
+        const term = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
         const schId = document.getElementById('filter-scholarship')?.value || '';
         const batch = document.getElementById('filter-batch')?.value || '';
         const sem = document.getElementById('filter-semester')?.value || '';
         const sy = document.getElementById('filter-school-year')?.value || '';
 
         const filtered = activeBeneficiaries.filter(app => {
-            const matchSearch = (app.profiles?.id_number || '').toLowerCase().includes(term) ||
-                (app.profiles?.first_name || '').toLowerCase().includes(term) ||
-                (app.profiles?.last_name || '').toLowerCase().includes(term) ||
-                (app.outside_assistance_name || '').toLowerCase().includes(term);
+            const studentId = (app.profiles?.id_number || app.id_number || app.student_id || '').toLowerCase();
+            const masterInfo = masterlistMap[app.profiles?.id_number || app.id_number || app.student_id] || {};
+            const fname = (app.profiles?.first_name || masterInfo.first_name || '').toLowerCase();
+            const lname = (app.profiles?.last_name || masterInfo.last_name || '').toLowerCase();
+            const fullName = `${lname}, ${fname}`;
+            const email = (app.profiles?.email || '').toLowerCase();
+            const schTitle = (app.scholarship_id ? (app.scholarships?.title || '') : (app.outside_assistance_name || 'Outside Assistance')).toLowerCase();
+            const categoryVal = (app.category || app.scholarships?.category || '').toLowerCase();
+            const prog = (masterInfo.program || app.profiles?.program || '').toLowerCase();
+
+            const matchSearch = term === '' ||
+                studentId.includes(term) ||
+                fname.includes(term) ||
+                lname.includes(term) ||
+                fullName.includes(term) ||
+                email.includes(term) ||
+                schTitle.includes(term) ||
+                categoryVal.includes(term) ||
+                prog.includes(term);
+
             const matchSch = schId === "" || String(app.scholarship_id) === String(schId);
             const matchBatch = batch === "" || String(app.scholarships?.batch || app.outside_batch || '') === String(batch);
             const matchSem = sem === "" || String(app.scholarships?.semester || app.outside_semester || '') === String(sem);
             const matchSy = sy === "" || String(app.scholarships?.school_year || app.outside_sy || '') === String(sy);
+
             return matchSearch && matchSch && matchBatch && matchSem && matchSy;
         });
 
@@ -1051,38 +1212,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
-    // 8. MOBILE HAMBURGER MENU TOGGLE
-    // ==========================================
-    const hamburgerBtn = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar') || document.getElementById('sidebar-container');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    if (hamburgerBtn && sidebar && overlay) {
-        hamburgerBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isActive = sidebar.classList.contains('active');
-            if (isActive) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.remove('active');
-            } else {
-                sidebar.classList.add('active');
-                overlay.classList.add('active');
-                const innerSidebar = document.querySelector('.sidebar');
-                if (innerSidebar) innerSidebar.classList.add('active');
-            }
-        });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-            const innerSidebar = document.querySelector('.sidebar');
-            if (innerSidebar) innerSidebar.classList.remove('active');
-        });
-    }
-
-    // ==========================================
     // 9. EXPORT LIST TO EXCEL & PDF
     // ==========================================
     const btnExport = document.getElementById('btn-export'); 
@@ -1118,12 +1247,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function getExportData() {
         return currentFilteredBeneficiaries.map(app => {
-            const studentId = app.profiles?.id_number || 'N/A';
-            const lname = app.profiles?.last_name || 'N/A';
-            const fname = app.profiles?.first_name || 'N/A';
-            const mname = app.profiles?.middle_name || '';
-            
+            const studentId = app.profiles?.id_number || app.id_number || app.student_id || 'N/A';
             const masterInfo = masterlistMap[studentId] || {};
+
+            const fname = app.profiles?.first_name || masterInfo.first_name || 'N/A';
+            const lname = app.profiles?.last_name || masterInfo.last_name || 'N/A';
+            const mname = app.profiles?.middle_name || masterInfo.middle_name || '';
+            
             const program = masterInfo.program || app.profiles?.program || 'N/A';
             const yearLevel = masterInfo.year_level || app.profiles?.year_level || 'N/A';
             
@@ -1232,4 +1362,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Boot
     initProfile();
-});
+})();

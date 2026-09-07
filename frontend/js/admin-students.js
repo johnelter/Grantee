@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+(async function() {
     
     // ==========================================
     // 1. AUTH CHECK & INITIALIZATION
@@ -61,18 +61,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     async function initProfile() {
         try {
-            const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', adminId).single();
+            const { data: profile } = await window.supabaseClient.from('profiles').select('*, schools(name)').eq('id', adminId).single();
             if (profile) {
                 if (profile.role !== 'admin') {
                     window.location.href = 'student-dashboard.html';
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
-                currentAdminSchool = profile.school;
+                const schoolName = profile.schools ? profile.schools.name : (profile.school || 'Unassigned School');
+                currentAdminSchool = schoolName;
 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
-                document.getElementById('header-name').innerText = name;
-                if (profile.avatar_url) document.getElementById('header-avatar').src = profile.avatar_url;
+                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
+                if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
+
+                if (document.getElementById('admin-school-display')) {
+                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                        lucide.createIcons();
+                    }
+                }
+
+                sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
+                    name: name,
+                    role: profile.role === 'admin' ? 'Coordinator' : profile.role,
+                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    school_name: schoolName,
+                    school_id: profile.school_id
+                }));
 
                 fetchEnrolledStudents();
             }
@@ -81,87 +97,108 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Profile Dropdown Functionality
-    const profileToggle = document.getElementById('profile-dropdown-toggle');
-    const profileMenu = document.getElementById('profile-menu');
 
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileMenu.classList.toggle('show');
-            profileToggle.classList.toggle('active-state');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) {
-                profileMenu.classList.remove('show');
-                profileToggle.classList.remove('active-state');
-            }
-        });
-    }
-
-    // Logout Modal Logic
-    const logoutBtn = document.getElementById('dropdown-logout-btn');
-    const logoutModal = document.getElementById('logout-modal');
-    const modalCancel = document.getElementById('modal-cancel');
-    const modalConfirm = document.getElementById('modal-confirm');
-
-    if (logoutBtn && logoutModal) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            logoutModal.style.display = 'flex';
-            if (profileMenu) profileMenu.classList.remove('show');
-            if (profileToggle) profileToggle.classList.remove('active-state');
-        });
-    }
-
-    if (modalCancel) {
-        modalCancel.addEventListener('click', () => {
-            logoutModal.style.display = 'none';
-        });
-    }
-
-    if (modalConfirm) {
-        modalConfirm.addEventListener('click', async () => {
-            try {
-                Swal.fire({ title: 'Logging out...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                const { error } = await window.supabaseClient.auth.signOut();
-                if (error) throw error;
-                window.location.href = 'login.html';
-            } catch (err) {
-                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-            }
-        });
-    }
 
     // ==========================================
     // 3. FETCH & RENDER ENROLLED STUDENTS
     // ==========================================
     const tbody = document.getElementById('students-tbody');
 
+    function renderSkeletonLoading() {
+        if (document.getElementById('stat-total')) {
+            document.getElementById('stat-total').innerHTML = '<span class="stat-loading-skeleton"></span>';
+        }
+        if (document.getElementById('entries-info')) {
+            document.getElementById('entries-info').innerHTML = '<div class="skeleton-line" style="width: 160px; height: 14px;"></div>';
+        }
+        if (tbody) {
+            const rowTemplates = [
+                { idW: '100px', nameW: '160px', progW: '220px' },
+                { idW: '110px', nameW: '190px', progW: '250px' },
+                { idW: '95px',  nameW: '140px', progW: '210px' },
+                { idW: '105px', nameW: '175px', progW: '230px' },
+                { idW: '100px', nameW: '155px', progW: '200px' },
+                { idW: '115px', nameW: '180px', progW: '240px' }
+            ];
+            tbody.innerHTML = rowTemplates.map(r => `
+                <tr class="skeleton-row">
+                    <td style="padding: 15px; vertical-align: middle;"><div class="skeleton-box skeleton-cb"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-id" style="width: ${r.idW};"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-name" style="width: ${r.nameW};"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-program" style="width: ${r.progW};"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-year"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-gender"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-pill"></div></td>
+                    <td style="text-align: right; vertical-align: middle; padding-right: 12px;">
+                        <div class="skeleton-actions-group">
+                            <div class="skeleton-btn-action"></div>
+                            <div class="skeleton-btn-action"></div>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    }
+
     async function fetchEnrolledStudents() {
         if (!currentAdminSchoolId) {
-            if(tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red" style="padding:40px;">No school assigned to this admin.</td></tr>`;
+            if(tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding:40px;">No school assigned to this admin.</td></tr>`;
             return;
         }
 
+        renderSkeletonLoading();
+
         try {
-            const { data: students, error } = await window.supabaseClient
-                .from('enrolled_masterlist')
-                .select('*')
-                .eq('school_id', currentAdminSchoolId)
-                .order('last_name', { ascending: true });
+            // Paginate through ALL records to bypass Supabase's default 1000-row limit
+            const PAGE_SIZE = 1000;
+            let allFetched = [];
+            let from = 0;
+            let hasMore = true;
 
-            if (error) throw error;
+            while (hasMore) {
+                const { data: page, error } = await window.supabaseClient
+                    .from('enrolled_masterlist')
+                    .select('*')
+                    .eq('school_id', currentAdminSchoolId)
+                    .order('last_name', { ascending: true })
+                    .range(from, from + PAGE_SIZE - 1);
+
+                if (error) throw error;
+
+                if (page && page.length > 0) {
+                    allFetched = allFetched.concat(page);
+                    from += PAGE_SIZE;
+                    hasMore = page.length === PAGE_SIZE; // If we got a full page, there may be more
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            const students = allFetched;
             
-            const { data: profiles, error: profError } = await window.supabaseClient
-                .from('profiles')
-                .select('id_number, gender')
-                .not('id_number', 'is', null);
+            // Paginate profiles fetch as well
+            let allProfiles = [];
+            let profFrom = 0;
+            let profHasMore = true;
+            while (profHasMore) {
+                const { data: profPage, error: profError } = await window.supabaseClient
+                    .from('profiles')
+                    .select('id_number, gender')
+                    .not('id_number', 'is', null)
+                    .range(profFrom, profFrom + PAGE_SIZE - 1);
+                if (profError) break;
+                if (profPage && profPage.length > 0) {
+                    allProfiles = allProfiles.concat(profPage);
+                    profFrom += PAGE_SIZE;
+                    profHasMore = profPage.length === PAGE_SIZE;
+                } else {
+                    profHasMore = false;
+                }
+            }
 
-            if (!profError && profiles && students) {
+            if (allProfiles.length > 0 && students.length > 0) {
                 students.forEach(s => {
-                    const liveProfile = profiles.find(p => p.id_number === s.id_number);
+                    const liveProfile = allProfiles.find(p => p.id_number === s.id_number);
                     if (liveProfile && liveProfile.gender) {
                         s.gender = liveProfile.gender; 
                     }
@@ -171,38 +208,55 @@ document.addEventListener('DOMContentLoaded', async () => {
             allStudents = students || [];
 
             const activeStudents = allStudents.filter(s => s.status !== 'Unenrolled');
-            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeStudents.length;
-            
-            const currentMonth = new Date().getMonth();
-            const currentYear = new Date().getFullYear();
-            
-            const newThisMonth = activeStudents.filter(s => {
-                if(!s.created_at) return false;
-                const createdAt = new Date(s.created_at);
-                return createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
-            }).length;
-            
-            if (document.getElementById('stat-new')) document.getElementById('stat-new').innerText = newThisMonth;
+            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeStudents.length.toLocaleString();
 
             applyFilters();
         } catch (err) {
             console.error("Error fetching students:", err);
-            if(tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red" style="padding:40px;">Failed to load students. ${err.message}</td></tr>`;
+            if(tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding:40px;">Failed to load students. ${err.message}</td></tr>`;
+        }
+    }
+
+    // Track selected student IDs for bulk operations
+    let selectedIds = new Set();
+
+    function updateBulkToolbar() {
+        const bar = document.getElementById('bulk-action-bar');
+        const countEl = document.getElementById('bulk-selected-count');
+        const headerCb = document.getElementById('select-all-checkbox');
+        if (!bar) return;
+
+        const count = selectedIds.size;
+        if (count > 0) {
+            bar.classList.add('visible');
+            if (countEl) countEl.textContent = `${count.toLocaleString()} student${count !== 1 ? 's' : ''} selected`;
+        } else {
+            bar.classList.remove('visible');
+        }
+
+        // Sync select-all checkbox state (indeterminate when only some rows are checked)
+        if (headerCb) {
+            const allVisibleCheckboxes = tbody ? [...tbody.querySelectorAll('.row-checkbox')] : [];
+            const allChecked = allVisibleCheckboxes.length > 0 && allVisibleCheckboxes.every(cb => cb.checked);
+            const someChecked = allVisibleCheckboxes.some(cb => cb.checked);
+            headerCb.checked = allChecked;
+            headerCb.indeterminate = someChecked && !allChecked;
         }
     }
 
     function renderTable(data) {
-        if (document.getElementById('entries-info')) document.getElementById('entries-info').innerText = `Showing ${data.length} students`;
+        if (document.getElementById('entries-info')) document.getElementById('entries-info').innerText = `Showing ${data.length.toLocaleString()} students`;
 
         if (!tbody) return;
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = '';
         data.forEach(s => {
             const tr = document.createElement('tr');
+            if (selectedIds.has(s.id)) tr.classList.add('row-selected');
             const mName = s.middle_name ? ` ${s.middle_name.charAt(0)}.` : '';
             const fullName = `${s.last_name}, ${s.first_name}${mName}`;
             
@@ -211,20 +265,134 @@ document.addEventListener('DOMContentLoaded', async () => {
             const badgeColor = statusText === 'Unenrolled' ? '#ef4444' : '#166534';
 
             tr.innerHTML = `
+                <td style="padding: 15px; vertical-align: middle;">
+                    <input type="checkbox" class="row-checkbox" data-id="${s.id}" ${selectedIds.has(s.id) ? 'checked' : ''}>
+                </td>
                 <td style="color:#0f172a; font-weight:600; vertical-align: middle;">${s.id_number}</td>
                 <td style="vertical-align: middle;">${fullName}</td>
                 <td style="vertical-align: middle;">${s.program || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.year_level || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.gender || 'N/A'}</td>
                 <td style="vertical-align: middle;"><span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:700;">${statusText}</span></td>
-                <td style="text-align: right; vertical-align: middle;">
-                    <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                        <button onclick="editStudent('${s.id}')" style="padding: 6px 16px; border: 1px solid #3b82f6; background: #dbeafe; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;">Edit</button>
-                        <button onclick="deleteStudent('${s.id}')" style="padding: 6px 16px; border: 1px solid #ef4444; background: #fee2e2; color: #ef4444; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s;">Delete</button>
+                <td style="text-align: right; vertical-align: middle; padding-right: 12px;">
+                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                        <button onclick="editStudent('${s.id}')" title="Edit Student"
+                            style="display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border: 1px solid #3b82f6; background: #dbeafe; color: #3b82f6; border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.15s; flex-shrink:0;"
+                            onmouseover="this.style.background='#bfdbfe'; this.style.transform='scale(1.08)'"
+                            onmouseout="this.style.background='#dbeafe'; this.style.transform='scale(1)'">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button onclick="deleteStudent('${s.id}')" title="Delete Student"
+                            style="display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border: 1px solid #ef4444; background: #fee2e2; color: #ef4444; border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.15s; flex-shrink:0;"
+                            onmouseover="this.style.background='#fecaca'; this.style.transform='scale(1.08)'"
+                            onmouseout="this.style.background='#fee2e2'; this.style.transform='scale(1)'">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6"/><path d="M14 11v6"/>
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                        </button>
                     </div>
                 </td>
             `;
+
+            // Wire up this row's checkbox
+            const cb = tr.querySelector('.row-checkbox');
+            cb.addEventListener('change', () => {
+                if (cb.checked) {
+                    selectedIds.add(s.id);
+                    tr.classList.add('row-selected');
+                } else {
+                    selectedIds.delete(s.id);
+                    tr.classList.remove('row-selected');
+                }
+                updateBulkToolbar();
+            });
+
             tbody.appendChild(tr);
+        });
+
+        updateBulkToolbar();
+    }
+
+    // ---- Select All checkbox ----
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (selectAllCb) {
+        selectAllCb.addEventListener('change', () => {
+            const allCheckboxes = tbody ? tbody.querySelectorAll('.row-checkbox') : [];
+            allCheckboxes.forEach(cb => {
+                const id = cb.dataset.id;
+                cb.checked = selectAllCb.checked;
+                const row = cb.closest('tr');
+                if (selectAllCb.checked) {
+                    selectedIds.add(id);
+                    if (row) row.classList.add('row-selected');
+                } else {
+                    selectedIds.delete(id);
+                    if (row) row.classList.remove('row-selected');
+                }
+            });
+            updateBulkToolbar();
+        });
+    }
+
+    // ---- Clear Selection button ----
+    const btnClearSelection = document.getElementById('btn-clear-selection');
+    if (btnClearSelection) {
+        btnClearSelection.addEventListener('click', () => {
+            selectedIds.clear();
+            const allCheckboxes = tbody ? tbody.querySelectorAll('.row-checkbox') : [];
+            allCheckboxes.forEach(cb => {
+                cb.checked = false;
+                const row = cb.closest('tr');
+                if (row) row.classList.remove('row-selected');
+            });
+            if (selectAllCb) { selectAllCb.checked = false; selectAllCb.indeterminate = false; }
+            updateBulkToolbar();
+        });
+    }
+
+    // ---- Bulk Delete button ----
+    const btnBulkDelete = document.getElementById('btn-bulk-delete');
+    if (btnBulkDelete) {
+        btnBulkDelete.addEventListener('click', async () => {
+            if (selectedIds.size === 0) return;
+
+            const count = selectedIds.size;
+            const result = await Swal.fire({
+                title: `Delete ${count.toLocaleString()} Student${count !== 1 ? 's' : ''}?`,
+                html: `You are about to <strong>permanently delete ${count.toLocaleString()} student${count !== 1 ? 's' : ''}</strong> from the masterlist.<br><br><span style="color:#64748b;font-size:13px;">Tip: Edit their status to <b>"Unenrolled"</b> instead to keep records.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: `<i class="fa-solid fa-trash"></i> Yes, Delete ${count.toLocaleString()}`,
+                cancelButtonText: 'Cancel'
+            });
+
+            if (!result.isConfirmed) return;
+
+            Swal.fire({ title: 'Deleting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const idsToDelete = [...selectedIds];
+                const { error } = await window.supabaseClient
+                    .from('enrolled_masterlist')
+                    .delete()
+                    .in('id', idsToDelete);
+
+                if (error) throw error;
+
+                selectedIds.clear();
+                Swal.fire('Deleted!', `${count.toLocaleString()} student${count !== 1 ? 's' : ''} have been removed.`, 'success');
+                fetchEnrolledStudents();
+            } catch (err) {
+                Swal.fire('Error', 'Bulk delete failed: ' + err.message, 'error');
+            }
         });
     }
 
@@ -325,31 +493,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (document.getElementById('btn-open-add')) {
         document.getElementById('btn-open-add').addEventListener('click', () => {
-            if(studentForm) studentForm.reset();
+            if (studentForm) studentForm.reset();
             document.getElementById('student-db-id').value = '';
             document.getElementById('student-modal-title').innerText = "Add New Student";
-            if(document.getElementById('stu-status')) document.getElementById('stu-status').value = 'Enrolled';
+            
+            const statusGroup = document.getElementById('stu-status-group');
+            const genderStatusGrid = document.getElementById('stu-gender-status-grid');
+            if (statusGroup) statusGroup.style.display = 'none';
+            if (genderStatusGrid) genderStatusGrid.style.gridTemplateColumns = '1fr';
+
             studentModal.style.display = 'flex';
         });
     }
 
     window.editStudent = (id) => {
-        const s = allStudents.find(x => x.id === id);
-        if(!s) return;
+        const s = allStudents.find(x => String(x.id) === String(id));
+        if (!s) {
+            console.error("Student not found for id:", id);
+            return;
+        }
         
-        document.getElementById('student-db-id').value = s.id;
-        document.getElementById('stu-id-number').value = s.id_number || '';
-        document.getElementById('stu-fname').value = s.first_name || '';
-        document.getElementById('stu-lname').value = s.last_name || '';
+        if (studentForm) studentForm.reset();
+        if (document.getElementById('student-db-id')) document.getElementById('student-db-id').value = s.id;
+        if (document.getElementById('stu-id-number')) document.getElementById('stu-id-number').value = s.id_number || '';
+        if (document.getElementById('stu-fname')) document.getElementById('stu-fname').value = s.first_name || '';
+        if (document.getElementById('stu-lname')) document.getElementById('stu-lname').value = s.last_name || '';
         if (mnameInput) mnameInput.value = s.middle_name || ''; 
         
-        document.getElementById('stu-program').value = s.program || '';
-        document.getElementById('stu-year').value = s.year_level || ''; 
+        if (document.getElementById('stu-program')) document.getElementById('stu-program').value = s.program || '';
+        if (document.getElementById('stu-year')) document.getElementById('stu-year').value = s.year_level || ''; 
         if (document.getElementById('stu-gender')) document.getElementById('stu-gender').value = s.gender || ''; 
-        if (document.getElementById('stu-status')) document.getElementById('stu-status').value = s.status || 'Enrolled';
         
-        document.getElementById('student-modal-title').innerText = "Edit Student";
-        studentModal.style.display = 'flex';
+        const statusGroup = document.getElementById('stu-status-group');
+        const genderStatusGrid = document.getElementById('stu-gender-status-grid');
+        const stuStatus = document.getElementById('stu-status');
+        if (statusGroup) statusGroup.style.display = 'block';
+        if (genderStatusGrid) genderStatusGrid.style.gridTemplateColumns = '1fr 1fr';
+        if (stuStatus) stuStatus.value = s.status || 'Enrolled';
+        
+        if (document.getElementById('student-modal-title')) document.getElementById('student-modal-title').innerText = "Edit Student";
+        if (studentModal) studentModal.style.display = 'flex';
     };
 
     if (studentForm) {
@@ -372,7 +555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const id = document.getElementById('student-db-id').value;
             const inputIdNumber = document.getElementById('stu-id-number').value.trim();
             
-            const isDuplicate = allStudents.some(s => s.id_number.toLowerCase() === inputIdNumber.toLowerCase() && s.id !== id);
+            const isDuplicate = allStudents.some(s => s.id_number.toLowerCase() === inputIdNumber.toLowerCase() && String(s.id) !== String(id));
             if (isDuplicate) {
                 Swal.fire('Duplicate Entry', `A student with the ID Number "${inputIdNumber}" is already in the masterlist!`, 'error');
                 return;
@@ -382,7 +565,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const genderVal = document.getElementById('stu-gender') ? document.getElementById('stu-gender').value : null;
             const middleNameVal = document.getElementById('stu-mname') ? document.getElementById('stu-mname').value.trim() : '';
-            const statusVal = document.getElementById('stu-status') ? document.getElementById('stu-status').value : 'Enrolled';
+            const statusInput = document.getElementById('stu-status');
+            const statusVal = id ? (statusInput && statusInput.value ? statusInput.value : 'Enrolled') : 'Enrolled';
             
             const payload = {
                 school_id: currentAdminSchoolId,
@@ -674,7 +858,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // SWEET ALERT CONFIRMATION BEFORE IMPORT
             const confirmResult = await Swal.fire({
                 title: 'Execute Import?',
-                text: `You are about to import ${pendingImportPayload.length} new students. Proceed?`,
+                text: `You are about to import ${pendingImportPayload.length.toLocaleString()} new students. Proceed?`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
@@ -686,14 +870,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btnConfirmImport.disabled = true;
             btnConfirmImport.innerText = "Importing...";
-            importStatus.innerHTML = `<span style="color:var(--primary-color);">Saving ${pendingImportPayload.length} students to database...</span>`;
+
+            // Chunk into batches of 1000 to support importing more than 1000 students
+            const BATCH_SIZE = 1000;
+            const totalRecords = pendingImportPayload.length;
+            const totalBatches = Math.ceil(totalRecords / BATCH_SIZE);
+            let insertedCount = 0;
+            let lastError = null;
 
             try {
-                const { error } = await window.supabaseClient.from('enrolled_masterlist').insert(pendingImportPayload);
-                if(error) throw error;
+                for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                    const batch = pendingImportPayload.slice(batchIndex * BATCH_SIZE, (batchIndex + 1) * BATCH_SIZE);
+                    const batchNum = batchIndex + 1;
+
+                    importStatus.innerHTML = `<span style="color:var(--primary-color);">Importing batch ${batchNum} of ${totalBatches} (${insertedCount.toLocaleString()} / ${totalRecords.toLocaleString()} students saved)...</span>`;
+
+                    const { error } = await window.supabaseClient.from('enrolled_masterlist').insert(batch);
+                    if (error) throw error;
+
+                    insertedCount += batch.length;
+                }
 
                 // SWEET ALERT SUCCESS MESSAGE
-                Swal.fire('Success!', `Successfully imported ${pendingImportPayload.length} students!`, 'success');
+                Swal.fire('Success!', `Successfully imported ${insertedCount.toLocaleString()} students!`, 'success');
                 
                 // Notify coordinators of successful import
                 if (currentAdminSchoolId) {
@@ -704,7 +903,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             schoolId: currentAdminSchoolId,
                             eventType: 'IMPORT_COMPLETED',
                             subject: 'Bulk Import Finished',
-                            message: `CSV Import completed successfully. ${pendingImportPayload.length} records imported.`
+                            message: `CSV Import completed successfully. ${insertedCount.toLocaleString()} records imported.`
                         })
                     }).catch(e => console.error("Notification failed:", e));
                 }
@@ -715,7 +914,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             } catch(err) {
                 console.error("Database Insert Error:", err);
-                importStatus.innerHTML = `<div class="text-red" style="text-align:left; background:#fee2e2; padding:10px; border-radius:6px; border:1px solid #ef4444;">Import failed: ${err.message}</div>`;
+                importStatus.innerHTML = `<div class="text-red" style="text-align:left; background:#fee2e2; padding:10px; border-radius:6px; border:1px solid #ef4444;">Import failed at batch ${Math.ceil((insertedCount + 1) / BATCH_SIZE)}: ${err.message}<br><small>${insertedCount.toLocaleString()} of ${totalRecords.toLocaleString()} students were saved before the error.</small></div>`;
                 
                 // Notify coordinators of failed import
                 if (currentAdminSchoolId) {
@@ -726,7 +925,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             schoolId: currentAdminSchoolId,
                             eventType: 'IMPORT_FAILED',
                             subject: 'Import Errors',
-                            message: `CSV Import encountered validation errors: ${err.message}`
+                            message: `CSV Import encountered validation errors: ${err.message}. ${insertedCount} of ${totalRecords} records imported before failure.`
                         })
                     }).catch(e => console.error("Notification failed:", e));
                 }
@@ -737,35 +936,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // ==========================================
-    // 7. MOBILE HAMBURGER MENU TOGGLE
-    // ==========================================
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-    if (mobileMenuToggle && sidebarOverlay) {
-        mobileMenuToggle.addEventListener('click', () => {
-            // Because sidebar is injected via JS, query it inside the click handler
-            const sidebar = document.querySelector('.sidebar');
-            const sidebarContainer = document.getElementById('sidebar-container');
-            
-            if (sidebar) sidebar.classList.toggle('active');
-            if (sidebarContainer) sidebarContainer.classList.toggle('active');
-            sidebarOverlay.classList.toggle('active');
-        });
-
-        // Close sidebar when clicking outside (on the overlay)
-        sidebarOverlay.addEventListener('click', () => {
-            const sidebar = document.querySelector('.sidebar');
-            const sidebarContainer = document.getElementById('sidebar-container');
-            
-            if (sidebar) sidebar.classList.remove('active');
-            if (sidebarContainer) sidebarContainer.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-        });
-    }
-
     // Boot
     populateDropdowns();
     initProfile();
-});
+})();

@@ -6,56 +6,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Educational Assistance - Grantee Admin</title>
 
-    <!-- Unified Stylesheets -->
-    <!-- <link rel="stylesheet" href="css/sidebar.css"> -->
+    <!-- Global & Page CSS -->
+    <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/create-scholarship.css">
 
-    <!-- FontAwesome Icons and Sweet Alerts -->
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Sweet Alerts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Tailwind CSS (Required for the dynamic notification component) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
         /* Force SweetAlerts to appear ABOVE all custom modals */
         .swal2-container {
             z-index: 99999 !important;
         }
-
-        /* Mobile overrides for Header layout */
-        @media (max-width: 768px) {
-            .header-actions {
-                width: 100%;
-                justify-content: flex-end;
-            }
-        }
     </style>
-    <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Flatpickr Date Range Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 
 <body class="light-theme">
     <div class="app-layout">
 
-        <!-- DYNAMIC SIDEBAR INJECTION POINT -->
+        <!-- DYNAMIC SIDEBAR & MOBILE OVERLAY INJECTION POINT -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
         <div id="sidebar-container"></div>
 
         <main class="main-content">
 
             <!-- HEADER RESTRUCTURED -->
-            <header class="content-header">
+            <header class="top-header">
                 <!-- Titles -->
                 <div class="header-titles-wrapper">
-                    <div>
-                        <div class="breadcrumbs" style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
-                            <a href="admin-dashboard.html" style="color: var(--primary-color);">Dashboard</a> &gt;
-                            <a href="admin-scholarships.html" style="color: var(--primary-color);">Educational
-                                Assistance</a> &gt;
-                            <span>Create Program</span>
+                    <div class="header-titles">
+                        <div class="breadcrumbs" style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">
+                            <a href="admin-dashboard.html" style="color: var(--forest-shade); font-weight: 500;">Dashboard</a> &gt;
+                            <a href="admin-scholarships.html" style="color: var(--forest-shade); font-weight: 500;">Educational Assistance</a> &gt;
+                            <span style="color: var(--text-main); font-weight: 600;">Create Program</span>
                         </div>
-                        <div class="header-titles">
-                            <h1>Create Educational Assistance</h1>
-                            <p class="welcome-text">Set up educational assistance details, application form,
-                                requirements, and eligibility rules.</p>
-                        </div>
+                        <h1>Create Educational Assistance</h1>
+                        <p class="welcome-text">Set up educational assistance details, application form, requirements, and eligibility rules.</p>
+                        <p id="admin-school-display" class="text-sm text-emerald-600 mt-1 font-medium flex items-center gap-1.5">
+                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                            <span>Loading assigned school...</span>
+                        </p>
                     </div>
                 </div>
 
@@ -71,25 +70,24 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i class="fa-solid fa-user"
-                                    style="margin-right: 8px;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
-                                    class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
-                        <i class="fa-solid fa-bars"></i>
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                        <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
             </header>
 
-            <form id="create-scholarship-form" class="create-grid">
+            <div class="content-wrapper">
+                <form id="create-scholarship-form" class="create-grid">
 
                 <!-- 1. INFORMATION -->
                 <div class="card">
@@ -139,8 +137,10 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>School Year</label>
-                                <input type="text" id="sch_school_year" class="form-input" placeholder="e.g. 2026-2027">
+                                <label>School Year <span class="text-red">*</span></label>
+                                <select id="sch_school_year" class="form-input" required>
+                                    <option value="">Select School Year</option>
+                                </select>
                             </div>
                         </div>
 
@@ -153,7 +153,7 @@
                                     Slots (Based on passed applicants)</label>
                             </div>
                             <input type="number" id="fixedSlots" class="form-input"
-                                placeholder="Enter fixed slot number" style="display:none;">
+                                placeholder="Enter fixed slot number" min="1" step="1" style="display:none;">
                         </div>
 
                         <!-- VISUAL RTE TOOLBAR -->
@@ -161,17 +161,12 @@
                             <label>Description <span class="text-red">*</span></label>
                             <div class="rte-container">
                                 <div class="rte-toolbar">
-                                    <button type="button" data-cmd="bold" title="Bold"><i
-                                            class="fa-solid fa-bold"></i></button>
-                                    <button type="button" data-cmd="italic" title="Italic"><i
-                                            class="fa-solid fa-italic"></i></button>
-                                    <button type="button" data-cmd="underline" title="Underline"><i
-                                            class="fa-solid fa-underline"></i></button>
+                                    <button type="button" data-cmd="bold" title="Bold"><i data-lucide="bold" style="width: 15px; height: 15px;"></i></button>
+                                    <button type="button" data-cmd="italic" title="Italic"><i data-lucide="italic" style="width: 15px; height: 15px;"></i></button>
+                                    <button type="button" data-cmd="underline" title="Underline"><i data-lucide="underline" style="width: 15px; height: 15px;"></i></button>
                                     <div class="rte-divider"></div>
-                                    <button type="button" data-cmd="insertUnorderedList" title="Bulleted List"><i
-                                            class="fa-solid fa-list-ul"></i></button>
-                                    <button type="button" data-cmd="insertOrderedList" title="Numbered List"><i
-                                            class="fa-solid fa-list-ol"></i></button>
+                                    <button type="button" data-cmd="insertUnorderedList" title="Bulleted List"><i data-lucide="list" style="width: 15px; height: 15px;"></i></button>
+                                    <button type="button" data-cmd="insertOrderedList" title="Numbered List"><i data-lucide="list-ordered" style="width: 15px; height: 15px;"></i></button>
                                 </div>
                                 <!-- Visual Editor Area -->
                                 <div id="sch_description_editor" class="form-input rte-textarea" contenteditable="true"
@@ -185,11 +180,15 @@
                         </div>
                         <div class="input-group full-width">
                             <label>Application Period <span class="text-red">*</span></label>
-                            <div style="display:flex; gap:10px; align-items:center;">
-                                <input type="date" id="sch_start" class="form-input" required>
-                                <span style="font-weight: 500; color: var(--text-muted);">to</span>
-                                <input type="date" id="sch_end" class="form-input" required>
+                            <div class="date-range-picker-wrapper">
+                                <i data-lucide="calendar" class="date-range-icon" style="width: 16px; height: 16px;"></i>
+                                <input type="text" id="sch_date_range" class="form-input"
+                                    placeholder="Select application period (Start Date to End Date)" readonly required>
+                                <input type="hidden" id="sch_start" required>
+                                <input type="hidden" id="sch_end" required>
                             </div>
+                            <span class="hint-text mt-8">Click to select start date and deadline in a single
+                                calendar.</span>
                         </div>
                     </div>
                 </div>
@@ -207,83 +206,75 @@
                             <div style="display:flex; gap:15px; align-items:flex-start;">
                                 <div style="flex:1;">
                                     <label>Minimum High School Average</label>
-                                    <input type="number" id="minHsAverage" class="form-input" placeholder="e.g. 85"
-                                        min="75" max="100">
+                                    <input type="number" id="minHsAverage" class="form-input grade-input"
+                                        placeholder="e.g. 85 (0 - 100)" min="0" max="100" step="0.01">
+                                    <span class="hint-text mt-8">Scale: 0 - 100 (Max: 100)</span>
                                 </div>
                                 <div style="flex:1;">
                                     <label>Minimum College GWA</label>
-                                    <input type="number" step="0.01" id="minCollegeGwa" class="form-input"
-                                        placeholder="e.g. 2.0" min="1.0" max="5.0">
+                                    <input type="number" step="0.01" id="minCollegeGwa" class="form-input grade-input"
+                                        placeholder="e.g. 2.0 (1.0 - 5.0)" min="0" max="5.0">
+                                    <span class="hint-text mt-8">Scale: 1.0 (Highest) - 5.0 (Lowest)</span>
                                 </div>
                             </div>
                             <div style="display:flex; gap:15px; align-items:flex-start; margin-top: 15px;">
                                 <div style="flex:1;">
                                     <label>Minimum Subject Rating (High School)</label>
-                                    <input type="number" id="minHsSubject" class="form-input"
-                                        placeholder="e.g. 80 (No subject below 80)" min="75" max="100">
+                                    <input type="number" id="minHsSubject" class="form-input grade-input"
+                                        placeholder="e.g. 80 (No subject below 80)" min="0" max="100" step="0.01">
+                                    <span class="hint-text mt-8">Scale: 0 - 100 (Max: 100)</span>
                                 </div>
                                 <div style="flex:1;">
                                     <label>Minimum Subject Rating (College)</label>
-                                    <input type="number" step="0.01" id="minCollegeSubject" class="form-input"
-                                        placeholder="e.g. 2.5 (No subject below 2.5)" min="1.0" max="5.0">
+                                    <input type="number" step="0.01" id="minCollegeSubject"
+                                        class="form-input grade-input" placeholder="e.g. 2.5 (No subject below 2.5)"
+                                        min="0" max="5.0">
+                                    <span class="hint-text mt-8">Scale: 1.0 (Highest) - 5.0 (Lowest)</span>
                                 </div>
                             </div>
-                            <span class="hint-text mt-8">Note: For College GWA and Ratings, 1.0 is the highest. Lower
+                            <span class="hint-text mt-8" style="color: #64748b; font-weight: 500;">Note: For College GWA
+                                and Ratings, 1.0 is the highest. Lower
                                 numbers mean stricter requirements.</span>
                         </div>
 
-                        <!-- Eligible Years -->
+                        <!-- Eligible Years (Touch-Friendly Checkboxes) -->
                         <div class="input-group">
-                            <div class="rule-row" style="margin-bottom:10px;">
+                            <div class="rule-row"
+                                style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
                                 <strong>Eligible Year Levels</strong>
+                                <button type="button" class="select-all-btn" id="toggle-all-years"
+                                    title="Toggle select all year levels">
+                                    <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Select All
+                                </button>
                             </div>
-                            <select id="eligibilityYears" multiple class="multi-select" style="height: 160px;">
-                                <option value="Incoming 1st year">Incoming 1st year</option>
-                                <option value="1st year">1st year</option>
-                                <option value="2nd year">2nd year</option>
-                                <option value="3rd year">3rd year</option>
-                                <option value="4th year">4th year</option>
-                                <option value="Irregular">Irregular</option>
-                            </select>
-                            <span class="hint-text mt-8">Hold Ctrl/Cmd to select multiple.</span>
+                            <div class="checkbox-group-container year-levels-grid" id="year-levels-container">
+                                <!-- Checkbox items dynamically populated / interactive -->
+                            </div>
+                            <span class="hint-text mt-8">Tap on any year level to select or deselect.</span>
                         </div>
 
-                        <!-- Eligible Programs -->
+                        <!-- Eligible Programs (Touch-Friendly Checkboxes) -->
                         <div class="input-group">
-                            <div class="rule-row" style="margin-bottom:10px;">
+                            <div class="rule-row"
+                                style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
                                 <strong>Eligible Programs</strong>
+                                <button type="button" class="select-all-btn" id="toggle-all-programs"
+                                    title="Toggle select all programs">
+                                    <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Select All
+                                </button>
                             </div>
-                            <select id="eligibilityPrograms" multiple class="multi-select" style="height: 160px;">
-                                <option value="Bachelor of Science in Accountancy">Bachelor of Science in Accountancy
-                                </option>
-                                <option
-                                    value="Bachelor of Science in Business Administration, Major in Financial Management">
-                                    Bachelor of Science in Business Administration, Major in Financial Management
-                                </option>
-                                <option value="Bachelor of Science in Hospitality Management">Bachelor of Science in
-                                    Hospitality Management</option>
-                                <option value="Bachelor of Science in Tourism Management">Bachelor of Science in Tourism
-                                    Management</option>
-                                <option value="Bachelor of Elementary Education">Bachelor of Elementary Education
-                                </option>
-                                <option value="Bachelor of Secondary Education, Major in English">Bachelor of Secondary
-                                    Education, Major in English</option>
-                                <option value="Bachelor of Secondary Education, Major in Mathematics">Bachelor of
-                                    Secondary Education, Major in Mathematics</option>
-                                <option value="Bachelor of Secondary Education, Major in Filipino">Bachelor of Secondary
-                                    Education, Major in Filipino</option>
-                                <option value="Bachelor of Secondary Education, Major in Science">Bachelor of Secondary
-                                    Education, Major in Science</option>
-                                <option value="Bachelor of Secondary Education, Major in Social Studies">Bachelor of
-                                    Secondary Education, Major in Social Studies</option>
-                                <option value="Bachelor of Science in Information Technology">Bachelor of Science in
-                                    Information Technology</option>
-                                <option value="Bachelor of Science in Criminology">Bachelor of Science in Criminology
-                                </option>
-                                <option value="Bachelor of Science in Psychology">Bachelor of Science in Psychology
-                                </option>
-                            </select>
-                            <span class="hint-text mt-8">Hold Ctrl/Cmd to select multiple.</span>
+                            <div class="programs-search-box" style="margin-bottom: 8px; position: relative;">
+                                <i data-lucide="search"
+                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
+                                <input type="text" id="search-programs-input" placeholder="Search programs..."
+                                    class="form-input"
+                                    style="padding-left: 34px; font-size: 13px; padding-top: 8px; padding-bottom: 8px;">
+                            </div>
+                            <div class="checkbox-group-container scrollable-programs-list" id="programs-container"
+                                style="max-height: 240px; overflow-y: auto;">
+                                <!-- Program Checkbox items dynamically populated / interactive -->
+                            </div>
+                            <span class="hint-text mt-8">Tap on any program to select or deselect.</span>
                         </div>
 
                     </div>
@@ -303,10 +294,10 @@
 
                     <!-- AUTO-COLLECTED FIELDS BANNER & CONFIG -->
                     <div class="auto-profile-banner" style="margin-bottom: 20px;">
-                        <strong><i class="fa-solid fa-lock"></i> Auto-Collected Profile Information</strong>
+                        <strong><i data-lucide="lock" style="width: 15px; height: 15px;"></i> Auto-Collected Profile Information</strong>
                         Students do NOT need to fill these out. This system will automatically attach the following
                         verified data from their profile:<br>
-                        <em>Student ID Number, First Name, Middle Name, Last Name, School, Program, and Year Level.</em>
+                        <em>Student ID Number, Full Name, Email Address, Gender, Address, Program, and Year Level.</em>
                     </div>
 
                     <h4 style="font-size: 14px; margin-bottom: 10px; color: #475569;">Set Data Formatting Rules</h4>
@@ -314,30 +305,64 @@
                         <!-- JS Injects Formatting rules here -->
                     </div>
 
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h4 style="font-size: 14px; color: #475569; margin: 0;">Custom Questions</h4>
-                        <button type="button" id="add-field-btn" class="btn-primary"
-                            style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-plus"></i> Add
-                            Field</button>
+                    <div style="margin-bottom:12px;">
+                        <h4 style="font-size: 14px; color: var(--text-main); font-weight: 700; margin: 0;">Custom Questions</h4>
                     </div>
-                    <div id="form-builder-container"></div>
+                    <div class="builder-table-wrapper">
+                        <table class="expandable-builder-table" id="form-builder-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 44px; text-align: center;"></th>
+                                    <th>Question / Field Label</th>
+                                    <th style="width: 170px;">Field Type</th>
+                                    <th style="width: 170px;">Text Formatting</th>
+                                    <th style="width: 90px; text-align: center;">Required</th>
+                                    <th style="width: 60px; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="form-builder-container">
+                                <!-- JS Injects Expandable Question Rows Here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 16px; display: flex; justify-content: center;">
+                        <button type="button" id="add-field-btn" class="add-builder-row-btn">
+                            <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Add Custom Field
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 4. DOCUMENTARY REQUIREMENTS -->
                 <div class="card">
-                    <div
-                        style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
-                        <div>
-                            <h3 class="card-title" style="margin-bottom:0;"><span class="step-badge">4</span>
-                                Documentary Requirements & OCR Validation</h3>
-                            <p class="hint-text mt-8">Specify documents and enable AI OCR scanning to automatically
-                                extract and verify data.</p>
-                        </div>
-                        <button type="button" id="add-doc-btn" class="btn-primary"><i class="fa-solid fa-plus"></i> Add
-                            Requirement</button>
+                    <div style="margin-bottom:16px;">
+                        <h3 class="card-title" style="margin-bottom:0;"><span class="step-badge">4</span>
+                            Documentary Requirements & OCR Validation</h3>
+                        <p class="hint-text mt-8">Specify documents and enable AI OCR scanning to automatically
+                            extract and verify data.</p>
                     </div>
 
-                    <div id="doc-builder-container"></div>
+                    <div class="builder-table-wrapper">
+                        <table class="expandable-builder-table" id="doc-builder-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 44px; text-align: center;"></th>
+                                    <th>Document Name</th>
+                                    <th style="width: 130px;">Max Size</th>
+                                    <th style="width: 130px; text-align: center;">AI OCR Scan</th>
+                                    <th style="width: 110px; text-align: center;">Include</th>
+                                    <th style="width: 70px; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doc-builder-container">
+                                <!-- JS Injects Expandable Document Requirement Rows Here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 16px; display: flex; justify-content: center;">
+                        <button type="button" id="add-doc-btn" class="add-builder-row-btn">
+                            <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Add Document Requirement
+                        </button>
+                    </div>
                 </div>
 
                 <!-- ACTION BUTTONS MOVED TO BOTTOM -->
@@ -345,33 +370,31 @@
                     style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 30px; margin-bottom: 50px;">
                     <button type="button" class="btn-outline"
                         onclick="window.location.href='admin-scholarships.html'">Cancel</button>
-                    <button type="button" id="preview-btn" class="btn-outline"
-                        style="background:#e0e7ff; color:#3730a3; border-color:#c7d2fe;">
-                        <i class="fa-solid fa-eye"></i> Preview Form
+                    <button type="button" id="preview-btn" class="btn-preview">
+                        <i data-lucide="eye" style="width: 16px; height: 16px;"></i> Preview Form
                     </button>
-                    <button type="button" id="save-draft-btn" class="btn-outline"><i class="fa-solid fa-file-pen"></i>
+                    <button type="button" id="save-draft-btn" class="btn-outline"><i data-lucide="file-pen-line" style="width: 16px; height: 16px;"></i>
                         Save as Draft</button>
-                    <button type="button" id="publish-btn" class="btn-primary"><i class="fa-solid fa-paper-plane"></i>
+                    <button type="button" id="publish-btn" class="btn-primary"><i data-lucide="send" style="width: 16px; height: 16px;"></i>
                         Publish Educational Assistance</button>
                 </div>
 
             </form>
+            </div>
         </main>
     </div>
 
     <!-- LOGOUT MODAL -->
-    <div id="logout-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm" style="text-align: center; padding: 30px;">
-            <div style="font-size: 40px; margin-bottom: 10px; color: var(--danger-color);">
+    <div id="logout-modal" class="global-modal-overlay" style="display: none;">
+        <div class="global-modal-content">
+            <div class="global-modal-icon">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </div>
-            <h3 style="font-size: 20px; margin-bottom: 8px; color: var(--text-main);">Logout</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Are you sure you want to log out
-                of the Admin Dashboard?</p>
-            <div style="display: flex; justify-content: center; gap: 10px;">
-                <button id="modal-cancel" class="btn-outline">Cancel</button>
-                <button id="modal-confirm" class="btn-danger"
-                    style="background: var(--danger-color); color: white; border: none; padding: 8px 24px; border-radius: 6px; font-weight: 600; cursor:pointer;">
+            <h3>Logout</h3>
+            <p>Are you sure you want to log out of your account?</p>
+            <div class="global-modal-actions">
+                <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
+                <button id="modal-confirm" class="global-btn-confirm">
                     <i class="fa-solid fa-power-off"></i> Logout
                 </button>
             </div>
@@ -383,6 +406,7 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="js/create-scholarship.js"></script>
 </body>
 

@@ -87,25 +87,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
                 const schoolName = masterlistData && masterlistData.schools ? masterlistData.schools.name : 'Unassigned School';
+                const fullName = `${firstName} ${lastName}`.trim();
+                const progName = profile.program || profile.course || 'Student Profile';
+
+                sessionStorage.setItem('grantee_student_profile', JSON.stringify({
+                    name: fullName,
+                    program: progName,
+                    avatar_url: profile.avatar_url || 'assets/default-avatar.png'
+                }));
 
                 if (document.getElementById('welcome-text')) {
                     document.getElementById('welcome-text').innerText = `Welcome back, ${firstName}! 👋`;
                 }
                 if (document.getElementById('header-name')) {
-                    document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
+                    document.getElementById('header-name').innerText = fullName;
                 }
                 if (document.getElementById('header-program')) {
-                    document.getElementById('header-program').innerText = profile.program || profile.course || 'Student Profile';
+                    document.getElementById('header-program').innerText = progName;
                 }
                 if (document.getElementById('student-school-display')) {
-                    document.getElementById('student-school-display').innerHTML = `🏫 <strong>${schoolName}</strong>`;
+                    document.getElementById('student-school-display').innerHTML = `<i data-lucide="school" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i> <strong>${schoolName}</strong>`;
                 }
                 if (profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
+
+                // Remove skeleton loading from header titles
+                const headerTitlesBox = document.getElementById('header-titles-box');
+                if (headerTitlesBox) headerTitlesBox.classList.remove('is-loading');
+                const headerTitles = document.querySelector('.header-titles');
+                if (headerTitles) headerTitles.classList.remove('is-loading');
+
+                if (window.lucide) { window.lucide.createIcons(); }
             }
         } catch (error) {
             console.error("Error loading profile and masterlist data:", error);
+            const headerTitlesBox = document.getElementById('header-titles-box');
+            if (headerTitlesBox) headerTitlesBox.classList.remove('is-loading');
         }
     }
 
@@ -123,11 +141,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Filter out applications added by admin (they have null form_responses)
             const applications = (apps || []).filter(app => app.form_responses !== null);
 
-            // A. Update Overview Stats
+            // A. Update Overview Stats & Remove Skeleton Shimmer
             const submittedCount = applications.length;
             const reviewCount = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
             const approvedCount = applications.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
             const rejectedCount = applications.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
+
+            ['stat-submitted', 'stat-review', 'stat-approved', 'stat-rejected'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('is-loading');
+            });
 
             if (document.getElementById('stat-submitted')) document.getElementById('stat-submitted').innerText = submittedCount;
             if (document.getElementById('stat-review')) document.getElementById('stat-review').innerText = reviewCount;
@@ -150,20 +173,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Determine Badge styling based on status
                 let badgeClass = 'badge-pending';
-                let iconStr = '📄';
-                let iconBg = '#f1f5f9';
-                let iconColor = '#475569';
+                let iconClass = 'icon-submitted';
+                let lucideIcon = 'file-text';
 
-                if (app.status === 'Submitted' || app.status === 'Pending') { badgeClass = 'badge-pending'; iconStr = '📄'; iconBg = '#f1f5f9'; iconColor = '#475569'; }
-                if (app.status === 'Under Review') { badgeClass = 'badge-review'; iconStr = '⏳'; iconBg = '#fef3c7'; iconColor = '#d97706'; }
-                if (app.status === 'Request Revision') { badgeClass = 'badge-revision'; iconStr = '📝'; iconBg = '#ffedd5'; iconColor = '#c2410c'; }
-                if (app.status === 'Approved' || app.status === 'Grantee') { badgeClass = 'badge-approved'; iconStr = '✓'; iconBg = '#dcfce7'; iconColor = '#10b981'; }
-                if (app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') { badgeClass = 'badge-rejected'; iconStr = '✕'; iconBg = '#fee2e2'; iconColor = '#ef4444'; }
-                if (app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconStr = '🚫'; iconBg = '#e2e8f0'; iconColor = '#475569'; }
+                if (app.status === 'Submitted' || app.status === 'Pending') { badgeClass = 'badge-pending'; iconClass = 'icon-submitted'; lucideIcon = 'file-text'; }
+                else if (app.status === 'Under Review') { badgeClass = 'badge-review'; iconClass = 'icon-review'; lucideIcon = 'clock'; }
+                else if (app.status === 'Request Revision') { badgeClass = 'badge-revision'; iconClass = 'icon-revision'; lucideIcon = 'edit-3'; }
+                else if (app.status === 'Approved' || app.status === 'Grantee') { badgeClass = 'badge-approved'; iconClass = 'icon-approved'; lucideIcon = 'check-circle-2'; }
+                else if (app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') { badgeClass = 'badge-rejected'; iconClass = 'icon-rejected'; lucideIcon = 'x-circle'; }
+                else if (app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconClass = 'icon-withdrawn'; lucideIcon = 'ban'; }
 
                 recentList.innerHTML += `
-                    <div class="list-item" style="cursor:pointer; transition:0.2s;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor=''" onclick="window.location.href='student-applications.html?app_id=${app.id}'">
-                        <div class="item-icon" style="background:${iconBg}; color:${iconColor};">${iconStr}</div>
+                    <div class="list-item" style="cursor:pointer;" onclick="window.location.href='student-applications.html?app_id=${app.id}'">
+                        <div class="item-icon ${iconClass}"><i data-lucide="${lucideIcon}"></i></div>
                         <div class="item-details">
                             <h4>${title}</h4>
                             <p>Academic Year ${new Date().getFullYear()}-${new Date().getFullYear() + 1}</p>
@@ -176,10 +198,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
             });
 
+            if (window.lucide) { window.lucide.createIcons(); }
+
         } catch (error) {
             console.error("Error loading applications:", error);
+            ['stat-submitted', 'stat-review', 'stat-approved', 'stat-rejected'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('is-loading');
+            });
             if (document.getElementById('recent-applications-list')) {
-                document.getElementById('recent-applications-list').innerHTML = `<div style="padding:20px; color:red; font-size:13px;">Error loading applications.</div>`;
+                document.getElementById('recent-applications-list').innerHTML = `<div style="padding:20px; color:var(--danger-color); font-size:13px;">Error loading applications.</div>`;
             }
         }
     }
@@ -313,20 +341,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             recList.innerHTML = '';
 
-            const icons = ['🌿', '💖', '⭐', '📚'];
-            const bgs = ['#ecfccb', '#ffe4e6', '#fef3c7', '#e0e7ff'];
-            const colors = ['#65a30d', '#e11d48', '#d97706', '#4f46e5'];
-
             // Determine if Profile is Complete (Personal Information)
             const requiredProfileFields = ['first_name', 'middle_name', 'last_name', 'email', 'id_number', 'date_of_birth', 'gender', 'contact_number', 'address'];
             const isProfileComplete = profile && requiredProfileFields.every(field => profile[field] && profile[field].toString().trim() !== '');
 
             // Take Top 2 Recommendations to show
-            filteredSch.slice(0, 2).forEach((sch, index) => {
-                const icon = icons[index % icons.length];
-                const bg = bgs[index % bgs.length];
-                const color = colors[index % colors.length];
-
+            filteredSch.slice(0, 2).forEach((sch) => {
                 const deadline = sch.end_date ? new Date(sch.end_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'No Deadline';
                 const cleanDesc = sch.description ? sch.description.replace(/<[^>]*>?/gm, '').substring(0, 70) + '...' : 'Open for applications.';
 
@@ -388,20 +408,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     `<a href="${btnLink}" class="${btnClass}">${btnText}</a>`;
 
                 recList.innerHTML += `
-                    <div class="list-item">
-                        <div class="item-icon" style="background:${bg}; color:${color};">${icon}</div>
-                        <div class="item-details">
-                            <h4>${sch.title}</h4>
-                            <p>${cleanDesc}</p>
-                            <p style="margin-top:6px; font-size:11px; font-weight:600; color:#475569;">Min College GWA: <strong style="color:var(--text-color);">${minGwaDisplay}</strong></p>
-                            <p style="margin-top:2px; font-size:11px; font-weight:600; color:#10b981;">Deadline: ${deadline}</p>
+                    <div class="list-item rec-list-item">
+                        <div class="rec-main-info">
+                            <div class="item-icon icon-sch-rec"><i data-lucide="graduation-cap"></i></div>
+                            <div class="item-details">
+                                <h4>${sch.title}</h4>
+                                <p>${cleanDesc}</p>
+                                <p class="meta-gwa">Min College GWA: <strong>${minGwaDisplay}</strong></p>
+                                <p class="meta-deadline">Deadline: ${deadline}</p>
+                            </div>
                         </div>
-                        <div class="item-meta" style="justify-content:center;">
+                        <div class="item-meta">
                             ${btnHTML}
                         </div>
                     </div>
                 `;
             });
+
+            if (window.lucide) { window.lucide.createIcons(); }
 
         } catch (error) {
             console.error("Error loading recommendations:", error);
@@ -465,15 +489,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (modalConfirm) {
         modalConfirm.addEventListener('click', async () => {
             try {
-                modalConfirm.innerText = "Logging out...";
+                modalConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
                 modalConfirm.disabled = true;
-                await window.supabaseClient.auth.signOut();
-                window.location.href = 'login.html';
+                if (window.supabaseClient && window.supabaseClient.auth) {
+                    await window.supabaseClient.auth.signOut();
+                }
+                localStorage.removeItem('studentUser');
+                sessionStorage.clear();
+                window.location.replace('login-student.html');
             } catch (error) {
                 console.error("Logout error:", error);
-                alert("Failed to logout. Please try again.");
-                modalConfirm.innerText = "Yes";
-                modalConfirm.disabled = false;
+                window.location.replace('login-student.html');
             }
         });
     }
@@ -567,12 +593,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             function getCategoryIcon(category) {
-                if (!category) return { icon: '📢', bg: '#f1f5f9', color: '#475569' };
+                if (!category) return { icon: '📢', cssClass: 'icon-cat-general' };
                 const cat = category.toLowerCase();
-                if (cat.includes('educational assistance')) return { icon: '🎓', bg: '#dcfce7', color: '#10b981' };
-                if (cat.includes('reminder')) return { icon: '📅', bg: '#e0e7ff', color: '#3b82f6' };
-                if (cat.includes('event')) return { icon: '🗓️', bg: '#fef3c7', color: '#d97706' };
-                return { icon: '📢', bg: '#f1f5f9', color: '#475569' };
+                if (cat.includes('educational assistance') || cat.includes('scholarship')) return { icon: '🎓', cssClass: 'icon-cat-edu' };
+                if (cat.includes('reminder') || cat.includes('deadline')) return { icon: '📅', cssClass: 'icon-cat-reminder' };
+                if (cat.includes('event')) return { icon: '🗓️', cssClass: 'icon-cat-event' };
+                return { icon: '📢', cssClass: 'icon-cat-general' };
             }
 
             let filtered = announcements.filter(ann => isAudienceMatch(ann, profile, userApps || []));
@@ -592,11 +618,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let excerpt = tempDiv.textContent || tempDiv.innerText || "";
                 if (excerpt.length > 80) excerpt = excerpt.substring(0, 80) + '...';
 
-                const catIcon = getCategoryIcon(ann.category);
-
                 container.innerHTML += `
-                    <div class="list-item" style="cursor:pointer;" onclick="window.location.href='student-announcements.html?id=${ann.id}'">
-                        <div class="item-icon" style="background:${catIcon.bg}; color:${catIcon.color};">${catIcon.icon}</div>
+                    <div class="list-item announcement-list-item" style="cursor:pointer;" onclick="window.location.href='student-announcements.html?id=${ann.id}'">
+                        <div class="item-icon icon-announcement-item"><i data-lucide="megaphone"></i></div>
                         <div class="item-details">
                             <h4>${ann.title || 'Untitled'}</h4>
                             <p>${excerpt}</p>
@@ -607,6 +631,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 `;
             });
+
+            if (window.lucide) { window.lucide.createIcons(); }
 
         } catch (error) {
             console.error("Error loading announcements:", error);
@@ -622,6 +648,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadRecommendations();
     loadAnnouncements();
 
-    // Explicitly call loadMyApplications if it's meant to be run on load
-    // loadMyApplications(); 
+    if (window.lucide) { window.lucide.createIcons(); }
 });

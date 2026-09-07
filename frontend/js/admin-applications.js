@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+(async function() {
     
     // --- 1. AUTH CHECK & INITIALIZATION ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
@@ -71,12 +71,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cardsContainer = document.getElementById('scholarship-cards-container');
     const tbody = document.getElementById('applicants-tbody');
 
+    // --- PROFILE DROPDOWN TOGGLE ---
+
+
     // --- 2. LOAD PROFILE DATA INTO HEADER ---
     async function loadProfile() {
         try {
             const { data: profile } = await window.supabaseClient
                 .from('profiles')
-                .select('*')
+                .select('*, schools(name)')
                 .eq('id', adminId)
                 .single();
 
@@ -88,19 +91,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 currentAdminSchoolId = profile.school_id;
-                currentAdminSchool = profile.school;
+                const schoolName = profile.schools ? profile.schools.name : (profile.school || 'Unassigned School');
+                currentAdminSchool = schoolName;
                 currentAdminRole = profile.role;
 
                 const firstName = profile.first_name || 'Admin';
                 const lastName = profile.last_name || '';
+                const fullName = `${firstName} ${lastName}`.trim();
                 
                 if (document.getElementById('header-name')) {
-                    document.getElementById('header-name').innerText = `${firstName} ${lastName}`.trim();
+                    document.getElementById('header-name').innerText = fullName;
                 }
                 
                 if (profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
+
+                if (document.getElementById('admin-school-display')) {
+                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                        lucide.createIcons();
+                    }
+                }
+
+                sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
+                    name: fullName,
+                    role: profile.role === 'admin' ? 'Coordinator' : profile.role,
+                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    school_name: schoolName,
+                    school_id: profile.school_id
+                }));
 
                 loadScholarships();
             }
@@ -488,6 +508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const yearLevel = app.profiles?.year_level || 'N/A';
         const date = new Date(app.created_at).toLocaleString();
         const profileFormats = activeScholarshipData?.auto_collected_formats || {};
+        const formattedEmail = formatText(email, profileFormats['Email Address'] || profileFormats['Email']);
         const formattedName = formatText(`${fname} ${mname ? mname + ' ' : ''}${lname}`.trim(), profileFormats['Full Name']);
         const formattedGender = formatText(gender, profileFormats['Gender']);
         const formattedAddress = formatText(address, profileFormats['Address']);
@@ -501,7 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div style="font-size: 14px; color: #0f172a;"><strong>Student ID:</strong> <span style="color:#475569">${sid}</span></div>
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Email:</strong> <span style="color:#475569">${email}</span></div>
+                    <div style="font-size: 14px; color: #0f172a;"><strong>Email:</strong> <span style="color:#475569">${formattedEmail}</span></div>
                     
                     <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Full Name:</strong> <span style="color:#475569">${formattedName}</span></div>
                     
@@ -1080,13 +1101,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const program = app.profiles?.program || '';
             const yearLevel = app.profiles?.year_level || '';
             const profileFormats = activeScholarshipData?.auto_collected_formats || {};
+            const formattedEmail = formatText(email, profileFormats['Email Address'] || profileFormats['Email']);
             const formattedProgram = formatText(program, profileFormats['Program']);
             const formattedYearLevel = formatText(yearLevel, profileFormats['Year Level']);
             
             const status = getDisplayStatus(app.status);
             const date = new Date(app.created_at).toLocaleDateString();
 
-            let row = `"${sanitizeCsvValue(sid)}","${sanitizeCsvValue(lname)}","${sanitizeCsvValue(fname)}","${sanitizeCsvValue(mname)}","${sanitizeCsvValue(email)}","${sanitizeCsvValue(contact)}","${sanitizeCsvValue(formattedProgram)}","${sanitizeCsvValue(formattedYearLevel)}","${sanitizeCsvValue(status)}","${sanitizeCsvValue(date)}"`;
+            let row = `"${sanitizeCsvValue(sid)}","${sanitizeCsvValue(lname)}","${sanitizeCsvValue(fname)}","${sanitizeCsvValue(mname)}","${sanitizeCsvValue(formattedEmail)}","${sanitizeCsvValue(contact)}","${sanitizeCsvValue(formattedProgram)}","${sanitizeCsvValue(formattedYearLevel)}","${sanitizeCsvValue(status)}","${sanitizeCsvValue(date)}"`;
             
             questionFields.forEach(q => {
                 const rawAnswer = app.form_responses && Object.prototype.hasOwnProperty.call(app.form_responses, q.label)
@@ -1160,4 +1182,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // INIT
     loadProfile();
-});
+})();

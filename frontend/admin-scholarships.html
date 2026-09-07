@@ -7,12 +7,21 @@
     <title>Educational Assistance - Grantee Admin</title>
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
 
-    <!-- FontAwesome for Icons -->
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Flatpickr CSS (Safety for date components) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- Global & Page CSS -->
+    <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/admin-scholarships.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -26,16 +35,20 @@
 
         <main class="main-content">
 
-            <header class="content-header">
-                <!-- Titles -->
+            <header class="top-header">
+                <!-- Titles Section -->
                 <div class="header-titles-wrapper">
                     <div class="header-titles">
                         <h1>Educational Assistance</h1>
                         <p class="welcome-text">Manage all educational assistance programs offered by your school.</p>
+                        <p id="admin-school-display" class="text-sm text-emerald-600 mt-1 font-medium flex items-center gap-1.5">
+                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                            <span>Loading assigned school...</span>
+                        </p>
                     </div>
                 </div>
 
-                <!-- Actions & Mobile Menu -->
+                <!-- Actions Section -->
                 <div class="header-actions">
                     <div id="notification-container" class="relative"></div>
 
@@ -46,26 +59,26 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i class="fa-solid fa-caret-down"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i class="fa-solid fa-user"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
-                                    class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle">
-                        <i class="fa-solid fa-bars"></i>
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                        <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
             </header>
 
-            <div class="stats-grid mb-24">
+            <div class="content-wrapper">
+                <div class="stats-grid mb-24">
                 <div class="stat-card">
-                    <div class="stat-icon bg-green-light text-green"><i class="fa-solid fa-book"></i></div>
+                    <div class="stat-icon bg-green-light text-green"><i data-lucide="book-open"></i></div>
                     <div class="stat-details">
                         <p>Total Programs</p>
                         <h2 id="count-total">0</h2>
@@ -73,23 +86,15 @@
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon bg-blue-light text-blue"><i class="fa-solid fa-envelope-open-text"></i></div>
+                    <div class="stat-icon bg-blue-light text-blue"><i data-lucide="mail-open"></i></div>
                     <div class="stat-details">
                         <p>Active Programs</p>
                         <h2 id="count-active">0</h2>
                         <span>Currently accepting applications</span>
                     </div>
                 </div>
-                <!-- <div class="stat-card">
-                    <div class="stat-icon bg-yellow-light text-yellow"><i class="fa-regular fa-calendar-days"></i></div>
-                    <div class="stat-details">
-                        <p>Upcoming Programs</p>
-                        <h2 id="count-upcoming">0</h2>
-                        <span>Will open soon</span>
-                    </div>
-                </div> -->
                 <div class="stat-card">
-                    <div class="stat-icon bg-red-light text-red"><i class="fa-solid fa-circle-xmark"></i></div>
+                    <div class="stat-icon bg-red-light text-red"><i data-lucide="x-circle"></i></div>
                     <div class="stat-details">
                         <p>Closed Programs</p>
                         <h2 id="count-closed">0</h2>
@@ -100,47 +105,49 @@
 
             <div class="data-panel">
                 <div class="table-controls mb-20">
-                    <div class="search-box">
-                        <span style="color: var(--text-muted);"><i class="fa-solid fa-magnifying-glass"></i></span>
-                        <input type="text" id="search-input" placeholder="Search educational assistance...">
-                    </div>
-                    <div class="filters">
-                        <select id="filter-status" class="filter-select">
-                            <option value="">All Status</option>
-                            <option value="Active">Active</option>
-                            <option value="Upcoming">Upcoming</option>
-                            <option value="Closed">Closed</option>
-                            <option value="Draft">Draft</option>
-                        </select>
+                    <div class="search-filter-group">
+                        <div class="search-box">
+                            <span style="color: var(--text-muted);"><i data-lucide="search" style="width: 18px; height: 18px;"></i></span>
+                            <input type="text" id="search-input" placeholder="Search educational assistance...">
+                        </div>
+                        <div class="filters">
+                            <select id="filter-status" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Upcoming">Upcoming</option>
+                                <option value="Closed">Closed</option>
+                                <option value="Draft">Draft</option>
+                            </select>
 
-                        <select id="filter-type" class="filter-select">
-                            <option value="">All Categories</option>
-                            <option value="Institution-Funded Educational Assistance">Institution-Funded Educational
-                                Assistance</option>
-                            <option value="Ched Educational Assistance">Ched Educational Assistance</option>
-                            <option value="Private Educational Assistance">Private Educational Assistance</option>
-                            <option value="Government Educational Assistance">Government Educational Assistance</option>
-                        </select>
+                            <select id="filter-type" class="filter-select">
+                                <option value="">All Categories</option>
+                                <option value="Institution-Funded Educational Assistance">Institution-Funded Educational
+                                    Assistance</option>
+                                <option value="Ched Educational Assistance">Ched Educational Assistance</option>
+                                <option value="Private Educational Assistance">Private Educational Assistance</option>
+                                <option value="Government Educational Assistance">Government Educational Assistance</option>
+                            </select>
 
-                        <select id="filter-scholarship-type" class="filter-select">
-                            <option value="">All Types</option>
-                            <option value="Merit-Based">Merit-Based</option>
-                            <option value="Need-Based">Need-Based</option>
-                        </select>
+                            <select id="filter-scholarship-type" class="filter-select">
+                                <option value="">All Types</option>
+                                <option value="Merit-Based">Merit-Based</option>
+                                <option value="Need-Based">Need-Based</option>
+                            </select>
 
-                        <select id="sort-by" class="filter-select">
-                            <option value="">Sort By...</option>
-                            <option value="start_asc">Opening Date (Oldest First)</option>
-                            <option value="start_desc">Opening Date (Newest First)</option>
-                            <option value="end_asc">Deadline (Closing Soon)</option>
-                            <option value="end_desc">Deadline (Closing Latest)</option>
-                        </select>
+                            <select id="sort-by" class="filter-select">
+                                <option value="">Sort By...</option>
+                                <option value="start_asc">Opening Date (Oldest First)</option>
+                                <option value="start_desc">Opening Date (Newest First)</option>
+                                <option value="end_asc">Deadline (Closing Soon)</option>
+                                <option value="end_desc">Deadline (Closing Latest)</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="actions">
-                        <button id="export-btn" class="btn-outline"><i class="fa-solid fa-download"
-                                style="margin-right: 6px;"></i> Export</button>
-                        <a href="create-scholarship.html" class="btn-primary"><i class="fa-solid fa-plus"
-                                style="margin-right: 6px;"></i> Add Educational Assistance</a>
+                        <button id="export-btn" class="btn-outline"><i data-lucide="download"
+                                style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Export</button>
+                        <a href="create-scholarship.html" class="btn-primary"><i data-lucide="plus"
+                                style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Add Educational Assistance</a>
                     </div>
                 </div>
 
@@ -155,13 +162,13 @@
                                 <th>DEADLINE</th>
                                 <th>STATUS</th>
                                 <th style="text-align: center;">APPLICATIONS</th>
-                                <th></th>
+                                <th style="text-align: center;">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody id="scholarships-tbody">
                             <tr>
                                 <td colspan="8" class="text-center" style="padding: 40px; color:#64748b;">
-                                    <i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Loading
+                                    <i data-lucide="loader-2" class="animate-spin" style="width: 18px; height: 18px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Loading
                                     educational assistance programs...
                                 </td>
                             </tr>
@@ -178,19 +185,23 @@
                     </div>
                 </div>
             </div>
+            </div> <!-- END content-wrapper -->
         </main>
     </div>
 
     <!-- LOGOUT MODAL -->
-    <div id="logout-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm">
-            <div class="modal-icon" style="color: var(--text-muted);"><i class="fa-solid fa-right-from-bracket"></i>
+    <div id="logout-modal" class="global-modal-overlay" style="display: none;">
+        <div class="global-modal-content">
+            <div class="global-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
             </div>
             <h3>Logout</h3>
-            <p>Are you sure you want to log out of the Admin Dashboard?</p>
-            <div class="modal-actions">
-                <button id="modal-cancel" class="btn-outline">Cancel</button>
-                <button id="modal-confirm" class="btn-danger">Logout</button>
+            <p>Are you sure you want to log out of your account?</p>
+            <div class="global-modal-actions">
+                <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
+                <button id="modal-confirm" class="global-btn-confirm">
+                    <i class="fa-solid fa-power-off"></i> Logout
+                </button>
             </div>
         </div>
     </div>
@@ -207,6 +218,12 @@
     <!-- jsPDF & AutoTable for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        // Initialize Lucide icons on load
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 
 </html>

@@ -51,25 +51,50 @@ function hydrateUserProfile(root = document) {
 
 // --- THEME ENGINE ---
 function getStoredTheme() {
+    try {
+        const cached = sessionStorage.getItem('grantee_student_profile');
+        if (cached) {
+            const profile = JSON.parse(cached);
+            if (profile && profile.id) {
+                const userTheme = localStorage.getItem(`grantee_student_theme_${profile.id}`);
+                if (userTheme) return userTheme;
+            }
+        }
+    } catch (e) {}
     return localStorage.getItem('grantee_student_theme') || 'light';
 }
 
 function applyTheme(theme) {
+    if (!theme) theme = 'light';
     document.documentElement.setAttribute('data-theme', theme);
+    if (document.body) {
+        document.body.classList.toggle('dark-theme', theme === 'dark');
+        document.body.classList.toggle('light-theme', theme !== 'dark');
+    }
     localStorage.setItem('grantee_student_theme', theme);
+
+    try {
+        const cached = sessionStorage.getItem('grantee_student_profile');
+        if (cached) {
+            const profile = JSON.parse(cached);
+            if (profile && profile.id) {
+                localStorage.setItem(`grantee_student_theme_${profile.id}`, theme);
+            }
+        }
+    } catch (e) {}
 
     // Update all theme toggle buttons on the page
     document.querySelectorAll('#theme-toggle, .btn-theme-toggle').forEach(btn => {
         if (theme === 'dark') {
-            btn.innerHTML = '<i data-lucide="sun" style="color: #DCC8A3;"></i>';
+            btn.innerHTML = '<i data-lucide="sun" style="color: #DCC8A3; width: 20px; height: 20px;"></i>';
             btn.setAttribute('title', 'Switch to Light Mode');
             btn.setAttribute('aria-label', 'Switch to Light Mode');
         } else {
-            btn.innerHTML = '<i data-lucide="moon"></i>';
+            btn.innerHTML = '<i data-lucide="moon" style="color: #586F62; width: 20px; height: 20px;"></i>';
             btn.setAttribute('title', 'Switch to Dark Mode');
             btn.setAttribute('aria-label', 'Switch to Dark Mode');
         }
-        if (window.lucide) {
+        if (window.lucide && window.lucide.createIcons) {
             try { window.lucide.createIcons({ root: btn }); } catch (e) { window.lucide.createIcons(); }
         }
     });

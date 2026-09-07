@@ -16,6 +16,14 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Immediate Theme Application to Avoid Flash -->
+    <script>
+        (function () {
+            var theme = localStorage.getItem('grantee_admin_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
 </head>
 <body class="light-theme">
     <div class="app-layout">
@@ -39,6 +47,11 @@
                 
                 <!-- Actions Section -->
                 <div class="header-actions">
+                    <!-- Theme Toggle -->
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                        <i data-lucide="moon"></i>
+                    </button>
+
                     <div id="notification-container" class="relative"></div>
 
                     <!-- PROFILE DROPDOWN -->

@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Scholarship - Grantee Admin</title>
     <link rel="stylesheet" href="css/admin-global.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Immediate Theme Application to Avoid Flash -->
+    <script>
+        (function () {
+            var theme = localStorage.getItem('grantee_admin_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <style>
         .preview-banner {
             background: #1e293b;
@@ -164,6 +173,10 @@
                     </div>
                 </div>
                 <div class="header-actions">
+                    <!-- Theme Toggle -->
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                        <i data-lucide="moon"></i>
+                    </button>
                     <a href="admin-scholarships.html" class="btn-outline" style="text-decoration:none; padding:8px 16px; border-radius:6px; color:#0f766e; border:1px solid #0f766e;">Exit Preview</a>
                 </div>
             </header>

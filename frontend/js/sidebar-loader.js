@@ -39,6 +39,60 @@ function hydrateAdminProfile(root = document) {
     }
 }
 
+// --- ADMIN THEME ENGINE (Default: Light Mode, Persistent per user/browser) ---
+function getAdminStoredTheme() {
+    try {
+        const cached = sessionStorage.getItem('grantee_admin_profile');
+        if (cached) {
+            const profile = JSON.parse(cached);
+            if (profile && profile.id) {
+                const userTheme = localStorage.getItem(`grantee_admin_theme_${profile.id}`);
+                if (userTheme) return userTheme;
+            }
+        }
+    } catch (e) {}
+    return localStorage.getItem('grantee_admin_theme') || 'light';
+}
+
+function applyAdminTheme(theme) {
+    if (!theme) theme = 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    if (document.body) {
+        document.body.classList.toggle('dark-theme', theme === 'dark');
+        document.body.classList.toggle('light-theme', theme !== 'dark');
+    }
+    localStorage.setItem('grantee_admin_theme', theme);
+
+    try {
+        const cached = sessionStorage.getItem('grantee_admin_profile');
+        if (cached) {
+            const profile = JSON.parse(cached);
+            if (profile && profile.id) {
+                localStorage.setItem(`grantee_admin_theme_${profile.id}`, theme);
+            }
+        }
+    } catch (e) {}
+
+    // Update all theme toggle buttons on the page
+    document.querySelectorAll('#theme-toggle, .btn-theme-toggle').forEach(btn => {
+        if (theme === 'dark') {
+            btn.innerHTML = '<i data-lucide="sun" style="color: #DCC8A3; width: 20px; height: 20px;"></i>';
+            btn.setAttribute('title', 'Switch to Light Mode');
+            btn.setAttribute('aria-label', 'Switch to Light Mode');
+        } else {
+            btn.innerHTML = '<i data-lucide="moon" style="color: #586F62; width: 20px; height: 20px;"></i>';
+            btn.setAttribute('title', 'Switch to Dark Mode');
+            btn.setAttribute('aria-label', 'Switch to Dark Mode');
+        }
+        if (window.lucide && lucide.createIcons) {
+            try { lucide.createIcons({ root: btn }); } catch (e) { lucide.createIcons(); }
+        }
+    });
+}
+
+// Immediate initial execution
+applyAdminTheme(getAdminStoredTheme());
+
 // Automatically fetch and cache admin profile in the background
 async function fetchAndCacheAdminProfile() {
     if (!window.supabaseClient) return;
@@ -60,6 +114,7 @@ async function fetchAndCacheAdminProfile() {
             const roleName = profile.role === 'admin' ? 'Coordinator' : (profile.role || 'Coordinator');
 
             const profileData = {
+                id: user.id,
                 name: fullName,
                 role: roleName,
                 avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
@@ -69,6 +124,7 @@ async function fetchAndCacheAdminProfile() {
 
             sessionStorage.setItem('grantee_admin_profile', JSON.stringify(profileData));
             hydrateAdminProfile(document);
+            applyAdminTheme(getAdminStoredTheme());
             if (typeof lucide !== 'undefined' && lucide.createIcons) {
                 lucide.createIcons();
             }
@@ -82,8 +138,8 @@ async function fetchAndCacheAdminProfile() {
 hydrateAdminProfile(document);
 
 document.addEventListener('DOMContentLoaded', async () => {
-
-    // Hydrate again on DOMContentLoaded
+    // Apply theme and hydrate again on DOMContentLoaded
+    applyAdminTheme(getAdminStoredTheme());
     hydrateAdminProfile(document);
 
     // If Supabase client is ready, fetch latest profile in background
@@ -205,8 +261,9 @@ function initGlobalAdminDelegatedHandlers() {
         }
     }
 
-    // 1. Unified Click Handler for Mobile Menu, Overlay, Dropdowns, and Navigation Links
+    // 1. Unified Click Handler for Mobile Menu, Overlay, Dropdowns, Theme Toggle, and Navigation Links
     document.addEventListener('click', (e) => {
+        const themeToggle = e.target.closest('#theme-toggle, .btn-theme-toggle');
         const mobileToggle = e.target.closest('#mobile-menu-toggle, .hamburger-btn');
         const overlay = e.target.closest('#sidebar-overlay, .sidebar-overlay');
         const menuLink = e.target.closest('#app-sidebar a.menu-item, .sidebar a.menu-item, #sidebar-container a.menu-item');
@@ -216,6 +273,16 @@ function initGlobalAdminDelegatedHandlers() {
         const notifMenu = document.getElementById('notification-menu');
         const pt = document.getElementById('profile-dropdown-toggle');
         const nt = document.getElementById('notification-toggle');
+
+        // 0. Theme Toggle Click
+        if (themeToggle) {
+            e.preventDefault();
+            e.stopPropagation();
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyAdminTheme(nextTheme);
+            return;
+        }
 
         // A. Mobile Hamburger Click
         if (mobileToggle) {
@@ -479,6 +546,7 @@ function initSidebarNavigation() {
                         if (activeTitles) {
                             activeTitles.classList.remove('is-loading');
                         }
+                        applyAdminTheme(getAdminStoredTheme());
                         if (typeof lucide !== 'undefined' && lucide.createIcons) {
                             lucide.createIcons();
                         }

@@ -26,6 +26,14 @@
     <!-- Global & Page CSS -->
     <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/admin-dashboard.css">
+
+    <!-- Immediate Theme Application to Avoid Flash -->
+    <script>
+        (function () {
+            var theme = localStorage.getItem('grantee_admin_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
 </head>
 
 <body class="light-theme">
@@ -52,6 +60,11 @@
 
                 <!-- Actions Section -->
                 <div class="header-actions">
+                    <!-- Theme Toggle -->
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                        <i data-lucide="moon"></i>
+                    </button>
+
                     <div id="notification-container" class="relative"></div>
                     <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
                         <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img"

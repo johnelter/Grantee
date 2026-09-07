@@ -25,14 +25,15 @@ button {
    GRANTEE - ADMIN DASHBOARD CSS
    ========================================================================== */
 
-:root {
-    --bg-main: #f8fafc;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --border-dark: #cbd5e1;
-    --primary-color: #10b981;
-    --danger-color: #ef4444;
+:root,
+[data-theme="light"] {
+    --bg-main: #F4F6F2;
+    --text-main: #20362B;
+    --text-muted: #586F62;
+    --border-color: #DFE6DC;
+    --border-dark: #C8D3C4;
+    --primary-color: #1F3D2E;
+    --danger-color: #D94841;
 }
 
 /* Standard App Layout Wrapper */

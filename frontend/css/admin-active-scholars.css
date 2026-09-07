@@ -1,16 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-:root {
-    --bg-main: #f8fafc;
+:root,
+[data-theme="light"] {
+    --bg-main: #F4F6F2;
     --sidebar-bg: #ffffff;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --border-color: #f1f5f9;
-    --border-dark: #e2e8f0;
-    --primary-color: #10b981;
-    --primary-hover: #059669;
-    --success-color: #16a34a;
-    --danger-color: #ef4444;
+    --text-main: #20362B;
+    --text-muted: #586F62;
+    --border-color: #DFE6DC;
+    --border-dark: #C8D3C4;
+    --primary-color: #1F3D2E;
+    --primary-hover: #3A5A40;
+    --success-color: #2E6B45;
+    --danger-color: #D94841;
 }
 
 * {

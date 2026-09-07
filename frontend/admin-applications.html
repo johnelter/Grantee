@@ -11,18 +11,18 @@
     <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/admin-applications.css">
 
-    <!-- FontAwesome Icons and SweetAlert2 -->
+    <!-- SweetAlert2 & SheetJS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- Added jsPDF libraries for PDF Export -->
+    <!-- jsPDF libraries for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
+    <!-- Tailwind CSS (Required for dynamic JS classes in notifications) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Immediate Theme Application to Avoid Flash -->
@@ -62,7 +62,7 @@
                     <div class="header-titles">
                         <h1>Applicant Evaluation</h1>
                         <p class="welcome-text">Evaluate and select grantees for educational assistance programs.</p>
-                        <p id="admin-school-display" class="text-sm text-emerald-600 mt-1 font-medium flex items-center gap-1.5">
+                        <p id="admin-school-display" class="text-sm font-medium flex items-center gap-1.5" style="color: var(--moss-green); margin-top: 4px;">
                             <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
@@ -103,126 +103,176 @@
 
             <div class="content-wrapper">
                 <!-- VIEW 1: SELECT PROGRAM GRID -->
-            <div id="view-scholarships-grid">
-                <div class="section-header">
-                    <div>
-                        <h2>Educational Assistance Programs</h2>
-                        <p>Select a program to manage its applicants.</p>
+                <div id="view-scholarships-grid">
+                    <div class="section-header">
+                        <div>
+                            <h2>Educational Assistance Programs</h2>
+                            <p>Select a program to review applicant responses and evaluate grantees.</p>
+                        </div>
                     </div>
-                </div>
 
-                <div class="cards-grid" id="scholarship-cards-container">
-                    <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> Loading programs...</div>
-                </div>
-            </div>
-
-            <!-- VIEW 2: APPLICANTS LIST -->
-            <div id="view-applicants-list" style="display: none;">
-                <div class="back-nav mb-24">
-                    <button class="btn-text" onclick="showGrid()"><i class="fa-solid fa-arrow-left"></i> Back to
-                        Programs</button>
-                </div>
-
-                <div class="section-header mt-20" style="flex-wrap: wrap; gap: 15px;">
-                    <div>
-                        <h2 class="title-with-badge">
-                            <span id="active-sch-title">Program Title</span>
-                            <span class="badge-status badge-review" id="main-status-badge">Pending Evaluation</span>
-                        </h2>
-                        <p>Review applicant responses and determine eligibility</p>
-                    </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-outline" style="font-size:12px; padding:6px 12px; align-self: center;"
-                            onclick="exportPendingList()"><i class="fa-solid fa-file-export"></i> Export
-                            Pending</button>
-                        <button class="btn-outline"
-                            style="font-size:12px; padding:6px 12px; background:#f0fdf4; color:#166534; border-color:#166534; align-self: center;"
-                            onclick="exportGranteeList()"><i class="fa-solid fa-file-export"></i> Export
-                            Approved</button>
-                    </div>
-                </div>
-
-                <div class="tabs-container">
-                    <button class="tab-btn active" onclick="switchTab('Pending')"><i class="fa-solid fa-clock"></i>
-                        Pending</button>
-                    <button class="tab-btn" onclick="switchTab('Approved')"><i class="fa-solid fa-circle-check"></i>
-                        Approved</button>
-                    <button class="tab-btn" onclick="switchTab('Rejected')"><i class="fa-solid fa-circle-xmark"></i>
-                        Rejected</button>
-                    <button id="tab-evaluate-applicant" class="tab-btn" style="display: none;"
-                        onclick="switchTab('Individual')"><i class="fa-solid fa-user-magnifying-glass"></i> Evaluate
-                        Applicant</button>
-                </div>
-
-                <!-- Sub-view A: Table List -->
-                <div class="data-panel" id="table-view-container">
-                    <div class="table-controls mb-20">
-                        <div class="count-pill" id="table-count-label">Total Pending: 0</div>
-
-                        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                            <div class="search-box">
-                                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                                <input type="text" id="search-applicant" placeholder="Search applicants..."
-                                    onkeyup="filterTable()">
+                    <div class="cards-grid" id="scholarship-cards-container">
+                        <!-- SKELETON PLACEHOLDERS -->
+                        <div class="skeleton-card">
+                            <div class="flex justify-between items-center">
+                                <div class="skeleton-card-icon"></div>
+                                <div class="skeleton-pill" style="width: 32px; height: 16px;"></div>
                             </div>
-                            <select id="sort-date-select" class="filter-select" onchange="filterTable()">
-                                <option value="desc">▼ Sort: Newest First</option>
-                                <option value="asc">▲ Sort: Oldest First</option>
-                            </select>
+                            <div class="skeleton-card-title"></div>
+                            <div class="skeleton-card-details"></div>
+                            <div class="skeleton-card-footer">
+                                <div class="skeleton-card-stat"></div>
+                                <div class="skeleton-card-stat"></div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">#</th>
-                                    <th>Applicant Name</th>
-                                    <th>Student ID</th>
-                                    <th>Email</th>
-                                    <th>Date Applied</th>
-                                    <th>Evaluation Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="applicants-tbody">
-                                <!-- JS Populated -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="pagination-container mt-20">
-                        <span id="showing-entries" class="text-sm text-muted">Showing 0 entries</span>
-                        <div class="pagination">
-                            <button disabled>&lt;</button>
-                            <button class="active">1</button>
-                            <button>&gt;</button>
+                        <div class="skeleton-card">
+                            <div class="flex justify-between items-center">
+                                <div class="skeleton-card-icon"></div>
+                                <div class="skeleton-pill" style="width: 32px; height: 16px;"></div>
+                            </div>
+                            <div class="skeleton-card-title"></div>
+                            <div class="skeleton-card-details"></div>
+                            <div class="skeleton-card-footer">
+                                <div class="skeleton-card-stat"></div>
+                                <div class="skeleton-card-stat"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-card">
+                            <div class="flex justify-between items-center">
+                                <div class="skeleton-card-icon"></div>
+                                <div class="skeleton-pill" style="width: 32px; height: 16px;"></div>
+                            </div>
+                            <div class="skeleton-card-title"></div>
+                            <div class="skeleton-card-details"></div>
+                            <div class="skeleton-card-footer">
+                                <div class="skeleton-card-stat"></div>
+                                <div class="skeleton-card-stat"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sub-view B: Individual App View -->
-                <div id="individual-view-container" style="display: none;">
-                    <div class="individual-controls">
-                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                            <label style="font-size: 14px; font-weight: 600;">Select Applicant:</label>
-                            <select id="individual-applicant-select" class="filter-select" style="min-width: 250px;"
-                                onchange="renderIndividualApp(this.value)"></select>
+                <!-- VIEW 2: APPLICANTS LIST -->
+                <div id="view-applicants-list" style="display: none;">
+                    <div class="back-nav mb-24">
+                        <button class="btn-text" onclick="showGrid()">
+                            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Programs
+                        </button>
+                    </div>
+
+                    <div class="section-header mt-20" style="flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h2 class="title-with-badge">
+                                <span id="active-sch-title">Program Title</span>
+                                <span class="badge-status badge-review" id="main-status-badge">
+                                    <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation
+                                </span>
+                            </h2>
+                            <p>Review applicant responses, verify submitted documents, and determine eligibility.</p>
                         </div>
-                        <div style="display: flex; gap: 10px; margin-top: 10px;">
-                            <button class="btn-reject" id="indiv-btn-reject"><i class="fa-solid fa-xmark"></i>
-                                Decline</button>
-                            <button class="btn-approve" id="indiv-btn-approve"><i class="fa-solid fa-check"></i> Select
-                                as Grantee</button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn-export" onclick="exportPendingList()">
+                                <i data-lucide="download" style="width: 14px; height: 14px;"></i> Export Pending
+                            </button>
+                            <button class="btn-export btn-export-approved" onclick="exportGranteeList()">
+                                <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i> Export Approved
+                            </button>
                         </div>
                     </div>
 
-                    <div class="gform-container" id="gform-content">
-                        <!-- JS injects the detailed applicant view here -->
+                    <div class="tabs-container">
+                        <button class="tab-btn active" onclick="switchTab('Pending')">
+                            <i data-lucide="clock" style="width: 15px; height: 15px;"></i>
+                            <span>Pending</span>
+                            <span class="tab-badge-count" id="tab-count-pending">0</span>
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('Approved')">
+                            <i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i>
+                            <span>Approved</span>
+                            <span class="tab-badge-count" id="tab-count-approved">0</span>
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('Rejected')">
+                            <i data-lucide="x-circle" style="width: 15px; height: 15px;"></i>
+                            <span>Rejected</span>
+                            <span class="tab-badge-count" id="tab-count-rejected">0</span>
+                        </button>
+                        <button id="tab-evaluate-applicant" class="tab-btn" style="display: none;" onclick="switchTab('Individual')">
+                            <i data-lucide="user-check" style="width: 15px; height: 15px;"></i>
+                            <span>Evaluate Applicant</span>
+                        </button>
                     </div>
+
+                    <!-- Sub-view A: Table List -->
+                    <div class="table-panel" id="table-view-container">
+                        <div class="table-controls">
+                            <div class="count-pill" id="table-count-label">Total Pending: 0</div>
+
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <div class="search-box">
+                                    <i data-lucide="search" style="width: 15px; height: 15px;"></i>
+                                    <input type="text" id="search-applicant" placeholder="Search applicant by name, ID, or email..." onkeyup="filterTable()">
+                                </div>
+                                <select id="sort-date-select" class="filter-select" onchange="filterTable()">
+                                    <option value="desc">▼ Sort: Newest First</option>
+                                    <option value="asc">▲ Sort: Oldest First</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 48px;">#</th>
+                                        <th>Applicant Name</th>
+                                        <th>Student ID</th>
+                                        <th>Email</th>
+                                        <th>Date Applied</th>
+                                        <th>Evaluation Status</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="applicants-tbody">
+                                    <!-- JS Populated or Skeleton Loaded -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="pagination-container">
+                            <span id="showing-entries" class="text-sm text-muted">Showing 0 entries</span>
+                            <div class="pagination">
+                                <button disabled>&lt;</button>
+                                <button class="active">1</button>
+                                <button>&gt;</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-view B: Individual App View -->
+                    <div id="individual-view-container" style="display: none;">
+                        <div class="individual-controls">
+                            <div class="individual-select-group">
+                                <label class="individual-select-label">
+                                    <i data-lucide="user" style="width: 15px; height: 15px; color: var(--moss-green);"></i> Select Applicant:
+                                </label>
+                                <select id="individual-applicant-select" class="filter-select" onchange="renderIndividualApp(this.value)"></select>
+                            </div>
+                            <div class="individual-action-buttons">
+                                <button class="btn-reject" id="indiv-btn-reject">
+                                    <i data-lucide="x" style="width: 14px; height: 14px;"></i> Decline
+                                </button>
+                                <button class="btn-approve" id="indiv-btn-approve">
+                                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> Select as Grantee
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="gform-container" id="gform-content">
+                            <!-- JS injects the detailed applicant view here -->
+                        </div>
+                    </div>
+
                 </div>
-
-            </div>
             </div> <!-- END content-wrapper -->
         </main>
     </div>
@@ -231,14 +281,14 @@
     <div id="logout-modal" class="global-modal-overlay" style="display: none;">
         <div class="global-modal-content">
             <div class="global-modal-icon">
-                <i class="fa-solid fa-right-from-bracket"></i>
+                <i data-lucide="log-out" style="width: 38px; height: 38px; color: var(--danger-color);"></i>
             </div>
             <h3>Logout</h3>
             <p>Are you sure you want to log out of your account?</p>
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i class="fa-solid fa-power-off"></i> Logout
+                    <i data-lucide="power" style="width: 15px; height: 15px;"></i> Logout
                 </button>
             </div>
         </div>
@@ -250,8 +300,6 @@
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
     <script src="js/admin-applications.js"></script>
-
-    <script src="https://unpkg.com/lucide@latest"></script>
 </body>
 
 </html>

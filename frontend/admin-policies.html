@@ -11,18 +11,19 @@
     <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/admin-policies.css">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
         .swal2-container {
             z-index: 99999 !important;
         }
     </style>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
-    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Immediate Theme Application to Avoid Flash -->
     <script>
@@ -56,10 +57,14 @@
             <header class="top-header">
                 <!-- Titles Section -->
                 <div class="header-titles-wrapper">
-                    <div class="header-titles">
-                        <h1>Assistance Policies</h1>
+                    <div class="header-titles is-loading" id="header-titles-box">
+                        <div class="breadcrumbs">
+                            <a href="admin-dashboard.html">Dashboard</a> &gt;
+                            <span>Assistance Policies</span>
+                        </div>
+                        <h1>Assistance Policies <i data-lucide="shield-check" style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i></h1>
                         <p class="welcome-text">Configure global educational assistance rules and application limits for all students.</p>
-                        <p id="admin-school-display" class="text-sm text-emerald-600 mt-1 font-medium flex items-center gap-1.5">
+                        <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5" style="color: var(--moss-green);">
                             <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
@@ -73,8 +78,10 @@
                         <i data-lucide="moon"></i>
                     </button>
 
+                    <!-- Notifications -->
                     <div id="notification-container" class="relative"></div>
 
+                    <!-- Profile Dropdown -->
                     <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
                         <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img"
                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%2394a3b8%22><path d=%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22/></svg>'">
@@ -99,15 +106,24 @@
             </header>
 
             <div class="content-wrapper">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <div></div>
-                    <button type="button" class="btn-primary" id="btn-save-policies" style="display: inline-flex; align-items: center; gap: 8px;">
-                        <i data-lucide="save" style="width: 16px; height: 16px;"></i> Save All Changes
+                <!-- TOP BAR ACTION -->
+                <div class="top-bar-action">
+                    <div class="top-bar-heading">
+                        <h2>Institutional Rules Engine</h2>
+                        <p>Set active program ceilings, cross-category rules, and automated verification thresholds.</p>
+                    </div>
+                    <button type="button" class="btn-primary" id="btn-save-policies">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Save All Changes</span>
                     </button>
                 </div>
 
+                <!-- INFO BANNER -->
                 <div class="info-banner mb-24">
-                    <strong><i class="fa-solid fa-circle-info" style="margin-right: 8px; color: #3b82f6;"></i> About Educational Assistance Policies</strong>
+                    <div class="info-banner-header">
+                        <i data-lucide="info" class="info-banner-icon"></i>
+                        <strong>About Educational Assistance Policies</strong>
+                    </div>
                     <p>These policies define the global rules that apply to all educational assistance programs in the institution. You can set the maximum number of assistances a student can hold, per-category limits, and combination rules.</p>
                 </div>
 
@@ -115,13 +131,13 @@
                     <div class="policy-grid">
 
                         <!-- 1. Global Limit -->
-                        <div class="policy-card">
+                        <div class="policy-card" id="card-global-limit">
                             <div class="card-header">
-                                <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="card-header-left">
                                     <h3>1. Global Assistance Limit</h3>
                                     <span class="status-badge" id="global-limit-status">Enabled</span>
                                 </div>
-                                <label class="toggle-switch">
+                                <label class="toggle-switch" title="Toggle Global Limit">
                                     <input type="checkbox" id="pol-global-enabled" checked>
                                     <span class="slider"></span>
                                 </label>
@@ -132,31 +148,115 @@
                                 <label>Maximum Active Assistance Per Student (All Categories)</label>
                                 <input type="number" id="pol-global-limit" class="form-input" value="3" min="0">
                             </div>
-                            <p class="text-link mt-10" id="btn-set-unlimited-global">Set to 0 for unlimited assistance.</p>
+                            <p class="text-link mt-10" id="btn-set-unlimited-global">
+                                <i data-lucide="infinity" style="width: 14px; height: 14px;"></i> Set to 0 for unlimited assistance.
+                            </p>
                         </div>
 
                         <!-- 2. Category Limits (Dynamic Container) -->
                         <div class="policy-card" id="category-limits-container">
-                            <!-- Injected via JS -->
+                            <div class="card-header">
+                                <h3>2. Per Category Limits</h3>
+                            </div>
+                            <p class="hint-text mb-20">Set the maximum number of active educational assistance programs allowed per category.</p>
+                            <!-- Skeleton Placeholders -->
+                            <div class="policy-card-skeleton">
+                                <div class="skeleton-row-item">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div class="skeleton-circle" style="width:34px; height:34px;"></div>
+                                        <div class="skeleton-line" style="width:160px; height:14px;"></div>
+                                    </div>
+                                    <div class="skeleton-box" style="width:140px; height:32px;"></div>
+                                </div>
+                                <div class="skeleton-row-item">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div class="skeleton-circle" style="width:34px; height:34px;"></div>
+                                        <div class="skeleton-line" style="width:180px; height:14px;"></div>
+                                    </div>
+                                    <div class="skeleton-box" style="width:140px; height:32px;"></div>
+                                </div>
+                                <div class="skeleton-row-item">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div class="skeleton-circle" style="width:34px; height:34px;"></div>
+                                        <div class="skeleton-line" style="width:150px; height:14px;"></div>
+                                    </div>
+                                    <div class="skeleton-box" style="width:140px; height:32px;"></div>
+                                </div>
+                                <div class="skeleton-row-item">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div class="skeleton-circle" style="width:34px; height:34px;"></div>
+                                        <div class="skeleton-line" style="width:190px; height:14px;"></div>
+                                    </div>
+                                    <div class="skeleton-box" style="width:140px; height:32px;"></div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 3. Combination Rules (Dynamic Container) -->
                         <div class="policy-card" id="matrix-container">
-                            <!-- Injected via JS -->
+                            <div class="card-header">
+                                <h3>3. Category Combination Rules</h3>
+                            </div>
+                            <p class="hint-text mb-20">Choose which categories can be combined by a student simultaneously.</p>
+                            <!-- Skeleton Matrix Placeholder -->
+                            <div class="matrix-table-container">
+                                <table class="matrix-table">
+                                    <thead>
+                                        <tr>
+                                            <th><div class="skeleton-line" style="width:90px;"></div></th>
+                                            <th><div class="skeleton-line" style="width:50px; margin:auto;"></div></th>
+                                            <th><div class="skeleton-line" style="width:50px; margin:auto;"></div></th>
+                                            <th><div class="skeleton-line" style="width:50px; margin:auto;"></div></th>
+                                            <th><div class="skeleton-line" style="width:50px; margin:auto;"></div></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><div class="skeleton-line" style="width:170px;"></div></td>
+                                            <td>—</td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                        </tr>
+                                        <tr>
+                                            <td><div class="skeleton-line" style="width:150px;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td>—</td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                        </tr>
+                                        <tr>
+                                            <td><div class="skeleton-line" style="width:160px;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td>—</td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                        </tr>
+                                        <tr>
+                                            <td><div class="skeleton-line" style="width:180px;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td><div class="skeleton-box" style="width:18px; height:18px; margin:auto;"></div></td>
+                                            <td>—</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <!-- 4. Other Settings -->
-                        <div class="policy-card">
-                            <div class="card-header" style="margin-bottom: 10px;">
+                        <div class="policy-card" id="card-other-settings">
+                            <div class="card-header">
                                 <h3>4. Other Policy Settings</h3>
                             </div>
+                            <p class="hint-text mb-20">Configure administrative validation enforcement and manual override permissions.</p>
 
                             <div class="setting-row">
                                 <div class="setting-text">
                                     <strong>Auto-validate limits on application</strong>
-                                    <span>Automatically block application if limit is reached.</span>
+                                    <span>Automatically block student applications if limits are exceeded.</span>
                                 </div>
-                                <label class="toggle-switch">
+                                <label class="toggle-switch" title="Auto-validate limits">
                                     <input type="checkbox" id="pol-auto-validate" checked>
                                     <span class="slider"></span>
                                 </label>
@@ -164,18 +264,64 @@
                             <div class="setting-row">
                                 <div class="setting-text">
                                     <strong>Allow override for administrators</strong>
-                                    <span>Admins can manually approve even if limit is exceeded.</span>
+                                    <span>Admins and coordinators can approve applications that exceed standard limits.</span>
                                 </div>
-                                <label class="toggle-switch">
+                                <label class="toggle-switch" title="Allow administrator override">
                                     <input type="checkbox" id="pol-allow-override" checked>
                                     <span class="slider"></span>
                                 </label>
                             </div>
                         </div>
 
-                        <!-- 5. Priority Rules (Dynamic Container) -->
-                        <div class="policy-card" id="priority-rules-container">
-                            <!-- Injected via JS -->
+                        <!-- 5. Policy Summary (Dynamic Container) -->
+                        <div class="policy-card full-width" id="summary-container">
+                            <div class="card-header">
+                                <h3>5. Live Policy Summary</h3>
+                            </div>
+                            <p class="hint-text mb-20">Real-time overview of current active limits configured for this institution.</p>
+                            <!-- Skeleton Summary Placeholders -->
+                            <div class="summary-grid">
+                                <div class="summary-card">
+                                    <div class="skeleton-box" style="width:46px; height:46px; border-radius:12px;"></div>
+                                    <div style="flex:1;">
+                                        <div class="skeleton-line" style="width:80px; height:12px; margin-bottom:6px;"></div>
+                                        <div class="skeleton-line" style="width:40px; height:22px; margin-bottom:4px;"></div>
+                                        <div class="skeleton-line" style="width:100px; height:10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="skeleton-box" style="width:46px; height:46px; border-radius:12px;"></div>
+                                    <div style="flex:1;">
+                                        <div class="skeleton-line" style="width:80px; height:12px; margin-bottom:6px;"></div>
+                                        <div class="skeleton-line" style="width:40px; height:22px; margin-bottom:4px;"></div>
+                                        <div class="skeleton-line" style="width:100px; height:10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="skeleton-box" style="width:46px; height:46px; border-radius:12px;"></div>
+                                    <div style="flex:1;">
+                                        <div class="skeleton-line" style="width:80px; height:12px; margin-bottom:6px;"></div>
+                                        <div class="skeleton-line" style="width:40px; height:22px; margin-bottom:4px;"></div>
+                                        <div class="skeleton-line" style="width:100px; height:10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="skeleton-box" style="width:46px; height:46px; border-radius:12px;"></div>
+                                    <div style="flex:1;">
+                                        <div class="skeleton-line" style="width:80px; height:12px; margin-bottom:6px;"></div>
+                                        <div class="skeleton-line" style="width:40px; height:22px; margin-bottom:4px;"></div>
+                                        <div class="skeleton-line" style="width:100px; height:10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="skeleton-box" style="width:46px; height:46px; border-radius:12px;"></div>
+                                    <div style="flex:1;">
+                                        <div class="skeleton-line" style="width:80px; height:12px; margin-bottom:6px;"></div>
+                                        <div class="skeleton-line" style="width:40px; height:22px; margin-bottom:4px;"></div>
+                                        <div class="skeleton-line" style="width:100px; height:10px;"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                     </div>
@@ -189,14 +335,14 @@
     <div id="logout-modal" class="global-modal-overlay" style="display: none;">
         <div class="global-modal-content">
             <div class="global-modal-icon">
-                <i class="fa-solid fa-right-from-bracket"></i>
+                <i data-lucide="log-out" style="width: 32px; height: 32px; color: var(--danger-color);"></i>
             </div>
-            <h3>Logout</h3>
-            <p>Are you sure you want to log out of your account?</p>
+            <h3>Logout Confirmation</h3>
+            <p>Are you sure you want to log out of the administration panel?</p>
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i class="fa-solid fa-power-off"></i> Logout
+                    <i data-lucide="power" style="width: 15px; height: 15px;"></i> Logout
                 </button>
             </div>
         </div>
@@ -211,6 +357,11 @@
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
     <script src="js/admin-policies.js"></script>
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 
 </html>

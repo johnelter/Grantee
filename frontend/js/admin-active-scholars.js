@@ -70,6 +70,11 @@
             }
         } catch (err) {
             console.error("Error loading profile:", err);
+        } finally {
+            document.getElementById('header-titles-box')?.classList.remove('is-loading');
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
         }
     }
 
@@ -185,7 +190,7 @@
                 return true;
             });
 
-            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeBeneficiaries.length;
+            if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeBeneficiaries.length.toLocaleString();
             applyFilters();
         } catch (err) {
             console.error("Error fetching active beneficiaries:", err);
@@ -194,12 +199,15 @@
     }
 
     function getCategoryBadge(category) {
-        if (!category) return `<span style="background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700;">Outside Assistance</span>`;
+        if (!category) return `<span class="category-badge-pill cat-badge-outside">Outside Assistance</span>`;
         const catLower = category.toLowerCase();
-        let bg = 'rgba(16, 185, 129, 0.1)', color = 'var(--success-color)';
-        if (catLower.includes('need')) { bg = 'rgba(59, 130, 246, 0.1)'; color = '#3b82f6'; }
-        if (catLower.includes('talent')) { bg = 'rgba(139, 92, 246, 0.1)'; color = '#8b5cf6'; }
-        return `<span style="background:${bg}; color:${color}; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700;">${category}</span>`;
+        let cls = 'cat-badge-inst';
+        if (catLower.includes('ched')) cls = 'cat-badge-ched';
+        else if (catLower.includes('priv')) cls = 'cat-badge-priv';
+        else if (catLower.includes('gov')) cls = 'cat-badge-gov';
+        else if (catLower.includes('inst')) cls = 'cat-badge-inst';
+        else if (catLower.includes('outside')) cls = 'cat-badge-outside';
+        return `<span class="category-badge-pill ${cls}">${category}</span>`;
     }
 
     function formatDate(dateString) {
@@ -212,7 +220,7 @@
         if (!tbody) return;
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:40px;">No active beneficiaries found matching criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:40px;">No active beneficiaries found matching criteria.</td></tr>`;
             return;
         }
 
@@ -256,40 +264,35 @@
                     <input type="checkbox" class="row-checkbox" data-id="${app.id}" ${selectedIds.has(app.id) ? 'checked' : ''}>
                 </td>
                 <td>
-                    <strong style="color:#0f172a; font-size:13px; display:block;">${studentId}</strong>
+                    <strong style="color:var(--text-heading); font-size:13px; display:block;">${studentId}</strong>
                     ${emailHtml}
                 </td>
-                <td style="font-weight: 600; color:#0f172a; line-height:1.35;">${fullName}</td>
+                <td style="font-weight: 600; color:var(--text-heading); line-height:1.35;">${fullName}</td>
                 <td>
-                    <div style="color:#0f172a; font-weight:600; font-size:12.5px; line-height:1.35;">${program}</div>
+                    <div style="color:var(--text-main); font-weight:600; font-size:12.5px; line-height:1.35;">${program}</div>
                     <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${yearLevel}</div>
                 </td>
                 <td>
                     <strong style="color:var(--primary-color); display:block; margin-bottom:4px; font-size:13px; line-height:1.3;">${schTitle}</strong>
                     ${catBadge}
                 </td>
-                <td style="font-size:12px; line-height:1.4;">
+                <td style="font-size:12px; line-height:1.4; color:var(--text-main);">
                     ${detailsHtml}
                 </td>
-                <td style="font-size:12.5px; color:#475569; font-weight:500; white-space:nowrap;">
+                <td style="font-size:12.5px; color:var(--text-muted); font-weight:500; white-space:nowrap;">
                     ${dateRewarded}
                 </td>
                 <td>
                     <div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
-                        <span style="font-weight:600; font-size:12.5px; color:#334155;">${duration}</span>
-                        <button style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-size:12px; padding:2px 4px;" onclick="editDuration('${app.id}', '${duration}')" title="Edit Duration"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <span style="font-weight:600; font-size:12.5px; color:var(--text-main);">${duration}</span>
+                        <button class="btn-edit-duration" onclick="editDuration('${app.id}', '${duration}')" title="Edit Duration">
+                            <i data-lucide="pencil" style="width:13px; height:13px;"></i>
+                        </button>
                     </div>
                 </td>
                 <td style="text-align: right; padding-right:18px;">
-                    <button style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;background:#fee2e2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;cursor:pointer;transition:background 0.2s,transform 0.15s;" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')"
-                        onmouseover="this.style.background='#fecaca';this.style.transform='scale(1.08)'"
-                        onmouseout="this.style.background='#fee2e2';this.style.transform='scale(1)'">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                            <path d="M10 11v6"/><path d="M14 11v6"/>
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
+                    <button class="btn-table-revoke" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')">
+                        <i data-lucide="trash-2" style="width:15px; height:15px;"></i>
                     </button>
                 </td>
             `;
@@ -308,6 +311,9 @@
         });
 
         updateBulkToolbar();
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     // ---- Select All ----
@@ -351,7 +357,7 @@
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#94a3b8',
-                confirmButtonText: `<i class="fa-solid fa-xmark"></i> Yes, Revoke ${count.toLocaleString()}`,
+                confirmButtonText: `Yes, Revoke ${count.toLocaleString()}`,
                 cancelButtonText: 'Cancel'
             });
 
@@ -616,7 +622,8 @@
                 return;
             }
 
-            importStatus.innerHTML = `<span style="color:var(--primary-color);"><i class="fa-solid fa-spinner fa-spin"></i> Reading & Validating file: ${file.name}...</span>`;
+            importStatus.innerHTML = `<span style="color:var(--primary-color); display:flex; align-items:center; gap:8px;"><i data-lucide="loader" style="width:16px;height:16px;animation:spin 1s linear infinite;"></i> Reading & Validating file: ${file.name}...</span>`;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
 
             try {
                 const buffer = await file.arrayBuffer();
@@ -680,8 +687,8 @@
 
                 // ALWAYS SHOW THE CROSSCHECKING VIEW
                 let html = `
-                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-top:15px; text-align:left;">
-                        <h4 style="margin-top:0; color:#0f172a; margin-bottom:10px;">Import Crosschecking View</h4>
+                    <div style="background:var(--card-bg, #fff); border:1px solid var(--border-color, #e2e8f0); border-radius:8px; padding:15px; margin-top:15px; text-align:left;">
+                        <h4 style="margin-top:0; color:var(--text-heading, #0f172a); margin-bottom:10px;">Import Crosschecking View</h4>
                         <div style="display:flex; gap:15px; margin-bottom:15px;">
                             <div style="font-size:13px;"><strong>Ready to Import:</strong> <span style="color:#10b981;">${validRecords.length}</span></div>
                             <div style="font-size:13px;"><strong>Needs Review:</strong> <span style="color:#f59e0b;">${invalidRecords.length}</span></div>
@@ -691,24 +698,25 @@
 
                 if (invalidRecords.length > 0) {
                     html += `
-                        <div style="background:#fef3c7; color:#b45309; padding:10px; border-radius:6px; font-size:13px; margin-bottom:15px;">
-                            <strong><i class="fa-solid fa-circle-exclamation"></i> Attention:</strong> Some records contain invalid educational assistance categories. Please map them to an accepted institutional category before importing.
+                        <div style="background:#fef3c7; color:#b45309; padding:10px; border-radius:6px; font-size:13px; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
+                            <span><strong>Attention:</strong> Some records contain invalid educational assistance categories. Please map them to an accepted institutional category before importing.</span>
                         </div>
                     `;
                 }
 
                 html += `
-                        <div style="overflow-x:auto; margin-bottom:15px; max-height: 400px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <div style="overflow-x:auto; margin-bottom:15px; max-height: 400px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px;">
                             <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
-                                <thead style="background:#f8fafc; position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <thead style="background:var(--table-header-bg, #f8fafc); position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                     <tr>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Row</th>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Student ID</th>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Name</th>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Assistance Program</th>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Original CSV Category</th>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Final Assessed Category</th>
-                                        <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">Status</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Row</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Student ID</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Name</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Assistance Program</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Original CSV Category</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Final Assessed Category</th>
+                                        <th style="padding:10px 8px; border-bottom:1px solid var(--border-color, #e2e8f0);">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -719,8 +727,8 @@
                     let statusHtml = '';
                     
                     if (row.renderStatus === 'valid') {
-                        finalCatHtml = `<span style="color:#334155; font-weight:500;">${row.category}</span>`;
-                        statusHtml = `<span style="color:#10b981; font-weight:bold;"><i class="fa-solid fa-check"></i> Ready</span>`;
+                        finalCatHtml = `<span style="color:var(--text-main, #334155); font-weight:500;">${row.category}</span>`;
+                        statusHtml = `<span style="color:#10b981; font-weight:bold; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="check" style="width:13px; height:13px;"></i> Ready</span>`;
                     } 
                     else if (row.renderStatus === 'invalid') {
                         let options = `<option value="">-- Select Valid Category --</option>`;
@@ -728,24 +736,24 @@
                         
                         finalCatHtml = `
                             <div style="font-size:11px; color:#10b981; margin-bottom:4px;">Suggested: ${row.suggested || 'None'}</div>
-                            <select class="category-correction-select" data-index="${row.invalidIdx}" style="width:100%; padding:4px; border-radius:4px; border:1px solid #ef4444;">
+                            <select class="category-correction-select" data-index="${row.invalidIdx}" style="width:100%; padding:4px; border-radius:4px; border:1px solid #ef4444; background:var(--input-bg, #fff); color:var(--text-main, #0f172a);">
                                 ${options}
                             </select>
                         `;
                         statusHtml = `<span id="status-row-${row.invalidIdx}" style="color:#f59e0b; font-weight:bold;">Needs Review</span>`;
                     }
                     else if (row.renderStatus === 'unenrolled') {
-                        finalCatHtml = `<span style="color:#94a3b8; font-style:italic;">Cannot Assess</span>`;
-                        statusHtml = `<span style="color:#ef4444; font-weight:bold;"><i class="fa-solid fa-xmark"></i> Failed</span>`;
+                        finalCatHtml = `<span style="color:var(--text-muted, #94a3b8); font-style:italic;">Cannot Assess</span>`;
+                        statusHtml = `<span style="color:#ef4444; font-weight:bold; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="x" style="width:13px; height:13px;"></i> Failed</span>`;
                     }
 
                     html += `
-                        <tr style="border-bottom:1px solid #f1f5f9; ${row.renderStatus === 'unenrolled' ? 'background:#fef2f2;' : ''}">
+                        <tr style="border-bottom:1px solid var(--border-color, #f1f5f9); ${row.renderStatus === 'unenrolled' ? 'background:rgba(239, 68, 68, 0.08);' : ''}">
                             <td style="padding:8px;">${row.rowNum}</td>
                             <td style="padding:8px; font-weight:600;">${row.id_number}</td>
                             <td style="padding:8px; white-space:nowrap;">${row.student_name}</td>
                             <td style="padding:8px; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${row.assistance_name}">${row.assistance_name}</td>
-                            <td style="padding:8px; color:#64748b;">${row.category_input || '<i>Blank</i>'}</td>
+                            <td style="padding:8px; color:var(--text-muted, #64748b);">${row.category_input || '<i>Blank</i>'}</td>
                             <td style="padding:8px;">${finalCatHtml}</td>
                             <td style="padding:8px;">${statusHtml}</td>
                         </tr>
@@ -760,12 +768,12 @@
 
                 if (unenrolledSkipped.length > 0) {
                     html += `
-                        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:12px; margin-bottom:15px;">
-                            <h5 style="margin:0 0 8px 0; color:#991b1b; display:flex; align-items:center; gap:6px;">
-                                <i class="fa-solid fa-triangle-exclamation"></i> Failed (Not Enrolled) Details
+                        <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.25); border-radius:6px; padding:12px; margin-bottom:15px;">
+                            <h5 style="margin:0 0 8px 0; color:#ef4444; display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i> Failed (Not Enrolled) Details
                             </h5>
-                            <p style="margin:0 0 8px 0; font-size:12px; color:#b91c1c;">The following students were found in the CSV but do not exist in the official Enrolled Masterlist. They will be ignored during import.</p>
-                            <ul style="margin:0; padding-left:22px; font-size:12px; color:#991b1b; max-height:120px; overflow-y:auto; line-height: 1.6;">
+                            <p style="margin:0 0 8px 0; font-size:12px; color:var(--text-main, #b91c1c);">The following students were found in the CSV but do not exist in the official Enrolled Masterlist. They will be ignored during import.</p>
+                            <ul style="margin:0; padding-left:22px; font-size:12px; color:#ef4444; max-height:120px; overflow-y:auto; line-height: 1.6;">
                     `;
                     unenrolledSkipped.forEach(u => {
                         html += `<li><strong>${u.id_number}</strong> - ${u.student_name}</li>`;
@@ -786,6 +794,9 @@
                 `;
                 
                 importStatus.innerHTML = html;
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons();
+                }
                 
                 if (invalidRecords.length === 0) {
                     document.getElementById('btn-confirm-import').onclick = () => executeFinalImport(validRecords, invalidRecords, unenrolledSkipped.map(u => u.id_number));
@@ -1048,8 +1059,8 @@
 
             let summaryHtml = `<div style="text-align: left; font-size: 14px; margin-top: 10px;">`;
             if (insertCount > 0 || updateCount > 0) {
-                summaryHtml += `<p style="margin-bottom: 5px; color: #166534;"><i class="fa-solid fa-check"></i> <strong>${updateCount}</strong> pending applications auto-approved.</p>`;
-                summaryHtml += `<p style="margin-bottom: 15px; color: #166534;"><i class="fa-solid fa-check"></i> <strong>${insertCount}</strong> new beneficiaries successfully written.</p>`;
+                summaryHtml += `<p style="margin-bottom: 5px; color: #166534;">✓ <strong>${updateCount}</strong> pending applications auto-approved.</p>`;
+                summaryHtml += `<p style="margin-bottom: 15px; color: #166534;">✓ <strong>${insertCount}</strong> new beneficiaries successfully written.</p>`;
             }
 
             if (hasFailures || duplicateCount > 0 || skippedIds.length > 0 || noAccountSkipped > 0) {
@@ -1132,7 +1143,7 @@
                 if (internalSch && internalSch.category) { category = internalSch.category; }
             }
 
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+            btn.innerHTML = 'Adding...';
             btn.disabled = true;
 
             try {
@@ -1212,36 +1223,53 @@
     }
 
     // ==========================================
-    // 9. EXPORT LIST TO EXCEL & PDF
+    // 9. EXPORT LIST TO EXCEL & PDF (Streamlined Dropdown)
     // ==========================================
-    const btnExport = document.getElementById('btn-export'); 
+    const btnExportToggle = document.getElementById('btn-export-toggle');
+    const exportMenu = document.getElementById('export-menu');
+    const btnExportExcel = document.getElementById('export-excel-btn');
+    const btnExportPdf = document.getElementById('export-pdf-btn');
 
-    if (btnExport) {
-        btnExport.addEventListener('click', async () => {
+    if (btnExportToggle && exportMenu) {
+        btnExportToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportMenu.classList.toggle('show');
+            btnExportToggle.classList.toggle('active', exportMenu.classList.contains('show'));
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!exportMenu.contains(e.target) && !btnExportToggle.contains(e.target)) {
+                exportMenu.classList.remove('show');
+                btnExportToggle.classList.remove('active');
+            }
+        });
+    }
+
+    if (btnExportExcel) {
+        btnExportExcel.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+                if (btnExportToggle) btnExportToggle.classList.remove('active');
+            }
             if (currentFilteredBeneficiaries.length === 0) {
                 Swal.fire('Empty Data', 'There are no active beneficiaries matching the current filters to export.', 'info');
                 return;
             }
+            exportToExcel();
+        });
+    }
 
-            const formatChoice = await Swal.fire({
-                title: 'Export Beneficiaries',
-                text: 'Select your preferred file format for the export:',
-                icon: 'question',
-                showDenyButton: true,
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa-solid fa-file-excel"></i> Excel',
-                denyButtonText: '<i class="fa-solid fa-file-pdf"></i> PDF',
-                confirmButtonColor: '#10b981',
-                denyButtonColor: '#ef4444',
-                cancelButtonColor: '#94a3b8',
-                cancelButtonText: 'Cancel'
-            });
-
-            if (formatChoice.isConfirmed) {
-                exportToExcel();
-            } else if (formatChoice.isDenied) {
-                exportToPDF();
+    if (btnExportPdf) {
+        btnExportPdf.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+                if (btnExportToggle) btnExportToggle.classList.remove('active');
             }
+            if (currentFilteredBeneficiaries.length === 0) {
+                Swal.fire('Empty Data', 'There are no active beneficiaries matching the current filters to export.', 'info');
+                return;
+            }
+            exportToPDF();
         });
     }
 

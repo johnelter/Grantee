@@ -13,17 +13,150 @@
     let filteredScholarships = [];
     let currentAdminSchoolId = null;
 
-    // Initialize Lucide Icons in the Stats Grid
-    const statIcons = document.querySelectorAll('.stat-icon');
-    if (statIcons.length >= 3) {
-        statIcons[0].innerHTML = '<i data-lucide="book-open"></i>';
-        statIcons[1].innerHTML = '<i data-lucide="mail-open"></i>';
-        statIcons[2].innerHTML = '<i data-lucide="x-circle"></i>';
-    }
-    if (window.lucide) lucide.createIcons();
-
     // Clean up any rogue unattached calendar elements
     document.querySelectorAll('.flatpickr-calendar:not(.open):not(.inline)').forEach(el => el.remove());
+
+    // Initialize initial Lucide icons on page
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+
+    // Helper: Skeleton Rows for table
+    function renderSkeletonRows() {
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr>
+                <td>
+                    <div class="scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div>
+                            <div class="skeleton-table-title skeleton-line"></div>
+                            <div class="skeleton-table-sub skeleton-line"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton-table-badge skeleton-pill"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line"></div>
+                    <div class="skeleton-table-slots skeleton-line"></div>
+                </td>
+                <td>
+                    <div class="skeleton-btn-group">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div>
+                            <div class="skeleton-table-title skeleton-line" style="width: 220px;"></div>
+                            <div class="skeleton-table-sub skeleton-line" style="width: 140px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton-table-badge skeleton-pill" style="width: 130px;"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line"></div>
+                    <div class="skeleton-table-slots skeleton-line"></div>
+                </td>
+                <td>
+                    <div class="skeleton-btn-group">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div>
+                            <div class="skeleton-table-title skeleton-line" style="width: 160px;"></div>
+                            <div class="skeleton-table-sub skeleton-line" style="width: 110px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton-table-badge skeleton-pill"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line"></div>
+                    <div class="skeleton-table-slots skeleton-line"></div>
+                </td>
+                <td>
+                    <div class="skeleton-btn-group">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div>
+                            <div class="skeleton-table-title skeleton-line" style="width: 190px;"></div>
+                            <div class="skeleton-table-sub skeleton-line" style="width: 130px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton-table-badge skeleton-pill" style="width: 120px;"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line"></div>
+                    <div class="skeleton-table-slots skeleton-line"></div>
+                </td>
+                <td>
+                    <div class="skeleton-btn-group">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div>
+                            <div class="skeleton-table-title skeleton-line" style="width: 170px;"></div>
+                            <div class="skeleton-table-sub skeleton-line" style="width: 100px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton-table-badge skeleton-pill"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-date skeleton-line"></div></td>
+                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                <td style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line"></div>
+                    <div class="skeleton-table-slots skeleton-line"></div>
+                </td>
+                <td>
+                    <div class="skeleton-btn-group">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
 
     // --- 2. LOAD PROFILE DATA INTO HEADER ---
     async function loadProfile() {
@@ -56,10 +189,20 @@
                 }
 
                 if (document.getElementById('admin-school-display')) {
-                    document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
-                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                        lucide.createIcons();
-                    }
+                    document.getElementById('admin-school-display').innerHTML = `
+                        <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                        <span>Assigned to: <strong>${schoolName}</strong></span>
+                    `;
+                }
+
+                // Remove loading skeleton from header
+                const headerTitlesBox = document.getElementById('header-titles-box');
+                if (headerTitlesBox) {
+                    headerTitlesBox.classList.remove('is-loading');
+                }
+
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons();
                 }
 
                 sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
@@ -74,10 +217,14 @@
             }
         } catch (error) {
             console.error("Error loading admin profile:", error);
+            const headerTitlesBox = document.getElementById('header-titles-box');
+            if (headerTitlesBox) {
+                headerTitlesBox.classList.remove('is-loading');
+            }
         }
     }
 
-    // --- 4. DATA LOGIC (Formatters, Filters, UI Render) ---
+    // --- 3. DATA FORMATTERS & BADGE GENERATORS ---
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -85,30 +232,38 @@
 
     const getStatusHTML = (status) => {
         const lowerStatus = (status || 'Draft').toLowerCase();
-        if (lowerStatus === 'active') return `<span class="status-indicator status-active">Active</span>`;
-        if (lowerStatus === 'upcoming') return `<span class="status-indicator status-upcoming">Upcoming</span>`;
-        if (lowerStatus === 'draft') return `<span class="status-indicator" style="color:var(--text-muted); background:#f1f5f9;">● Draft</span>`;
+        if (lowerStatus === 'active') {
+            return `<span class="status-indicator status-active">Active</span>`;
+        }
+        if (lowerStatus === 'upcoming') {
+            return `<span class="status-indicator status-upcoming">Upcoming</span>`;
+        }
+        if (lowerStatus === 'draft') {
+            return `<span class="status-indicator status-draft">Draft</span>`;
+        }
         return `<span class="status-indicator status-closed">Closed</span>`;
     };
 
     const getTypeBadge = (type) => {
         const safeType = type || 'Institution-Funded Educational Assistance';
-        let bg = '#c6dfc8';
-        let color = '#1F3D2E';
+        let badgeClass = 'badge-cat-inst';
 
-        if (safeType === 'Institution-Funded Educational Assistance') { bg = '#c6dfc8'; color = '#1F3D2E'; }
-        else if (safeType === 'Ched Educational Assistance') { bg = '#b8d4ba'; color = '#1F3D2E'; }
-        else if (safeType === 'Private Educational Assistance') { bg = '#b8cdd4'; color = '#1F3D2E'; }
-        else if (safeType === 'Government Educational Assistance') { bg = '#f0e4c8'; color = '#5A4A3A'; }
+        if (safeType === 'Ched Educational Assistance') {
+            badgeClass = 'badge-cat-ched';
+        } else if (safeType === 'Private Educational Assistance') {
+            badgeClass = 'badge-cat-priv';
+        } else if (safeType === 'Government Educational Assistance') {
+            badgeClass = 'badge-cat-gov';
+        }
 
-        return `<span style="background:${bg}; color:${color}; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:bold; display:inline-block; white-space:nowrap;">${safeType}</span>`;
+        return `<span class="badge-category ${badgeClass}">${safeType}</span>`;
     };
 
     const getScholarshipTypeBadge = (schType) => {
         const safeType = schType || 'Merit-Based';
-        let bg = safeType === 'Need-Based' ? '#f0e4c8' : '#c6dfc8';
-        let color = safeType === 'Need-Based' ? '#5A4A3A' : '#1F3D2E';
-        return `<span style="background:${bg}; color:${color}; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:bold; display:inline-block; white-space:nowrap;">${safeType}</span>`;
+        const isNeed = safeType.toLowerCase().includes('need');
+        const badgeClass = isNeed ? 'need-based' : 'merit-based';
+        return `<span class="badge-type ${badgeClass}">${safeType}</span>`;
     };
 
     const calculateDynamicStatus = (sch) => {
@@ -124,10 +279,12 @@
         return 'Closed';
     };
 
+    // --- 4. FETCH & LOAD SCHOLARSHIPS ---
     const loadScholarships = async () => {
         try {
             if (!currentAdminSchoolId) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding: 40px;">Account error: No school assigned to this admin.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 40px; color: var(--danger-color);">Account error: No school assigned to this admin.</td></tr>`;
+                removeStatSkeletons();
                 return;
             }
 
@@ -139,7 +296,7 @@
 
             if (error) throw error;
 
-            allScholarships = rawData.map(sch => {
+            allScholarships = (rawData || []).map(sch => {
                 const totalAppsCount = sch.applications ? sch.applications.length : 0;
                 const passedAppsCount = sch.applications ? sch.applications.filter(app => app.status === 'Passed').length : 0;
                 let isUnlimited = sch.slots === 'Open' || !sch.slots;
@@ -166,23 +323,50 @@
 
         } catch (error) {
             console.error('Error fetching data:', error);
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding: 40px;">Failed to load data from database.</td></tr>`;
-            Swal.fire('Error', 'Failed to load data from database.', 'error');
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 40px; color: var(--danger-color);">Failed to load data from database.</td></tr>`;
+            removeStatSkeletons();
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to load data from database.',
+                icon: 'error',
+                confirmButtonColor: '#1F3D2E'
+            });
         }
     };
 
+    const removeStatSkeletons = () => {
+        document.querySelectorAll('.stat-card.is-loading').forEach(card => {
+            card.classList.remove('is-loading');
+        });
+    };
+
     const updateTopStats = (data) => {
-        if (document.getElementById('count-total')) document.getElementById('count-total').innerText = data.length;
-        if (document.getElementById('count-active')) document.getElementById('count-active').innerText = data.filter(s => s.dynamic_status === 'Active').length;
-        if (document.getElementById('count-closed')) document.getElementById('count-closed').innerText = data.filter(s => s.dynamic_status === 'Closed' || s.dynamic_status === 'Draft').length;
+        const total = data.length;
+        const active = data.filter(s => s.dynamic_status === 'Active').length;
+        const closed = data.filter(s => s.dynamic_status === 'Closed' || s.dynamic_status === 'Draft').length;
+
+        const countTotal = document.getElementById('count-total');
+        const countActive = document.getElementById('count-active');
+        const countClosed = document.getElementById('count-closed');
+
+        if (countTotal) countTotal.innerText = total;
+        if (countActive) countActive.innerText = active;
+        if (countClosed) countClosed.innerText = closed;
+
+        // Remove loading state from stat cards
+        removeStatSkeletons();
     };
 
     const renderTable = (data) => {
         const entriesInfo = document.getElementById('entries-info');
-        if (entriesInfo) entriesInfo.innerText = `Showing 1 to ${data.length} of ${data.length} entries`;
+        if (entriesInfo) {
+            entriesInfo.innerText = data.length === 0
+                ? `Showing 0 to 0 of 0 entries`
+                : `Showing 1 to ${data.length} of ${data.length} entries`;
+        }
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="padding:40px; text-align:center; color:#64748b;">No matching educational assistance programs found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="padding:48px 20px; text-align:center; color:var(--text-muted); font-size: 14px;">No matching educational assistance programs found.</td></tr>`;
             return;
         }
 
@@ -191,47 +375,47 @@
         data.forEach(sch => {
             let slotsDisplay = '';
             if (sch.is_unlimited) {
-                slotsDisplay = `<div style="font-size:11px; margin-top:4px; color:#64748b;">Unlimited Slots</div>`;
+                slotsDisplay = `<div style="font-size:11.5px; margin-top:3px; color:var(--text-muted);">Unlimited Slots</div>`;
             } else if (sch.remaining_slots === 0) {
-                slotsDisplay = `<div style="font-size:11px; margin-top:4px; font-weight:bold; color:#ef4444;">FULL (0/${sch.slots} Left)</div>`;
+                slotsDisplay = `<div style="font-size:11.5px; margin-top:3px; font-weight:700; color:var(--danger-color);">FULL (0/${sch.slots} Left)</div>`;
             } else {
-                slotsDisplay = `<div style="font-size:11px; margin-top:4px; font-weight:bold; color:#10b981;">${sch.remaining_slots}/${sch.slots} Slot(s) Left</div>`;
+                slotsDisplay = `<div style="font-size:11.5px; margin-top:3px; font-weight:700; color:var(--moss-green);">${sch.remaining_slots}/${sch.slots} Slot(s) Left</div>`;
             }
 
             // Stripping HTML from description for the table preview
-            let rawTextDesc = 'No description';
+            let rawTextDesc = 'No description provided';
             if (sch.description) {
                 const tempDiv = document.createElement("div");
                 tempDiv.innerHTML = sch.description;
-                rawTextDesc = tempDiv.textContent || tempDiv.innerText || "";
+                rawTextDesc = (tempDiv.textContent || tempDiv.innerText || "").trim();
             }
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
                     <div class="scholarship-name-cell">
-                        <div style="width:36px;height:36px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--primary-color);">
-                            <i data-lucide="graduation-cap" style="width: 20px; height: 20px;"></i>
+                        <div class="icon-box">
+                            <i data-lucide="graduation-cap"></i>
                         </div>
                         <div>
                             <strong>${sch.title}</strong>
-                            <span>${rawTextDesc.substring(0, 40) + (rawTextDesc.length > 40 ? '...' : '')}</span>
+                            <span>${rawTextDesc.substring(0, 42) + (rawTextDesc.length > 42 ? '...' : '')}</span>
                         </div>
                     </div>
                 </td>
-                <td style="vertical-align: middle;">${getTypeBadge(sch.category)}</td>
-                <td style="vertical-align: middle;">${getScholarshipTypeBadge(sch.scholarship_type)}</td>
-                <td style="vertical-align: middle;">${formatDate(sch.start_date)}</td>
-                <td style="vertical-align: middle;">${formatDate(sch.end_date)}</td>
-                <td style="vertical-align: middle;">${getStatusHTML(sch.dynamic_status)}</td>
-                <td style="text-align:center; vertical-align: middle;">
-                    <div style="font-weight:600;">${sch.applications_count || 0} Apps</div>
+                <td>${getTypeBadge(sch.category)}</td>
+                <td>${getScholarshipTypeBadge(sch.scholarship_type)}</td>
+                <td>${formatDate(sch.start_date)}</td>
+                <td>${formatDate(sch.end_date)}</td>
+                <td>${getStatusHTML(sch.dynamic_status)}</td>
+                <td style="text-align:center;">
+                    <div style="font-weight:700; color:var(--text-heading);">${sch.applications_count || 0} Apps</div>
                     ${slotsDisplay}
                 </td>
-                <td style="vertical-align: middle;">
+                <td>
                     <div class="action-buttons-group">
-                        ${sch.dynamic_status === 'Draft' || sch.status === 'Draft' ? `<button class="table-action-btn action-edit" data-id="${sch.id}" title="Edit Draft"><i data-lucide="pencil"></i></button>` : ''}
-                        <button class="table-action-btn action-view" data-id="${sch.id}" title="Preview"><i data-lucide="eye"></i></button>
+                        ${sch.dynamic_status === 'Draft' || sch.status === 'Draft' ? `<button class="table-action-btn action-edit" data-id="${sch.id}" title="Edit Program"><i data-lucide="pencil"></i></button>` : ''}
+                        <button class="table-action-btn action-view" data-id="${sch.id}" title="Preview Program"><i data-lucide="eye"></i></button>
                         <button class="table-action-btn action-delete" data-id="${sch.id}" title="Delete Program"><i data-lucide="trash-2"></i></button>
                     </div>
                 </td>
@@ -251,14 +435,16 @@
         const schTypeFilterInput = document.getElementById('filter-scholarship-type');
         const sortByInput = document.getElementById('sort-by');
 
-        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const statusFilter = statusFilterInput ? statusFilterInput.value : '';
         const categoryFilter = categoryFilterInput ? categoryFilterInput.value : '';
         const schTypeFilter = schTypeFilterInput ? schTypeFilterInput.value : '';
         const sortBy = sortByInput ? sortByInput.value : '';
 
         filteredScholarships = allScholarships.filter(sch => {
-            const matchesSearch = (sch.title || '').toLowerCase().includes(searchTerm) || (sch.description || '').toLowerCase().includes(searchTerm);
+            const matchesSearch = !searchTerm || 
+                (sch.title || '').toLowerCase().includes(searchTerm) || 
+                (sch.description || '').toLowerCase().includes(searchTerm);
             const matchesStatus = statusFilter === '' || sch.dynamic_status === statusFilter;
             const matchesCategory = categoryFilter === '' || sch.category === categoryFilter;
             const matchesSchType = schTypeFilter === '' || sch.scholarship_type === schTypeFilter;
@@ -290,7 +476,7 @@
     if (document.getElementById('sort-by')) document.getElementById('sort-by').addEventListener('change', applyFilters);
 
     // ==========================================
-    // 4. PREVIEW SCHOLARSHIP POPUP
+    // 5. PREVIEW SCHOLARSHIP POPUP
     // ==========================================
     const showPreviewModal = (sch) => {
         let dateText = 'No Deadline';
@@ -340,7 +526,7 @@
         let html = `
         <div class="preview-mockup">
             <div class="preview-mockup-header">
-                <span><i data-lucide="graduation-cap" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px;"></i> Educational Assistance Application Form</span>
+                <span style="display:inline-flex; align-items:center; gap:8px;"><i data-lucide="graduation-cap" style="width: 18px; height: 18px;"></i> Educational Assistance Application Form</span>
                 <span class="hide-on-mobile" style="font-size:12px; opacity:0.9;">Please review your details carefully before submitting.</span>
             </div>
             
@@ -355,10 +541,10 @@
 
                 <div class="preview-split">
                     <div>
-                        <h4 style="font-size:16px; font-weight:700; margin-bottom:10px; color: var(--text-main);">About this Educational Assistance</h4>
+                        <h4 style="font-size:15px; font-weight:700; margin-bottom:8px; color: var(--text-heading);">About this Educational Assistance</h4>
                         <div class="preview-description">${sch.description || 'An educational assistance program that recognizes students with outstanding academic performance.'}</div>
                         
-                        <h4 style="font-size:16px; font-weight:700; margin-bottom:10px; color: var(--text-main);">Eligibility Requirements</h4>
+                        <h4 style="font-size:15px; font-weight:700; margin-bottom:8px; color: var(--text-heading);">Eligibility Requirements</h4>
                         <ul class="preview-eligibility-list">
                             ${sch.min_hs_average ? `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have a High School Average of <b>${sch.min_hs_average}</b> or better.</span></li>` : ''}
                             ${sch.min_college_gwa ? `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have a College GWA of <b>${sch.min_college_gwa}</b> or better.</span></li>` : ''}
@@ -394,14 +580,14 @@
                     </div>
                 </div>
 
-                <div style="text-align: center; margin: 30px 0 25px 0; border-top: 1px solid var(--border-dark); padding-top: 25px;">
-                    <h2 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">Application Form</h2>
+                <div style="text-align: center; margin: 28px 0 22px 0; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                    <h2 style="font-size: 20px; font-weight: 800; color: var(--text-heading); margin-bottom: 4px;">Application Form</h2>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 4px;">Complete the required fields below.</p>
-                    <p style="color: var(--text-muted); font-size: 12px; font-style: italic; max-width: 600px; margin: 0 auto;">Note: The profile information and responses will automatically be converted according to institutional formatting requirements.</p>
+                    <p style="color: var(--text-light); font-size: 12px; font-style: italic; max-width: 600px; margin: 0 auto;">Note: Profile information and responses will automatically be converted according to institutional formatting requirements.</p>
                 </div>
 
                 <div class="preview-section-title">1. Applicant Profile</div>
-                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
                 
                 <div class="preview-field-grid">
                     <div class="preview-input-group"><label>Student ID Number</label><input type="text" class="preview-input" value="202302709" readonly></div>
@@ -419,7 +605,7 @@
                 ${formFields.length === 0 ? '<p style="font-size:13px; color: var(--text-muted); margin-bottom: 20px;">No custom questions added.</p>' : ''}
                 <div class="preview-field-grid">
                     ${formFields.map(f => `
-                        <div class="preview-input-group" style="margin-bottom:15px; ${['Textarea', 'Text'].includes(f.type) ? 'grid-column: 1 / -1;' : ''}">
+                        <div class="preview-input-group" style="margin-bottom:12px; ${['Textarea', 'Text'].includes(f.type) ? 'grid-column: 1 / -1;' : ''}">
                             <label>${escapeHtml(f.label)} ${f.required ? '<span class="text-red">*</span>' : ''}</label>
                             ${['Dropdown'].includes(f.type)
                                 ? `<select class="preview-input preview-input-active" disabled><option>Select option...</option>${(f.options || []).map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>`
@@ -452,14 +638,14 @@
                         const hasDesc = d.description && d.description.trim() !== '';
                         const isOcr = d.ocr_enabled !== false;
                         const ocrBadge = isOcr
-                            ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Validation Active</span>`
+                            ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Active</span>`
                             : `<span class="preview-ocr-badge inactive"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> Standard Upload</span>`;
 
                         return `
                         <div class="preview-doc-box">
                             <div class="preview-doc-header">
-                                <label style="font-size:13.5px; font-weight:700; color: var(--text-main); display:inline-flex; align-items:center; gap:6px; margin:0;">
-                                    <i data-lucide="upload" style="width: 15px; height: 15px; color: var(--forest-shade);"></i> Upload ${escapeHtml(d.name)} ${d.required !== false ? '<span class="text-red">*</span>' : '<span style="font-size:11px; color:var(--text-muted); font-weight:normal; margin-left:2px;">(Optional)</span>'}
+                                <label style="font-size:13.5px; font-weight:700; color: var(--text-heading); display:inline-flex; align-items:center; gap:6px; margin:0;">
+                                    <i data-lucide="upload" style="width: 15px; height: 15px; color: var(--moss-green);"></i> Upload ${escapeHtml(d.name)} ${d.required !== false ? '<span style="color:var(--danger-color);">*</span>' : '<span style="font-size:11px; color:var(--text-muted); font-weight:normal; margin-left:2px;">(Optional)</span>'}
                                 </label>
                                 <div>${ocrBadge}</div>
                             </div>
@@ -475,7 +661,7 @@
 
                             <div style="font-size:11px; color: var(--text-muted); margin-bottom:12px;">Allowed formats: PDF, JPG, PNG (Max size: ${d.max_size || 5}MB)</div>
                             <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
-                                <button type="button" style="padding:8px 20px; background:#fff; border:1px solid var(--border-dark); border-radius:6px; font-size:13px; font-weight:600; cursor:not-allowed; color: var(--text-muted); display:inline-flex; align-items:center; gap:6px;"><i data-lucide="folder-open" style="width:14px; height:14px;"></i> Choose File</button>
+                                <button type="button" style="padding:8px 18px; background:var(--card-bg); border:1px solid var(--border-dark); border-radius:8px; font-size:13px; font-weight:600; cursor:not-allowed; color: var(--text-muted); display:inline-flex; align-items:center; gap:6px;"><i data-lucide="folder-open" style="width:14px; height:14px;"></i> Choose File</button>
                                 <span style="font-size:11px; color: var(--text-muted);">No file selected</span>
                             </div>
                         </div>
@@ -504,7 +690,7 @@
         });
     };
 
-    // ACTION BUTTONS (VIEW & DELETE LOGIC WITH SWEETALERT)
+    // --- 6. ACTION BUTTONS (VIEW & DELETE LOGIC) ---
     tbody.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
@@ -523,14 +709,13 @@
                 text: "Are you sure you want to permanently delete this educational assistance program? All related applications will be lost.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: '<i data-lucide="trash-2" style="width:16px;height:16px;margin-right:4px;display:inline-block;vertical-align:middle;"></i> Yes, delete it',
-                didOpen: () => { if (window.lucide) lucide.createIcons(); }
+                confirmButtonColor: '#D94841',
+                cancelButtonColor: '#586F62',
+                confirmButtonText: 'Yes, delete it',
+                cancelButtonText: 'Cancel'
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        const originalHtml = btn.innerHTML;
                         btn.disabled = true;
                         btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i>';
                         if (window.lucide) lucide.createIcons();
@@ -538,11 +723,21 @@
                         const { error } = await window.supabaseClient.from('scholarships').delete().eq('id', scholarshipId);
                         if (error) throw error;
 
-                        Swal.fire('Deleted!', 'Educational assistance program deleted successfully.', 'success');
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Educational assistance program deleted successfully.',
+                            icon: 'success',
+                            confirmButtonColor: '#1F3D2E'
+                        });
                         loadScholarships();
                     } catch (error) {
                         console.error('Delete error:', error);
-                        Swal.fire('Error!', 'Cannot delete this program. There may be existing applications tied to it.', 'error');
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Cannot delete this program. There may be existing applications tied to it.',
+                            icon: 'error',
+                            confirmButtonColor: '#1F3D2E'
+                        });
                         btn.disabled = false;
                         btn.innerHTML = '<i data-lucide="trash-2"></i>';
                         if (window.lucide) lucide.createIcons();
@@ -552,38 +747,72 @@
         }
     });
 
-    // --- 6. EXPORT TO CSV & PDF LOGIC ---
+    // --- 7. EXPORT DROPDOWN & EXPORT LOGIC ---
     const exportBtn = document.getElementById('export-btn');
+    const exportDropdownMenu = document.getElementById('export-dropdown-menu');
+    const exportDropdownWrapper = document.querySelector('.export-dropdown-wrapper');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+
+    const toggleExportDropdown = (forceClose = false) => {
+        if (!exportDropdownMenu || !exportBtn || !exportDropdownWrapper) return;
+        
+        const isCurrentlyOpen = exportDropdownMenu.classList.contains('show');
+        if (forceClose || isCurrentlyOpen) {
+            exportDropdownMenu.classList.remove('show');
+            exportDropdownWrapper.classList.remove('open');
+            exportBtn.setAttribute('aria-expanded', 'false');
+        } else {
+            exportDropdownMenu.classList.add('show');
+            exportDropdownWrapper.classList.add('open');
+            exportBtn.setAttribute('aria-expanded', 'true');
+        }
+    };
+
     if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            // Check if there is data to export
+        exportBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (filteredScholarships.length === 0) {
-                Swal.fire('No Data', 'There is no data to export based on your current filters.', 'info');
+                Swal.fire({
+                    title: 'No Data to Export',
+                    text: 'There are no educational assistance records matching your current filter criteria.',
+                    icon: 'info',
+                    confirmButtonColor: '#1F3D2E'
+                });
                 return;
             }
-
-            // Ask the user which format they prefer
-            Swal.fire({
-                title: 'Export Data',
-                text: 'Choose the format you want to export:',
-                icon: 'question',
-                showDenyButton: true,
-                showCancelButton: true,
-                confirmButtonText: '<i data-lucide="file-spreadsheet" style="width:16px;height:16px;margin-right:4px;display:inline-block;vertical-align:middle;"></i> CSV',
-                denyButtonText: '<i data-lucide="file-text" style="width:16px;height:16px;margin-right:4px;display:inline-block;vertical-align:middle;"></i> PDF',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#1F3D2E', // Theme Forest Green for CSV
-                denyButtonColor: '#ef4444',     // Red for PDF
-                didOpen: () => { if (window.lucide) lucide.createIcons(); }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    exportToCSV();
-                } else if (result.isDenied) {
-                    exportToPDF();
-                }
-            });
+            toggleExportDropdown();
         });
     }
+
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleExportDropdown(true);
+            exportToCSV();
+        });
+    }
+
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleExportDropdown(true);
+            exportToPDF();
+        });
+    }
+
+    // Close dropdown on click outside or on Escape
+    document.addEventListener('click', (e) => {
+        if (exportDropdownWrapper && !exportDropdownWrapper.contains(e.target)) {
+            toggleExportDropdown(true);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            toggleExportDropdown(true);
+        }
+    });
 
     function exportToCSV() {
         let csvContent = "Educational Assistance Name,Category,Type,Opening Date,Deadline,Status,Total Applications,Remaining Slots\n";
@@ -615,17 +844,19 @@
     }
 
     function exportToPDF() {
-        // Ensure the jsPDF library loaded correctly
         if (!window.jspdf) {
-            Swal.fire('Error', 'PDF library failed to load. Please check your internet connection.', 'error');
+            Swal.fire({
+                title: 'Error',
+                text: 'PDF library failed to load. Please check your internet connection.',
+                icon: 'error',
+                confirmButtonColor: '#1F3D2E'
+            });
             return;
         }
 
         const { jsPDF } = window.jspdf;
-        // Create a landscape document to fit all the columns nicely
         const doc = new jsPDF('landscape');
 
-        // Add a title to the PDF
         doc.setFontSize(14);
         doc.text("Educational Assistance Programs Report", 14, 15);
         doc.setFontSize(10);
@@ -633,7 +864,6 @@
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         doc.text(`Generated on: ${today}`, 14, 22);
 
-        // Define Table Columns and Rows
         const tableColumn = ["Program Name", "Category", "Type", "Start Date", "Deadline", "Status", "Apps", "Slots"];
         const tableRows = [];
 
@@ -651,20 +881,18 @@
             tableRows.push(rowData);
         });
 
-        // Generate the auto-table
         doc.autoTable({
             head: [tableColumn],
             body: tableRows,
             startY: 28,
             theme: 'grid',
             styles: { fontSize: 8, cellPadding: 3 },
-            headStyles: { fillColor: [16, 185, 129] }, // Matches your var(--primary-color)
+            headStyles: { fillColor: [31, 61, 46] },
             columnStyles: {
-                0: { cellWidth: 50 }, // Give the title column a bit more room
+                0: { cellWidth: 50 },
             }
         });
 
-        // Trigger Download
         const dateStr = new Date().toISOString().split('T')[0];
         doc.save(`Educational_Assistance_Export_${dateStr}.pdf`);
     }

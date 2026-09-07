@@ -198,8 +198,8 @@ function initGlobalDelegatedHandlers() {
     // 3. Global Logout Modal Handler
     document.addEventListener('click', async (e) => {
         const trigger = e.target.closest('#dropdown-logout-btn, #sidebar-logout-btn, .logout-trigger');
-        const cancelBtn = e.target.closest('#modal-cancel, .global-btn-cancel');
-        const confirmBtn = e.target.closest('#modal-confirm, .global-btn-confirm');
+        const cancelBtn = e.target.closest('#logout-modal #modal-cancel, #logout-modal .global-btn-cancel');
+        const confirmBtn = e.target.closest('#logout-modal #modal-confirm, #logout-modal .global-btn-confirm');
         const modal = document.getElementById('logout-modal');
         const profileMenu = document.getElementById('profile-menu');
 
@@ -474,6 +474,9 @@ function initSidebarNavigation() {
                             activeTitles.classList.remove('is-loading');
                         }
                     }, 280);
+
+                    // Clean up orphaned flatpickr calendars and dropdowns from previous page
+                    document.querySelectorAll('.flatpickr-calendar, .flatpickr-wrapper, select.flatpickr-monthDropdown-months, .flatpickr-monthDropdown-month').forEach(el => el.remove());
 
                     // Re-initialize notification engine on new page
                     if (window.initStudentNotifications) {

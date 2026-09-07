@@ -8,22 +8,24 @@
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
 
     <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Flatpickr CSS (Safety for date components) -->
+    <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind CSS (Required for dynamic JS classes in notifications) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Global & Page CSS -->
     <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/admin-scholarships.css">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
-    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Immediate Theme Application to Avoid Flash -->
     <script>
@@ -57,12 +59,12 @@
         <main class="main-content">
 
             <header class="top-header">
-                <!-- Titles Section -->
+                <!-- Titles Section with Skeleton Loading Support -->
                 <div class="header-titles-wrapper">
-                    <div class="header-titles">
-                        <h1>Educational Assistance</h1>
-                        <p class="welcome-text">Manage all educational assistance programs offered by your school.</p>
-                        <p id="admin-school-display" class="text-sm text-emerald-600 mt-1 font-medium flex items-center gap-1.5">
+                    <div class="header-titles is-loading" id="header-titles-box">
+                        <h1>Educational Assistance <i data-lucide="graduation-cap" style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i></h1>
+                        <p class="welcome-text">Manage and monitor all educational assistance programs offered by your school.</p>
+                        <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
                             <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
@@ -102,115 +104,279 @@
             </header>
 
             <div class="content-wrapper">
+                <!-- 3 Top Stat Cards (With Shimmer Skeleton Support) -->
                 <div class="stats-grid mb-24">
-                <div class="stat-card">
-                    <div class="stat-icon bg-green-light text-green"><i data-lucide="book-open"></i></div>
-                    <div class="stat-details">
-                        <p>Total Programs</p>
-                        <h2 id="count-total">0</h2>
-                        <span>All active & closed programs</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-blue-light text-blue"><i data-lucide="mail-open"></i></div>
-                    <div class="stat-details">
-                        <p>Active Programs</p>
-                        <h2 id="count-active">0</h2>
-                        <span>Currently accepting applications</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-red-light text-red"><i data-lucide="x-circle"></i></div>
-                    <div class="stat-details">
-                        <p>Closed Programs</p>
-                        <h2 id="count-closed">0</h2>
-                        <span>Application closed</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="data-panel">
-                <div class="table-controls mb-20">
-                    <div class="search-filter-group">
-                        <div class="search-box">
-                            <span style="color: var(--text-muted);"><i data-lucide="search" style="width: 18px; height: 18px;"></i></span>
-                            <input type="text" id="search-input" placeholder="Search educational assistance...">
+                    <div class="stat-card is-loading" id="stat-card-total">
+                        <div class="stat-icon icon-total">
+                            <i data-lucide="book-open"></i>
                         </div>
-                        <div class="filters">
-                            <select id="filter-status" class="filter-select">
-                                <option value="">All Status</option>
-                                <option value="Active">Active</option>
-                                <option value="Upcoming">Upcoming</option>
-                                <option value="Closed">Closed</option>
-                                <option value="Draft">Draft</option>
-                            </select>
-
-                            <select id="filter-type" class="filter-select">
-                                <option value="">All Categories</option>
-                                <option value="Institution-Funded Educational Assistance">Institution-Funded Educational
-                                    Assistance</option>
-                                <option value="Ched Educational Assistance">Ched Educational Assistance</option>
-                                <option value="Private Educational Assistance">Private Educational Assistance</option>
-                                <option value="Government Educational Assistance">Government Educational Assistance</option>
-                            </select>
-
-                            <select id="filter-scholarship-type" class="filter-select">
-                                <option value="">All Types</option>
-                                <option value="Merit-Based">Merit-Based</option>
-                                <option value="Need-Based">Need-Based</option>
-                            </select>
-
-                            <select id="sort-by" class="filter-select">
-                                <option value="">Sort By...</option>
-                                <option value="start_asc">Opening Date (Oldest First)</option>
-                                <option value="start_desc">Opening Date (Newest First)</option>
-                                <option value="end_asc">Deadline (Closing Soon)</option>
-                                <option value="end_desc">Deadline (Closing Latest)</option>
-                            </select>
+                        <div class="stat-details">
+                            <p>Total Programs</p>
+                            <h2 id="count-total">&nbsp;</h2>
+                            <span>All active & closed programs</span>
                         </div>
                     </div>
-                    <div class="actions">
-                        <button id="export-btn" class="btn-outline"><i data-lucide="download"
-                                style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Export</button>
-                        <a href="create-scholarship.html" class="btn-primary"><i data-lucide="plus"
-                                style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Add Educational Assistance</a>
+
+                    <div class="stat-card is-loading" id="stat-card-active">
+                        <div class="stat-icon icon-active">
+                            <i data-lucide="sparkles"></i>
+                        </div>
+                        <div class="stat-details">
+                            <p>Active Programs</p>
+                            <h2 id="count-active">&nbsp;</h2>
+                            <span>Currently accepting applications</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card is-loading" id="stat-card-closed">
+                        <div class="stat-icon icon-closed">
+                            <i data-lucide="clock"></i>
+                        </div>
+                        <div class="stat-details">
+                            <p>Closed Programs</p>
+                            <h2 id="count-closed">&nbsp;</h2>
+                            <span>Application closed</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>EDUCATIONAL ASSISTANCE NAME</th>
-                                <th>CATEGORY</th>
-                                <th>TYPE</th>
-                                <th>OPENING DATE</th>
-                                <th>DEADLINE</th>
-                                <th>STATUS</th>
-                                <th style="text-align: center;">APPLICATIONS</th>
-                                <th style="text-align: center;">ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="scholarships-tbody">
-                            <tr>
-                                <td colspan="8" class="text-center" style="padding: 40px; color:#64748b;">
-                                    <i data-lucide="loader-2" class="animate-spin" style="width: 18px; height: 18px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Loading
-                                    educational assistance programs...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <!-- Main Data Panel -->
+                <div class="data-panel">
+                    <div class="table-controls mb-20">
+                        <div class="search-filter-group">
+                            <div class="search-box">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="search-input" placeholder="Search educational assistance...">
+                            </div>
+                            <div class="filters">
+                                <select id="filter-status" class="filter-select">
+                                    <option value="">All Status</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Upcoming">Upcoming</option>
+                                    <option value="Closed">Closed</option>
+                                    <option value="Draft">Draft</option>
+                                </select>
 
-                <div class="pagination-container mt-20">
-                    <span id="entries-info" class="text-sm text-muted">Showing 0 to 0 of 0 entries</span>
-                    <div class="pagination">
-                        <button disabled>&lt;</button>
-                        <button class="active">1</button>
-                        <button>&gt;</button>
+                                <select id="filter-type" class="filter-select">
+                                    <option value="">All Categories</option>
+                                    <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
+                                    <option value="Ched Educational Assistance">Ched Educational Assistance</option>
+                                    <option value="Private Educational Assistance">Private Educational Assistance</option>
+                                    <option value="Government Educational Assistance">Government Educational Assistance</option>
+                                </select>
+
+                                <select id="filter-scholarship-type" class="filter-select">
+                                    <option value="">All Types</option>
+                                    <option value="Merit-Based">Merit-Based</option>
+                                    <option value="Need-Based">Need-Based</option>
+                                </select>
+
+                                <select id="sort-by" class="filter-select">
+                                    <option value="">Sort By...</option>
+                                    <option value="start_asc">Opening Date (Oldest First)</option>
+                                    <option value="start_desc">Opening Date (Newest First)</option>
+                                    <option value="end_asc">Deadline (Closing Soon)</option>
+                                    <option value="end_desc">Deadline (Closing Latest)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <div class="export-dropdown-wrapper">
+                                <button type="button" id="export-btn" class="btn-outline export-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Export Options">
+                                    <i data-lucide="download"></i>
+                                    <span>Export</span>
+                                    <i data-lucide="chevron-down" class="export-chevron"></i>
+                                </button>
+                                <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
+                                    <button type="button" class="export-option-btn" id="export-csv-btn" role="menuitem">
+                                        <div class="export-option-icon icon-csv">
+                                            <i data-lucide="file-spreadsheet"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export as CSV</strong>
+                                            <small>Spreadsheet / Excel format</small>
+                                        </div>
+                                    </button>
+                                    <div class="export-dropdown-divider"></div>
+                                    <button type="button" class="export-option-btn" id="export-pdf-btn" role="menuitem">
+                                        <div class="export-option-icon icon-pdf">
+                                            <i data-lucide="file-text"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export as PDF</strong>
+                                            <small>Formatted document / Print</small>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                            <a href="create-scholarship.html" class="btn-primary">
+                                <i data-lucide="plus"></i>
+                                <span>Add Educational Assistance</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Responsive Table with Skeleton Placeholder -->
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>EDUCATIONAL ASSISTANCE NAME</th>
+                                    <th>CATEGORY</th>
+                                    <th>TYPE</th>
+                                    <th>OPENING DATE</th>
+                                    <th>DEADLINE</th>
+                                    <th>STATUS</th>
+                                    <th style="text-align: center;">APPLICATIONS</th>
+                                    <th style="text-align: center;">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scholarships-tbody">
+                                <!-- Skeleton Shimmer Rows (5 Rows) -->
+                                <tr>
+                                    <td>
+                                        <div class="scholarship-name-cell">
+                                            <div class="skeleton-table-icon skeleton-box"></div>
+                                            <div>
+                                                <div class="skeleton-table-title skeleton-line"></div>
+                                                <div class="skeleton-table-sub skeleton-line"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="skeleton-table-badge skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line"></div>
+                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-btn-group">
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="scholarship-name-cell">
+                                            <div class="skeleton-table-icon skeleton-box"></div>
+                                            <div>
+                                                <div class="skeleton-table-title skeleton-line" style="width: 220px;"></div>
+                                                <div class="skeleton-table-sub skeleton-line" style="width: 140px;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="skeleton-table-badge skeleton-pill" style="width: 130px;"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line"></div>
+                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-btn-group">
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="scholarship-name-cell">
+                                            <div class="skeleton-table-icon skeleton-box"></div>
+                                            <div>
+                                                <div class="skeleton-table-title skeleton-line" style="width: 160px;"></div>
+                                                <div class="skeleton-table-sub skeleton-line" style="width: 110px;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="skeleton-table-badge skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line"></div>
+                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-btn-group">
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="scholarship-name-cell">
+                                            <div class="skeleton-table-icon skeleton-box"></div>
+                                            <div>
+                                                <div class="skeleton-table-title skeleton-line" style="width: 190px;"></div>
+                                                <div class="skeleton-table-sub skeleton-line" style="width: 130px;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="skeleton-table-badge skeleton-pill" style="width: 120px;"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line"></div>
+                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-btn-group">
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="scholarship-name-cell">
+                                            <div class="skeleton-table-icon skeleton-box"></div>
+                                            <div>
+                                                <div class="skeleton-table-title skeleton-line" style="width: 170px;"></div>
+                                                <div class="skeleton-table-sub skeleton-line" style="width: 100px;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><div class="skeleton-table-badge skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
+                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line"></div>
+                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-btn-group">
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                            <div class="skeleton-table-btn skeleton-box"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container mt-20">
+                        <span id="entries-info" class="text-sm text-muted">Loading entries...</span>
+                        <div class="pagination" id="pagination-controls">
+                            <button disabled aria-label="Previous Page"><i data-lucide="chevron-left"></i></button>
+                            <button class="active">1</button>
+                            <button disabled aria-label="Next Page"><i data-lucide="chevron-right"></i></button>
+                        </div>
                     </div>
                 </div>
-            </div>
             </div> <!-- END content-wrapper -->
         </main>
     </div>
@@ -219,14 +385,14 @@
     <div id="logout-modal" class="global-modal-overlay" style="display: none;">
         <div class="global-modal-content">
             <div class="global-modal-icon">
-                <i class="fa-solid fa-right-from-bracket"></i>
+                <i data-lucide="log-out" style="width: 36px; height: 36px; color: var(--danger-color);"></i>
             </div>
             <h3>Logout</h3>
             <p>Are you sure you want to log out of your account?</p>
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i class="fa-solid fa-power-off"></i> Logout
+                    <i data-lucide="power" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Logout
                 </button>
             </div>
         </div>
@@ -238,8 +404,6 @@
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
     <script src="js/admin-scholarships.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- jsPDF & AutoTable for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

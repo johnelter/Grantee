@@ -181,7 +181,7 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
     try {
         const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
-            .select('role, is_approved')
+            .select('role, is_approved, school_id, first_name, last_name')
             .eq('id', userId)
             .single();
             
@@ -196,6 +196,26 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
                 submitBtn.disabled = false;
             }
             return;
+        }
+
+        // Track Coordinator Login in Audit / Activity Logs
+        if (profile.role === 'admin' || profile.role === 'coordinator') {
+            try {
+                const coordinatorName = `${profile.first_name || 'Coordinator'} ${profile.last_name || ''}`.trim();
+                await supabaseClient.from('audit_logs').insert([{
+                    admin_id: userId,
+                    school_id: profile.school_id || null,
+                    action: 'Coordinator Logged In',
+                    module: 'Authentication',
+                    details: JSON.stringify({
+                        details: `${coordinatorName} logged in to the dashboard.`,
+                        timestamp: new Date().toISOString()
+                    })
+                }]);
+                sessionStorage.setItem(`grantee_coordinator_login_logged_${userId}`, new Date().toISOString());
+            } catch (e) {
+                console.warn("Could not record coordinator login in auth:", e);
+            }
         }
 
         const targetDashboard = (profile.role === 'admin') ? 'admin-dashboard.html' : 'student-dashboard.html';

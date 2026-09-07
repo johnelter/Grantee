@@ -84,6 +84,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (err) {
         console.error("Error fetching admin profile:", err);
+    } finally {
+        const headerTitlesBox = document.getElementById('header-titles-box');
+        if (headerTitlesBox) {
+            headerTitlesBox.classList.remove('is-loading');
+        }
     }
 
 
@@ -383,11 +388,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         autoFieldsContainer.innerHTML = '';
         autoFields.forEach(field => {
             autoFieldsContainer.innerHTML += `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#fbfcfb; padding:10px 16px; border:1px solid var(--border-dark); border-radius:8px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:10px 16px; border:1px solid var(--border-color); border-radius:8px; margin-bottom:8px;">
                     <div style="font-size:14px; font-weight:600; color:var(--text-main); display:flex; align-items:center; gap:8px;">
                         <i data-lucide="lock" style="width:14px; height:14px; color:var(--text-muted);"></i> ${field}
                     </div>
-                    <select class="auto-field-format" data-field="${field}" style="padding:6px 10px; border:1px solid var(--border-dark); border-radius:6px; font-size:12px; outline:none; cursor:pointer; background:#fff; color:var(--text-main);">
+                    <select class="auto-field-format" data-field="${field}" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:12px; outline:none; cursor:pointer; background:var(--card-bg); color:var(--text-main);">
                         <option value="No formatting">No formatting</option>
                         <option value="UPPERCASE">Convert to UPPERCASE</option>
                         <option value="lowercase">Convert to lowercase</option>
@@ -396,6 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
         });
+        if (window.lucide) lucide.createIcons();
     }
 
     const formBuilderContainer = document.getElementById('form-builder-container');
@@ -605,12 +611,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         docRequirements.forEach((doc, index) => {
             const isRowActive = doc.isIncluded !== false;
             const disableInputsAttr = !isRowActive ? 'disabled' : '';
-            const inputBg = doc.isDefault || !isRowActive ? 'background:#f8faf8; color:#475569;' : 'background:#fff;';
+            const inputBg = doc.isDefault || !isRowActive ? 'background:var(--input-bg); color:var(--text-muted);' : 'background:var(--card-bg); color:var(--text-main);';
 
             const isOcrClickable = doc.isDefault && isRowActive;
             const ocrDisabledAttr = isOcrClickable ? '' : 'disabled';
             const ocrCursor = isOcrClickable ? 'pointer' : 'not-allowed';
-            const ocrBgColor = (doc.ocr && isRowActive) ? 'var(--forest-shade)' : '#cbd5e1';
+            const ocrBgColor = (doc.ocr && isRowActive) ? 'var(--forest-shade)' : 'var(--border-color)';
 
             const mainRow = document.createElement('tr');
             mainRow.className = `doc-main-row builder-main-row`;
@@ -626,7 +632,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </button>
                 </td>
                 <td>
-                    <input type="text" class="doc-name form-input" value="${doc.name}" onchange="updateDoc(${index}, 'name', this.value)" ${doc.isDefault || !isRowActive ? 'readonly' : ''} style="${inputBg}; width:100%;">
+                    <input type="text" class="doc-name form-input" value="${escapeHtml(doc.name)}" onchange="updateDoc(${index}, 'name', this.value)" ${doc.isDefault || !isRowActive ? 'readonly' : ''} style="${inputBg}; width:100%;">
                 </td>
                 <td>
                     <select class="doc-size form-input" onchange="updateDoc(${index}, 'size', this.value)" ${disableInputsAttr} style="width:100%;">
@@ -648,7 +654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ${doc.isDefault
                             ? `<label class="toggle-switch" title="Include this default document?">
                                     <input type="checkbox" onchange="updateDoc(${index}, 'isIncluded', this.checked)" ${doc.isIncluded ? 'checked' : ''}>
-                                    <span class="slider" style="background-color: ${doc.isIncluded ? 'var(--forest-shade)' : '#cbd5e1'};"></span>
+                                    <span class="slider" style="background-color: ${doc.isIncluded ? 'var(--forest-shade)' : 'var(--border-color)'};"></span>
                                </label>`
                             : `<span class="table-status-badge table-status-default">Required</span>`
                         }
@@ -1059,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             <div style="font-size:11px; color: var(--text-muted); margin-bottom:10px;">Allowed formats: PDF, JPG, PNG (Max size: ${d.max_size}MB)</div>
                             <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
-                                <button type="button" style="padding:6px 16px; background:#fff; border:1px solid var(--border-dark); border-radius:6px; font-size:12px; cursor:not-allowed; color: var(--text-muted);">Choose File</button>
+                                <button type="button" style="padding:6px 16px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:6px; font-size:12px; cursor:not-allowed; color: var(--text-muted);">Choose File</button>
                                 <span style="font-size:11px; color: var(--text-muted);">No file selected</span>
                             </div>
                         </div>

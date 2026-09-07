@@ -11,7 +11,7 @@
     let currentAdminSchoolId = null;
     let policyData = {};
 
-    // Standardized Categories based on your system requirements
+    // Standardized Categories based on system requirements
     const categoriesArray = [
         "Institution-Funded Educational Assistance",
         "Ched Educational Assistance",
@@ -20,11 +20,11 @@
     ];
 
     function getCategoryIcon(cat) {
-        if (cat.includes("Institution")) return { bg: "#e0e7ff", color: "#4f46e5", icon: "fa-building-columns" };
-        if (cat.includes("Ched")) return { bg: "#dcfce7", color: "#16a34a", icon: "fa-graduation-cap" };
-        if (cat.includes("Private")) return { bg: "#fef3c7", color: "#d97706", icon: "fa-handshake" };
-        if (cat.includes("Government")) return { bg: "#fce7f3", color: "#9333ea", icon: "fa-landmark" };
-        return { bg: "#f1f5f9", color: "#64748b", icon: "fa-layer-group" };
+        if (cat.includes("Institution")) return { badgeClass: "cat-inst", sumClass: "sum-inst", icon: "building-2" };
+        if (cat.includes("Ched")) return { badgeClass: "cat-ched", sumClass: "sum-ched", icon: "graduation-cap" };
+        if (cat.includes("Private")) return { badgeClass: "cat-priv", sumClass: "sum-priv", icon: "handshake" };
+        if (cat.includes("Government")) return { badgeClass: "cat-gov", sumClass: "sum-gov", icon: "award" };
+        return { badgeClass: "cat-inst", sumClass: "sum-inst", icon: "layers" };
     }
 
     // --- DOM Elements ---
@@ -51,12 +51,12 @@
                 .single();
 
             if (profile) {
-                if (profile.role !== 'admin') {
+                if (!['admin', 'coordinator'].includes(profile.role)) {
                     window.location.href = 'student-dashboard.html';
                     return;
                 }
                 currentAdminSchoolId = profile.school_id;
-                const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
+                const schoolName = profile.schools ? profile.schools.name : (profile.school || 'Unassigned School');
                 
                 const name = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
                 if(document.getElementById('header-name')) document.getElementById('header-name').innerText = name;
@@ -81,6 +81,11 @@
             }
         } catch (error) {
             console.error("Error initializing:", error);
+        } finally {
+            document.getElementById('header-titles-box')?.classList.remove('is-loading');
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
         }
     }
 
@@ -96,8 +101,8 @@
 
             if (policy) {
                 policyData = policy;
-                chkGlobalEnabled.checked = policy.global_enabled ?? true;
-                inputGlobalLimit.value = policy.global_limit ?? 3;
+                if (chkGlobalEnabled) chkGlobalEnabled.checked = policy.global_enabled ?? true;
+                if (inputGlobalLimit) inputGlobalLimit.value = policy.global_limit ?? 3;
                 if (chkAutoValidate) chkAutoValidate.checked = policy.auto_validate ?? true;
                 if (chkAllowOverride) chkAllowOverride.checked = policy.allow_override ?? true;
             }
@@ -120,11 +125,13 @@
 
     // --- 3. DYNAMIC UI GENERATORS ---
     function renderCategoryLimits() {
+        if (!categoryCard) return;
+
         let html = `
-            <div class="card-header" style="margin-bottom: 10px;">
-                <h3 style="font-size: 16px; margin: 0; font-weight: 700;">2. Per Category Limits</h3>
+            <div class="card-header">
+                <h3>2. Per Category Limits</h3>
             </div>
-            <p class="hint-text mb-20" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Set the maximum number of active educational assistance programs allowed per category.</p>
+            <p class="hint-text mb-20">Set the maximum number of active educational assistance programs allowed per category.</p>
         `;
 
         categoriesArray.forEach(cat => {
@@ -138,15 +145,17 @@
             const unli = limitsObj[cat]?.unlimited ?? defaultUnli;
 
             html += `
-            <div class="category-limit-row" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; margin-bottom: 15px;">
-                <div class="cat-label" style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600;">
-                    <div class="cat-icon" style="background: ${styling.bg}; color: ${styling.color}; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px;"><i class="fa-solid ${styling.icon}"></i></div>
+            <div class="category-limit-row">
+                <div class="cat-label">
+                    <div class="cat-icon-badge ${styling.badgeClass}">
+                        <i data-lucide="${styling.icon}" style="width: 18px; height: 18px;"></i>
+                    </div>
                     <span>${cat}</span>
                 </div>
-                <div class="cat-controls" style="display: flex; align-items: center; gap: 15px;">
-                    <div class="input-group" style="margin: 0; width: 80px;">
-                        <label style="font-size: 10px; display: block; margin-bottom: 4px; color: var(--text-muted);">Max Allowed</label>
-                        <select id="limit_${safeId}" data-cat="${cat}" class="form-input dynamic-limit" style="width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 6px;" ${unli ? 'disabled' : ''}>
+                <div class="cat-controls">
+                    <div class="input-group" style="margin: 0; width: 90px;">
+                        <label style="font-size: 11px; display: block; margin-bottom: 4px; color: var(--text-muted);">Max Allowed</label>
+                        <select id="limit_${safeId}" data-cat="${cat}" class="form-input dynamic-limit" style="width: 100%; padding: 6px 8px; border-radius: 6px;" ${unli ? 'disabled' : ''}>
                             <option value="0" ${val == 0 ? 'selected' : ''}>0</option>
                             <option value="1" ${val == 1 ? 'selected' : ''}>1</option>
                             <option value="2" ${val == 2 ? 'selected' : ''}>2</option>
@@ -155,7 +164,7 @@
                             <option value="5" ${val == 5 ? 'selected' : ''}>5</option>
                         </select>
                     </div>
-                    <label class="checkbox-label" style="font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <label class="checkbox-label" style="font-size: 13px;">
                         <input type="checkbox" id="unli_${safeId}" data-cat="${cat}" class="dynamic-unli" ${unli ? 'checked' : ''}> Unlimited
                     </label>
                 </div>
@@ -163,9 +172,14 @@
             `;
         });
         categoryCard.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     function renderMatrix() {
+        if (!matrixCard) return;
+
         const shortLabels = {
             "Institution-Funded Educational Assistance": "Institution",
             "Ched Educational Assistance": "CHED",
@@ -174,42 +188,42 @@
         };
 
         let html = `
-            <div class="card-header" style="margin-bottom: 10px;">
-                <h3 style="font-size: 16px; margin: 0; font-weight: 700;">3. Category Combination Rules</h3>
+            <div class="card-header">
+                <h3>3. Category Combination Rules</h3>
             </div>
-            <p class="hint-text mb-20" style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Choose which categories can be combined by a student simultaneously.</p>
-            <div style="overflow-x: auto;">
-                <table class="matrix-table" style="width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px;">
+            <p class="hint-text mb-20">Choose which categories can be combined by a student simultaneously.</p>
+            <div class="matrix-table-container">
+                <table class="matrix-table">
                     <thead>
-                        <tr style="border-bottom: 1px solid #e2e8f0;">
-                            <th style="padding: 10px; text-align: left;"></th>
+                        <tr>
+                            <th>Category</th>
         `;
 
         categoriesArray.forEach(cat => {
-            html += `<th style="padding: 10px; text-align: center; color: var(--text-muted); font-weight:600;">${shortLabels[cat]}</th>`;
+            html += `<th>${shortLabels[cat]}</th>`;
         });
         html += `</tr></thead><tbody>`;
 
         const comboObj = policyData.combination_rules || {};
 
         categoriesArray.forEach((rowCat, i) => {
-            html += `<tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 12px 10px; font-weight: 600; color:var(--text-main);">${rowCat}</td>`;
+            html += `<tr>
+                        <td>${rowCat}</td>`;
             
             categoriesArray.forEach((colCat, j) => {
                 if (i === j) {
-                    html += `<td style="padding: 12px 10px; text-align: center; color: #cbd5e1;">—</td>`;
+                    html += `<td style="color: var(--text-muted); font-weight: bold;">—</td>`;
                 } else {
                     const comboKey = `${rowCat}::${colCat}`;
                     const isChecked = comboObj[comboKey] ?? true; 
                     
                     if (j < i) {
-                        html += `<td style="padding: 12px 10px; text-align: center;">
-                                    <input type="checkbox" data-row="${rowCat}" data-col="${colCat}" class="dynamic-combo mirror-combo" ${isChecked ? 'checked' : ''} disabled style="opacity: 0.5; width: 16px; height: 16px;">
+                        html += `<td>
+                                    <input type="checkbox" data-row="${rowCat}" data-col="${colCat}" class="dynamic-combo mirror-combo" ${isChecked ? 'checked' : ''} disabled style="opacity: 0.5;">
                                  </td>`;
                     } else {
-                        html += `<td style="padding: 12px 10px; text-align: center;">
-                                    <input type="checkbox" data-row="${rowCat}" data-col="${colCat}" class="dynamic-combo master-combo" ${isChecked ? 'checked' : ''} style="cursor:pointer; width: 16px; height: 16px; accent-color: var(--primary-color);">
+                        html += `<td>
+                                    <input type="checkbox" data-row="${rowCat}" data-col="${colCat}" class="dynamic-combo master-combo" ${isChecked ? 'checked' : ''}>
                                  </td>`;
                     }
                 }
@@ -219,28 +233,35 @@
 
         html += `</tbody></table></div>`;
         matrixCard.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     function renderSummary() {
+        if (!summaryCard) return;
+
         let html = `
-            <div class="card-header" style="margin-bottom: 15px;">
-                <h3 style="font-size: 16px; margin: 0; font-weight: 700;">5. Policy Summary</h3>
+            <div class="card-header">
+                <h3>5. Live Policy Summary</h3>
             </div>
-            <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <p class="hint-text mb-20">Real-time overview of current active limits configured for this institution.</p>
+            <div class="summary-grid">
         `;
         
         // Global Limit Summary
-        const globalUnli = !chkGlobalEnabled.checked || parseInt(inputGlobalLimit.value) === 0;
-        const globalVal = globalUnli ? "∞" : inputGlobalLimit.value;
-        const globalSize = globalUnli ? "32px" : "24px";
+        const globalUnli = !chkGlobalEnabled?.checked || parseInt(inputGlobalLimit?.value || 0) === 0;
+        const globalVal = globalUnli ? "∞" : (inputGlobalLimit?.value || "3");
         
         html += `
-            <div class="summary-card" style="background: linear-gradient(135deg, #f8fafc 0%, #f8fbff 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div class="sum-icon" style="background: #dcfce7; color: #166534; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="summary-card">
+                <div class="sum-icon-badge sum-global">
+                    <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
+                </div>
                 <div>
-                    <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.04em;">Global Limit</span>
-                    <strong style="display: block; font-size: ${globalSize}; color: var(--text-main); line-height: 1.2; margin: 3px 0;">${globalVal}</strong>
-                    <span style="font-size: 11px; color: var(--text-muted);">active assistances</span>
+                    <span class="sum-label">Global Limit</span>
+                    <strong class="sum-val">${globalVal}</strong>
+                    <span class="sum-sub">Active programs</span>
                 </div>
             </div>
         `;
@@ -255,18 +276,18 @@
             const limitVal = limitEl ? limitEl.value : "0";
             
             const finalVal = isUnli || parseInt(limitVal) === 0 ? "∞" : limitVal;
-            const finalSize = finalVal === "∞" ? "32px" : "24px";
-
             const styling = getCategoryIcon(cat);
             let shortName = cat.replace(" Educational Assistance", "").replace("Institution-Funded", "Institution");
 
             html += `
-            <div class="summary-card" style="background: linear-gradient(135deg, #f8fafc 0%, #f8fbff 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div class="sum-icon" style="background: ${styling.bg}; color: ${styling.color}; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;"><i class="fa-solid ${styling.icon}"></i></div>
+            <div class="summary-card">
+                <div class="sum-icon-badge ${styling.sumClass}">
+                    <i data-lucide="${styling.icon}" style="width: 22px; height: 22px;"></i>
+                </div>
                 <div style="overflow: hidden;">
-                    <span style="display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${cat}">${shortName}</span>
-                    <strong style="display: block; font-size: ${finalSize}; color: var(--text-main); line-height: 1.2; margin: 3px 0;">${finalVal}</strong>
-                    <span style="font-size: 11px; color: var(--text-muted);">active limit</span>
+                    <span class="sum-label" title="${cat}">${shortName}</span>
+                    <strong class="sum-val">${finalVal}</strong>
+                    <span class="sum-sub">Active limit</span>
                 </div>
             </div>
             `;
@@ -274,13 +295,17 @@
 
         html += `</div>`;
         summaryCard.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     function attachDynamicListeners() {
         document.querySelectorAll('.dynamic-unli').forEach(chk => {
             chk.addEventListener('change', (e) => {
                 const safeId = e.target.id.replace('unli_', '');
-                document.getElementById(`limit_${safeId}`).disabled = e.target.checked;
+                const sel = document.getElementById(`limit_${safeId}`);
+                if (sel) sel.disabled = e.target.checked;
                 renderSummary();
             });
         });
@@ -300,19 +325,28 @@
     }
 
     function triggerGlobalUIUpdates() {
-        inputGlobalLimit.disabled = !chkGlobalEnabled.checked;
-        badgeGlobalStatus.innerText = chkGlobalEnabled.checked ? "Enabled" : "Disabled";
-        badgeGlobalStatus.style.background = chkGlobalEnabled.checked ? "#dcfce7" : "#f1f5f9";
-        badgeGlobalStatus.style.color = chkGlobalEnabled.checked ? "#166534" : "#475569";
+        if (inputGlobalLimit && chkGlobalEnabled) {
+            inputGlobalLimit.disabled = !chkGlobalEnabled.checked;
+        }
+        if (badgeGlobalStatus && chkGlobalEnabled) {
+            badgeGlobalStatus.innerText = chkGlobalEnabled.checked ? "Enabled" : "Disabled";
+            if (chkGlobalEnabled.checked) {
+                badgeGlobalStatus.classList.remove("disabled");
+            } else {
+                badgeGlobalStatus.classList.add("disabled");
+            }
+        }
         renderSummary();
     }
 
-    chkGlobalEnabled.addEventListener('change', triggerGlobalUIUpdates);
-    inputGlobalLimit.addEventListener('input', triggerGlobalUIUpdates);
-    btnSetZero.addEventListener('click', () => {
-        inputGlobalLimit.value = 0;
-        triggerGlobalUIUpdates();
-    });
+    if (chkGlobalEnabled) chkGlobalEnabled.addEventListener('change', triggerGlobalUIUpdates);
+    if (inputGlobalLimit) inputGlobalLimit.addEventListener('input', triggerGlobalUIUpdates);
+    if (btnSetZero) {
+        btnSetZero.addEventListener('click', () => {
+            if (inputGlobalLimit) inputGlobalLimit.value = 0;
+            triggerGlobalUIUpdates();
+        });
+    }
 
     async function savePolicies() {
         const category_limits = {};
@@ -335,8 +369,8 @@
 
         const payload = {
             school_id: currentAdminSchoolId,
-            global_enabled: chkGlobalEnabled.checked,
-            global_limit: parseInt(inputGlobalLimit.value) || 0,
+            global_enabled: chkGlobalEnabled ? chkGlobalEnabled.checked : true,
+            global_limit: inputGlobalLimit ? (parseInt(inputGlobalLimit.value) || 0) : 0,
             category_limits: category_limits,
             combination_rules: combination_rules,
             auto_validate: chkAutoValidate?.checked ?? true,
@@ -345,8 +379,11 @@
         };
 
         try {
-            btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-            btnSave.disabled = true;
+            if (btnSave) {
+                btnSave.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite;"></i> <span>Saving...</span>';
+                btnSave.disabled = true;
+                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            }
 
             const { error } = await window.supabaseClient
                 .from('school_policies')
@@ -358,15 +395,18 @@
                 title: 'Saved!',
                 text: 'Your assistance policies have been successfully updated.',
                 icon: 'success',
-                confirmButtonColor: '#10b981'
+                confirmButtonColor: '#1F3D2E'
             });
 
         } catch (err) {
             console.error("Save Error:", err);
             Swal.fire('Error', 'Failed to save policies. Please ensure your database table is updated with JSONB columns.', 'error');
         } finally {
-            btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save All Changes';
-            btnSave.disabled = false;
+            if (btnSave) {
+                btnSave.innerHTML = '<i data-lucide="save" style="width: 16px; height: 16px;"></i> <span>Save All Changes</span>';
+                btnSave.disabled = false;
+                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            }
         }
     }
 
@@ -380,17 +420,11 @@
     }
 
     if (btnSave) {
-        document.body.addEventListener('click', async (e) => {
-            const target = e.target.closest('#btn-save-policies');
-            if (!target) return;
+        btnSave.addEventListener('click', async (e) => {
             e.preventDefault();
             await savePolicies();
         });
-    } else {
-        console.error('Save button not found: #btn-save-policies');
     }
-
-
 
     init();
 })();

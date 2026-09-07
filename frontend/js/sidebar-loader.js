@@ -200,6 +200,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     initGlobalLogoutLogic();
+
+    // Clean up any dangling flatpickr calendar DOM elements from previous sessions
+    document.querySelectorAll('.flatpickr-calendar:not(.open):not(.inline), select.flatpickr-monthDropdown-months, .flatpickr-wrapper').forEach(el => el.remove());
 });
 
 // Helper to highlight active menu item based on current URL
@@ -422,7 +425,7 @@ function initGlobalLogoutLogic() {
 
     // 2. Close Modal on Cancel
     document.addEventListener('click', (e) => {
-        const cancelBtn = e.target.closest('#modal-cancel, .global-btn-cancel, .modal-cancel-btn');
+        const cancelBtn = e.target.closest('#logout-modal #modal-cancel, #logout-modal .global-btn-cancel, #logout-modal .modal-cancel-btn');
         if (cancelBtn) {
             e.preventDefault();
             const logoutModal = document.getElementById('logout-modal');
@@ -440,7 +443,7 @@ function initGlobalLogoutLogic() {
 
     // 4. Process Logout on Confirm
     document.addEventListener('click', async (e) => {
-        const confirmBtn = e.target.closest('#modal-confirm, .global-btn-confirm');
+        const confirmBtn = e.target.closest('#logout-modal #modal-confirm, #logout-modal .global-btn-confirm');
         if (confirmBtn) {
             e.preventDefault();
             if (window.supabaseClient) {
@@ -560,10 +563,12 @@ function initSidebarNavigation() {
                     }, 280);
 
                     // 6. Sync Modals (Crucial for action buttons that open modals)
-                    const oldModals = document.querySelectorAll('.modal-overlay');
-                    oldModals.forEach(m => m.remove());
+                    const oldModals = document.querySelectorAll('.modal-overlay, .global-modal-overlay');
+                    oldModals.forEach(m => {
+                        if (m.id !== 'logout-modal') m.remove();
+                    });
 
-                    const newModals = doc.querySelectorAll('.modal-overlay');
+                    const newModals = doc.querySelectorAll('.modal-overlay, .global-modal-overlay');
                     newModals.forEach(m => {
                         if (m.id !== 'logout-modal') {
                             document.body.appendChild(m.cloneNode(true));
@@ -578,6 +583,9 @@ function initSidebarNavigation() {
                     if (newActionBar) {
                         document.body.appendChild(newActionBar.cloneNode(true));
                     }
+
+                    // 7B. Clean up orphaned flatpickr calendars and dropdowns from previous page
+                    document.querySelectorAll('.flatpickr-calendar, .flatpickr-wrapper, select.flatpickr-monthDropdown-months, .flatpickr-monthDropdown-month').forEach(el => el.remove());
 
                     // 8. Sync stylesheets
                     const newLinks = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));

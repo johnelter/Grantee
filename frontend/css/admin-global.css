@@ -1604,6 +1604,46 @@ button {
     border-color: var(--border-dark, #325541) !important;
 }
 
+/* ==========================================================================
+   FLATPICKR GLOBAL ISOLATION & LEAK PREVENTION
+   Ensures that flatpickr calendar containers, dropdowns (.flatpickr-monthDropdown-months,
+   .flatpickr-monthDropdown-month), and days grids NEVER leak into normal document flow
+   or appear visible at the bottom of the page when un-opened or orphaned.
+   ========================================================================== */
+.flatpickr-calendar:not(.open):not(.inline),
+body > .flatpickr-calendar:not(.open):not(.inline) {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+}
+
+.flatpickr-calendar.open,
+.flatpickr-calendar.inline {
+    display: block !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: auto !important;
+    z-index: 99999 !important;
+}
+
+/* Guard against orphaned or unstyled flatpickr select dropdowns */
+body > select.flatpickr-monthDropdown-months,
+body > .flatpickr-monthDropdown-month,
+body > .flatpickr-calendar:not(.open) select.flatpickr-monthDropdown-months {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 /* Flatpickr Dark Mode Harmonization */
 [data-theme="dark"] .flatpickr-calendar {
     background: var(--card-bg, #182B20) !important;

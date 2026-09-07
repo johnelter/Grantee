@@ -11,6 +11,19 @@
     <!-- Immediate Theme Application to Avoid Flash -->
     <script>
         (function () {
+            try {
+                var cached = sessionStorage.getItem('grantee_admin_profile');
+                if (cached) {
+                    var profile = JSON.parse(cached);
+                    if (profile && profile.id) {
+                        var userTheme = localStorage.getItem('grantee_admin_theme_' + profile.id);
+                        if (userTheme) {
+                            document.documentElement.setAttribute('data-theme', userTheme);
+                            return;
+                        }
+                    }
+                }
+            } catch(e) {}
             var theme = localStorage.getItem('grantee_admin_theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
@@ -152,7 +165,7 @@
     <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="light-theme">
+<body>
     <div class="app-layout">
 
         <!-- DYNAMIC SIDEBAR INJECTION POINT -->

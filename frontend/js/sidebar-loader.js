@@ -123,6 +123,13 @@ async function fetchAndCacheAdminProfile() {
             };
 
             sessionStorage.setItem('grantee_admin_profile', JSON.stringify(profileData));
+            
+            // Ensure user-scoped theme is initialized with current active theme if not present
+            const currentActiveTheme = localStorage.getItem('grantee_admin_theme') || document.documentElement.getAttribute('data-theme') || 'light';
+            if (!localStorage.getItem(`grantee_admin_theme_${user.id}`)) {
+                localStorage.setItem(`grantee_admin_theme_${user.id}`, currentActiveTheme);
+            }
+
             hydrateAdminProfile(document);
             applyAdminTheme(getAdminStoredTheme());
             if (typeof lucide !== 'undefined' && lucide.createIcons) {

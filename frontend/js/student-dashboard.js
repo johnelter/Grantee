@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+    let applicationsData = [];
+    let currentProfile = null;
+
     // --- 1. AUTH CHECK & INITIALIZATION ---
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
     if (sessionError || !session) {
@@ -7,57 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     const studentId = session.user.id;
-
-    // --- MAIN APPLICATION LOGIC ---
-    const loadMyApplications = async () => {
-        try {
-            const { data: profile, error: profileError } = await window.supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('id', studentId)
-                .single();
-
-            if (profileError || !profile) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            if (profile.role !== 'student') {
-                window.location.href = 'admin-dashboard.html';
-                return;
-            }
-
-            if (profile) {
-                const firstName = profile.first_name || 'Student';
-                const lastName = profile.last_name || '';
-
-                if (document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = `${firstName} ${lastName}`.trim();
-                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = profile.program || profile.course || 'Student';
-                if (profile.avatar_url && document.getElementById('header-avatar')) {
-                    document.getElementById('header-avatar').src = profile.avatar_url;
-                }
-            }
-
-            const { data: apps, error: fetchError } = await window.supabaseClient
-                .from('applications')
-                .select(`*, scholarships ( title )`)
-                .eq('student_id', studentId)
-                .order('created_at', { ascending: false });
-
-            if (fetchError) throw fetchError;
-
-            const applicationsData = apps || [];
-
-            if (typeof updateMetrics === 'function') updateMetrics(applicationsData);
-            if (typeof renderTable === 'function') renderTable(applicationsData);
-            if (typeof updateStatusTracker === 'function') updateStatusTracker(applicationsData);
-
-        } catch (error) {
-            console.error("Error loading applications:", error);
-            const tbody = document.getElementById('applications-tbody');
-            if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">Error loading data. Check console.</td></tr>`;
-        }
-    };
 
     // --- 2. FETCH PROFILE & SCHOOL FROM MASTERLIST ---
     async function loadProfile() {
@@ -72,6 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profileError) throw profileError;
 
             if (profile) {
+                currentProfile = profile; // Store for application modal
+
                 // Step 2: Use their id_number to find their school in the masterlist
                 const { data: masterlistData, error: masterlistError } = await window.supabaseClient
                     .from('enrolled_masterlist')
@@ -140,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Filter out applications added by admin (they have null form_responses)
             const applications = (apps || []).filter(app => app.form_responses !== null);
+            applicationsData = applications; // Save globally for details modal
 
             // A. Update Overview Stats & Remove Skeleton Shimmer
             const submittedCount = applications.length;
@@ -184,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else if (app.status === 'Withdrawn') { badgeClass = 'badge-withdrawn'; iconClass = 'icon-withdrawn'; lucideIcon = 'ban'; }
 
                 recentList.innerHTML += `
-                    <div class="list-item" style="cursor:pointer;" onclick="window.location.href='student-applications.html?app_id=${app.id}'">
+                    <div class="list-item" style="cursor:pointer;" onclick="window.openApplicationDetails('${app.id}')" title="Click to view full application details">
                         <div class="item-icon ${iconClass}"><i data-lucide="${lucideIcon}"></i></div>
                         <div class="item-details">
                             <h4>${title}</h4>
@@ -211,6 +166,257 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     }
+
+    // --- 3B. MODAL: APPLICATION DETAILS (Complete Information) ---
+    window.openApplicationDetails = (appId) => {
+        const app = applicationsData.find(a => a.id === appId);
+        if (!app) return;
+
+        const existingModal = document.getElementById('app-details-modal');
+        if (existingModal) existingModal.remove();
+
+        let badgeClass = 'badge-review';
+        let displayStatus = 'Under Review';
+        const statusLower = (app.status || 'pending').toLowerCase();
+
+        if (statusLower === 'approved' || statusLower === 'grantee') {
+            badgeClass = 'badge-approved';
+            displayStatus = 'Approved';
+        } else if (statusLower === 'rejected' || statusLower === 'declined') {
+            badgeClass = 'badge-rejected';
+            displayStatus = 'Rejected';
+        } else if (statusLower === 'revoked') {
+            badgeClass = 'badge-rejected';
+            displayStatus = 'Revoked';
+        } else if (statusLower === 'submitted' || statusLower === 'pending') {
+            badgeClass = 'badge-submitted';
+            displayStatus = app.status || 'Submitted';
+        } else if (statusLower === 'request revision') {
+            badgeClass = 'badge-revision';
+            displayStatus = 'Revision Required';
+        } else if (statusLower === 'withdrawn') {
+            badgeClass = 'badge-withdrawn';
+            displayStatus = 'Withdrawn';
+        }
+
+        const modalTitle = app.scholarships?.title || app.outside_assistance_name || 'Educational Assistance Application';
+
+        // Rejection Reason Alert Card (If application was rejected/declined/revoked or remarks present)
+        let rejectionAlertHTML = '';
+        if (statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked' || (app.remarks && app.remarks.trim())) {
+            const finalReasonText = app.remarks && app.remarks.trim()
+                ? app.remarks.trim()
+                : 'Your application was not approved during evaluation. Please contact your scholarship coordinator for more details.';
+
+            rejectionAlertHTML = `
+                <div class="modal-rejection-box" style="margin-bottom: 24px;">
+                    <div class="modal-rejection-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="x-circle" style="width: 18px; height: 18px; color: var(--danger-color);"></i>
+                            <strong style="color: var(--danger-color); font-size: 14.5px;">Application Decision: ${displayStatus}</strong>
+                        </div>
+                        <span class="modal-rejection-tag">Evaluation Outcome</span>
+                    </div>
+                    <div class="modal-rejection-body">
+                        <div class="modal-rejection-label">Reason / Remarks:</div>
+                        <p class="modal-rejection-text">${finalReasonText}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 1. Applicant Profile Data
+        const fname = currentProfile?.first_name || '';
+        const mname = currentProfile?.middle_name || '';
+        const lname = currentProfile?.last_name || '';
+        const name = `${fname} ${mname ? mname + ' ' : ''}${lname}`.trim() || 'Student Name';
+
+        const sid = currentProfile?.id_number || 'N/A';
+        const email = currentProfile?.email || 'N/A';
+        const dob = currentProfile?.date_of_birth || 'N/A';
+        const gender = currentProfile?.gender || 'N/A';
+        const contact = currentProfile?.contact_number || 'N/A';
+        const address = currentProfile?.address || 'N/A';
+        const program = currentProfile?.program || currentProfile?.course || 'N/A';
+        const yearLevel = currentProfile?.year_level || 'N/A';
+
+        let profileHTML = `
+            <div class="modal-profile-box">
+                <div class="modal-profile-grid">
+                    <div class="profile-field-row"><strong>Student ID:</strong> <span>${sid}</span></div>
+                    <div class="profile-field-row"><strong>Email:</strong> <span>${email}</span></div>
+                    
+                    <div class="profile-field-row" style="grid-column: 1 / -1;"><strong>Full Name:</strong> <span>${name}</span></div>
+                    
+                    <div class="profile-field-row"><strong>Date of Birth:</strong> <span>${dob}</span></div>
+                    <div class="profile-field-row"><strong>Gender:</strong> <span>${gender}</span></div>
+                    
+                    <div class="profile-field-row" style="grid-column: 1 / -1;"><strong>Contact Number:</strong> <span>${contact}</span></div>
+                    <div class="profile-field-row" style="grid-column: 1 / -1;"><strong>Address:</strong> <span>${address}</span></div>
+                    
+                    <div class="profile-field-row"><strong>Program:</strong> <span>${program}</span></div>
+                    <div class="profile-field-row"><strong>Year Level:</strong> <span>${yearLevel}</span></div>
+                </div>
+            </div>
+        `;
+
+        // 2. Questionnaire Responses
+        let formFieldsHTML = '';
+        if (app.form_responses && Object.keys(app.form_responses).length > 0) {
+            for (const [question, answer] of Object.entries(app.form_responses)) {
+                formFieldsHTML += `
+                    <div class="modal-response-box">
+                        <div class="modal-response-question">${question}</div>
+                        <div class="modal-response-answer">${answer || '<span style="font-style:italic; opacity:0.7;">No response provided</span>'}</div>
+                    </div>
+                `;
+            }
+        } else {
+            formFieldsHTML = '<div style="padding: 16px; background: var(--bg-card-secondary); border-radius: 10px; color: var(--text-muted); font-size: 13.5px; text-align: center; border: 1px solid var(--border-color);">No questionnaire responses for this application.</div>';
+        }
+
+        // 3. Document Uploads & AI Verification
+        let docsHTML = '';
+        if (app.documents && app.documents.length > 0) {
+            app.documents.forEach(doc => {
+                const fileUrl = doc.file_url || doc.url;
+                let previewContent = '';
+
+                const fullViewLink = fileUrl
+                    ? `<a href="${fileUrl}" target="_blank" class="modal-doc-link"><i data-lucide="external-link"></i> Full View</a>`
+                    : '';
+
+                if (fileUrl) {
+                    if (fileUrl.toLowerCase().split('?')[0].endsWith('.pdf')) {
+                        previewContent = `<iframe src="${fileUrl}#toolbar=0" style="width:100%; height:320px; border:none; display:block; border-radius: 8px;"></iframe>`;
+                    } else {
+                        previewContent = `<img src="${fileUrl}" style="width:100%; max-height:320px; object-fit:contain; display:block; margin: 0 auto; border-radius: 8px;">`;
+                    }
+                } else {
+                    previewContent = `
+                        <div style="padding:40px 20px; text-align:center; color: var(--text-muted);">
+                            <i data-lucide="file-x" style="width:32px; height:32px; margin: 0 auto 10px; display:block;"></i>
+                            <strong style="display:block;">File preview not available</strong>
+                        </div>`;
+                }
+
+                let extractedDataHtml = '';
+                if (doc.extracted_data && Object.keys(doc.extracted_data).length > 0) {
+                    let liHtml = '';
+
+                    for (const [key, value] of Object.entries(doc.extracted_data)) {
+                        let displayValue = '';
+
+                        if (Array.isArray(value)) {
+                            displayValue = value.map(item => {
+                                if (typeof item === 'object' && item !== null) {
+                                    return Object.entries(item).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
+                                }
+                                return item;
+                            }).join('<div style="height:1px; background:var(--border-color); margin:6px 0;"></div>');
+
+                        } else if (typeof value === 'object' && value !== null) {
+                            displayValue = Object.entries(value).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
+                        } else {
+                            displayValue = value || 'N/A';
+                        }
+
+                        liHtml += `
+                            <li style="background:var(--bg-card-secondary); border:1px solid var(--border-color); padding:8px 12px; border-radius:6px; margin-bottom:8px;">
+                                <span style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:3px;">${key}</span>
+                                <div style="color:var(--text-heading); font-weight:500; font-size:12.5px; line-height:1.4;">${displayValue}</div>
+                            </li>
+                        `;
+                    }
+
+                    extractedDataHtml = `
+                        <div class="modal-ai-box" style="flex: 1; min-width: 260px; max-height: 320px; overflow-y: auto;">
+                            <div class="modal-ai-box-title">
+                                <i data-lucide="sparkles"></i> AI Extracted Information
+                            </div>
+                            <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column;">
+                                ${liHtml}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                docsHTML += `
+                    <div class="modal-doc-card">
+                        <div class="modal-doc-header">
+                            <div class="modal-doc-title"><i data-lucide="paperclip"></i> ${doc.name || 'Submitted Document'}</div>
+                            ${fullViewLink}
+                        </div>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 260px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: var(--bg-card);">
+                                ${previewContent}
+                            </div>
+                            ${extractedDataHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            docsHTML = '<div style="padding: 16px; background: var(--bg-card-secondary); border-radius: 10px; color: var(--text-muted); font-size: 13.5px; text-align: center; border: 1px solid var(--border-color);">No documents uploaded for this application.</div>';
+        }
+
+        const modalHTML = `
+            <div id="app-details-modal" class="modal-overlay-custom">
+                <div class="modal-dialog-custom">
+                    
+                    <div class="modal-header-custom">
+                        <div>
+                            <h2>${modalTitle}</h2>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                                <span style="font-size: 13px; color: var(--text-muted);">Application ID: ${app.id.substring(0, 8).toUpperCase()}</span>
+                                <span class="badge-status ${badgeClass}">${displayStatus}</span>
+                            </div>
+                        </div>
+                        <button class="modal-close-btn" onclick="document.getElementById('app-details-modal')?.remove()" aria-label="Close modal">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal-body-custom">
+                        ${rejectionAlertHTML}
+
+                        <div style="margin-bottom: 26px;">
+                            <h3 class="modal-section-title"><i data-lucide="user"></i> Applicant Profile</h3>
+                            ${profileHTML}
+                        </div>
+
+                        <div style="margin-bottom: 26px;">
+                            <h3 class="modal-section-title"><i data-lucide="clipboard-list"></i> Questionnaire Responses</h3>
+                            <div id="read-only-form-fields">
+                                ${formFieldsHTML}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <h3 class="modal-section-title"><i data-lucide="file-check"></i> Submitted Documents & AI Verification</h3>
+                            ${docsHTML}
+                        </div>
+                    </div>
+
+                    <div class="modal-footer-custom">
+                        <button type="button" class="btn-modal-close" onclick="document.getElementById('app-details-modal')?.remove()">Close View</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        if (window.lucide) { window.lucide.createIcons(); }
+
+        // Close on overlay backdrop click
+        const modalEl = document.getElementById('app-details-modal');
+        if (modalEl) {
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) modalEl.remove();
+            });
+        }
+    };
+    window.viewDetails = window.openApplicationDetails;
 
     // --- 4. FETCH RECOMMENDED SCHOLARSHIPS ---
     async function loadRecommendations() {

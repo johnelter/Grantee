@@ -6,86 +6,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- SEO Key Elements -->
     <meta name="description"
-        content="Grantee - Empowering education by bridging the gap between educational opportunities and deserving candidates. Find and apply for scholarships easily.">
-    <meta name="keywords" content="scholarships, education, grants, student funding, university scholarships">
+        content="Grantee - Empowering education by bridging the gap between educational opportunities and deserving candidates. Find and apply for educational assistance easily.">
+    <meta name="keywords" content="educational assistance, education, grants, student funding, student financial aid">
     <meta name="author" content="Grantee">
     <meta name="robots" content="index, follow">
-    <title>Grantee - Empowering Education</title>
+    <title>Grantee - Educational Assistance Management</title>
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="css/landing.css">
+    <!-- Immediate Theme Application to Avoid Flash -->
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('grantee_theme') || localStorage.getItem('grantee_admin_theme') || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch(e) {}
+        })();
+    </script>
 </head>
 
 <body>
 
     <header class="navbar">
         <!-- Container for Website Logo -->
-        <div class="logo-container" style="display: flex; align-items: center; gap: 10px;">
-            <img src="assets/grantee-logo.png" alt="Grantee Logo"
-                style="width: 40px; height: 40px; border-radius: 8px; object-fit: contain;"
-                onerror="this.style.display='none'">
-            <div class="logo-area" style="display: flex; align-items: center; gap: 8px;">
-                <!-- <span class="logo-icon"><i class="fa-solid fa-graduation-cap"></i></span> -->
-                <img src="./assets/grantee_logo.png" alt="Grantee Logo" style="width: 32px; height: 32px;">
+        <a href="#" class="logo-container">
+            <img src="assets/grantee_logo.png" alt="Grantee Logo">
+            <div class="logo-area">
                 <span class="logo-text">Grantee</span>
             </div>
-        </div>
-
-        <button class="hamburger-btn" id="mobile-menu-btn">
-            <i class="fa-solid fa-bars"></i>
-        </button>
+        </a>
 
         <nav class="nav-links" id="nav-links">
-            <a href="#" class="active">Home</a>
-            <a href="#scholarships-section">Scholarships</a>
-            <a href="#about-section">About</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#contact-section">Contact</a>
+            <a href="#home-section" class="nav-link active">Home</a>
+            <a href="#scholarships-section" class="nav-link">Educational Assistance</a>
+            <a href="#about-section" class="nav-link">About</a>
+            <a href="#how-it-works" class="nav-link">How It Works</a>
+            <a href="#contact-section" class="nav-link">Contact</a>
         </nav>
+
         <div class="nav-actions">
-            <a href="login.html" id="btn-login-nav" class="btn-primary">Log In</a>
+            <!-- Theme Toggle -->
+            <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                <i data-lucide="moon"></i>
+            </button>
+            <a href="login.html" id="btn-login-nav" class="btn-primary">
+                <span>Log In</span>
+                <i data-lucide="arrow-right"></i>
+            </a>
+            <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
+                <i data-lucide="menu"></i>
+            </button>
         </div>
     </header>
 
-    <main class="hero-section">
+    <main class="hero-section" id="home-section">
         <div class="hero-content">
-            <!-- <div class="trust-badge">
-                <span class="shield-icon">🛡️</span> Trusted by 500+ Institutions
-            </div> -->
+            <div class="trust-badge">
+                <i data-lucide="shield-check"></i> <span>Trusted by 500+ Partner Institutions</span>
+            </div>
 
-            <h1>Empowering Education,<br>Enriching <span class="highlight">Futures.</span></h1>
+            <h1>Empowering Education,<br class="desktop-only"> Enriching <span class="highlight">Futures.</span></h1>
 
             <p class="hero-subtitle">
-                Browse and discover scholarships offered by different schools. Create an account to apply and manage
+                Browse and discover educational assistance programs offered by different schools. Create an account to apply and manage
                 your applications with institutional-grade reliability.
             </p>
 
             <div class="school-selector-card">
-                <label><i class="fa-solid fa-magnifying-glass"></i> Find Scholarships from Your School</label>
-                <select id="school-select" required>
-                    <option value="" disabled selected>Select your school...</option>
-                </select>
-                <p class="dropdown-hint">Choose a school to view the specialized scholarships they offer for the
-                    upcoming semester.</p>
+                <label for="school-select">
+                    <i data-lucide="search"></i> Find Educational Assistance from Your School
+                </label>
+                <div class="select-wrapper">
+                    <select id="school-select" required>
+                        <option value="" disabled selected>Select your school...</option>
+                    </select>
+                </div>
+                <p class="dropdown-hint">Choose a school to view specialized educational assistance programs they offer for the upcoming academic semester.</p>
             </div>
 
             <div class="info-banner">
-                <span class="info-icon"><i class="fa-solid fa-circle-info"></i></span> Registration and log in are
-                required to submit an application and track your progress.
+                <span class="info-icon"><i data-lucide="info"></i></span>
+                <span>Registration and log in are required to submit an application and track your progress.</span>
             </div>
         </div>
 
         <div class="hero-image-container">
-            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                alt="Students studying" class="main-hero-img">
+            <div class="image-frame">
+                <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                    alt="Students studying collaboratively" class="main-hero-img">
+            </div>
 
             <div class="floating-why-card">
-                <h4>Why Grantee?</h4>
+                <h4><i data-lucide="sparkles" style="color: var(--sand-dark);"></i> Why Grantee?</h4>
                 <ul>
-                    <!-- <li><span class="check"><i class="fa-solid fa-check"></i></span> Multiple schools in one</li> -->
-                    <li><span class="check"><i class="fa-solid fa-check"></i></span> Easy application process</li>
-                    <li><span class="check"><i class="fa-solid fa-check"></i></span> Real-time status updates</li>
-                    <li><span class="check"><i class="fa-solid fa-check"></i></span> Accessible everywhere</li>
+                    <li><span class="check"><i data-lucide="check"></i></span> Easy application process</li>
+                    <li><span class="check"><i data-lucide="check"></i></span> Real-time status updates</li>
+                    <li><span class="check"><i data-lucide="check"></i></span> Accessible on any device</li>
                 </ul>
             </div>
         </div>
@@ -93,40 +110,153 @@
 
     <section id="scholarships-section" class="dynamic-scholarships hidden">
         <div class="container">
-            <div style="text-align: center; margin-bottom: 40px;">
-                <h2 id="selected-school-title">Available Scholarships</h2>
-                <p style="color: #64748b;">Browse and apply for these opportunities.</p>
+            <div class="scholarships-header-area">
+                <span class="section-badge">Opportunities</span>
+                <h2 id="selected-school-title" class="section-title">Available Educational Assistance</h2>
+                <p class="section-subtitle">Explore verified educational assistance programs and eligibility criteria offered by your selected institution.</p>
             </div>
             <div class="scholarship-grid" id="scholarship-grid">
+                <div class="sch-card sch-skeleton-card" aria-hidden="true">
+                    <div class="sch-card-top" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="skeleton-shimmer" style="width: 105px; height: 22px; border-radius: 9999px;"></div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div class="skeleton-shimmer" style="width: 58px; height: 20px; border-radius: 9999px;"></div>
+                            <div class="skeleton-shimmer" style="width: 90px; height: 20px; border-radius: 9999px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-card-header" style="display: flex; gap: 14px; align-items: flex-start;">
+                        <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;"></div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 82%; height: 18px; border-radius: 6px;"></div>
+                            <div class="skeleton-shimmer" style="width: 48%; height: 13px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-specs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px;">
+                        <div class="sch-spec-item" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;">
+                            <div class="skeleton-shimmer" style="width: 65px; height: 11px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 85px; height: 15px; border-radius: 5px;"></div>
+                        </div>
+                        <div class="sch-spec-item" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;">
+                            <div class="skeleton-shimmer" style="width: 75px; height: 11px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 100px; height: 15px; border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-accordion-area" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 16px; height: 16px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 125px; height: 14px; border-radius: 4px;"></div>
+                        </div>
+                        <div class="skeleton-shimmer" style="width: 78px; height: 20px; border-radius: 9999px;"></div>
+                    </div>
+                    <div class="sch-card-footer-notice" style="display: flex; align-items: center; gap: 8px; padding-top: 10px; margin-top: auto;">
+                        <div class="skeleton-shimmer" style="width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;"></div>
+                        <div class="skeleton-shimmer" style="width: 75%; height: 12px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+                <div class="sch-card sch-skeleton-card" aria-hidden="true">
+                    <div class="sch-card-top" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="skeleton-shimmer" style="width: 105px; height: 22px; border-radius: 9999px;"></div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div class="skeleton-shimmer" style="width: 58px; height: 20px; border-radius: 9999px;"></div>
+                            <div class="skeleton-shimmer" style="width: 90px; height: 20px; border-radius: 9999px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-card-header" style="display: flex; gap: 14px; align-items: flex-start;">
+                        <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;"></div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 82%; height: 18px; border-radius: 6px;"></div>
+                            <div class="skeleton-shimmer" style="width: 48%; height: 13px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-specs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px;">
+                        <div class="sch-spec-item" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;">
+                            <div class="skeleton-shimmer" style="width: 65px; height: 11px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 85px; height: 15px; border-radius: 5px;"></div>
+                        </div>
+                        <div class="sch-spec-item" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;">
+                            <div class="skeleton-shimmer" style="width: 75px; height: 11px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 100px; height: 15px; border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-accordion-area" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 16px; height: 16px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 125px; height: 14px; border-radius: 4px;"></div>
+                        </div>
+                        <div class="skeleton-shimmer" style="width: 78px; height: 20px; border-radius: 9999px;"></div>
+                    </div>
+                    <div class="sch-card-footer-notice" style="display: flex; align-items: center; gap: 8px; padding-top: 10px; margin-top: auto;">
+                        <div class="skeleton-shimmer" style="width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;"></div>
+                        <div class="skeleton-shimmer" style="width: 75%; height: 12px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+                <div class="sch-card sch-skeleton-card" aria-hidden="true">
+                    <div class="sch-card-top" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="skeleton-shimmer" style="width: 105px; height: 22px; border-radius: 9999px;"></div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div class="skeleton-shimmer" style="width: 58px; height: 20px; border-radius: 9999px;"></div>
+                            <div class="skeleton-shimmer" style="width: 90px; height: 20px; border-radius: 9999px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-card-header" style="display: flex; gap: 14px; align-items: flex-start;">
+                        <div class="skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;"></div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 82%; height: 18px; border-radius: 6px;"></div>
+                            <div class="skeleton-shimmer" style="width: 48%; height: 13px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-specs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px;">
+                        <div class="sch-spec-item" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;">
+                            <div class="skeleton-shimmer" style="width: 65px; height: 11px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 85px; height: 15px; border-radius: 5px;"></div>
+                        </div>
+                        <div class="sch-spec-item" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;">
+                            <div class="skeleton-shimmer" style="width: 75px; height: 11px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 100px; height: 15px; border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                    <div class="sch-accordion-area" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 16px; height: 16px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 125px; height: 14px; border-radius: 4px;"></div>
+                        </div>
+                        <div class="skeleton-shimmer" style="width: 78px; height: 20px; border-radius: 9999px;"></div>
+                    </div>
+                    <div class="sch-card-footer-notice" style="display: flex; align-items: center; gap: 8px; padding-top: 10px; margin-top: auto;">
+                        <div class="skeleton-shimmer" style="width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;"></div>
+                        <div class="skeleton-shimmer" style="width: 75%; height: 12px; border-radius: 4px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
     <section class="features-section container">
         <div class="feature-card">
-            <div class="feature-icon"><i class="fa-solid fa-folder-open"></i></div>
-            <h3>Explore Scholarships</h3>
-            <p>Browse available scholarships filtered by school, degree, or merit categories easily.</p>
-            <a href="#" class="feature-link">Get Started <i class="fa-solid fa-arrow-right"></i></a>
+            <div class="feature-icon"><i data-lucide="compass"></i></div>
+            <h3>Explore Educational Assistance</h3>
+            <p>Browse available educational assistance programs filtered by school, degree program, or academic merit categories easily.</p>
+            <a href="#scholarships-section" class="feature-link">Get Started <i data-lucide="arrow-right"></i></a>
         </div>
         <div class="feature-card">
-            <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="feature-icon"><i data-lucide="shield-check"></i></div>
             <h3>Secure & Reliable</h3>
-            <p>Your sensitive documents and data are protected with bank-grade encryption and security.</p>
-            <a href="#" class="feature-link">Our Standards <i class="fa-solid fa-arrow-right"></i></a>
+            <p>Your sensitive credentials and documents are protected with institutional-grade data privacy and encryption.</p>
+            <a href="#about-section" class="feature-link">Our Standards <i data-lucide="arrow-right"></i></a>
         </div>
         <div class="feature-card">
-            <div class="feature-icon"><i class="fa-solid fa-comment-dots"></i></div>
+            <div class="feature-icon"><i data-lucide="sparkles"></i></div>
             <h3>AI Assistant</h3>
-            <p>Get instant help and answers to your complex scholarship inquiries using our smart AI.</p>
-            <a href="#" class="feature-link">Try Grantee AI <i class="fa-solid fa-arrow-right"></i></a>
+            <p>Get instant guidance and smart answers to complex educational assistance inquiries with our intelligent assistant.</p>
+            <a href="login.html" class="feature-link">Try Grantee AI <i data-lucide="arrow-right"></i></a>
         </div>
     </section>
 
     <section id="about-section" class="about-section container center-text">
+        <span class="section-badge">Our Mission</span>
         <h2>About Grantee</h2>
         <p class="about-text">
-            Grantee is dedicated to simplifying scholarship management for both institutions and students. Our mission
+            Grantee is dedicated to simplifying educational assistance management for both institutions and students. Our mission
             is to bridge the gap between educational opportunities and deserving candidates through a centralized,
             transparent, and secure platform. We believe that financial constraints should never stand in the way of
             achieving educational excellence.
@@ -134,48 +264,50 @@
     </section>
 
     <section id="how-it-works" class="how-it-works container center-text">
+        <span class="section-badge">Simple Process</span>
         <h2>How It Works</h2>
-        <p class="subtitle">Your path to educational funding in three simple steps.</p>
+        <p class="subtitle">Your direct path to educational funding in three seamless steps.</p>
 
         <div class="steps-grid">
             <div class="step-card">
-                <div class="step-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <span class="step-number">01</span>
+                <div class="step-icon"><i data-lucide="search"></i></div>
                 <h3>1. Search</h3>
-                <p>Browse our extensive database to find scholarships that match your academic profile, school, and
-                    career goals.</p>
+                <p>Browse our extensive database to find educational assistance programs tailored to your academic profile, school, and career goals.</p>
             </div>
             <div class="step-card">
-                <div class="step-icon"><i class="fa-regular fa-file-lines"></i></div>
+                <span class="step-number">02</span>
+                <div class="step-icon"><i data-lucide="file-text"></i></div>
                 <h3>2. Apply</h3>
-                <p>Complete your profile, upload necessary documents, and submit your application securely through our
-                    platform.</p>
+                <p>Complete your profile, upload your documents, and submit your application securely through our platform.</p>
             </div>
             <div class="step-card">
-                <div class="step-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                <span class="step-number">03</span>
+                <div class="step-icon"><i data-lucide="trending-up"></i></div>
                 <h3>3. Track</h3>
-                <p>Monitor your application status in real-time, receive timely updates, and get notified when decisions
-                    are made.</p>
+                <p>Monitor your application status in real-time, receive updates, and get notified instantly when decisions are made.</p>
             </div>
         </div>
     </section>
 
     <section id="contact-section" class="contact-faq-section container">
         <div class="contact-info">
+            <span class="section-badge">Support</span>
             <h2>Get in Touch</h2>
-            <p>Have questions about an application or need help navigating the platform? We're here to help you navigate
-                your scholarship journey.</p>
+            <p>Have questions about an application or need help navigating the platform? Our team is dedicated to supporting your educational assistance journey.</p>
 
-            <div class="contact-item mt-20">
-                <span class="c-icon"><i class="fa-solid fa-location-dot"></i></span>
+            <div class="contact-item">
+                <span class="c-icon"><i data-lucide="map-pin"></i></span>
                 <div>
-                    <strong>123 Education Lane, Suite 400</strong><br>
-                    Learning City, PH 01234
+                    <strong>123 Education Lane, Suite 400</strong>
+                    <span style="color: var(--text-muted); font-size: 13.5px;">Learning City, PH 01234</span>
                 </div>
             </div>
             <div class="contact-item">
-                <span class="c-icon"><i class="fa-solid fa-envelope"></i></span>
+                <span class="c-icon"><i data-lucide="mail"></i></span>
                 <div>
                     <strong>support@grantee.com</strong>
+                    <span style="color: var(--text-muted); font-size: 13.5px;">Direct assistance for students & staff</span>
                 </div>
             </div>
         </div>
@@ -184,32 +316,33 @@
             <h3>Frequently Asked Questions</h3>
 
             <div class="faq-item">
-                <h4>How do I track my application?</h4>
-                <p>Log in to your dashboard to see real-time status updates for all your submitted applications.</p>
+                <h4><i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> How do I track my application?</h4>
+                <p>Log in to your student dashboard to see real-time status updates and notifications for all your submitted applications.</p>
             </div>
             <div class="faq-item">
-                <h4>What documents are required?</h4>
-                <p>Requirements vary by school, but typically include transcripts, a personal statement, and ID.</p>
+                <h4><i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> What documents are required?</h4>
+                <p>Requirements vary by school and educational assistance category, but typically include academic transcripts, proof of enrollment, and valid ID.</p>
             </div>
             <div class="faq-item">
-                <h4>Is there an application fee?</h4>
-                <p>Grantee is free for students. Some institutions may have their own processing fees.</p>
+                <h4><i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Is there an application fee?</h4>
+                <p>Grantee is 100% free for students. Partner institutions review and process applications directly on the platform.</p>
             </div>
-            <a href="#" class="feature-link mt-20" style="display: inline-block;">Visit Help Center <i
-                    class="fa-solid fa-arrow-right"></i></a>
+            <a href="mailto:support@grantee.com" class="feature-link mt-20" style="display: inline-flex; margin-top: 16px;">
+                Visit Help Center <i data-lucide="arrow-right"></i>
+            </a>
         </div>
     </section>
 
     <footer>
         <div class="container footer-grid">
             <div class="footer-brand">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <span style="font-size: 24px; color: var(--primary);"><i
-                            class="fa-solid fa-graduation-cap"></i></span>
-                    <strong style="font-size: 20px; color: var(--text-main);">Grantee</strong>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: rgba(88, 129, 87, 0.25); color: var(--sand-beige);">
+                        <i data-lucide="graduation-cap" style="width: 22px; height: 22px;"></i>
+                    </span>
+                    <strong style="font-size: 22px; color: var(--white); letter-spacing: -0.5px;">Grantee</strong>
                 </div>
-                <p>Empowering the next generation through centralized, transparent, and secure scholarship management.
-                </p>
+                <p>Empowering the next generation through centralized, transparent, and secure educational assistance management.</p>
             </div>
 
             <div class="footer-links">
@@ -222,51 +355,43 @@
 
             <div class="footer-links">
                 <h4>Quick Links</h4>
-                <a href="#">Apply Now</a>
-                <a href="#">Partner Schools</a>
-                <a href="#">Student Stories</a>
-                <a href="#">Resources</a>
+                <a href="login.html">Apply Now</a>
+                <a href="#scholarships-section">Partner Schools</a>
+                <a href="#about-section">About Mission</a>
+                <a href="#how-it-works">How It Works</a>
             </div>
 
             <!-- Site Map -->
             <div class="footer-links">
                 <h4>Site Map</h4>
                 <a href="#">Home</a>
-                <a href="#scholarships-section">Scholarships</a>
+                <a href="#scholarships-section">Educational Assistance</a>
                 <a href="#about-section">About</a>
                 <a href="#how-it-works">How It Works</a>
                 <a href="#contact-section">Contact</a>
             </div>
 
             <div class="footer-newsletter">
-                <h4>Newsletter</h4>
-                <p>Get weekly updates on new scholarships.</p>
-                <div class="newsletter-input">
-                    <input type="email" placeholder="Email">
-                    <button>Join</button>
-                </div>
+                <h4>Stay Updated</h4>
+                <p>Get weekly updates on newly opened educational assistance programs and deadlines.</p>
+                <form class="newsletter-input" onsubmit="event.preventDefault(); alert('Thank you for subscribing!');">
+                    <input type="email" placeholder="Enter your email" required aria-label="Email address">
+                    <button type="submit">
+                        Join
+                        <i data-lucide="send"></i>
+                    </button>
+                </form>
             </div>
         </div>
-        <div class="footer-bottom center-text">
-            © 2026 Grantee Scholarship Management System. Empowering education for all.
+        <div class="container footer-bottom center-text">
+            © 2026 Grantee Educational Assistance Management System. Empowering education for all.
         </div>
     </footer>
 
+    <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/landing.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-            const navLinks = document.getElementById('nav-links');
-
-            if (mobileMenuBtn && navLinks) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    navLinks.classList.toggle('active-mobile');
-                });
-            }
-        });
-    </script>
 </body>
 
 </html>

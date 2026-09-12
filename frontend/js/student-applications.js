@@ -4,43 +4,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentProfile = null; // Store student profile for the modal
     const tbody = document.getElementById('applications-tbody');
 
-    // --- CUSTOM UI: ALERTS ---
-    const injectCustomUIStyles = () => {
-        if (document.getElementById('custom-ui-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'custom-ui-styles';
-        style.innerHTML = `
-            .custom-toast { position: fixed; bottom: 30px; right: 30px; background: #fff; padding: 16px 24px; border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px; z-index: 10000; transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); font-size: 14px; font-weight: 500; color: #334155; border-left: 4px solid var(--primary-color); }
-            .custom-toast.show { transform: translateY(0); opacity: 1; }
-            .custom-toast.error { border-left-color: #ef4444; }
-            .custom-toast.success { border-left-color: #10b981; }
-            
-            /* Scrollbar styling for extracted data box */
-            .ai-data-box::-webkit-scrollbar { width: 6px; }
-            .ai-data-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        `;
-        document.head.appendChild(style);
+    // Helper to refresh Lucide icons safely
+    const refreshIcons = () => {
+        if (typeof window.lucide !== 'undefined' && window.lucide.createIcons) {
+            window.lucide.createIcons();
+        }
     };
 
+    // --- CUSTOM UI: ALERTS (Harmonized Nature Theme & Lucide) ---
     const showToast = (message, type = 'success') => {
         const toast = document.createElement('div');
         toast.className = `custom-toast ${type}`;
         
-        // Updated to use FontAwesome Icons
-        const icon = type === 'success' ? '<i class="fa-solid fa-circle-check" style="color:#10b981; font-size:18px;"></i>' : '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444; font-size:18px;"></i>';
-        
-        toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+        const iconName = type === 'success' ? 'check-circle-2' : 'alert-triangle';
+        toast.innerHTML = `<i data-lucide="${iconName}"></i> <span>${message}</span>`;
         document.body.appendChild(toast);
+        refreshIcons();
         
         setTimeout(() => toast.classList.add('show'), 10);
         
         setTimeout(() => {
             toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
+            setTimeout(() => toast.remove(), 350);
         }, 3500);
     };
-
-    injectCustomUIStyles();
 
     // --- MAIN APPLICATION LOGIC ---
     const loadMyApplications = async () => {
@@ -97,8 +84,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (fetchError) throw fetchError;
 
-            // Filter out applications added by admin (they have null form_responses)
+            // Filter out applications added by admin without form responses if needed
             applicationsData = (apps || []).filter(app => app.form_responses !== null);
+
+            // Remove header loading state
+            const headerBox = document.getElementById('header-titles-box');
+            if (headerBox) headerBox.classList.remove('is-loading');
 
             updateMetrics(applicationsData);
             updateStatusTracker(applicationsData);
@@ -145,8 +136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const row = document.getElementById(`app-row-${appIdParam}`);
                         if (row) {
                             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            row.style.transition = 'background-color 0.5s';
-                            row.style.backgroundColor = '#fef3c7'; // Light yellow highlight
+                            row.style.transition = 'background-color 0.5s ease';
+                            row.style.backgroundColor = 'var(--stat-review-bg)';
                             setTimeout(() => { row.style.backgroundColor = ''; }, 2500);
                         }
                         if (typeof window.viewDetails === 'function') {
@@ -158,9 +149,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderTable(applicationsData);
             }
 
+            refreshIcons();
+
         } catch (error) {
             console.error("Error loading applications:", error);
-            if(tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger-color);"><i class="fa-solid fa-triangle-exclamation"></i> Error loading data. Check console.</td></tr>`;
+            const headerBox = document.getElementById('header-titles-box');
+            if (headerBox) headerBox.classList.remove('is-loading');
+
+            document.querySelectorAll('.stat-value.is-loading').forEach(el => {
+                el.classList.remove('is-loading');
+                el.innerText = '0';
+            });
+
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px 20px; color: var(--danger-color);">
+                            <i data-lucide="alert-triangle" style="width: 32px; height: 32px; margin: 0 auto 10px; display: block;"></i>
+                            <div style="font-weight: 600; margin-bottom: 4px;">Error loading applications</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Please refresh the page or try again later.</div>
+                        </td>
+                    </tr>`;
+                refreshIcons();
+            }
         }
     };
 
@@ -170,25 +181,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         const approved = apps.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
         const rejected = apps.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
 
-        if(document.getElementById('count-total')) document.getElementById('count-total').innerText = total;
-        if(document.getElementById('count-review')) document.getElementById('count-review').innerText = review;
-        if(document.getElementById('count-approved')) document.getElementById('count-approved').innerText = approved;
-        if(document.getElementById('count-rejected')) document.getElementById('count-rejected').innerText = rejected;
+        const totalEl = document.getElementById('count-total');
+        const reviewEl = document.getElementById('count-review');
+        const approvedEl = document.getElementById('count-approved');
+        const rejectedEl = document.getElementById('count-rejected');
+
+        if (totalEl) {
+            totalEl.classList.remove('is-loading');
+            totalEl.innerText = total;
+        }
+        if (reviewEl) {
+            reviewEl.classList.remove('is-loading');
+            reviewEl.innerText = review;
+        }
+        if (approvedEl) {
+            approvedEl.classList.remove('is-loading');
+            approvedEl.innerText = approved;
+        }
+        if (rejectedEl) {
+            rejectedEl.classList.remove('is-loading');
+            rejectedEl.innerText = rejected;
+        }
     };
 
     const renderTable = (apps) => {
         if (!tbody) return;
 
         if (apps.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-folder-open" style="font-size:24px; margin-bottom:10px; display:block;"></i> You have not submitted any applications yet.</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 50px 20px; color: var(--text-muted);">
+                        <i data-lucide="folder-open" style="width: 40px; height: 40px; margin: 0 auto 12px; display: block; opacity: 0.6;"></i>
+                        <div style="font-weight: 600; font-size: 15px; color: var(--text-heading); margin-bottom: 4px;">No Applications Found</div>
+                        <div style="font-size: 13px;">You have not submitted any applications matching this filter.</div>
+                    </td>
+                </tr>`;
+            refreshIcons();
             return;
         }
 
         tbody.innerHTML = '';
 
         apps.forEach(app => {
-            // FIX: Check for internal program title first, fallback to outside assistance name
-            const programName = app.scholarships?.title || app.outside_assistance_name || 'Unknown Program';
+            const programName = app.scholarships?.title || app.outside_assistance_name || 'Educational Assistance';
 
             const dateObj = new Date(app.created_at);
             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
@@ -196,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let badgeClass = 'badge-review';
             let progress = 50;
-            let barColor = '#f59e0b';
+            let barColor = 'var(--stat-review-color)';
             let displayStatus = 'Under Review';
 
             const statusLower = (app.status || 'pending').toLowerCase();
@@ -204,66 +239,83 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (statusLower === 'approved' || statusLower === 'grantee') {
                 badgeClass = 'badge-approved';
                 progress = 100;
-                barColor = '#10b981'; // success green
+                barColor = 'var(--stat-approved-color)';
                 displayStatus = 'Approved';
             } else if (statusLower === 'revoked') {
-                badgeClass = 'badge-rejected'; // using rejected badge styling for revoked
+                badgeClass = 'badge-rejected';
                 progress = 100;
-                barColor = '#ef4444'; // danger red
+                barColor = 'var(--stat-rejected-color)';
                 displayStatus = 'Revoked';
             } else if (statusLower === 'rejected' || statusLower === 'declined') {
                 badgeClass = 'badge-rejected';
                 progress = 100;
-                barColor = '#ef4444'; // danger red
+                barColor = 'var(--stat-rejected-color)';
                 displayStatus = 'Rejected';
             } else {
                 badgeClass = 'badge-review';
                 progress = 50;
-                barColor = '#f59e0b'; // warning yellow
+                barColor = 'var(--stat-review-color)';
                 displayStatus = 'Under Review';
             }
 
             const tr = document.createElement('tr');
             tr.id = `app-row-${app.id}`;
+            const remarkPreview = ((statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked') && app.remarks)
+                ? `<div style="font-size: 11px; color: var(--stat-rejected-color); margin-top: 4px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;" title="Reason: ${app.remarks}"><i data-lucide="info" style="width:11px; height:11px; display:inline-block; vertical-align:middle; margin-right:3px;"></i>${app.remarks}</div>`
+                : '';
+
             tr.innerHTML = `
                 <td>
-                    <strong style="color: var(--text-main);">${programName}</strong>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Application ID: ${app.id.substring(0, 8).toUpperCase()}</div>
+                    <strong style="color: var(--text-heading); display: block; font-size: 14px; font-weight: 700;">${programName}</strong>
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">Application ID: ${app.id.substring(0, 8).toUpperCase()}</div>
                 </td>
                 <td>
-                    <div>${dateStr}</div>
-                    <div style="font-size:11px; color:var(--text-muted);">${timeStr}</div>
+                    <div style="font-weight: 600; color: var(--text-heading);">${dateStr}</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">${timeStr}</div>
                 </td>
-                <td><span class="badge-status ${badgeClass}">${displayStatus}</span></td>
                 <td>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="flex:1; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
-                            <div style="width: ${progress}%; background: ${barColor}; height:100%; border-radius:3px;"></div>
+                    <span class="badge-status ${badgeClass}">${displayStatus}</span>
+                    ${remarkPreview}
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 130px;">
+                        <div style="flex: 1; height: 7px; background: var(--bg-card-secondary); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${progress}%; background: ${barColor}; height: 100%; border-radius: 4px; transition: width 0.4s ease;"></div>
                         </div>
-                        <span style="font-size:11px; font-weight:600; width:30px;">${progress}%</span>
+                        <span style="font-size: 12px; font-weight: 700; color: var(--text-heading); width: 34px;">${progress}%</span>
                     </div>
                 </td>
                 <td>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn-outline" style="padding: 6px 12px; font-size: 11px;" onclick="viewDetails('${app.id}')"><i class="fa-solid fa-eye"></i> View Details</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-table-action" onclick="viewDetails('${app.id}')">
+                            <i data-lucide="eye"></i> View Details
+                        </button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
         });
+
+        refreshIcons();
     };
 
     const updateStatusTracker = (apps) => {
-        if (apps.length === 0) return;
+        if (apps.length === 0) {
+            const trackerTitle = document.getElementById('latest-app-title');
+            if (trackerTitle) trackerTitle.innerText = '';
+            return;
+        }
 
         const latestApp = apps[0]; 
-        
-        // FIX: Also look for outside_assistance_name here
-        const programName = latestApp.scholarships?.title || latestApp.outside_assistance_name || 'Program';
+        const programName = latestApp.scholarships?.title || latestApp.outside_assistance_name || 'Assistance Program';
         const createdDate = new Date(latestApp.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
-        if(document.getElementById('latest-app-title')) document.getElementById('latest-app-title').innerText = `(${programName})`;
-        if(document.getElementById('date-submitted')) document.getElementById('date-submitted').innerText = createdDate;
+        if(document.getElementById('latest-app-title')) {
+            document.getElementById('latest-app-title').innerText = `(${programName})`;
+        }
+        if(document.getElementById('date-submitted')) {
+            document.getElementById('date-submitted').innerText = createdDate;
+        }
 
         const statusLower = (latestApp.status || '').toLowerCase();
 
@@ -276,7 +328,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if(!stepSub) return; 
 
-        [stepSub, stepRev, stepFinal].forEach(el => { if(el) el.classList.remove('completed', 'active') });
+        [stepSub, stepRev, stepFinal].forEach(el => { if(el) el.classList.remove('completed', 'active', 'step-approved', 'step-rejected') });
         [line1, line2].forEach(el => { if(el) el.classList.remove('active') });
 
         // Step 1: Submitted (Always active if application exists)
@@ -285,19 +337,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (statusLower === 'pending' || statusLower === 'under review') {
             if(line1) line1.classList.add('active');
             if(stepRev) stepRev.classList.add('active');
+            const dateRev = document.getElementById('date-review');
+            if (dateRev) dateRev.innerText = 'In Progress';
+            const finalNode = document.getElementById('date-final');
+            if (finalNode) finalNode.innerText = '--';
         }
         else if (statusLower === 'approved' || statusLower === 'rejected' || statusLower === 'grantee' || statusLower === 'declined' || statusLower === 'revoked') {
             if(stepRev) stepRev.classList.add('active');
-            if(stepFinal) stepFinal.classList.add('active');
+            if(stepFinal) {
+                stepFinal.classList.add('active');
+                if (statusLower === 'approved' || statusLower === 'grantee') {
+                    stepFinal.classList.add('step-approved');
+                } else {
+                    stepFinal.classList.add('step-rejected');
+                }
+            }
             if(line1) line1.classList.add('active');
             if(line2) line2.classList.add('active');
             
+            const dateRev = document.getElementById('date-review');
+            if (dateRev) dateRev.innerText = 'Reviewed';
+
             const finalNode = document.getElementById('date-final');
-            if(finalNode) finalNode.innerText = 'Determined';
+            if(finalNode) {
+                if (statusLower === 'approved' || statusLower === 'grantee') {
+                    finalNode.innerText = 'Approved';
+                } else {
+                    finalNode.innerText = 'Rejected';
+                }
+            }
         }
+
+        refreshIcons();
     };
 
-    // --- MODAL: VIEW DETAILS (READ-ONLY) ---
+    // --- MODAL: VIEW DETAILS (Harmonized Nature Themed Modal) ---
     window.viewDetails = (appId) => {
         const app = applicationsData.find(a => a.id === appId);
         if (!app) return;
@@ -305,18 +379,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         const existingModal = document.getElementById('app-details-modal');
         if (existingModal) existingModal.remove();
 
-        const statusColor = (app.status === 'Approved' || app.status === 'Grantee') ? '#166534' : ((app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') ? '#991b1b' : '#b45309');
-        const statusBg = (app.status === 'Approved' || app.status === 'Grantee') ? '#dcfce7' : ((app.status === 'Rejected' || app.status === 'Declined' || app.status === 'Revoked') ? '#fee2e2' : '#fef3c7');
-        const displayStatus = (app.status === 'Pending' || app.status === 'Under Review') ? 'Under Review' : (app.status === 'Grantee' ? 'Approved' : (app.status === 'Declined' ? 'Rejected' : app.status));
+        let badgeClass = 'badge-review';
+        let displayStatus = 'Under Review';
+        const statusLower = (app.status || 'pending').toLowerCase();
 
-        // FIX: Ensure the modal title reads outside programs properly
-        const modalTitle = app.scholarships?.title || app.outside_assistance_name || 'Program Application';
+        if (statusLower === 'approved' || statusLower === 'grantee') {
+            badgeClass = 'badge-approved';
+            displayStatus = 'Approved';
+        } else if (statusLower === 'rejected' || statusLower === 'declined') {
+            badgeClass = 'badge-rejected';
+            displayStatus = 'Rejected';
+        } else if (statusLower === 'revoked') {
+            badgeClass = 'badge-rejected';
+            displayStatus = 'Revoked';
+        }
 
-        // 1. Applicant Profile
+        const modalTitle = app.scholarships?.title || app.outside_assistance_name || 'Educational Assistance Application';
+
+        // Rejection Reason Alert Card (If application was rejected or remarks present)
+        let rejectionAlertHTML = '';
+        if (statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked' || (app.remarks && app.remarks.trim())) {
+            const finalReasonText = app.remarks && app.remarks.trim()
+                ? app.remarks.trim()
+                : 'Your application was not approved during evaluation. Please contact your scholarship coordinator for more details.';
+
+            rejectionAlertHTML = `
+                <div class="modal-rejection-box" style="margin-bottom: 24px;">
+                    <div class="modal-rejection-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="x-circle" style="width: 18px; height: 18px; color: var(--danger-color);"></i>
+                            <strong style="color: var(--danger-color); font-size: 14.5px;">Application Decision: Rejected</strong>
+                        </div>
+                        <span class="modal-rejection-tag">Evaluation Outcome</span>
+                    </div>
+                    <div class="modal-rejection-body">
+                        <div class="modal-rejection-label">Reason for Rejection:</div>
+                        <p class="modal-rejection-text">${finalReasonText}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 1. Applicant Profile Data
         const fname = currentProfile?.first_name || '';
         const mname = currentProfile?.middle_name || '';
         const lname = currentProfile?.last_name || '';
-        const name = `${fname} ${mname ? mname + ' ' : ''}${lname}`.trim();
+        const name = `${fname} ${mname ? mname + ' ' : ''}${lname}`.trim() || 'Student Name';
         
         const sid = currentProfile?.id_number || 'N/A';
         const email = currentProfile?.email || 'N/A';
@@ -328,21 +436,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const yearLevel = currentProfile?.year_level || 'N/A';
 
         let profileHTML = `
-            <div style="background:#fff; border:1px solid var(--border-dark); border-top: 8px solid #3b82f6; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Student ID:</strong> <span style="color:#475569">${sid}</span></div>
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Email:</strong> <span style="color:#475569">${email}</span></div>
+            <div class="modal-profile-box">
+                <div class="modal-profile-grid">
+                    <div class="profile-field-row"><strong>Student ID:</strong> <span>${sid}</span></div>
+                    <div class="profile-field-row"><strong>Email:</strong> <span>${email}</span></div>
                     
-                    <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Full Name:</strong> <span style="color:#475569">${name}</span></div>
+                    <div class="profile-field-row" style="grid-column: 1 / -1;"><strong>Full Name:</strong> <span>${name}</span></div>
                     
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Date of Birth:</strong> <span style="color:#475569">${dob}</span></div>
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Gender:</strong> <span style="color:#475569">${gender}</span></div>
+                    <div class="profile-field-row"><strong>Date of Birth:</strong> <span>${dob}</span></div>
+                    <div class="profile-field-row"><strong>Gender:</strong> <span>${gender}</span></div>
                     
-                    <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Contact Number:</strong> <span style="color:#475569">${contact}</span></div>
-                    <div style="font-size: 14px; color: #0f172a; grid-column: 1 / -1;"><strong>Address:</strong> <span style="color:#475569">${address}</span></div>
+                    <div class="profile-field-row" style="grid-column: 1 / -1;"><strong>Contact Number:</strong> <span>${contact}</span></div>
+                    <div class="profile-field-row" style="grid-column: 1 / -1;"><strong>Address:</strong> <span>${address}</span></div>
                     
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Program:</strong> <span style="color:#475569">${program}</span></div>
-                    <div style="font-size: 14px; color: #0f172a;"><strong>Year Level:</strong> <span style="color:#475569">${yearLevel}</span></div>
+                    <div class="profile-field-row"><strong>Program:</strong> <span>${program}</span></div>
+                    <div class="profile-field-row"><strong>Year Level:</strong> <span>${yearLevel}</span></div>
                 </div>
             </div>
         `;
@@ -352,17 +460,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (app.form_responses && Object.keys(app.form_responses).length > 0) {
             for (const [question, answer] of Object.entries(app.form_responses)) {
                 formFieldsHTML += `
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-left: 4px solid var(--primary-color); border-radius:6px; padding:16px; margin-bottom:15px;">
-                        <div style="font-weight:600; font-size:14px; margin-bottom:8px; color:#1e293b;">${question}</div>
-                        <div style="font-size:14px; color:#475569;">${answer || '<span style="font-style:italic;">No response provided</span>'}</div>
+                    <div class="modal-response-box">
+                        <div class="modal-response-question">${question}</div>
+                        <div class="modal-response-answer">${answer || '<span style="font-style:italic; opacity:0.7;">No response provided</span>'}</div>
                     </div>
                 `;
             }
         } else {
-            formFieldsHTML = '<div style="padding: 15px; background: #f1f5f9; border-radius: 6px; color: var(--text-muted); font-size: 13px; text-align:center;">No questionnaire responses for this application.</div>';
+            formFieldsHTML = '<div style="padding: 16px; background: var(--bg-card-secondary); border-radius: 10px; color: var(--text-muted); font-size: 13.5px; text-align: center; border: 1px solid var(--border-color);">No questionnaire responses for this application.</div>';
         }
 
-        // 3. Document Uploads & OCR
+        // 3. Document Uploads & AI Verification
         let docsHTML = '';
         if (app.documents && app.documents.length > 0) {
             app.documents.forEach(doc => {
@@ -370,20 +478,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let previewContent = '';
                 
                 const fullViewLink = fileUrl 
-                    ? `<a href="${fileUrl}" target="_blank" style="font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-expand"></i> Full View</a>` 
+                    ? `<a href="${fileUrl}" target="_blank" class="modal-doc-link"><i data-lucide="external-link"></i> Full View</a>` 
                     : '';
 
                 if (fileUrl) {
                     if (fileUrl.toLowerCase().split('?')[0].endsWith('.pdf')) {
-                        previewContent = `<iframe src="${fileUrl}#toolbar=0" style="width:100%; height:350px; border:none; display:block;"></iframe>`;
+                        previewContent = `<iframe src="${fileUrl}#toolbar=0" style="width:100%; height:320px; border:none; display:block; border-radius: 8px;"></iframe>`;
                     } else {
-                        previewContent = `<img src="${fileUrl}" style="width:100%; max-height:350px; object-fit:contain; display:block; margin: 0 auto;">`;
+                        previewContent = `<img src="${fileUrl}" style="width:100%; max-height:320px; object-fit:contain; display:block; margin: 0 auto; border-radius: 8px;">`;
                     }
                 } else {
                     previewContent = `
-                        <div style="padding:40px 20px; text-align:center; color:#64748b;">
-                            <i class="fa-solid fa-file-circle-xmark" style="font-size:24px; margin-bottom:10px;"></i>
-                            <strong style="display:block; margin-bottom:4px;">File not available</strong>
+                        <div style="padding:40px 20px; text-align:center; color: var(--text-muted);">
+                            <i data-lucide="file-x" style="width:32px; height:32px; margin: 0 auto 10px; display:block;"></i>
+                            <strong style="display:block;">File preview not available</strong>
                         </div>`;
                 }
 
@@ -400,7 +508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     return Object.entries(item).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
                                 }
                                 return item;
-                            }).join('<div style="height:1px; background:#e2e8f0; margin:6px 0;"></div>');
+                            }).join('<div style="height:1px; background:var(--border-color); margin:6px 0;"></div>');
                             
                         } else if (typeof value === 'object' && value !== null) {
                             displayValue = Object.entries(value).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
@@ -409,17 +517,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
 
                         liHtml += `
-                            <li style="background:#fff; border:1px solid #e2e8f0; padding:8px 10px; border-radius:4px; margin-bottom:8px;">
-                                <span style="display:block; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; margin-bottom:4px;">${key}</span>
-                                <div style="color:#1e293b; font-weight:400; font-size:12px; line-height:1.4;">${displayValue}</div>
+                            <li style="background:var(--bg-card-secondary); border:1px solid var(--border-color); padding:8px 12px; border-radius:6px; margin-bottom:8px;">
+                                <span style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:3px;">${key}</span>
+                                <div style="color:var(--text-heading); font-weight:500; font-size:12.5px; line-height:1.4;">${displayValue}</div>
                             </li>
                         `;
                     }
                     
                     extractedDataHtml = `
-                        <div class="ai-data-box" style="flex: 1; min-width: 250px; max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; padding: 15px; font-size: 13px;">
-                            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                                <strong style="color:#0f172a; font-size:13px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#10b981;"></i> AI Extracted Information</strong>
+                        <div class="modal-ai-box" style="flex: 1; min-width: 260px; max-height: 320px; overflow-y: auto;">
+                            <div class="modal-ai-box-title">
+                                <i data-lucide="sparkles"></i> AI Extracted Information
                             </div>
                             <ul style="padding-left:0; margin:0; list-style:none; display:flex; flex-direction:column;">
                                 ${liHtml}
@@ -429,13 +537,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 docsHTML += `
-                    <div style="background:#fff; border:1px solid var(--border-dark); border-radius:12px; padding:20px; margin-bottom:20px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                            <div style="font-weight:600; font-size:14px; color:var(--text-main);"><i class="fa-solid fa-paperclip"></i> ${doc.name || 'Requirement'}</div>
+                    <div class="modal-doc-card">
+                        <div class="modal-doc-header">
+                            <div class="modal-doc-title"><i data-lucide="paperclip"></i> ${doc.name || 'Submitted Document'}</div>
                             ${fullViewLink}
                         </div>
-                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                            <div style="flex: 1; min-width: 250px; border: 1px solid var(--border-dark); border-radius: 8px; overflow: hidden; background:#f8fafc;">
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 260px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: var(--bg-card);">
                                 ${previewContent}
                             </div>
                             ${extractedDataHtml}
@@ -444,49 +552,64 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
             });
         } else {
-            docsHTML = '<div style="padding: 15px; background: #f1f5f9; border-radius: 6px; color: var(--text-muted); font-size: 13px; text-align:center;">No documents uploaded.</div>';
+            docsHTML = '<div style="padding: 16px; background: var(--bg-card-secondary); border-radius: 10px; color: var(--text-muted); font-size: 13.5px; text-align: center; border: 1px solid var(--border-color);">No documents uploaded for this application.</div>';
         }
 
         const modalHTML = `
-            <div id="app-details-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter: blur(2px);">
-                <div style="background:#ffffff; width:90%; max-width:750px; max-height:85vh; overflow-y:auto; border-radius:12px; padding:30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <div id="app-details-modal" class="modal-overlay-custom">
+                <div class="modal-dialog-custom">
                     
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border-color); padding-bottom:15px; margin-bottom:25px;">
+                    <div class="modal-header-custom">
                         <div>
-                            <h2 style="margin:0; font-size:20px; color:var(--text-main); font-weight:700;">${modalTitle}</h2>
-                            <div style="display:flex; align-items:center; gap: 10px; margin-top: 8px;">
-                                <span style="font-size:13px; color:var(--text-muted);">Application ID: ${app.id.substring(0, 8).toUpperCase()}</span>
-                                <span style="background:${statusBg}; color:${statusColor}; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:12px;">${displayStatus}</span>
+                            <h2>${modalTitle}</h2>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                                <span style="font-size: 13px; color: var(--text-muted);">Application ID: ${app.id.substring(0, 8).toUpperCase()}</span>
+                                <span class="badge-status ${badgeClass}">${displayStatus}</span>
                             </div>
                         </div>
-                        <button onclick="document.getElementById('app-details-modal').remove()" style="background:none; border:none; font-size:20px; color:#94a3b8; cursor:pointer; line-height:1;"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="modal-close-btn" onclick="document.getElementById('app-details-modal').remove()" aria-label="Close modal">
+                            <i data-lucide="x"></i>
+                        </button>
                     </div>
 
-                    <div style="margin-bottom:30px;">
-                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;"><i class="fa-solid fa-address-card"></i> Applicant Profile</h3>
-                        ${profileHTML}
-                    </div>
+                    <div class="modal-body-custom">
+                        ${rejectionAlertHTML}
 
-                    <div style="margin-bottom:30px;">
-                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;"><i class="fa-solid fa-clipboard-question"></i> Questionnaire Responses</h3>
-                        <div id="read-only-form-fields">
-                            ${formFieldsHTML}
+                        <div style="margin-bottom: 26px;">
+                            <h3 class="modal-section-title"><i data-lucide="user"></i> Applicant Profile</h3>
+                            ${profileHTML}
+                        </div>
+
+                        <div style="margin-bottom: 26px;">
+                            <h3 class="modal-section-title"><i data-lucide="clipboard-list"></i> Questionnaire Responses</h3>
+                            <div id="read-only-form-fields">
+                                ${formFieldsHTML}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <h3 class="modal-section-title"><i data-lucide="file-check"></i> Submitted Documents & AI Verification</h3>
+                            ${docsHTML}
                         </div>
                     </div>
 
-                    <div style="margin-bottom:25px;">
-                        <h3 style="font-size:15px; color:var(--text-main); margin-bottom:15px;"><i class="fa-solid fa-file-invoice"></i> Submitted Documents & AI Verification</h3>
-                        ${docsHTML}
-                    </div>
-
-                    <div style="display:flex; justify-content:flex-end; border-top:1px solid var(--border-color); padding-top:20px;">
-                        <button type="button" onclick="document.getElementById('app-details-modal').remove()" style="padding:10px 24px; border:none; background:var(--primary-color); color:#fff; font-weight:600; border-radius:6px; cursor:pointer; transition:0.2s;">Close View</button>
+                    <div class="modal-footer-custom">
+                        <button type="button" class="btn-modal-close" onclick="document.getElementById('app-details-modal').remove()">Close View</button>
                     </div>
                 </div>
             </div>
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+        refreshIcons();
+
+        // Close on overlay backdrop click
+        const modalEl = document.getElementById('app-details-modal');
+        if (modalEl) {
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) modalEl.remove();
+            });
+        }
     };
 
     // Boot

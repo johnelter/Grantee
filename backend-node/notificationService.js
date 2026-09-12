@@ -127,9 +127,12 @@ function getNotificationMetadata(eventType, resourceId) {
         case 'BENEFICIARY_UPDATE':
         case 'DECISION_MADE':
             type = 'status'; priority = 'low'; actionLink = `admin-active-scholars.html${idParam}`; break;
-        case 'EDUCATIONAL_ASSISTANCE_CLOSED':
-            type = 'alert'; priority = 'low'; actionLink = `admin-scholarships.html${idParam}`; break;
-
+        case 'APPLICATION_REJECTED':
+            type = 'application'; priority = 'high'; actionLink = resourceId ? `student-applications.html?app_id=${resourceId}` : `student-applications.html`; break;
+        case 'APPLICATION_APPROVED':
+            type = 'application'; priority = 'low'; actionLink = resourceId ? `student-applications.html?app_id=${resourceId}` : `student-applications.html`; break;
+        case 'applications':
+            type = 'application'; priority = 'high'; actionLink = resourceId ? `student-applications.html?app_id=${resourceId}` : `student-applications.html`; break;
 
         default:
             type = 'system'; priority = 'low'; actionLink = '#';

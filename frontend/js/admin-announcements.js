@@ -3,6 +3,97 @@
     document.querySelectorAll('form').forEach(f => f.addEventListener('submit', e => e.preventDefault()));
 
     // ==========================================
+    // UI TOAST HELPER (TOP CENTER - EXACT DESIGN)
+    // ==========================================
+    function showUIToast(type = 'success', title = '', message = '') {
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        // Clean & normalize type
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        // SVGs matching the visual design reference
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Entrance animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        // Auto dismiss after 3.5 seconds
+        const autoDismissTimer = setTimeout(dismissToast, 3500);
+
+        // Pause on hover
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    }
+    window.showUIToast = showUIToast;
+    window.showToast = showUIToast;
+
+    // ==========================================
     // 1. AUTH CHECK & INITIALIZATION
     // ==========================================
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
@@ -27,6 +118,9 @@
                 currentAdminSchoolId = profile.school_id;
                 const schoolName = profile.schools ? profile.schools.name : 'Unassigned School';
                 const fullName = `${profile.first_name || 'Admin'} ${profile.last_name || ''}`.trim();
+
+                const headerTitles = document.getElementById('header-titles-box');
+                if (headerTitles) headerTitles.classList.remove('is-loading');
 
                 const headerName = document.getElementById('header-name');
                 if (headerName) headerName.innerText = fullName;
@@ -98,6 +192,8 @@
         document.getElementById('stat-drafts').innerText = drafts;
         document.getElementById('stat-archived').innerText = archived;
         document.getElementById('stat-comments').innerText = totalComments;
+
+        document.querySelectorAll('.stat-card.is-loading').forEach(c => c.classList.remove('is-loading'));
     }
 
     // ==========================================
@@ -209,7 +305,7 @@
     function renderAnnouncementsList(data) {
         if (!container) return;
         if (data.length === 0) {
-            container.innerHTML = `<div class="text-center text-muted" style="padding: 40px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #fff;">No announcements found.</div>`;
+            container.innerHTML = `<div class="text-center text-muted" style="padding: 40px; border: 1px dashed var(--border-color); border-radius: 12px; background: var(--card-bg);">No announcements found.</div>`;
             return;
         }
 
@@ -228,7 +324,7 @@
             const menuId = `menu-feed-${ann.id}`;
 
             let audienceStr = ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Enrolled Students' : 'Targeted';
-            let pinnedBadge = ann.is_pinned ? `<span style="background-color: #10b981; color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-thumbtack"></i> Pinned</span>` : '';
+            let pinnedBadge = ann.is_pinned ? `<span class="tag-pinned"><i data-lucide="pin"></i> Pinned</span>` : '';
 
             // Check if content is long to add "See more"
             let tempDiv = document.createElement("div");
@@ -236,22 +332,23 @@
             const plainText = tempDiv.textContent || tempDiv.innerText || "";
             const isLong = plainText.length > 250;
 
-            let catStyle = "border:1px solid #86efac; color:#16a34a; background:#f0fdf4;";
-            let catIcon = "fa-solid fa-bullhorn";
+            let catIcon = "megaphone";
+            let catClass = "cat-general";
             if (ann.category === 'Educational Assistance') {
-                catStyle = "border:1px solid #93c5fd; color:#1d4ed8; background:#eff6ff;";
-                catIcon = "fa-solid fa-graduation-cap";
+                catIcon = "graduation-cap";
+                catClass = "cat-assistance";
             } else if (ann.category === 'Reminder') {
-                catStyle = "border:1px solid #fde047; color:#a16207; background:#fefce8;";
-                catIcon = "fa-regular fa-clock";
+                catIcon = "clock";
+                catClass = "cat-reminder";
             } else if (ann.category === 'Event') {
-                catStyle = "border:1px solid #d8b4fe; color:#7e22ce; background:#faf5ff;";
-                catIcon = "fa-regular fa-calendar";
+                catIcon = "calendar";
+                catClass = "cat-event";
             }
 
-            const commentsBadgeStyle = ann.allow_comments !== false ?
-                "background:#dcfce7; color:#166534;" :
-                "background:#fee2e2; color:#991b1b;";
+            const statusClass = `tag-status-${(ann.status || 'draft').toLowerCase()}`;
+            const commentsPill = ann.allow_comments !== false ?
+                `<span class="tag-pill tag-comments comments-open"><i data-lucide="message-square"></i> Comments Open</span>` :
+                `<span class="tag-pill tag-comments comments-closed"><i data-lucide="lock"></i> Comments Closed</span>`;
 
             let coverHtml = window.generateImageGrid(ann.image_urls);
 
@@ -260,50 +357,61 @@
             card.dataset.id = ann.id;
 
             card.innerHTML = `
-                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 20px 20px 10px 20px;">
-                    <div class="card-meta-row" style="display:flex; align-items:center; gap:10px;">
-                        <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">${ann.status}</span>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <img src="${authorAvatar}" class="card-avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
-                            <span style="font-size:14px; font-weight:500; color:#475569;">${authorName}</span>
-                            <span style="color:#cbd5e1; font-size:10px;">&bull;</span>
-                            <span style="font-size:14px; color:#64748b;">${dateStr}</span>
+                <div class="card-header">
+                    <div class="card-author-group">
+                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                        <div class="card-author-meta">
+                            <div class="card-author-title-row">
+                                <span class="card-author-name">${authorName}</span>
+                                <span class="tag-status-pill ${statusClass}">${ann.status}</span>
+                                ${pinnedBadge}
+                            </div>
+                            <div class="card-author-date-row">
+                                <span class="card-post-date">${dateStr}</span>
+                            </div>
                         </div>
                     </div>
                     <div class="post-options-container">
-                        <button class="btn-option btn-menu-toggle" data-target="${menuId}" style="background:#fff; border:1px solid #e2e8f0; color:#475569; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display:flex; align-items:center; gap:6px; cursor:pointer;"><i class="fa-solid fa-ellipsis"></i> Options</button>
-                        <div class="post-options-menu" id="${menuId}" style="position:absolute; right:0; top:35px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); z-index:10; width:170px; overflow:hidden;">
-                            <button class="btn-edit-ann" data-id="${ann.id}"><i class="fa-solid fa-pen" style="width:16px;"></i> Edit</button>
-                            <button class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned}">${pinnedBadge}<i class="fa-solid fa-thumbtack" style="width:16px;"></i> ${ann.is_pinned ? 'Unpin' : 'Pin'}</button>
-                            <button class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i class="fa-solid fa-${ann.allow_comments !== false ? 'lock' : 'unlock'}" style="width:16px;"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
-                            <button class="btn-duplicate-ann" data-id="${ann.id}"><i class="fa-regular fa-copy" style="width:16px;"></i> Duplicate</button>
-                            ${ann.status === 'Archived' ? `<button class="btn-unarchive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-open" style="width:16px;"></i> Unarchive</button>` : `<button class="btn-archive-ann" data-id="${ann.id}"><i class="fa-solid fa-box-archive" style="width:16px;"></i> Archive</button>`}
-                            <button class="btn-delete-ann" data-id="${ann.id}" style="color:#ef4444;"><i class="fa-regular fa-trash-can" style="width:16px;"></i> Delete</button>
+                        <button type="button" class="btn-option btn-menu-toggle" data-target="${menuId}">
+                            <i data-lucide="more-horizontal"></i>
+                            <span>Options</span>
+                        </button>
+                        <div class="post-options-menu" id="${menuId}">
+                            <button type="button" class="btn-edit-ann" data-id="${ann.id}"><i data-lucide="edit-3"></i> Edit Announcement</button>
+                            <button type="button" class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned}"><i data-lucide="pin"></i> ${ann.is_pinned ? 'Unpin from Top' : 'Pin to Top'}</button>
+                            <button type="button" class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i data-lucide="${ann.allow_comments !== false ? 'lock' : 'unlock'}"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
+                            <button type="button" class="btn-duplicate-ann" data-id="${ann.id}"><i data-lucide="copy"></i> Duplicate</button>
+                            ${ann.status === 'Archived' ? `<button type="button" class="btn-unarchive-ann" data-id="${ann.id}"><i data-lucide="archive-restore"></i> Unarchive</button>` : `<button type="button" class="btn-archive-ann" data-id="${ann.id}"><i data-lucide="archive"></i> Archive</button>`}
+                            <div class="options-menu-divider"></div>
+                            <button type="button" class="btn-delete-ann" data-id="${ann.id}"><i data-lucide="trash-2"></i> Delete</button>
                         </div>
                     </div>
                 </div>
-                <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 10px 20px; flex-wrap:wrap;">
-                    ${pinnedBadge}
-                    <span style="border:1px solid #e2e8f0; color:#475569; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; text-transform:uppercase;"><i class="fa-solid fa-users"></i> ${audienceStr}</span>
-                    <span style="${catStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="${catIcon}"></i> ${ann.category || 'General'}</span>
-                    <span style="${commentsBadgeStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-${ann.allow_comments !== false ? 'comments' : 'lock'}"></i> ${ann.allow_comments !== false ? 'Comments Open' : 'Comments Closed'}</span>
+                <div class="card-tags-row">
+                    <span class="tag-pill tag-audience"><i data-lucide="users"></i> ${audienceStr}</span>
+                    <span class="tag-pill tag-category ${catClass}"><i data-lucide="${catIcon}"></i> ${ann.category || 'General'}</span>
+                    ${commentsPill}
                 </div>
-                <h3 class="card-title" style="margin: 0 20px 20px 20px; font-size: 20px;">${ann.title}</h3>
-                <div class="card-body" style="padding-top:0;">
+                <h3 class="card-title">${ann.title}</h3>
+                <div class="card-body">
                     <div class="card-text-content ${isLong ? 'card-text-truncated' : ''}" id="content-${ann.id}">
                         ${ann.content || ''}
                     </div>
-                    ${isLong ? `<button class="btn-see-more" id="btn-see-more-${ann.id}" onclick="toggleSeeMore('${ann.id}')">See more</button>` : ''}
+                    ${isLong ? `<button type="button" class="btn-see-more" id="btn-see-more-${ann.id}" onclick="toggleSeeMore('${ann.id}')">See more</button>` : ''}
                 </div>
                 ${coverHtml}
                 <div class="card-actions">
-                    <button class="btn-comment-action" onclick="window.selectAnnouncement('${ann.id}')">
-                        <i class="fa-regular fa-comment"></i> Comment (${commentCount})
+                    <button type="button" class="btn-comment-action" onclick="window.selectAnnouncement('${ann.id}')">
+                        <i data-lucide="message-square"></i> Comments (${commentCount})
                     </button>
                 </div>
             `;
             container.appendChild(card);
         });
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     // ==========================================
@@ -330,69 +438,69 @@
         let attachmentsHtml = '';
         if (ann.attachments && Array.isArray(ann.attachments) && ann.attachments.length > 0) {
             let filesListHtml = ann.attachments.map(file => `
-                <div class="attachment-box-readonly" style="padding: 10px; border: 1px solid var(--border-dark); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="file-info" style="display: flex; gap: 10px; align-items: center;">
-                        <i class="fa-solid fa-file-pdf" style="color: #ef4444; font-size: 20px;"></i>
+                <div class="attachment-box-readonly">
+                    <div class="file-info">
+                        <i data-lucide="file-text" class="file-icon"></i>
                         <div>
-                            <span class="file-name" title="${file.name}" style="display: block; font-size: 13px; font-weight: 600;">${file.name}</span>
-                            <span class="file-size" style="font-size: 11px; color: var(--text-muted);">${file.size || 'View File'}</span>
+                            <span class="file-name" title="${file.name}">${file.name}</span>
+                            <span class="file-size">${file.size || 'View File'}</span>
                         </div>
                     </div>
-                    <a href="${file.url}" target="_blank" class="btn-view-file" style="color: var(--primary-color);"><i class="fa-solid fa-eye"></i></a>
+                    <a href="${file.url}" target="_blank" class="btn-view-file" title="View Document"><i data-lucide="eye"></i></a>
                 </div>
             `).join('');
 
             attachmentsHtml = `
-                <div class="detail-attachments-section" style="padding: 0 20px 16px 20px;">
-                    <h4 class="detail-attachments-title" style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Attachments (${ann.attachments.length})</h4>
+                <div class="detail-attachments-section">
+                    <h4 class="detail-attachments-title">Attachments (${ann.attachments.length})</h4>
                     <div class="attachment-grid">${filesListHtml}</div>
                 </div>
             `;
         }
 
         let audienceStr = ann.audience_type === 'all_enrolled_students' || ann.audience_type === 'all_students' ? 'All Enrolled Students' : 'Targeted';
-        let pinnedBadge = ann.is_pinned ? `<span style="background-color: #10b981; color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-thumbtack"></i> Pinned</span>` : '';
+        let pinnedBadge = ann.is_pinned ? `<span class="tag-pinned"><i data-lucide="pin"></i> Pinned</span>` : '';
 
-        let catStyle = "border:1px solid #86efac; color:#16a34a; background:#f0fdf4;";
-        let catIcon = "fa-solid fa-bullhorn";
+        let catIcon = "megaphone";
+        let catClass = "cat-general";
         if (ann.category === 'Educational Assistance') {
-            catStyle = "border:1px solid #93c5fd; color:#1d4ed8; background:#eff6ff;";
-            catIcon = "fa-solid fa-graduation-cap";
+            catIcon = "graduation-cap";
+            catClass = "cat-assistance";
         } else if (ann.category === 'Reminder') {
-            catStyle = "border:1px solid #fde047; color:#a16207; background:#fefce8;";
-            catIcon = "fa-regular fa-clock";
+            catIcon = "clock";
+            catClass = "cat-reminder";
         } else if (ann.category === 'Event') {
-            catStyle = "border:1px solid #d8b4fe; color:#7e22ce; background:#faf5ff;";
-            catIcon = "fa-regular fa-calendar";
+            catIcon = "calendar";
+            catClass = "cat-event";
         }
 
-        const commentsBadgeStyle = ann.allow_comments !== false ?
-            "background:#dcfce7; color:#166534;" :
-            "background:#fee2e2; color:#991b1b;";
+        const statusClass = `tag-status-${(ann.status || 'draft').toLowerCase()}`;
+        const commentsPill = ann.allow_comments !== false ?
+            `<span class="tag-pill tag-comments comments-open"><i data-lucide="message-square"></i> Comments Open</span>` :
+            `<span class="tag-pill tag-comments comments-closed"><i data-lucide="lock"></i> Comments Closed</span>`;
 
-        // We re-use the exact same styling as the feed card for consistency
         detailContainer.innerHTML = `
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 20px 20px 10px 20px;">
-                <div class="card-meta-row" style="display:flex; align-items:center; gap:10px;">
-                    <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">${ann.status}</span>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <img src="${authorAvatar}" class="card-avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
-                        <span style="font-size:14px; font-weight:500; color:#475569;">${authorName}</span>
-                        <span style="color:#cbd5e1; font-size:10px;">&bull;</span>
-                        <span style="font-size:14px; color:#64748b;">${dateStr}</span>
+            <div class="card-header">
+                <div class="card-author-group">
+                    <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                    <div class="card-author-meta">
+                        <div class="card-author-title-row">
+                            <span class="card-author-name">${authorName}</span>
+                            <span class="tag-status-pill ${statusClass}">${ann.status}</span>
+                            ${pinnedBadge}
+                        </div>
+                        <div class="card-author-date-row">
+                            <span class="card-post-date">${dateStr}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="post-options-container">
-                    <button class="btn-option btn-menu-toggle" style="visibility:hidden; padding: 6px 12px;"><i class="fa-solid fa-ellipsis"></i> Options</button>
-                </div>
             </div>
-            <div class="card-tags-row" style="display:flex; gap:10px; margin: 0 20px 10px 20px; flex-wrap:wrap;">
-                ${pinnedBadge}
-                <span style="border:1px solid #e2e8f0; color:#475569; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; text-transform:uppercase;"><i class="fa-solid fa-users"></i> ${audienceStr}</span>
-                <span style="${catStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="${catIcon}"></i> ${ann.category || 'General'}</span>
-                <span style="${commentsBadgeStyle} padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-${ann.allow_comments !== false ? 'comments' : 'lock'}"></i> ${ann.allow_comments !== false ? 'Comments Open' : 'Comments Closed'}</span>
+            <div class="card-tags-row">
+                <span class="tag-pill tag-audience"><i data-lucide="users"></i> ${audienceStr}</span>
+                <span class="tag-pill tag-category ${catClass}"><i data-lucide="${catIcon}"></i> ${ann.category || 'General'}</span>
+                ${commentsPill}
             </div>
-            <h3 class="card-title" style="margin: 0 20px 20px 20px; font-size: 20px;">${ann.title}</h3>
+            <h3 class="card-title">${ann.title}</h3>
             <div class="card-body" style="padding-top:0; padding-bottom: 16px;">
                 <div class="card-text-content">
                     ${ann.content || ''}
@@ -403,6 +511,10 @@
         `;
 
         loadComments(ann.id, ann.allow_comments !== false);
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
 
         // Open the modal
         const viewModal = document.getElementById('view-announcement-modal');
@@ -454,6 +566,7 @@
         const editBtn = e.target.closest('.btn-edit-ann');
         if (editBtn) {
             e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
             window.editAnnouncement(editBtn.getAttribute('data-id'));
             return;
         }
@@ -461,6 +574,7 @@
         const pinBtn = e.target.closest('.btn-pin-ann');
         if (pinBtn) {
             e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
             window.togglePin(pinBtn.getAttribute('data-id'), pinBtn.getAttribute('data-pinned') === 'true');
             return;
         }
@@ -468,6 +582,7 @@
         const commBtn = e.target.closest('.btn-comments-ann');
         if (commBtn) {
             e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
             window.toggleCommentsStatus(commBtn.getAttribute('data-id'), commBtn.getAttribute('data-state') !== 'false');
             return;
         }
@@ -475,19 +590,31 @@
         const dupBtn = e.target.closest('.btn-duplicate-ann');
         if (dupBtn) {
             e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
             window.duplicateAnnouncement(dupBtn.getAttribute('data-id'));
             return;
         }
 
         const archiveBtn = e.target.closest('.btn-archive-ann');
-        if (archiveBtn) { e.preventDefault(); window.archiveAnnouncement(archiveBtn.getAttribute('data-id')); return; }
+        if (archiveBtn) {
+            e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.archiveAnnouncement(archiveBtn.getAttribute('data-id'));
+            return;
+        }
 
         const unarchiveBtn = e.target.closest('.btn-unarchive-ann');
-        if (unarchiveBtn) { e.preventDefault(); window.unarchiveAnnouncement(unarchiveBtn.getAttribute('data-id')); return; }
+        if (unarchiveBtn) {
+            e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.unarchiveAnnouncement(unarchiveBtn.getAttribute('data-id'));
+            return;
+        }
 
         const delBtn = e.target.closest('.btn-delete-ann');
         if (delBtn) {
             e.preventDefault();
+            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
             window.deleteAnnouncement(delBtn.getAttribute('data-id'));
             return;
         }
@@ -572,7 +699,7 @@
             imgContainer.innerHTML += `
                 <div class="edit-media-item">
                     <img src="${url}">
-                    <button type="button" onclick="removeEditingImage(${index})" title="Remove Image"><i class="fa-solid fa-times"></i></button>
+                    <button type="button" onclick="removeEditingImage(${index})" title="Remove Image"><i data-lucide="x"></i></button>
                 </div>
             `;
         });
@@ -581,8 +708,8 @@
         window.editingAttachments.forEach((file, index) => {
             fileContainer.innerHTML += `
                 <div class="edit-file-item">
-                    <span><i class="fa-solid fa-file"></i> ${file.name}</span>
-                    <button type="button" onclick="removeEditingFile(${index})" title="Remove File"><i class="fa-solid fa-times"></i></button>
+                    <span><i data-lucide="file-text"></i> ${file.name}</span>
+                    <button type="button" onclick="removeEditingFile(${index})" title="Remove File"><i data-lucide="x"></i></button>
                 </div>
             `;
         });
@@ -593,6 +720,10 @@
             newUrls = Array.from(imageUploadInput.files).map(f => URL.createObjectURL(f));
         }
         renderPreviewImageGrid([...window.editingImageUrls, ...newUrls]);
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     };
 
     window.removeEditingImage = (index) => { window.editingImageUrls.splice(index, 1); window.renderEditingMedia(); };
@@ -603,6 +734,7 @@
 
     imageUpload?.addEventListener('change', (e) => {
         const container = document.getElementById('new-image-preview-container');
+        if (!container) return;
         container.innerHTML = '';
         const files = e.target.files;
         const newUrls = [];
@@ -624,21 +756,25 @@
 
     fileUpload?.addEventListener('change', (e) => {
         const container = document.getElementById('new-file-preview-container');
+        if (!container) return;
         container.innerHTML = '';
         Array.from(e.target.files).forEach((file) => {
             const size = (file.size / 1024).toFixed(1) + ' KB';
             container.innerHTML += `
                 <div class="attachment-card-upload">
                     <div class="file-info">
-                        <i class="fa-solid fa-file-pdf" style="color:#ef4444; font-size:18px;"></i>
+                        <i data-lucide="file-text" style="color:var(--nature-primary); width:18px; height:18px;"></i>
                         <div style="display:flex; flex-direction:column;">
-                            <span style="font-size:12px; font-weight:600; color:#0f172a;">${file.name}</span>
-                            <span style="font-size:10px; color:#64748b;">${size} &bull; Ready to upload</span>
+                            <span style="font-size:12px; font-weight:600; color:var(--text-main);">${file.name}</span>
+                            <span style="font-size:10px; color:var(--text-muted);">${size} &bull; Ready to upload</span>
                         </div>
                     </div>
                 </div>
             `;
         });
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     });
 
     const titleInput = document.getElementById('ann-title');
@@ -654,10 +790,10 @@
         document.getElementById('preview-title').innerText = (titleInput?.value.trim()) || 'Announcement Title Will Appear Here';
 
         const catVal = categoryInput?.value || 'General';
-        let catIcon = '<i class="fa-solid fa-bullhorn"></i>';
-        if (catVal === 'Educational Assistance') catIcon = '<i class="fa-solid fa-graduation-cap"></i>';
-        if (catVal === 'Reminder') catIcon = '<i class="fa-regular fa-clock"></i>';
-        if (catVal === 'Event') catIcon = '<i class="fa-regular fa-calendar"></i>';
+        let catIcon = '<i data-lucide="megaphone"></i>';
+        if (catVal === 'Educational Assistance') catIcon = '<i data-lucide="graduation-cap"></i>';
+        if (catVal === 'Reminder') catIcon = '<i data-lucide="clock"></i>';
+        if (catVal === 'Event') catIcon = '<i data-lucide="calendar"></i>';
         document.getElementById('preview-category').innerHTML = `${catIcon} ${catVal}`;
 
         document.getElementById('preview-audience').innerText = (audienceInput?.value === 'all_enrolled_students' || audienceInput?.value === 'all_students') ? 'All Students' : 'Targeted';
@@ -666,8 +802,8 @@
         const commentsAllowed = commentsToggle?.checked !== false;
         const iconSpan = document.getElementById('preview-comment-icon');
         if (iconSpan) {
-            iconSpan.parentElement.style.color = commentsAllowed ? '#94a3b8' : '#ef4444';
-            iconSpan.parentElement.innerHTML = commentsAllowed ? '<i class="fa-regular fa-comment"></i> 0' : '<i class="fa-solid fa-lock"></i> Off';
+            iconSpan.parentElement.style.color = commentsAllowed ? 'var(--text-muted)' : 'var(--status-danger-text)';
+            iconSpan.parentElement.innerHTML = commentsAllowed ? '<i data-lucide="message-square"></i> 0' : '<i data-lucide="lock"></i> Off';
         }
 
         let excerpt = "Start writing content to see a preview of the excerpt...";
@@ -678,6 +814,10 @@
             if (excerpt.length > 80 && excerpt !== "Start writing content to see a preview of the excerpt...") excerpt = excerpt.substring(0, 80) + '...';
         }
         document.getElementById('preview-excerpt').innerText = excerpt;
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     [titleInput, contentInput].forEach(el => el?.addEventListener('input', updateLivePreview));
@@ -808,11 +948,11 @@
         const title = document.getElementById('ann-title').value.trim();
 
         if (!title || !contentHtml) {
-            Swal.fire({ icon: 'warning', title: 'Missing Details', text: 'Please provide both a title and content.' });
+            showUIToast('warning', 'Missing Details', 'Please provide both a title and content.');
             return;
         }
 
-        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+        btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
 
         try {
             let finalImageUrls = [...window.editingImageUrls];
@@ -876,12 +1016,13 @@
 
             const annModal = document.getElementById('announcement-modal');
             if (annModal) annModal.style.display = 'none';
-            Swal.fire({ icon: 'success', title: 'Saved!', timer: 1500, showConfirmButton: false });
+            showUIToast('success', 'Saved Successfully', id ? 'Announcement updated.' : 'Announcement published.');
             fetchAnnouncements();
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+            showUIToast('error', 'Error Saving', err.message);
         } finally {
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Announcement';
+            btn.disabled = false; btn.innerHTML = '<i data-lucide="check"></i> Save Announcement';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     });
 
@@ -914,7 +1055,7 @@
             if (replyBox) replyBox.style.display = 'block';
         }
 
-        commentsList.innerHTML = `<div class="text-center text-muted" style="padding: 20px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading comments...</div>`;
+        commentsList.innerHTML = `<div class="text-center text-muted" style="padding: 20px;"><span class="loading-spinner" style="display:inline-block; vertical-align:middle; margin-right:8px;"></span> Loading comments...</div>`;
 
         try {
             const { data, error } = await window.supabaseClient
@@ -960,15 +1101,15 @@
             else if (diffHrs > 0) timeString = diffHrs + "h ago";
             else timeString = diffMins === 0 ? "Just now" : diffMins + "m ago";
 
-            const pinnedLabel = c.is_pinned ? `<span style="color:#f59e0b; font-size:11px; margin-right:8px;"><i class="fa-solid fa-thumbtack"></i> Pinned</span>` : '';
-            const hiddenLabel = c.is_hidden ? `<span style="color:#ef4444; font-size:11px; margin-right:8px;"><i class="fa-solid fa-eye-slash"></i> Hidden</span>` : '';
+            const pinnedLabel = c.is_pinned ? `<span class="comment-status-pill pinned"><i data-lucide="pin"></i> Pinned</span>` : '';
+            const hiddenLabel = c.is_hidden ? `<span class="comment-status-pill hidden"><i data-lucide="eye-off"></i> Hidden</span>` : '';
 
             // Moderation Tools (ALWAYS DISPLAYED for Admin, regardless of who posted it)
             let modTools = `
-                <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-mod" style="color:${c.is_pinned ? '#64748b' : '#f59e0b'};" title="${c.is_pinned ? 'Unpin' : 'Pin'}"><i class="fa-solid fa-thumbtack"></i> ${c.is_pinned ? 'Unpin' : 'Pin'}</button>
-                <button onclick="toggleHideComment('${c.id}', ${c.is_hidden || false})" class="btn-comment-mod" style="color:#64748b;" title="${c.is_hidden ? 'Unhide' : 'Hide'} Comment"><i class="fa-solid fa-eye${c.is_hidden ? '' : '-slash'}"></i> ${c.is_hidden ? 'Unhide' : 'Hide'}</button>
-                ${isMe ? `<button onclick="editComment('${c.id}', '${c.content.replace(/'/g, "\\'")}')" class="btn-comment-mod" style="color:#3b82f6;" title="Edit"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
-                <button onclick="deleteComment('${c.id}')" class="btn-comment-mod text-red" title="Delete Permanently"><i class="fa-regular fa-trash-can" style="color:#ef4444;"></i> Delete</button>
+                <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-mod" style="color:${c.is_pinned ? 'var(--text-muted)' : 'var(--nature-accent)'};" title="${c.is_pinned ? 'Unpin' : 'Pin'}"><i data-lucide="pin"></i> ${c.is_pinned ? 'Unpin' : 'Pin'}</button>
+                <button onclick="toggleHideComment('${c.id}', ${c.is_hidden || false})" class="btn-comment-mod" title="${c.is_hidden ? 'Unhide' : 'Hide'} Comment"><i data-lucide="${c.is_hidden ? 'eye' : 'eye-off'}"></i> ${c.is_hidden ? 'Unhide' : 'Hide'}</button>
+                ${isMe ? `<button onclick="editComment('${c.id}', '${c.content.replace(/'/g, "\\'")}')" class="btn-comment-mod" title="Edit"><i data-lucide="edit-3"></i> Edit</button>` : ''}
+                <button onclick="deleteComment('${c.id}')" class="btn-comment-mod text-red" title="Delete Permanently"><i data-lucide="trash-2"></i> Delete</button>
             `;
 
             const hiddenStyling = c.is_hidden ? 'opacity: 0.6; filter: grayscale(50%);' : '';
@@ -978,13 +1119,13 @@
                 <div class="comment-item" style="${hiddenStyling}">
                     <img src="${avatarUrl}" class="comment-avatar" alt="User" onerror="this.src='assets/default-avatar.png'">
                     <div class="comment-body-wrapper" style="flex: 1;">
-                        <div class="comment-top-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                            <span class="comment-author" style="font-size:13px; font-weight:600; color:var(--text-main);">${isMe ? "You" : authorName} ${pinnedLabel} ${hiddenLabel}</span>
-                            <span class="comment-time" style="font-size:11px; color:#94a3b8;">${timeString}</span>
+                        <div class="comment-top-row">
+                            <span class="comment-author">${isMe ? "You" : authorName} ${pinnedLabel} ${hiddenLabel}</span>
+                            <span class="comment-time">${timeString}</span>
                         </div>
-                        <div class="comment-text" style="${c.is_hidden ? 'text-decoration: line-through; color: #94a3b8;' : 'font-size:13px; color:#334155; line-height:1.5;'}">${c.content}</div>
-                        <div class="comment-actions" style="display:flex; gap:12px; margin-top:6px; align-items:center;">
-                            <button class="btn-comment-mod" onclick="replyToUser('${rawNameForReply.replace(/'/g, "\\'").trim()}')"><i class="fa-regular fa-comment"></i> Reply</button>
+                        <div class="comment-text" style="${c.is_hidden ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${c.content}</div>
+                        <div class="comment-actions">
+                            <button class="btn-comment-mod" onclick="replyToUser('${rawNameForReply.replace(/'/g, "\\'").trim()}')"><i data-lucide="message-square"></i> Reply</button>
                             ${modTools}
                         </div>
                     </div>
@@ -994,6 +1135,10 @@
             commentsList.insertAdjacentHTML('beforeend', commentHtml);
         });
         commentsList.scrollTop = commentsList.scrollHeight;
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
     }
 
     window.replyToUser = (name) => {
@@ -1010,16 +1155,22 @@
             const annId = currentSelectedAnnId;
             const ann = allAnnouncements.find(a => a.id === annId);
             window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+            showUIToast('info', 'Visibility Updated', !currentState ? 'Comment hidden.' : 'Comment unhidden.');
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update visibility.' });
+            showUIToast('error', 'Error', 'Failed to update visibility.');
         }
     };
 
     window.pinComment = async (id, isPinned) => {
-        await window.supabaseClient.from('announcement_comments').update({ is_pinned: !isPinned }).eq('id', id);
-        const annId = currentSelectedAnnId;
-        const ann = allAnnouncements.find(a => a.id === annId);
-        window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+        try {
+            await window.supabaseClient.from('announcement_comments').update({ is_pinned: !isPinned }).eq('id', id);
+            const annId = currentSelectedAnnId;
+            const ann = allAnnouncements.find(a => a.id === annId);
+            window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+            showUIToast('success', !isPinned ? 'Comment Pinned' : 'Comment Unpinned', !isPinned ? 'Comment pinned to the top.' : 'Comment unpinned.');
+        } catch (err) {
+            showUIToast('error', 'Error', 'Failed to update comment pin.');
+        }
     };
 
     window.editComment = async (id, oldText) => {
@@ -1028,15 +1179,26 @@
             input: 'textarea',
             inputValue: oldText,
             showCancelButton: true,
-            confirmButtonColor: '#10b981',
-            customClass: { input: 'swal-custom-textarea' }
+            confirmButtonText: 'Save Changes',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'swal-nature-popup',
+                input: 'swal-custom-textarea',
+                confirmButton: 'swal-nature-confirm',
+                cancelButton: 'swal-nature-cancel'
+            }
         });
 
-        if (newText && newText !== oldText) {
-            await window.supabaseClient.from('announcement_comments').update({ content: newText }).eq('id', id);
-            const annId = currentSelectedAnnId;
-            const ann = allAnnouncements.find(a => a.id === annId);
-            window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+        if (newText !== undefined && newText !== null && newText.trim() !== '' && newText !== oldText) {
+            try {
+                await window.supabaseClient.from('announcement_comments').update({ content: newText.trim() }).eq('id', id);
+                const annId = currentSelectedAnnId;
+                const ann = allAnnouncements.find(a => a.id === annId);
+                window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+                showUIToast('success', 'Comment Updated', 'Your reply has been edited.');
+            } catch (err) {
+                showUIToast('error', 'Error', 'Failed to edit reply.');
+            }
         }
     };
 
@@ -1050,11 +1212,11 @@
 
         const moderation = moderateContent(text);
         if (!moderation.passed) {
-            Swal.fire({ icon: 'error', title: 'Violation Detected', text: moderation.reason });
+            showUIToast('error', 'Violation Detected', moderation.reason);
             return;
         }
 
-        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+        btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span>';
         try {
             const payload = { announcement_id: annId, user_id: adminId, content: text };
             await window.supabaseClient.from('announcement_comments').insert([payload]);
@@ -1062,10 +1224,12 @@
 
             const ann = allAnnouncements.find(a => a.id === annId);
             window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+            showUIToast('success', 'Comment Posted', 'Your reply has been posted.');
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to send reply.' });
+            showUIToast('error', 'Error', 'Failed to send reply.');
         } finally {
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            btn.disabled = false; btn.innerHTML = '<i data-lucide="send"></i>';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     });
 
@@ -1077,15 +1241,22 @@
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Yes, delete it!',
+            customClass: {
+                popup: 'swal-nature-popup'
+            }
         });
 
         if (confirmAction.isConfirmed) {
-            await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
-            const annId = currentSelectedAnnId;
-            const ann = allAnnouncements.find(a => a.id === annId);
-            window.loadComments(annId, ann ? ann.allow_comments !== false : true);
-            Swal.fire({ icon: 'success', title: 'Deleted', text: 'The comment has been removed.', timer: 1500, showConfirmButton: false });
+            try {
+                await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
+                const annId = currentSelectedAnnId;
+                const ann = allAnnouncements.find(a => a.id === annId);
+                window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+                showUIToast('success', 'Comment Deleted', 'The comment has been removed.');
+            } catch (err) {
+                showUIToast('error', 'Error', 'Failed to delete comment.');
+            }
         }
     };
 
@@ -1180,18 +1351,11 @@
         try {
             await window.supabaseClient.from('announcements').update({ is_pinned: !isPinned }).eq('id', id);
 
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: !isPinned ? 'Announcement pinned.' : 'Announcement unpinned.',
-                showConfirmButton: false,
-                timer: 2000
-            });
+            showUIToast('success', !isPinned ? 'Announcement Pinned' : 'Announcement Unpinned', !isPinned ? 'Announcement pinned to top.' : 'Announcement unpinned.');
             fetchAnnouncements();
         } catch (err) {
             console.error("Error toggling pin:", err);
-            Swal.fire('Error', 'Failed to update pin status.', 'error');
+            showUIToast('error', 'Error', 'Failed to update pin status.');
         }
     };
 
@@ -1199,99 +1363,33 @@
         try {
             await window.supabaseClient.from('announcements').update({ allow_comments: !currentStatus }).eq('id', id);
 
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: !currentStatus ? 'Comments enabled.' : 'Comments disabled.',
-                showConfirmButton: false,
-                timer: 2000
-            });
+            showUIToast('success', 'Comments Updated', !currentStatus ? 'Comments have been enabled.' : 'Comments have been disabled.');
             fetchAnnouncements();
         } catch (err) {
             console.error("Error toggling comments:", err);
-            Swal.fire('Error', 'Failed to update comment settings.', 'error');
+            showUIToast('error', 'Error', 'Failed to update comment settings.');
         }
     };
 
     window.archiveAnnouncement = async (id) => {
         try {
             await window.supabaseClient.from('announcements').update({ status: 'Archived' }).eq('id', id);
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Announcement archived.',
-                showConfirmButton: false,
-                timer: 2000
-            });
+            showUIToast('info', 'Announcement Archived', 'Post moved to archives.');
             fetchAnnouncements();
         } catch (err) {
             console.error("Error archiving:", err);
-            Swal.fire('Error', 'Failed to archive announcement.', 'error');
+            showUIToast('error', 'Error', 'Failed to archive announcement.');
         }
     };
 
     window.unarchiveAnnouncement = async (id) => {
         try {
             await window.supabaseClient.from('announcements').update({ status: 'Draft' }).eq('id', id);
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Announcement moved to drafts.',
-                showConfirmButton: false,
-                timer: 2000
-            });
+            showUIToast('success', 'Announcement Restored', 'Post restored to drafts.');
             fetchAnnouncements();
         } catch (err) {
             console.error("Error unarchiving:", err);
-            Swal.fire('Error', 'Failed to unarchive announcement.', 'error');
-        }
-    };
-
-    window.duplicateAnnouncement = async (id) => {
-        try {
-            const ann = allAnnouncements.find(a => a.id === id);
-            if (!ann) return;
-
-            const duplicate = {
-                title: ann.title + ' - Copy',
-                content: ann.content,
-                category: ann.category,
-                audience_type: ann.audience_type,
-                status: 'Draft',
-                allow_comments: ann.allow_comments,
-                is_pinned: false,
-                cover_image: ann.cover_image,
-                attachments: ann.attachments,
-                author_id: currentAdminId,
-                school_id: currentAdminSchoolId
-            };
-
-            const { data, error } = await window.supabaseClient.from('announcements').insert([duplicate]).select();
-            if (error) throw error;
-
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Announcement duplicated.',
-                showConfirmButton: false,
-                timer: 2000
-            });
-
-            fetchAnnouncements();
-
-            if (data && data[0]) {
-                setTimeout(() => {
-                    window.editAnnouncement(data[0].id);
-                }, 1000);
-            }
-
-        } catch (err) {
-            console.error("Error duplicating:", err);
-            Swal.fire('Error', 'Failed to duplicate announcement.', 'error');
+            showUIToast('error', 'Error', 'Failed to unarchive announcement.');
         }
     };
 
@@ -1303,7 +1401,10 @@
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Yes, delete it!',
+            customClass: {
+                popup: 'swal-nature-popup'
+            }
         });
 
         if (confirmDelete.isConfirmed) {
@@ -1312,14 +1413,7 @@
                 await window.supabaseClient.from('announcement_reads').delete().eq('announcement_id', id);
                 await window.supabaseClient.from('announcements').delete().eq('id', id);
 
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Announcement deleted.',
-                    showConfirmButton: false,
-                    timer: 2000
-                });
+                showUIToast('success', 'Announcement Deleted', 'Post has been permanently deleted.');
                 fetchAnnouncements();
 
                 const annModal = document.getElementById('announcement-modal');
@@ -1328,7 +1422,7 @@
                 }
             } catch (err) {
                 console.error("Error deleting:", err);
-                Swal.fire('Error', 'Failed to delete announcement.', 'error');
+                showUIToast('error', 'Error', 'Failed to delete announcement.');
             }
         }
     };

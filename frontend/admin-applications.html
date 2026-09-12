@@ -171,12 +171,61 @@
                             <p>Review applicant responses, verify submitted documents, and determine eligibility.</p>
                         </div>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                            <button class="btn-export" onclick="exportPendingList()">
-                                <i data-lucide="download" style="width: 14px; height: 14px;"></i> Export Pending
-                            </button>
-                            <button class="btn-export btn-export-approved" onclick="exportGranteeList()">
-                                <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i> Export Approved
-                            </button>
+                            <div class="export-dropdown-wrapper">
+                                <button type="button" id="export-dropdown-toggle" class="btn-outline export-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Export Options">
+                                    <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                    <span>Export</span>
+                                    <i data-lucide="chevron-down" class="export-chevron" style="width: 14px; height: 14px; margin-left: 2px;"></i>
+                                </button>
+                                <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
+                                    <button type="button" class="export-option-btn" onclick="exportAllApplicants('csv')" role="menuitem">
+                                        <div class="export-option-icon icon-csv">
+                                            <i data-lucide="file-spreadsheet"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export as CSV (Excel)</strong>
+                                            <small>All applicants with Evaluation Status</small>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="export-option-btn" onclick="exportAllApplicants('pdf')" role="menuitem">
+                                        <div class="export-option-icon icon-pdf">
+                                            <i data-lucide="file-text"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export as PDF Document</strong>
+                                            <small>All applicants with Evaluation Status</small>
+                                        </div>
+                                    </button>
+                                    <div class="export-dropdown-divider"></div>
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Pending')" role="menuitem">
+                                        <div class="export-option-icon" style="background: var(--metric-pending-bg); color: var(--metric-pending-color); border: 1px solid var(--metric-pending-border);">
+                                            <i data-lucide="clock"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export Pending Applicants</strong>
+                                            <small>Applications awaiting evaluation</small>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Approved')" role="menuitem">
+                                        <div class="export-option-icon" style="background: var(--metric-approved-bg); color: var(--metric-approved-color); border: 1px solid var(--metric-approved-border);">
+                                            <i data-lucide="check-circle-2"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export Approved Grantees</strong>
+                                            <small>Approved and selected scholars</small>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Rejected')" role="menuitem">
+                                        <div class="export-option-icon" style="background: var(--metric-rejected-bg); color: var(--danger-color); border: 1px solid var(--metric-rejected-border);">
+                                            <i data-lucide="x-circle"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export Rejected Applicants</strong>
+                                            <small>Declined and rejected records</small>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -196,13 +245,9 @@
                             <span>Rejected</span>
                             <span class="tab-badge-count" id="tab-count-rejected">0</span>
                         </button>
-                        <button id="tab-evaluate-applicant" class="tab-btn" style="display: none;" onclick="switchTab('Individual')">
-                            <i data-lucide="user-check" style="width: 15px; height: 15px;"></i>
-                            <span>Evaluate Applicant</span>
-                        </button>
                     </div>
 
-                    <!-- Sub-view A: Table List -->
+                    <!-- Applicants Table List Panel -->
                     <div class="table-panel" id="table-view-container">
                         <div class="table-controls">
                             <div class="count-pill" id="table-count-label">Total Pending: 0</div>
@@ -248,33 +293,51 @@
                         </div>
                     </div>
 
-                    <!-- Sub-view B: Individual App View -->
-                    <div id="individual-view-container" style="display: none;">
-                        <div class="individual-controls">
-                            <div class="individual-select-group">
-                                <label class="individual-select-label">
-                                    <i data-lucide="user" style="width: 15px; height: 15px; color: var(--moss-green);"></i> Select Applicant:
-                                </label>
-                                <select id="individual-applicant-select" class="filter-select" onchange="renderIndividualApp(this.value)"></select>
-                            </div>
-                            <div class="individual-action-buttons">
-                                <button class="btn-reject" id="indiv-btn-reject">
-                                    <i data-lucide="x" style="width: 14px; height: 14px;"></i> Decline
-                                </button>
-                                <button class="btn-approve" id="indiv-btn-approve">
-                                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> Select as Grantee
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="gform-container" id="gform-content">
-                            <!-- JS injects the detailed applicant view here -->
-                        </div>
-                    </div>
-
                 </div>
             </div> <!-- END content-wrapper -->
         </main>
+    </div>
+
+    <!-- APPLICANT RESPONSE & EVALUATION MODAL -->
+    <div id="applicant-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog-responsive" id="applicant-modal-dialog">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <div class="modal-header-icon">
+                        <i data-lucide="file-text" style="width: 22px; height: 22px; color: var(--moss-green);"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-applicant-name" class="modal-title">Applicant Responses</h3>
+                        <p id="modal-applicant-meta" class="modal-subtitle">Review submitted answers and attached requirements</p>
+                    </div>
+                </div>
+                <div class="modal-header-actions">
+                    <span id="modal-status-badge" class="badge-status badge-pending">
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending
+                    </span>
+                    <button type="button" class="modal-close-btn" id="modal-close-btn" onclick="closeApplicantModal()" aria-label="Close modal" title="Close">
+                        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="modal-body" id="modal-applicant-body">
+                <!-- Dynamic applicant details, responses & documents injected here -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer" id="modal-applicant-footer">
+                <div class="modal-footer-meta" id="modal-submitted-date">
+                    <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                    <span id="modal-date-text">Applied on: N/A</span>
+                </div>
+                <div class="modal-footer-buttons" id="modal-action-buttons">
+                    <!-- Dynamic Action Buttons rendered via JS -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- LOGOUT MODAL -->

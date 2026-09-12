@@ -8,8 +8,12 @@
     let notifChannel = null;
     let isInitialized = false;
 
-    // Helper to determine redirect URL based on keywords
+    // Helper to determine redirect URL based on action_link or keywords
     function getRedirectUrl(notification) {
+        if (notification.action_link && notification.action_link !== '#' && !notification.action_link.startsWith('http://localhost')) {
+            return notification.action_link;
+        }
+
         const title = (notification.title || '').toLowerCase();
         const msg = (notification.message || '').toLowerCase();
         const combined = title + ' ' + msg;
@@ -62,7 +66,7 @@
 
             if (!notifications || notifications.length === 0) {
                 if (notifList) {
-                    notifList.innerHTML = '<div style="padding: 24px 16px; text-align: center; color: #64748b; font-size: 13px;">No new notifications</div>';
+                    notifList.innerHTML = '<div class="notification-empty">No new notifications</div>';
                 }
                 if (notifBadge) notifBadge.style.display = 'none';
                 sessionStorage.setItem('grantee_notif_unread', '0');
@@ -84,38 +88,29 @@
             if (notifList) {
                 notifList.innerHTML = notifications.map(n => {
                     const redirectUrl = getRedirectUrl(n);
-                    const bgStyle = n.is_read ? '#ffffff' : '#f8fafc';
-                    const indicator = n.is_read ? '' : '<span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; margin-right:8px; flex-shrink:0;"></span>';
+                    const readClass = n.is_read ? 'notification-read' : 'notification-unread';
+                    const indicator = n.is_read ? '' : '<span class="notification-dot"></span>';
                     
                     return `
-                    <div class="notification-item" data-id="${n.id}" data-url="${redirectUrl}" style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: ${bgStyle}; text-align: left; cursor: pointer; transition: background 0.2s;" data-read="${n.is_read}">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                            <strong style="display: flex; align-items: center; font-size: 13px; color: #0f172a; line-height: 1.3;">
+                    <div class="notification-item ${readClass}" data-id="${n.id}" data-url="${redirectUrl}" data-read="${n.is_read}">
+                        <div class="notification-item-header">
+                            <strong class="notification-title">
                                 ${indicator}${n.title || 'Notification'}
                             </strong>
-                            <span style="font-size: 10px; color: #94a3b8; white-space: nowrap;">
+                            <span class="notification-time">
                                 ${new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric' })}
                             </span>
                         </div>
-                        <p style="margin: 4px 0 0; font-size: 12px; color: #475569; line-height: 1.45;">${n.message}</p>
+                        <p class="notification-message">${n.message}</p>
                     </div>
                     `;
                 }).join('');
-
-                // Hover effects
-                const items = notifList.querySelectorAll('.notification-item');
-                items.forEach(item => {
-                    item.addEventListener('mouseenter', () => { item.style.background = '#f1f5f9'; });
-                    item.addEventListener('mouseleave', () => { 
-                        item.style.background = item.getAttribute('data-read') === 'true' ? '#ffffff' : '#f8fafc'; 
-                    });
-                });
             }
 
         } catch (err) {
             console.error("Error loading notifications:", err);
             if (notifList) {
-                notifList.innerHTML = '<div style="padding: 16px; text-align: center; color: #ef4444; font-size: 13px;">Error loading notifications.</div>';
+                notifList.innerHTML = '<div class="notification-empty is-error">Error loading notifications.</div>';
             }
         }
     }
@@ -169,8 +164,9 @@
                                         if (notifDropdown) {
                                             notifDropdown.querySelectorAll('.notification-item').forEach(el => {
                                                 el.setAttribute('data-read', 'true');
-                                                el.style.background = '#ffffff';
-                                                const dot = el.querySelector('strong span');
+                                                el.classList.remove('notification-unread');
+                                                el.classList.add('notification-read');
+                                                const dot = el.querySelector('.notification-dot');
                                                 if (dot) dot.remove();
                                             });
                                         }

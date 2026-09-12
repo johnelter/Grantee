@@ -7,19 +7,20 @@
     <title>Announcements - Grantee Admin</title>
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
 
-    <!-- Global & Page CSS -->
-    <link rel="stylesheet" href="css/admin-global.css">
-    <link rel="stylesheet" href="css/admin-announcements.css">
-
-    <!-- FontAwesome for Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 for Modals -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Tailwind CSS (Required for the dynamic JS classes in notifications) -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Global & Page CSS -->
+    <link rel="stylesheet" href="css/admin-global.css">
+    <link rel="stylesheet" href="css/admin-announcements.css">
 
     <!-- Immediate Theme Application to Avoid Flash -->
     <script>
@@ -46,6 +47,7 @@
 <body>
     <div class="app-layout">
         <!-- DYNAMIC SIDEBAR INJECTION POINT -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
         <div id="sidebar-container"></div>
 
         <main class="main-content">
@@ -53,13 +55,11 @@
             <header class="top-header">
                 <!-- Titles Section -->
                 <div class="header-titles-wrapper">
-                    <div class="header-titles">
+                    <div class="header-titles is-loading" id="header-titles-box">
                         <h1 class="page-title">Manage Announcements</h1>
                         <p class="welcome-text">Create, manage, and publish announcements for students.</p>
-                        <p id="admin-school-display"
-                            class="text-sm text-emerald-600 mt-1 font-medium flex items-center gap-1.5">
-                            <i data-lucide="school"
-                                style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                        <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
+                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
                     </div>
@@ -68,8 +68,7 @@
                 <!-- Actions Section -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
-                        title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
@@ -84,96 +83,93 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
-                                style="width: 14px; height: 14px;"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i data-lucide="user"
-                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
-                                Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
                             <div class="dropdown-divider"></div>
                             <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger">
-                                <i data-lucide="log-out"
-                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
-                                Logout
+                                <i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout
                             </a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
-                        aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
                         <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
             </header>
 
             <div class="content-wrapper">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <div></div>
-                    <button class="btn-primary" id="btn-trigger-post"
-                        style="display: inline-flex; align-items: center; gap: 8px;">
-                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Create Announcement
+                <!-- Action Header Row -->
+                <div class="action-header-row">
+                    <div class="action-header-left">
+                        <h2 class="section-title">Announcement Feed</h2>
+                        <p class="section-subtitle">Broadcast updates, schedules, and reminders</p>
+                    </div>
+                    <button class="btn-primary" id="btn-trigger-post">
+                        <i data-lucide="plus"></i> <span>Create Announcement</span>
                     </button>
                 </div>
 
-                <!-- STATS CARDS ROW -->
+                <!-- STATS CARDS ROW (With Nature Palette & Skeleton Loading) -->
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card is-loading" id="card-stat-total">
                         <div class="stat-info">
                             <span class="stat-label">Total Announcements</span>
-                            <h2 class="stat-value" id="stat-total">0</h2>
+                            <h2 class="stat-value" id="stat-total">&nbsp;</h2>
                             <span class="stat-sub">All time</span>
                         </div>
-                        <div class="stat-icon icon-green"><i class="fa-solid fa-file-lines"></i></div>
+                        <div class="stat-icon icon-total"><i data-lucide="file-text"></i></div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card is-loading" id="card-stat-published">
                         <div class="stat-info">
                             <span class="stat-label">Published</span>
-                            <h2 class="stat-value" id="stat-published">0</h2>
-                            <span class="stat-sub">Active</span>
+                            <h2 class="stat-value" id="stat-published">&nbsp;</h2>
+                            <span class="stat-sub">Active & visible</span>
                         </div>
-                        <div class="stat-icon icon-blue"><i class="fa-solid fa-paper-plane"></i></div>
+                        <div class="stat-icon icon-published"><i data-lucide="send"></i></div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card is-loading" id="card-stat-scheduled">
                         <div class="stat-info">
                             <span class="stat-label">Scheduled</span>
-                            <h2 class="stat-value" id="stat-scheduled">0</h2>
-                            <span class="stat-sub">Upcoming</span>
+                            <h2 class="stat-value" id="stat-scheduled">&nbsp;</h2>
+                            <span class="stat-sub">Upcoming posts</span>
                         </div>
-                        <div class="stat-icon icon-yellow"><i class="fa-regular fa-calendar-check"></i></div>
+                        <div class="stat-icon icon-scheduled"><i data-lucide="calendar-clock"></i></div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card is-loading" id="card-stat-drafts">
                         <div class="stat-info">
                             <span class="stat-label">Drafts</span>
-                            <h2 class="stat-value" id="stat-drafts">0</h2>
+                            <h2 class="stat-value" id="stat-drafts">&nbsp;</h2>
                             <span class="stat-sub">Unpublished</span>
                         </div>
-                        <div class="stat-icon icon-gray"><i class="fa-solid fa-file-pen"></i></div>
+                        <div class="stat-icon icon-drafts"><i data-lucide="file-edit"></i></div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card is-loading" id="card-stat-archived">
                         <div class="stat-info">
                             <span class="stat-label">Archived</span>
-                            <h2 class="stat-value" id="stat-archived">0</h2>
-                            <span class="stat-sub">Total</span>
+                            <h2 class="stat-value" id="stat-archived">&nbsp;</h2>
+                            <span class="stat-sub">Closed / Expired</span>
                         </div>
-                        <div class="stat-icon icon-gray-dark"><i class="fa-solid fa-box-archive"></i></div>
+                        <div class="stat-icon icon-archived"><i data-lucide="archive"></i></div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card is-loading" id="card-stat-comments">
                         <div class="stat-info">
                             <span class="stat-label">Total Comments</span>
-                            <h2 class="stat-value" id="stat-comments">0</h2>
-                            <span class="stat-sub">All announcements</span>
+                            <h2 class="stat-value" id="stat-comments">&nbsp;</h2>
+                            <span class="stat-sub">Student queries</span>
                         </div>
-                        <div class="stat-icon icon-purple"><i class="fa-regular fa-comments"></i></div>
+                        <div class="stat-icon icon-comments"><i data-lucide="message-square"></i></div>
                     </div>
                 </div>
 
                 <!-- FILTER BAR -->
                 <div class="filter-bar">
                     <div class="search-box">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="search-input" class="filter-input" placeholder="Search announcements...">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="search-input" class="filter-input" placeholder="Search announcements by title or content...">
                     </div>
                     <select id="filter-category" class="filter-input">
                         <option value="all">All Categories</option>
@@ -186,7 +182,6 @@
                     <select id="filter-audience" class="filter-input">
                         <option value="all">All Audiences</option>
                         <option value="all_enrolled_students">All Enrolled Students</option>
-
                         <optgroup label="Specific Educational Assistance Applicants">
                             <option value="app_elter">Applicants of: Elter's Scholarship</option>
                             <option value="app_fwe">Applicants of: fwe</option>
@@ -209,7 +204,7 @@
                         <option value="archived">Archived</option>
                     </select>
                     <div class="sort-box">
-                        <i class="fa-regular fa-calendar"></i>
+                        <i data-lucide="calendar"></i>
                         <select id="sort-date" class="filter-input filter-no-border">
                             <option value="desc">Newest First</option>
                             <option value="asc">Oldest First</option>
@@ -220,8 +215,50 @@
                 <!-- CENTERED FEED LAYOUT -->
                 <div class="feed-layout">
                     <div class="col-list" id="announcements-container">
-                        <div class="text-center text-muted" style="padding: 40px;">
-                            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading announcements...
+                        <!-- Skeleton loading cards initially rendered -->
+                        <div class="announcement-skeleton-card">
+                            <div class="skeleton-header">
+                                <div class="skeleton-avatar"></div>
+                                <div class="skeleton-meta">
+                                    <div class="skeleton-line w-32"></div>
+                                    <div class="skeleton-line w-24"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-tags">
+                                <div class="skeleton-pill w-20"></div>
+                                <div class="skeleton-pill w-28"></div>
+                            </div>
+                            <div class="skeleton-title"></div>
+                            <div class="skeleton-body">
+                                <div class="skeleton-line w-full"></div>
+                                <div class="skeleton-line w-5-6"></div>
+                                <div class="skeleton-line w-3-4"></div>
+                            </div>
+                            <div class="skeleton-footer">
+                                <div class="skeleton-btn w-28"></div>
+                            </div>
+                        </div>
+
+                        <div class="announcement-skeleton-card">
+                            <div class="skeleton-header">
+                                <div class="skeleton-avatar"></div>
+                                <div class="skeleton-meta">
+                                    <div class="skeleton-line w-32"></div>
+                                    <div class="skeleton-line w-24"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-tags">
+                                <div class="skeleton-pill w-24"></div>
+                                <div class="skeleton-pill w-20"></div>
+                            </div>
+                            <div class="skeleton-title"></div>
+                            <div class="skeleton-body">
+                                <div class="skeleton-line w-full"></div>
+                                <div class="skeleton-line w-4-5"></div>
+                            </div>
+                            <div class="skeleton-footer">
+                                <div class="skeleton-btn w-28"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -231,45 +268,41 @@
 
     <!-- VIEW ANNOUNCEMENT POST & COMMENTS MODAL -->
     <div id="view-announcement-modal" class="global-modal-overlay" style="display: none;">
-        <div class="global-modal-content view-modal-content" style="max-width: 680px; max-height: 90vh;">
-            <div class="modal-header" style="position: sticky; top: 0; z-index: 30; padding: 15px 20px;">
-                <h3 class="modal-title" style="font-size: 18px; text-align: center; flex: 1; margin: 0;">Announcement
-                    Post</h3>
-                <button type="button" class="close-btn" id="modal-close-view">
-                    <i class="fa-solid fa-xmark"></i>
+        <div class="global-modal-content view-modal-content">
+            <div class="modal-header">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="megaphone" class="modal-header-icon"></i>
+                    <h3 class="modal-title">Announcement Post</h3>
+                </div>
+                <button type="button" class="close-btn" id="modal-close-view" aria-label="Close modal">
+                    <i data-lucide="x"></i>
                 </button>
             </div>
 
-            <div class="modal-body-scroll" style="padding: 0; display: flex; flex-direction: column;">
+            <div class="modal-body-scroll view-modal-body">
                 <!-- Post Details will go here -->
-                <div id="announcement-detail-view" style="padding: 0; border-bottom: 1px solid var(--border-dark);">
+                <div id="announcement-detail-view" class="announcement-detail-container">
                     <!-- dynamic content -->
                 </div>
 
                 <!-- Comments Section -->
-                <div class="comments-section"
-                    style="background: #f8fafc; flex: 1; display: flex; flex-direction: column;">
-                    <div class="comments-header" id="comments-count-header"
-                        style="padding: 15px 20px; border-bottom: 1px solid var(--border-dark); font-weight: bold; background: #fff;">
-                        Comments (0)
+                <div class="comments-section">
+                    <div class="comments-header" id="comments-count-header">
+                        <i data-lucide="message-square"></i>
+                        <span>Comments (0)</span>
                     </div>
 
-                    <div class="comments-list" id="comments-list"
-                        style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px;">
+                    <div class="comments-list" id="comments-list">
                         <div class="text-center text-muted" style="font-size: 13px;">
                             Loading comments...
                         </div>
                     </div>
 
-                    <div class="comment-input-area" id="comment-input-area"
-                        style="display: none; padding: 15px; border-top: 1px solid var(--border-dark); background: #fff; position: sticky; bottom: 0;">
-                        <div class="input-wrapper"
-                            style="display: flex; gap: 10px; background: #f8fafc; border: 1px solid var(--border-dark); padding: 8px; border-radius: 24px; align-items: center;">
-                            <input type="text" id="reply-input" placeholder="Write a comment..."
-                                style="flex: 1; border: none; outline: none; font-size: 13px; padding-left: 8px; background: transparent;">
-                            <button class="btn-send" id="btn-send-reply"
-                                style="background: var(--primary-color); border: none; width: 32px; height: 32px; border-radius: 50%; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                                <i class="fa-solid fa-paper-plane"></i>
+                    <div class="comment-input-area" id="comment-input-area" style="display: none;">
+                        <div class="input-wrapper">
+                            <input type="text" id="reply-input" placeholder="Write an official response or comment...">
+                            <button class="btn-send" id="btn-send-reply" aria-label="Send comment" title="Send Comment">
+                                <i data-lucide="send"></i>
                             </button>
                         </div>
                     </div>
@@ -278,18 +311,21 @@
         </div>
     </div>
 
-    <!-- REDESIGNED ANNOUNCEMENT CREATION MODAL (2-COLUMN) -->
+    <!-- REDESIGNED ANNOUNCEMENT CREATION / EDIT MODAL (2-COLUMN) -->
     <div id="announcement-modal" class="global-modal-overlay" style="display: none;">
-        <div class="global-modal-content">
+        <div class="global-modal-content edit-modal-content">
 
             <div class="modal-header">
-                <h3 id="modal-title" class="modal-title">Create Announcement</h3>
-                <button type="button" class="close-btn" id="modal-close-ann">
-                    <i class="fa-solid fa-xmark"></i>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="file-edit" class="modal-header-icon"></i>
+                    <h3 id="modal-title" class="modal-title">Create Announcement</h3>
+                </div>
+                <button type="button" class="close-btn" id="modal-close-ann" aria-label="Close modal">
+                    <i data-lucide="x"></i>
                 </button>
             </div>
 
-            <form id="announcement-form" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <form id="announcement-form" class="announcement-form-wrapper">
                 <input type="hidden" id="announcement-id">
                 <input type="hidden" id="existing-image-url">
                 <input type="hidden" id="existing-attachments">
@@ -302,17 +338,18 @@
 
                             <!-- 1. Section: Details & Audience -->
                             <div class="exact-card">
-                                <h4 class="exact-card-title">Announcement Details</h4>
-                                <div style="margin-bottom: 20px;">
-                                    <label class="exact-label">Announcement Title <span
-                                            style="color: #ef4444;">*</span></label>
-                                    <input type="text" id="ann-title" class="exact-input" required
-                                        placeholder="e.g. Interview Schedule for CHED Applicants">
+                                <div class="exact-card-header">
+                                    <i data-lucide="info"></i>
+                                    <h4 class="exact-card-title">Announcement Details</h4>
                                 </div>
-                                <div class="exact-row" style="margin-bottom: 5px;">
-                                    <div>
-                                        <label class="exact-label">Category <span
-                                                style="color: #ef4444;">*</span></label>
+                                <div class="form-group mb-4">
+                                    <label class="exact-label">Announcement Title <span class="text-danger">*</span></label>
+                                    <input type="text" id="ann-title" class="exact-input" required
+                                        placeholder="e.g. Schedule of Payout for Educational Assistance Beneficiaries">
+                                </div>
+                                <div class="exact-row">
+                                    <div class="form-group">
+                                        <label class="exact-label">Category <span class="text-danger">*</span></label>
                                         <select id="ann-category" class="exact-input" required>
                                             <option value="General">General</option>
                                             <option value="Educational Assistance">Educational Assistance</option>
@@ -320,9 +357,8 @@
                                             <option value="Event">Event</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label class="exact-label">Target Audience <span
-                                                style="color: #ef4444;">*</span></label>
+                                    <div class="form-group">
+                                        <label class="exact-label">Target Audience <span class="text-danger">*</span></label>
                                         <select id="ann-audience" class="exact-input" required>
                                             <option value="all_enrolled_students">All Enrolled Students</option>
                                             <optgroup label="Specific Educational Assistance Applicants">
@@ -331,8 +367,7 @@
                                                 <option value="app_academic">Applicants of: Academic</option>
                                                 <option value="app_deans_lister">Applicants of: Deans Lister</option>
                                                 <option value="app_locked_in">Applicants of: Locked-in</option>
-                                                <option value="app_tes">Applicants of: Tertiary Education Subsidy (TES)
-                                                </option>
+                                                <option value="app_tes">Applicants of: Tertiary Education Subsidy (TES)</option>
                                                 <option value="app_jurani">Applicants of: Jurani Catarata</option>
                                                 <option value="app_tequillo">Applicants of: Tequillo</option>
                                                 <option value="app_underwood">Applicants of: Underwood</option>
@@ -345,9 +380,12 @@
 
                             <!-- 2. Section: Publishing Status -->
                             <div class="exact-card">
-                                <h4 class="exact-card-title">Publishing & Expiration</h4>
-                                <div class="exact-row" style="margin-bottom: 5px;">
-                                    <div>
+                                <div class="exact-card-header">
+                                    <i data-lucide="clock"></i>
+                                    <h4 class="exact-card-title">Publishing & Expiration</h4>
+                                </div>
+                                <div class="exact-row">
+                                    <div class="form-group">
                                         <label class="exact-label">Publish Status</label>
                                         <select id="ann-status" class="exact-input" required>
                                             <option value="Published">Publish Immediately</option>
@@ -356,112 +394,113 @@
                                             <option value="Archived">Archived</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label class="exact-label">Expiration Date <span
-                                                style="color: #64748b; font-weight: 500;">(Optional)</span></label>
+                                    <div class="form-group">
+                                        <label class="exact-label">Expiration Date <span class="text-muted font-normal">(Optional)</span></label>
                                         <input type="date" id="ann-expires-at" class="exact-input">
-                                        <p class="exact-helper">Post auto-archives on this date.</p>
+                                        <p class="exact-helper">Post will auto-archive after this date.</p>
                                     </div>
                                 </div>
-                                <div id="schedule-date-container" style="display: none; margin-top: 15px;">
+                                <div id="schedule-date-container" class="form-group mt-3" style="display: none;">
                                     <label class="exact-label">Schedule Date & Time</label>
                                     <input type="datetime-local" id="ann-scheduled-at" class="exact-input">
-                                    <p class="exact-helper">Post will remain hidden until this exact time.</p>
+                                    <p class="exact-helper">Post remains hidden until this exact date and time.</p>
                                 </div>
                             </div>
 
                             <!-- 3. Section: Content RTE -->
-                            <div class="exact-card" style="padding-bottom: 0; overflow: hidden;">
-                                <h4 class="exact-card-title">Content <span style="color: #ef4444;">*</span></h4>
-                                <div style="border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 25px;">
-                                    <div class="rte-toolbar"
-                                        style="border-bottom: 1px solid #e2e8f0; padding: 12px; display: flex; gap: 8px; justify-content: center; background: #fafafa;">
-                                        <button type="button" class="rte-btn" data-command="formatBlock" data-value="H3"
-                                            title="Heading"><i class="fa-solid fa-heading"></i></button>
-                                        <button type="button" class="rte-btn" data-command="bold" title="Bold"><i
-                                                class="fa-solid fa-bold"></i></button>
-                                        <button type="button" class="rte-btn" data-command="italic" title="Italic"><i
-                                                class="fa-solid fa-italic"></i></button>
-                                        <button type="button" class="rte-btn" data-command="underline"
-                                            title="Underline"><i class="fa-solid fa-underline"></i></button>
-                                        <div style="width: 1px; height: 20px; background: #cbd5e1; margin: 0 4px;">
-                                        </div>
-                                        <button type="button" class="rte-btn" data-command="insertUnorderedList"
-                                            title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
-                                        <button type="button" class="rte-btn" data-command="insertOrderedList"
-                                            title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
-                                        <div style="width: 1px; height: 20px; background: #cbd5e1; margin: 0 4px;">
-                                        </div>
-                                        <button type="button" class="rte-btn" data-command="justifyLeft"
-                                            title="Align Left"><i class="fa-solid fa-align-left"></i></button>
-                                        <button type="button" class="rte-btn" data-command="justifyCenter"
-                                            title="Align Center"><i class="fa-solid fa-align-center"></i></button>
-                                        <button type="button" class="rte-btn" data-command="justifyRight"
-                                            title="Align Right"><i class="fa-solid fa-align-right"></i></button>
-                                        <div style="width: 1px; height: 20px; background: #cbd5e1; margin: 0 4px;">
-                                        </div>
-                                        <button type="button" class="rte-btn" data-command="createLink"
-                                            title="Insert Link"><i class="fa-solid fa-link"></i></button>
+                            <div class="exact-card">
+                                <div class="exact-card-header">
+                                    <i data-lucide="align-left"></i>
+                                    <h4 class="exact-card-title">Announcement Content <span class="text-danger">*</span></h4>
+                                </div>
+                                <div class="rte-wrapper">
+                                    <div class="rte-toolbar">
+                                        <button type="button" class="rte-btn" data-command="formatBlock" data-value="H3" title="Heading">
+                                            <i data-lucide="heading"></i>
+                                        </button>
+                                        <button type="button" class="rte-btn" data-command="bold" title="Bold">
+                                            <i data-lucide="bold"></i>
+                                        </button>
+                                        <button type="button" class="rte-btn" data-command="italic" title="Italic">
+                                            <i data-lucide="italic"></i>
+                                        </button>
+                                        <button type="button" class="rte-btn" data-command="underline" title="Underline">
+                                            <i data-lucide="underline"></i>
+                                        </button>
+                                        <div class="rte-divider"></div>
+                                        <button type="button" class="rte-btn" data-command="insertUnorderedList" title="Bullet List">
+                                            <i data-lucide="list"></i>
+                                        </button>
+                                        <button type="button" class="rte-btn" data-command="insertOrderedList" title="Numbered List">
+                                            <i data-lucide="list-ordered"></i>
+                                        </button>
+                                        <div class="rte-divider"></div>
+                                        <button type="button" class="rte-btn" data-command="justifyLeft" title="Align Left">
+                                            <i data-lucide="align-left"></i>
+                                        </button>
+                                        <button type="button" class="rte-btn" data-command="justifyCenter" title="Align Center">
+                                            <i data-lucide="align-center"></i>
+                                        </button>
+                                        <button type="button" class="rte-btn" data-command="justifyRight" title="Align Right">
+                                            <i data-lucide="align-right"></i>
+                                        </button>
+                                        <div class="rte-divider"></div>
+                                        <button type="button" class="rte-btn" data-command="createLink" title="Insert Link">
+                                            <i data-lucide="link"></i>
+                                        </button>
                                     </div>
-                                    <div id="ann-content" contenteditable="true" class="rte-content"
-                                        style="min-height: 120px; padding: 15px; font-size: 14px; outline: none;"></div>
+                                    <div id="ann-content" contenteditable="true" class="rte-content" placeholder="Write full details of the announcement here..."></div>
                                 </div>
                             </div>
 
                             <!-- 4. Section: Media & Attachments -->
                             <div class="exact-card">
-                                <h4 class="exact-card-title">Media & Attachments</h4>
+                                <div class="exact-card-header">
+                                    <i data-lucide="image"></i>
+                                    <h4 class="exact-card-title">Media & Attachments</h4>
+                                </div>
 
-                                <div id="edit-media-preview-container"
-                                    style="display: none; margin-bottom: 20px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
-                                    <h5
-                                        style="margin: 0 0 10px 0; font-size: 13px; color: #0f172a; text-align: center;">
-                                        Currently Attached (Click X to remove)</h5>
-                                    <div id="edit-existing-images"
-                                        style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px;">
-                                    </div>
-                                    <div id="edit-existing-files"
-                                        style="display: flex; gap: 8px; flex-direction: column;"></div>
+                                <div id="edit-media-preview-container" class="edit-media-box" style="display: none;">
+                                    <h5 class="edit-media-heading">Currently Attached (Click X to remove)</h5>
+                                    <div id="edit-existing-images" class="edit-images-row"></div>
+                                    <div id="edit-existing-files" class="edit-files-column"></div>
                                 </div>
 
                                 <div class="exact-row">
                                     <div>
                                         <label class="exact-label">Cover Images</label>
                                         <label class="upload-zone" for="ann-image-upload">
-                                            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                                            <i data-lucide="upload-cloud" class="upload-icon"></i>
                                             <span>Click to upload images</span>
                                             <p>PNG, JPG, GIF up to 5MB</p>
                                         </label>
-                                        <input type="file" id="ann-image-upload" class="hidden-file-input"
-                                            accept="image/*" multiple>
+                                        <input type="file" id="ann-image-upload" class="hidden-file-input" accept="image/*" multiple>
                                         <div id="new-image-preview-container" class="uploaded-media-grid"></div>
                                     </div>
 
                                     <div>
                                         <label class="exact-label">Documents</label>
                                         <label class="upload-zone" for="ann-file-upload">
-                                            <i class="fa-solid fa-file-arrow-up upload-icon"></i>
+                                            <i data-lucide="file-up" class="upload-icon"></i>
                                             <span>Click to attach files</span>
                                             <p>PDF, DOC, XLS up to 10MB</p>
                                         </label>
-                                        <input type="file" id="ann-file-upload" class="hidden-file-input"
-                                            accept=".pdf,.doc,.docx,.xls,.xlsx" multiple>
-                                        <div id="new-file-preview-container"
-                                            style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
-                                        </div>
+                                        <input type="file" id="ann-file-upload" class="hidden-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple>
+                                        <div id="new-file-preview-container" class="new-files-column"></div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- 5. Section: Settings -->
-                            <div class="exact-card" style="margin-bottom: 0;">
-                                <h4 class="exact-card-title">Settings</h4>
-                                <div class="toggle-wrapper" style="padding: 0 10px;">
+                            <div class="exact-card">
+                                <div class="exact-card-header">
+                                    <i data-lucide="sliders"></i>
+                                    <h4 class="exact-card-title">Interaction Settings</h4>
+                                </div>
+                                <div class="toggle-wrapper">
                                     <div class="toggle-label-content">
-                                        <h4 style="margin:0 0 4px 0; font-size:14px; color:#0f172a;">Allow Student
-                                            Comments</h4>
-                                        <p style="margin:0; font-size:12px; color:#64748b;">Students can comment and ask
-                                            questions about this announcement.</p>
+                                        <h4>Allow Student Comments</h4>
+                                        <p>Students can comment, inquire, and ask questions about this announcement.</p>
                                     </div>
                                     <label class="switch">
                                         <input type="checkbox" id="ann-allow-comments" checked>
@@ -474,56 +513,45 @@
 
                         <!-- RIGHT COLUMN: Live Preview Panel -->
                         <div class="form-right-col">
-                            <div class="preview-panel"
-                                style="background: #fff; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 25px;">
-                                <div class="preview-header"
-                                    style="text-align: center; color: #64748b; font-size: 11px; letter-spacing: 1px; font-weight: 800; border-bottom: 1px dashed #e2e8f0; padding-bottom: 15px; margin-bottom: 20px;">
-                                    <i class="fa-solid fa-eye"></i> LIVE PREVIEW
+                            <div class="preview-panel">
+                                <div class="preview-header">
+                                    <i data-lucide="eye"></i>
+                                    <span>LIVE PREVIEW</span>
                                 </div>
-                                <div class="social-card preview-card"
-                                    style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-                                    <div
-                                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                                        <span class="tag-category" id="preview-category"
-                                            style="font-size:10px; padding:4px 10px; border-radius: 12px; background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; font-weight: 700;">
-                                            <i class="fa-solid fa-bullhorn"></i> General
+                                <div class="social-card preview-card">
+                                    <div class="preview-meta-row">
+                                        <span class="tag-category" id="preview-category">
+                                            <i data-lucide="megaphone"></i> General
                                         </span>
-                                        <div><span
-                                                style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;"
-                                                id="preview-status">PUBLISHED</span></div>
+                                        <span class="preview-status-badge" id="preview-status">PUBLISHED</span>
                                     </div>
-                                    <h4 id="preview-title"
-                                        style="margin:0 0 8px 0; font-size:15px; font-weight: 800; color:#0f172a; line-height:1.4; text-align:center;">
-                                        Announcement Title Will Appear Here</h4>
-                                    <p id="preview-excerpt"
-                                        style="margin:0 0 15px 0; font-size:13px; color:#64748b; line-height:1.5; text-align:center;">
-                                        Start writing content to see a preview of the excerpt...</p>
+                                    <h4 id="preview-title" class="preview-post-title">Announcement Title Will Appear Here</h4>
+                                    <p id="preview-excerpt" class="preview-post-excerpt">Start writing content to see a live preview...</p>
 
-                                    <div id="preview-image-grid" style="margin-bottom: 15px;"></div>
+                                    <div id="preview-image-grid" class="preview-media-wrapper"></div>
 
-                                    <div
-                                        style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:10px;">
-                                        <div><i class="fa-regular fa-calendar"></i> Just now &bull; <i
-                                                class="fa-solid fa-users"></i> <span id="preview-audience">All</span>
+                                    <div class="preview-footer-row">
+                                        <div class="preview-audience-tag">
+                                            <i data-lucide="users"></i> <span id="preview-audience">All Enrolled Students</span>
                                         </div>
-                                        <div><i class="fa-regular fa-comment"></i> <span
-                                                id="preview-comment-icon">0</span></div>
+                                        <div class="preview-comment-tag">
+                                            <i data-lucide="message-square"></i> <span id="preview-comment-icon">Comments On</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <p class="exact-helper" style="margin-top: 20px;">This is how your post will appear in
-                                    the feed.</p>
+                                <p class="preview-helper-text">This preview demonstrates the exact card students will see in their feed.</p>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <div class="modal-footer" style="padding: 20px 25px; border-top: 1px solid #e2e8f0; background: #fff;">
-                    <button type="button" class="btn-outline-action"
-                        onclick="document.getElementById('announcement-modal').style.display='none'"
-                        style="border: 1px solid #cbd5e1; padding: 10px 20px;">Cancel</button>
-                    <button type="submit" id="btn-save-announcement" class="btn-primary" style="padding: 10px 24px;">
-                        <i class="fa-solid fa-check"></i> Save Announcement
+                <div class="modal-footer">
+                    <button type="button" class="btn-outline-action" onclick="document.getElementById('announcement-modal').style.display='none'">
+                        Cancel
+                    </button>
+                    <button type="submit" id="btn-save-announcement" class="btn-primary">
+                        <i data-lucide="check"></i> <span>Save Announcement</span>
                     </button>
                 </div>
             </form>
@@ -532,50 +560,40 @@
 
     <!-- LOGOUT MODAL -->
     <div id="logout-modal" class="global-modal-overlay" style="display: none;">
-        <div class="global-modal-content">
+        <div class="global-modal-content logout-modal-box">
             <div class="global-modal-icon">
-                <i class="fa-solid fa-right-from-bracket"></i>
+                <i data-lucide="log-out"></i>
             </div>
             <h3>Logout</h3>
             <p>Are you sure you want to log out of your account?</p>
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i class="fa-solid fa-power-off"></i> Logout
+                    <i data-lucide="power"></i> Logout
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MOBILE SIDEBAR OVERLAY (CRITICAL FOR MOBILE MENU TO CLOSE) -->
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
     <!-- Media Viewer Modal (Lightbox & Document Viewer) -->
-    <div id="media-viewer-modal" class="global-modal-overlay"
-        style="display: none; background: rgba(0,0,0,0.85); flex-direction: column;">
-        <button type="button" id="close-media-viewer"
-            style="position: absolute; top: 20px; right: 30px; background: none; border: none; color: white; font-size: 30px; cursor: pointer; z-index: 10001; text-shadow: 0 2px 4px rgba(0,0,0,0.5);"><i
-                class="fa-solid fa-xmark"></i></button>
+    <div id="media-viewer-modal" class="global-modal-overlay media-viewer-overlay" style="display: none;">
+        <button type="button" id="close-media-viewer" class="btn-close-viewer" aria-label="Close viewer">
+            <i data-lucide="x"></i>
+        </button>
 
         <!-- Navigation Buttons -->
-        <button type="button" id="prev-media"
-            style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: white; font-size: 30px; cursor: pointer; z-index: 10001; width: 50px; height: 50px; border-radius: 50%; display: none; align-items: center; justify-content: center; transition: 0.2s;"><i
-                class="fa-solid fa-chevron-left"></i></button>
-        <button type="button" id="next-media"
-            style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: white; font-size: 30px; cursor: pointer; z-index: 10001; width: 50px; height: 50px; border-radius: 50%; display: none; align-items: center; justify-content: center; transition: 0.2s;"><i
-                class="fa-solid fa-chevron-right"></i></button>
+        <button type="button" id="prev-media" class="btn-nav-viewer prev" aria-label="Previous image">
+            <i data-lucide="chevron-left"></i>
+        </button>
+        <button type="button" id="next-media" class="btn-nav-viewer next" aria-label="Next image">
+            <i data-lucide="chevron-right"></i>
+        </button>
 
-        <div id="media-viewer-content"
-            style="width: 90%; height: 90%; display: flex; justify-content: center; align-items: center;">
-            <img id="viewer-image"
-                style="display: none; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: opacity 0.2s ease;"
-                src="" alt="Full size view">
-            <iframe id="viewer-iframe"
-                style="display: none; width: 100%; height: 100%; background: white; border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"
-                src=""></iframe>
+        <div id="media-viewer-content" class="media-viewer-content">
+            <img id="viewer-image" class="viewer-img" style="display: none;" src="" alt="Full size view">
+            <iframe id="viewer-iframe" class="viewer-iframe" style="display: none;" src=""></iframe>
         </div>
-        <div id="media-counter" style="color: white; font-size: 14px; position: absolute; bottom: 20px; display: none;">
-        </div>
+        <div id="media-counter" class="media-counter" style="display: none;"></div>
     </div>
 
     <!-- SCRIPTS -->
@@ -584,6 +602,13 @@
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
     <script src="js/admin-announcements.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 
 </html>

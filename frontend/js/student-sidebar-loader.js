@@ -60,7 +60,7 @@ function getStoredTheme() {
                 if (userTheme) return userTheme;
             }
         }
-    } catch (e) {}
+    } catch (e) { }
     return localStorage.getItem('grantee_student_theme') || 'light';
 }
 
@@ -81,7 +81,7 @@ function applyTheme(theme) {
                 localStorage.setItem(`grantee_student_theme_${profile.id}`, theme);
             }
         }
-    } catch (e) {}
+    } catch (e) { }
 
     // Update all theme toggle buttons on the page
     document.querySelectorAll('#theme-toggle, .btn-theme-toggle').forEach(btn => {
@@ -553,3 +553,70 @@ function initSidebarNavigation() {
 window.addEventListener('popstate', () => {
     window.location.reload();
 });
+
+// ==========================================
+// BACK TO TOP BUTTON COMPONENT
+// ==========================================
+function initBackToTopButton() {
+    let btn = document.getElementById('back-to-top-btn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'back-to-top-btn';
+        btn.className = 'back-to-top-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Back to top');
+        btn.setAttribute('title', 'Back to top');
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+        `;
+        document.body.appendChild(btn);
+    }
+
+    const getScrollTargets = () => [
+        document.querySelector('.dashboard-scroll-area'),
+        document.querySelector('.main-content'),
+        document.querySelector('.content-scroll-area'),
+        window
+    ].filter(Boolean);
+
+    function checkScroll() {
+        let maxScroll = 0;
+        getScrollTargets().forEach(el => {
+            const scrollTop = el === window ? (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0) : el.scrollTop;
+            if (scrollTop > maxScroll) maxScroll = scrollTop;
+        });
+
+        if (maxScroll > 200) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    }
+
+    getScrollTargets().forEach(el => {
+        el.addEventListener('scroll', checkScroll, { passive: true });
+    });
+    window.addEventListener('scroll', checkScroll, { passive: true });
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        getScrollTargets().forEach(el => {
+            if (el === window) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                el.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+        document.body.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBackToTopButton);
+} else {
+    initBackToTopButton();
+}
+

@@ -665,3 +665,157 @@ function initSidebarNavigation() {
 window.addEventListener('popstate', () => {
     window.location.reload();
 });
+
+// ==========================================
+// GLOBAL ADMIN UI TOAST SYSTEM (TOP CENTER)
+// ==========================================
+if (!window.showUIToast) {
+    window.showUIToast = function (type = 'success', title = '', message = '') {
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        const autoDismissTimer = setTimeout(dismissToast, 3500);
+
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    };
+    window.showToast = window.showUIToast;
+}
+
+// ==========================================
+// BACK TO TOP BUTTON COMPONENT (ADMIN)
+// ==========================================
+function initAdminBackToTop() {
+    let btn = document.getElementById('back-to-top-btn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'back-to-top-btn';
+        btn.className = 'back-to-top-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Back to top');
+        btn.setAttribute('title', 'Back to top');
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+        `;
+        document.body.appendChild(btn);
+    }
+
+    const getScrollTargets = () => [
+        document.querySelector('.dashboard-scroll-area'),
+        document.querySelector('.main-content'),
+        document.querySelector('.content-scroll-area'),
+        window
+    ].filter(Boolean);
+
+    function checkScroll() {
+        let maxScroll = 0;
+        getScrollTargets().forEach(el => {
+            const scrollTop = el === window ? (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0) : el.scrollTop;
+            if (scrollTop > maxScroll) maxScroll = scrollTop;
+        });
+
+        if (maxScroll > 200) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    }
+
+    getScrollTargets().forEach(el => {
+        el.addEventListener('scroll', checkScroll, { passive: true });
+    });
+    window.addEventListener('scroll', checkScroll, { passive: true });
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        getScrollTargets().forEach(el => {
+            if (el === window) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                el.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+        document.body.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminBackToTop);
+} else {
+    initAdminBackToTop();
+}
+

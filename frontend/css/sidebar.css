@@ -165,7 +165,7 @@
 }
 
 #logout-modal .global-modal-content,
-.global-modal-content {
+#logout-modal .logout-modal-box {
   background: #ffffff;
   padding: 32px 28px;
   border-radius: 16px;
@@ -181,8 +181,7 @@
   animation: globalModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#logout-modal .global-modal-icon,
-.global-modal-icon {
+#logout-modal .global-modal-icon {
   font-size: 42px;
   color: #ef4444;
   margin-bottom: 16px;
@@ -191,7 +190,7 @@
 }
 
 #logout-modal .global-modal-content h3,
-.global-modal-content h3 {
+#logout-modal .logout-modal-box h3 {
   font-size: 20px;
   color: #0f172a;
   margin: 0 0 8px 0;
@@ -200,15 +199,14 @@
 }
 
 #logout-modal .global-modal-content p,
-.global-modal-content p {
+#logout-modal .logout-modal-box p {
   font-size: 14px;
   color: #64748b;
   margin: 0 0 24px 0;
   line-height: 1.5;
 }
 
-#logout-modal .global-modal-actions,
-.global-modal-actions {
+#logout-modal .global-modal-actions {
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -216,7 +214,7 @@
   box-sizing: border-box;
 }
 
-#logout-modal .global-btn-cancel,
+#logout-modal .global-btn-cancel {
 .global-btn-cancel {
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -307,22 +305,19 @@
 /* --- Perfect Mobile Phone Responsiveness --- */
 @media (max-width: 480px) {
   #logout-modal .global-modal-content,
-  .global-modal-content {
+  #logout-modal .logout-modal-box {
     padding: 24px 20px;
     width: 92%;
     max-width: 320px;
   }
 
-  #logout-modal .global-modal-actions,
-  .global-modal-actions {
+  #logout-modal .global-modal-actions {
     flex-direction: column;
     gap: 10px;
   }
 
   #logout-modal .global-btn-cancel,
-  #logout-modal .global-btn-confirm,
-  .global-btn-cancel,
-  .global-btn-confirm {
+  #logout-modal .global-btn-confirm {
     width: 100%;
   }
 }

@@ -12,7 +12,20 @@
     <link rel="stylesheet" href="css/student-sidebar.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
-        (function() {
+        (function () {
+            try {
+                var cached = sessionStorage.getItem('grantee_student_profile');
+                if (cached) {
+                    var profile = JSON.parse(cached);
+                    if (profile && profile.id) {
+                        var userTheme = localStorage.getItem('grantee_student_theme_' + profile.id);
+                        if (userTheme) {
+                            document.documentElement.setAttribute('data-theme', userTheme);
+                            return;
+                        }
+                    }
+                }
+            } catch(e) {}
             var theme = localStorage.getItem('grantee_student_theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();

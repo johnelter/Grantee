@@ -632,7 +632,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class="chat-header-info">
                         <strong class="chat-header-name">Rantee <span style="font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px;">AI Helper</span></strong>
-                        <span class="chat-header-subtitle">Your scholarship companion 🌱</span>
+                        <span class="chat-header-subtitle">Your scholarship companion</span>
                     </div>
                 </div>
                 <div class="header-actions-box">
@@ -681,7 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Default friendly welcoming message
     const defaultWelcome = {
         role: 'bot',
-        content: "Hi! 👋 I'm **Rantee**, your friendly scholarship companion! 🌱 How can I help you today? Feel free to ask about open scholarships, requirements, deadlines, or your application status! ✨",
+        content: "Hi! 👋 I'm **Rantee**, your friendly scholarship companion! How can I help you today? Feel free to ask about open scholarships, requirements, deadlines, or your application status! ✨",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         showChips: true
     };
@@ -1073,7 +1073,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 chatHistory.push({
                     role: 'bot',
-                    content: "I'm having a little trouble connecting to the scholarship office server right now. 🌱 Please try asking again in a moment!",
+                    content: "I'm having a little trouble connecting to the scholarship office server right now. Please try asking again in a moment!",
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
             }
@@ -1083,7 +1083,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (typingEl) typingEl.remove();
             chatHistory.push({
                 role: 'bot',
-                content: "Oops! A network hiccup occurred. 🌱 Please check your connection or ask again in a moment.",
+                content: "Oops! A network hiccup occurred. Please check your connection or ask again in a moment.",
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
         }

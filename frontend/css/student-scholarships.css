@@ -904,7 +904,7 @@ i[data-lucide] {
 
 .content-wrapper {
   width: 100%;
-  max-width: 1180px;
+  max-width: 1440px;
   min-width: 0;
   box-sizing: border-box;
   padding-bottom: 50px;
@@ -1068,7 +1068,7 @@ i[data-lucide] {
 ========================================================= */
 .scholarship-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 24px;
   width: 100%;
 }
@@ -1077,9 +1077,10 @@ i[data-lucide] {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 22px 20px;
+  padding: 24px 24px 22px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   position: relative;
   box-shadow: var(--card-shadow);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -1088,6 +1089,7 @@ i[data-lucide] {
               background-color 0.3s ease;
   overflow: hidden;
   min-width: 0;
+  min-height: 220px;
 }
 
 .sch-card::before {
@@ -1117,10 +1119,10 @@ i[data-lucide] {
 .sch-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
+  gap: 6px;
+  padding: 5px 13px;
   border-radius: 20px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
@@ -1173,16 +1175,18 @@ i[data-lucide] {
 /* Card Header */
 .sch-card-header {
   display: flex;
-  gap: 14px;
-  align-items: center;
+  gap: 16px;
+  align-items: flex-start;
   margin-top: 6px;
+  margin-bottom: 16px;
+  flex: 1;
 }
 
 /* Card Icon (Exact Match to .item-icon.icon-sch-rec in student-dashboard.css) */
 .card-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1205,8 +1209,8 @@ body.dark-theme .card-icon {
 }
 
 .card-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .card-title-group {
@@ -1215,24 +1219,25 @@ body.dark-theme .card-icon {
 }
 
 .card-title-group h3 {
-  font-size: 15.5px;
+  font-size: 16.5px;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   color: var(--text-heading);
-  line-height: 1.35;
+  line-height: 1.38;
+  word-break: break-word;
   transition: color 0.3s ease;
 }
 
 .card-title-group span,
 .card-title-group .sch-brief-desc {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-muted);
   font-weight: 500;
   display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 3px;
-  line-height: 1.35;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  line-height: 1.42;
   transition: color 0.3s ease;
 }
 
@@ -1242,17 +1247,17 @@ body.dark-theme .card-icon {
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid var(--border-color);
-  padding-top: 14px;
-  margin-top: 14px;
-  gap: 12px;
+  padding-top: 16px;
+  margin-top: auto;
+  gap: 16px;
   transition: border-color 0.3s ease;
 }
 
 .deadline-text {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-muted);
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.45;
   transition: color 0.3s ease;
 }
 
@@ -1266,17 +1271,19 @@ body.dark-theme .card-icon {
 }
 
 .slots-pill {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 5px;
+  margin-top: 3px;
+  font-weight: 600;
 }
 
 .slots-pill svg {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 /* Card Action Buttons (Exact Match to .btn-apply from student-dashboard.css) */
@@ -1284,9 +1291,9 @@ body.dark-theme .card-icon {
   background: var(--primary-color);
   color: var(--primary-text);
   border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 12.5px;
+  padding: 9px 20px;
+  border-radius: 9px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1294,8 +1301,9 @@ body.dark-theme .card-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 7px;
   box-shadow: 0 2px 8px rgba(31, 61, 46, 0.2);
+  flex-shrink: 0;
 }
 
 .btn-action svg {
@@ -1410,9 +1418,11 @@ body.dark-theme .card-icon {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 22px 20px;
+  padding: 24px 24px 22px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
   box-shadow: var(--card-shadow);
   pointer-events: none;
 }

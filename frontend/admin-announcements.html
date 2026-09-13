@@ -108,7 +108,7 @@
                         <h2 class="section-title">Announcement Feed</h2>
                         <p class="section-subtitle">Broadcast updates, schedules, and reminders</p>
                     </div>
-                    <button class="btn-primary" id="btn-trigger-post">
+                    <button class="btn-primary" id="btn-trigger-post" onclick="window.openCreateModal ? window.openCreateModal() : null">
                         <i data-lucide="plus"></i> <span>Create Announcement</span>
                     </button>
                 </div>
@@ -547,7 +547,7 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn-outline-action" onclick="document.getElementById('announcement-modal').style.display='none'">
+                    <button type="button" id="btn-cancel-ann" class="btn-outline-action" onclick="document.getElementById('announcement-modal').style.display='none'">
                         Cancel
                     </button>
                     <button type="submit" id="btn-save-announcement" class="btn-primary">

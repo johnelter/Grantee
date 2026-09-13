@@ -42,6 +42,7 @@
   overflow: hidden !important;
   position: relative !important;
   min-width: 0 !important;
+  transition: filter 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 #app-sidebar .sidebar-brand,
@@ -148,13 +149,14 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(15, 26, 20, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15, 26, 20, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 9999;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  cursor: pointer;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* =========================================================
@@ -690,6 +692,16 @@
     min-width: 0 !important;
     flex: 1 !important;
     margin-left: 0 !important;
+    transition: filter 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  /* Blurring the main-content when mobile sidebar is active */
+  body.sidebar-open .main-content,
+  .main-content.sidebar-blurred {
+    filter: blur(5px) !important;
+    -webkit-filter: blur(5px) !important;
+    pointer-events: none !important;
+    user-select: none !important;
   }
 
   .sidebar-overlay,
@@ -700,21 +712,25 @@
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(15, 26, 20, 0.6) !important;
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
+    background: rgba(15, 26, 20, 0.45) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
     z-index: 9999 !important;
     opacity: 0 !important;
     pointer-events: none !important;
-    transition: opacity 0.3s ease !important;
+    cursor: pointer !important;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
 
   .sidebar-overlay.active,
   .sidebar-overlay.show,
   #sidebar-overlay.active,
-  #sidebar-overlay.show {
+  #sidebar-overlay.show,
+  body.sidebar-open .sidebar-overlay,
+  body.sidebar-open #sidebar-overlay {
     opacity: 1 !important;
     pointer-events: auto !important;
+    cursor: pointer !important;
   }
 
   .hamburger-btn {

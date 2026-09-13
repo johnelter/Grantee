@@ -460,39 +460,94 @@
 
                 factorId = data.id;
 
+                const totpUri = data.totp.uri || `otpauth://totp/Grantee%20System%20Admin:${encodeURIComponent(adminEmail || 'Admin')}?secret=${data.totp.secret}&issuer=Grantee%20System`;
+                const secretKey = data.totp.secret;
+
                 if (qrCodeContainer) {
                     qrCodeContainer.innerHTML = `
-                        <div style="display: inline-block; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 0 auto;">
-                            ${data.totp.qr_code}
-                        </div>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
-                            Can't scan the QR code? Enter this secret key manually into your authenticator app:<br>
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
-                                <strong style="color: #0f172a; font-family: monospace; font-size: 15px; letter-spacing: 2px; background: #f1f5f9; padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                                    ${data.totp.secret}
-                                </strong>
-                                <button type="button" id="copy-totp-secret" title="Copy Secret Key" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-regular fa-copy"></i>
-                                </button>
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
+                            <div style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff !important; padding: 14px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color, #e2e8f0); width: 228px; height: 228px; box-sizing: border-box; margin: 0 auto;">
+                                <div id="admin-qr-canvas-holder" style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; background: #ffffff;"></div>
+                            </div>
+                            <p style="font-size: 13px; color: #64748b; text-align: center; margin: 0; max-width: 400px; line-height: 1.4;">
+                                Scan this QR code with <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or any 2FA app.
+                            </p>
+                            <div style="font-size: 12px; color: #64748b; text-align: center; margin-top: 4px; width: 100%;">
+                                Can't scan the QR code? Enter this secret key manually into your authenticator app:
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
+                                    <strong style="color: #0f172a; font-family: monospace; font-size: 15px; letter-spacing: 2px; background: #f1f5f9; padding: 6px 14px; border-radius: 6px; border: 1px solid #e2e8f0; user-select: all;">
+                                        ${secretKey}
+                                    </strong>
+                                    <button type="button" id="copy-totp-secret" title="Copy Secret Key" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
 
+                    const holder = document.getElementById('admin-qr-canvas-holder');
+                    let qrRendered = false;
+
+                    if (typeof QRCode !== 'undefined' && holder) {
+                        try {
+                            holder.innerHTML = '';
+                            new QRCode(holder, {
+                                text: totpUri,
+                                width: 200,
+                                height: 200,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                            
+                            const hideWorkingCanvas = () => {
+                                const canvasEl = holder.querySelector('canvas');
+                                const imgEl = holder.querySelector('img');
+                                if (canvasEl && imgEl) {
+                                    canvasEl.style.display = 'none';
+                                }
+                            };
+                            hideWorkingCanvas();
+                            setTimeout(hideWorkingCanvas, 50);
+
+                            qrRendered = true;
+                        } catch (e) {
+                            console.warn("QRCodeJS generation failed, falling back:", e);
+                        }
+                    }
+
+                    if (!qrRendered && holder && data.totp.qr_code) {
+                        const rawQr = String(data.totp.qr_code).trim();
+                        if (rawQr.startsWith('data:image') || rawQr.startsWith('http')) {
+                            holder.innerHTML = `<img src="${rawQr}" alt="2FA QR Code" style="width: 200px; height: 200px; display: block; border-radius: 4px; image-rendering: pixelated;">`;
+                            qrRendered = true;
+                        } else if (rawQr.startsWith('<svg')) {
+                            holder.innerHTML = rawQr;
+                            const svg = holder.querySelector('svg');
+                            if (svg) {
+                                svg.setAttribute('width', '200');
+                                svg.setAttribute('height', '200');
+                                svg.style.width = '200px';
+                                svg.style.height = '200px';
+                                svg.style.display = 'block';
+                            }
+                            qrRendered = true;
+                        }
+                    }
+
+                    if (!qrRendered && holder) {
+                        const encodedUri = encodeURIComponent(totpUri);
+                        holder.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUri}&margin=2" alt="2FA QR Code" style="width: 200px; height: 200px; display: block; border-radius: 4px;">`;
+                    }
+
                     const copyBtn = document.getElementById('copy-totp-secret');
                     if (copyBtn) {
                         copyBtn.addEventListener('click', () => {
-                            navigator.clipboard.writeText(data.totp.secret);
+                            navigator.clipboard.writeText(secretKey);
                             copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
                             setTimeout(() => { copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>'; }, 2000);
                         });
-                    }
-
-                    const svgEl = qrCodeContainer.querySelector('svg');
-                    if (svgEl) {
-                        svgEl.style.width = '180px';
-                        svgEl.style.height = '180px';
-                        svgEl.style.display = 'block';
-                        svgEl.style.margin = '0 auto';
                     }
                 }
 

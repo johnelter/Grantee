@@ -259,18 +259,41 @@
     const customDateRangeInput = document.getElementById('custom-date-range-picker');
     const customStart = document.getElementById('custom-start-date');
     const customEnd = document.getElementById('custom-end-date');
+    const customInputBox = document.querySelector('.custom-date-input-box');
     let customDateRangePicker = null;
 
-    if (customDateRangeInput && typeof flatpickr !== 'undefined') {
-        customDateRangePicker = flatpickr(customDateRangeInput, {
+    const initFlatpickr = () => {
+        const inputEl = document.getElementById('custom-date-range-picker');
+        if (!inputEl) return;
+
+        if (typeof flatpickr === 'undefined') {
+            // Retry if flatpickr script is still loading
+            setTimeout(initFlatpickr, 100);
+            return;
+        }
+
+        if (customDateRangePicker) {
+            try {
+                customDateRangePicker.destroy();
+            } catch (e) {}
+        }
+
+        customDateRangePicker = flatpickr(inputEl, {
             mode: "range",
             dateFormat: "Y-m-d",
             altInput: true,
             altFormat: "M j, Y",
             altInputClass: "flatpickr-custom-input",
-            static: true,
+            static: false,
+            appendTo: document.body,
+            disableMobile: true,
             locale: {
                 rangeSeparator: "  to  "
+            },
+            onOpen: (selectedDates, dateStr, instance) => {
+                if (instance && instance.calendarContainer) {
+                    instance.calendarContainer.style.zIndex = '999999';
+                }
             },
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
@@ -292,15 +315,32 @@
                 }
             }
         });
-    }
 
-    const updateCustomDateUI = () => {
+        // Ensure clicking anywhere in the custom-date-input-box triggers calendar open
+        if (customInputBox) {
+            customInputBox.onclick = (e) => {
+                if (customDateRangePicker && !customDateRangePicker.isOpen) {
+                    customDateRangePicker.open();
+                }
+            };
+        }
+    };
+
+    // Initialize flatpickr immediately or when ready
+    initFlatpickr();
+
+    const updateCustomDateUI = (autoOpen = false) => {
         if (!customWrapper) return;
         const needsCustom = ['Current Semester', 'Current School Year', 'Custom Date Range'].includes(currentFilter);
 
         if (needsCustom) {
             customWrapper.classList.remove('hidden');
             customWrapper.classList.add('flex');
+            customWrapper.style.display = 'flex';
+
+            if (!customDateRangePicker) {
+                initFlatpickr();
+            }
 
             const range = getDateRange(currentFilter);
             const startStr = range.start.split('T')[0];
@@ -311,10 +351,21 @@
 
             if (customDateRangePicker) {
                 customDateRangePicker.setDate([startStr, endStr], false);
+                if (autoOpen && currentFilter === 'Custom Date Range') {
+                    setTimeout(() => {
+                        if (customDateRangePicker && !customDateRangePicker.isOpen) {
+                            customDateRangePicker.open();
+                        }
+                    }, 50);
+                }
             }
         } else {
             customWrapper.classList.add('hidden');
             customWrapper.classList.remove('flex');
+            customWrapper.style.display = 'none';
+            if (customDateRangePicker && customDateRangePicker.isOpen) {
+                customDateRangePicker.close();
+            }
         }
     };
 
@@ -326,16 +377,18 @@
         filterSelect.addEventListener('change', (e) => {
             currentFilter = e.target.value;
             localStorage.setItem('admin_dashboard_filter', currentFilter);
-            updateCustomDateUI();
+            updateCustomDateUI(true);
             showSkeletonStates();
             loadDashboardData();
         });
 
-        updateCustomDateUI();
+        updateCustomDateUI(false);
     }
 
     // --- 5. FETCH & RENDER DASHBOARD DATA ---
     let allDashboardScholarships = [];
+    let allDashboardApplications = [];
+    let allDashboardAuditLogs = [];
 
     const loadDashboardData = async () => {
         if (!adminSchoolId) return;
@@ -352,13 +405,31 @@
             if (scholError) throw scholError;
             allDashboardScholarships = scholarships || [];
 
-            // Fetch Applications (excluding unsubmitted drafts)
+            // Fetch Applications (excluding unsubmitted drafts) with joined profiles and scholarships
             let applications = [];
             if (scholarships && scholarships.length > 0) {
                 const scholIds = scholarships.map(s => s.id);
                 const { data: apps, error: appError } = await window.supabaseClient
                     .from('applications')
-                    .select(`*, scholarships(title, category)`)
+                    .select(`
+                        *,
+                        scholarships (
+                            title,
+                            category
+                        ),
+                        profiles (
+                            id,
+                            first_name,
+                            middle_name,
+                            last_name,
+                            id_number,
+                            email,
+                            contact_number,
+                            program,
+                            year_level,
+                            avatar_url
+                        )
+                    `)
                     .in('scholarship_id', scholIds)
                     .neq('status', 'Draft')
                     .gte('created_at', start)
@@ -366,20 +437,30 @@
                     .order('created_at', { ascending: false });
 
                 if (appError) throw appError;
-                applications = apps || [];
+                applications = (apps || []).map(app => {
+                    const fullSchol = (scholarships || []).find(s => s.id === app.scholarship_id);
+                    return {
+                        ...app,
+                        scholarships: {
+                            ...(fullSchol || {}),
+                            ...(app.scholarships || {})
+                        }
+                    };
+                });
             }
+            allDashboardApplications = applications;
 
-            // Fetch Audit Logs
+            // Fetch Audit Logs (All records in date range)
             const { data: auditLogs, error: auditError } = await window.supabaseClient
                 .from('audit_logs')
-                .select('*, profiles(first_name, last_name)')
+                .select('*, profiles(first_name, last_name, email, avatar_url)')
                 .eq('school_id', adminSchoolId)
                 .gte('created_at', start)
                 .lte('created_at', end)
-                .order('created_at', { ascending: false })
-                .limit(20);
+                .order('created_at', { ascending: false });
 
             if (auditError) console.warn("Audit logs error:", auditError);
+            allDashboardAuditLogs = auditLogs || [];
 
             // Fetch Notifications for Recent Activity
             const { data: recentNotifs, error: notifError } = await window.supabaseClient
@@ -395,17 +476,39 @@
 
             // Combine both logs for Recent Activity timeline
             const combinedActivity = [
-                ...(auditLogs || []).map(l => ({ ...l, type: 'audit', message: `${l.action} - ${l.module}` })),
+                ...(allDashboardAuditLogs || []).map(l => ({ ...l, type: 'audit', message: `${l.action} - ${l.module}` })),
                 ...(recentNotifs || []).map(n => ({ ...n, type: 'notification' }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
 
             renderTopMetrics(scholarships || [], applications);
             renderRecentActivity(combinedActivity);
-            renderAuditTrail(auditLogs || []);
+            renderAuditTrail(allDashboardAuditLogs.slice(0, 10));
             renderApplicationOverview(applications);
             renderScholarshipOverview(scholarships || []);
             renderTopScholarships(scholarships || [], applications);
             renderScholarshipPerformance(scholarships || [], applications);
+
+            // If any metric modal is open, refresh its data in real-time
+            const isModalOpen = (id) => {
+                const el = document.getElementById(id);
+                return el && (el.classList.contains('show') || el.classList.contains('active') || el.style.display === 'flex');
+            };
+            if (isModalOpen('metric-modal-scholarships')) {
+                updateTotalScholarshipsModalCounts();
+                renderTotalScholarshipsModalTable();
+            }
+            if (isModalOpen('metric-modal-applications')) {
+                updateTotalApplicationsModalCounts();
+                renderTotalApplicationsModalTable();
+            }
+            if (isModalOpen('metric-modal-pending')) {
+                updatePendingReviewModalCounts();
+                renderPendingReviewModalTable();
+            }
+            if (isModalOpen('metric-modal-outcomes')) {
+                updateProcessedOutcomesModalCounts();
+                renderProcessedOutcomesModalTable();
+            }
 
             if (typeof lucide !== 'undefined' && lucide.createIcons) {
                 lucide.createIcons();
@@ -429,8 +532,53 @@
         return 'Pending';
     };
 
+    const calculateDynamicStatus = (sch) => {
+        if (!sch) return 'Draft';
+        if (sch.status === 'Draft') return 'Draft';
+        if (!sch.start_date || !sch.end_date) return sch.status || 'Draft';
+
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const start = new Date(sch.start_date); start.setHours(0, 0, 0, 0);
+        const end = new Date(sch.end_date); end.setHours(23, 59, 59, 999);
+
+        if (today < start) return 'Upcoming';
+        if (today >= start && today <= end) return 'Active';
+        return 'Closed';
+    };
+
+    const formatApplicationPeriod = (sch) => {
+        if (!sch) return 'Open / Ongoing';
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        if (sch.start_date && sch.end_date) {
+            const sDate = new Date(sch.start_date).toLocaleDateString('en-US', options);
+            const eDate = new Date(sch.end_date).toLocaleDateString('en-US', options);
+            return `${sDate} - ${eDate}`;
+        } else if (sch.end_date || sch.deadline) {
+            const eDate = new Date(sch.end_date || sch.deadline).toLocaleDateString('en-US', options);
+            return `Until ${eDate}`;
+        } else if (sch.start_date) {
+            const sDate = new Date(sch.start_date).toLocaleDateString('en-US', options);
+            return `From ${sDate}`;
+        }
+        return 'Open / Ongoing';
+    };
+
+    const getEducationalAssistanceStatusBadge = (status) => {
+        const s = (status || 'Draft').toLowerCase();
+        if (s === 'active') {
+            return `<span class="status-active-badge"><i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Active</span>`;
+        }
+        if (s === 'upcoming') {
+            return `<span class="status-upcoming-badge"><i data-lucide="calendar-clock" style="width: 12px; height: 12px;"></i> Upcoming</span>`;
+        }
+        if (s === 'draft') {
+            return `<span class="status-draft-badge"><i data-lucide="file-edit" style="width: 12px; height: 12px;"></i> Draft</span>`;
+        }
+        return `<span class="status-closed-badge"><i data-lucide="x-circle" style="width: 12px; height: 12px;"></i> Closed</span>`;
+    };
+
     const renderTopMetrics = (scholarships, applications) => {
-        const activeSchol = scholarships.filter(s => s.status === 'Active').length;
+        const activeSchol = scholarships.filter(s => calculateDynamicStatus(s) === 'Active').length;
         const totalApps = applications.length;
 
         const pending = applications.filter(a => {
@@ -562,72 +710,80 @@
         }
     };
 
+    let cachedTargetUserProfiles = {};
+
+    const formatLogDetails = (detailsRaw, targetProfiles = cachedTargetUserProfiles) => {
+        if (!detailsRaw) return '-';
+        try {
+            if (typeof detailsRaw === 'string' && detailsRaw.startsWith('{')) {
+                const parsed = JSON.parse(detailsRaw);
+                let dText = parsed.details || '';
+
+                if (!dText) {
+                    const parts = [];
+                    for (const [key, value] of Object.entries(parsed)) {
+                        if (key !== 'targetUserId') {
+                            const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                            parts.push(`${formattedKey}: ${value}`);
+                        }
+                    }
+                    dText = parts.join(', ');
+                }
+
+                if (parsed.targetUserId) {
+                    const targetName = targetProfiles[parsed.targetUserId] || 'Unknown User';
+                    dText += dText ? ` (Target User: ${targetName})` : `Target User: ${targetName}`;
+                }
+                return dText || detailsRaw;
+            }
+        } catch (e) {}
+        return detailsRaw;
+    };
+
+    const fetchTargetUserProfiles = async (logs) => {
+        const missingIds = [];
+        logs.forEach(log => {
+            try {
+                if (log.details && log.details.startsWith('{')) {
+                    const parsed = JSON.parse(log.details);
+                    if (parsed.targetUserId && !cachedTargetUserProfiles[parsed.targetUserId] && !missingIds.includes(parsed.targetUserId)) {
+                        missingIds.push(parsed.targetUserId);
+                    }
+                }
+            } catch (e) {}
+        });
+
+        if (missingIds.length > 0) {
+            const { data: profiles } = await window.supabaseClient
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .in('id', missingIds);
+
+            if (profiles) {
+                profiles.forEach(p => {
+                    cachedTargetUserProfiles[p.id] = `${p.first_name} ${p.last_name}`.trim();
+                });
+            }
+        }
+    };
+
     const renderAuditTrail = async (logs) => {
         const tbody = document.getElementById('audit-trail-tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        if (logs.length === 0) {
+        if (!logs || logs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8" style="color: var(--text-muted); font-size: 13px;">No activity logs found for this period.</td></tr>';
             return;
         }
 
-        // Pre-fetch target users to avoid N+1 queries
-        let targetUserIds = [];
-        logs.forEach(log => {
-            try {
-                if (log.details && log.details.startsWith('{')) {
-                    const parsed = JSON.parse(log.details);
-                    if (parsed.targetUserId && !targetUserIds.includes(parsed.targetUserId)) {
-                        targetUserIds.push(parsed.targetUserId);
-                    }
-                }
-            } catch (e) { }
-        });
-
-        let targetUserProfiles = {};
-        if (targetUserIds.length > 0) {
-            const { data: profiles } = await window.supabaseClient
-                .from('profiles')
-                .select('id, first_name, last_name')
-                .in('id', targetUserIds);
-
-            if (profiles) {
-                profiles.forEach(p => {
-                    targetUserProfiles[p.id] = `${p.first_name} ${p.last_name}`;
-                });
-            }
-        }
+        await fetchTargetUserProfiles(logs);
 
         let html = '';
         logs.forEach(log => {
             const timeString = new Date(log.created_at).toLocaleString();
             const userName = log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown Admin';
-
-            let detailsText = log.details || '-';
-            try {
-                if (log.details && log.details.startsWith('{')) {
-                    const parsed = JSON.parse(log.details);
-                    let dText = parsed.details || '';
-
-                    if (!dText) {
-                        const parts = [];
-                        for (const [key, value] of Object.entries(parsed)) {
-                            if (key !== 'targetUserId') {
-                                const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                parts.push(`${formattedKey}: ${value}`);
-                            }
-                        }
-                        dText = parts.join(', ');
-                    }
-
-                    if (parsed.targetUserId) {
-                        const targetName = targetUserProfiles[parsed.targetUserId] || 'Unknown User';
-                        dText += dText ? ` (Target User: ${targetName})` : `Target User: ${targetName}`;
-                    }
-                    detailsText = dText;
-                }
-            } catch (e) { }
+            const detailsText = formatLogDetails(log.details);
 
             html += `
                 <tr>
@@ -638,9 +794,9 @@
                             ${userName}
                         </span>
                     </td>
-                    <td style="font-weight: 600; color: var(--text-heading);">${log.action}</td>
-                    <td><span class="audit-module-badge">${log.module}</span></td>
-                    <td style="color: var(--text-muted); font-size: 12.5px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${detailsText}">${detailsText}</td>
+                    <td style="font-weight: 600; color: var(--text-heading);">${log.action || '-'}</td>
+                    <td><span class="audit-module-badge">${log.module || 'System'}</span></td>
+                    <td style="color: var(--text-muted); font-size: 12.5px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtmlAttr(detailsText)}">${detailsText}</td>
                 </tr>
             `;
         });
@@ -763,7 +919,7 @@
         const top5 = counts.slice(0, 5);
 
         if (top5.length === 0 || top5[0].count === 0) {
-            tbody.innerHTML = '<tr><td colspan="2" class="text-center py-6" style="color: var(--text-muted); font-size: 13px;">No scholarship application data yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center py-6" style="color: var(--text-muted); font-size: 13px;">No educational assistance application data yet.</td></tr>';
             return;
         }
 
@@ -828,7 +984,7 @@
             const safeFullTitle = escapeHtmlAttr(stat.fullTitle);
             const safeTitle = escapeHtmlAttr(stat.title);
             container.innerHTML += `
-                <div class="bar-col group" onclick="openScholarshipApplicantsModal('${stat.id}')" title="${safeFullTitle} • ${stat.approvedApps}/${stat.totalApps} Approved (${stat.rate.toFixed(1)}%)">
+                <div class="bar-col group" onclick="openScholarshipApplicantsModal('${stat.id}', 'Approved')" title="${safeFullTitle} • ${stat.approvedApps}/${stat.totalApps} Approved (${stat.rate.toFixed(1)}%)">
                     <div class="bar-top-stats">
                         <span class="bar-rate-label">${stat.rate.toFixed(1)}%</span>
                         <span class="bar-sub-ratio">${stat.approvedApps}/${stat.totalApps} app${stat.totalApps === 1 ? '' : 's'}</span>
@@ -847,6 +1003,754 @@
         }
     };
 
+    // ==========================================================================
+    // --- 7.1 METRIC MODAL: TOTAL EDUCATIONAL ASSISTANCE DIRECTORY & BREAKDOWN ---
+    // ==========================================================================
+    let modalMscholActiveFilter = 'All';
+    let modalMscholSearchQuery = '';
+
+    window.openTotalScholarshipsModal = (initialStatus = 'All') => {
+        const modal = document.getElementById('metric-modal-scholarships');
+        if (!modal) return;
+
+        const searchInput = document.getElementById('modal-mschol-search');
+        if (searchInput) searchInput.value = '';
+        modalMscholSearchQuery = '';
+        modalMscholActiveFilter = initialStatus || 'All';
+
+        // Reset tab buttons
+        document.querySelectorAll('#modal-mschol-tabs .modal-status-tab').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-status') === modalMscholActiveFilter);
+        });
+
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        updateTotalScholarshipsModalCounts();
+        renderTotalScholarshipsModalTable();
+    };
+
+    window.closeTotalScholarshipsModal = () => {
+        const modal = document.getElementById('metric-modal-scholarships');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function updateTotalScholarshipsModalCounts() {
+        const total = allDashboardScholarships.length;
+        const active = allDashboardScholarships.filter(s => calculateDynamicStatus(s) === 'Active').length;
+        const upcoming = allDashboardScholarships.filter(s => calculateDynamicStatus(s) === 'Upcoming').length;
+        const closed = allDashboardScholarships.filter(s => {
+            const st = calculateDynamicStatus(s);
+            return st === 'Closed' || st === 'Draft';
+        }).length;
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setTxt('modal-mschol-stat-total', total);
+        setTxt('modal-mschol-stat-active', active);
+        setTxt('modal-mschol-stat-closed', closed);
+
+        setTxt('modal-mschol-tab-all', total);
+        setTxt('modal-mschol-tab-active', active);
+        setTxt('modal-mschol-tab-upcoming', upcoming);
+        setTxt('modal-mschol-tab-closed', closed);
+        setTxt('modal-mschol-total-count', total);
+    }
+
+    function renderTotalScholarshipsModalTable() {
+        const tbody = document.getElementById('modal-mschol-tbody');
+        if (!tbody) return;
+
+        let filtered = allDashboardScholarships.filter(schol => {
+            const dynamicSt = calculateDynamicStatus(schol);
+
+            // Tab filter
+            if (modalMscholActiveFilter === 'Active' && dynamicSt !== 'Active') return false;
+            if (modalMscholActiveFilter === 'Upcoming' && dynamicSt !== 'Upcoming') return false;
+            if (modalMscholActiveFilter === 'Closed' && dynamicSt !== 'Closed' && dynamicSt !== 'Draft') return false;
+
+            // Search filter
+            if (modalMscholSearchQuery) {
+                const q = modalMscholSearchQuery.toLowerCase();
+                const title = (schol.title || '').toLowerCase();
+                const cat = (schol.category || '').toLowerCase();
+                const batch = (schol.batch || '').toString().toLowerCase();
+                const sem = (schol.semester || '').toLowerCase();
+                const sy = (schol.school_year || '').toLowerCase();
+                const desc = (schol.description || '').toLowerCase();
+
+                const matches = title.includes(q) || cat.includes(q) || batch.includes(q) || sem.includes(q) || sy.includes(q) || desc.includes(q);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+
+        const showingCountEl = document.getElementById('modal-mschol-showing-count');
+        if (showingCountEl) showingCountEl.innerText = filtered.length;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="py-10 text-center" style="color: var(--text-muted);">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <i data-lucide="graduation-cap" style="width: 28px; height: 28px; color: var(--text-light);"></i>
+                            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-heading);">No educational assistance programs found</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">No programs match your search query or filter.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            return;
+        }
+
+        let html = '';
+        filtered.forEach((s, index) => {
+            const title = s.title || 'Untitled Assistance Program';
+            const safeTitle = escapeHtmlAttr(title);
+            const category = s.category || 'General Assistance';
+            const slots = s.slots ? `${s.slots} Slots` : 'Flexible';
+            
+            // Academic term info
+            const termParts = [];
+            if (s.batch) termParts.push(`Batch ${s.batch}`);
+            if (s.semester) termParts.push(s.semester);
+            if (s.school_year) termParts.push(`SY ${s.school_year}`);
+            const termStr = termParts.join(' • ') || 'All Academic Terms';
+
+            // Period info
+            const periodStr = formatApplicationPeriod(s);
+
+            // Dynamic Status badge
+            const dynamicSt = calculateDynamicStatus(s);
+            const statusBadge = getEducationalAssistanceStatusBadge(dynamicSt);
+
+            html += `
+                <tr>
+                    <td style="color: var(--text-light); font-size: 12px; font-weight: 600;">${index + 1}</td>
+                    <td>
+                        <div>
+                            <div class="schol-table-title" title="${safeTitle}">${safeTitle}</div>
+                            <div class="schol-table-meta">${termStr}</div>
+                        </div>
+                    </td>
+                    <td><span class="audit-module-badge">${escapeHtmlAttr(category)}</span></td>
+                    <td><span class="applicant-id-pill">${slots}</span></td>
+                    <td style="font-size: 12px; color: var(--text-muted);">
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="calendar" style="width: 12px; height: 12px; color: var(--text-light);"></i>
+                            <span>${escapeHtmlAttr(periodStr)}</span>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td style="text-align: right;">
+                        <button class="btn-review-applicant-mini" onclick="closeTotalScholarshipsModal(); openScholarshipApplicantsModal('${s.id}')" title="View applicant submissions for this program">
+                            <i data-lucide="users" style="width: 12px; height: 12px;"></i> Applicants
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    }
+
+    // ==========================================================================
+    // --- 7.2 METRIC MODAL: TOTAL APPLICATIONS REGISTRY ---
+    // ==========================================================================
+    let modalMappsActiveFilter = 'All';
+    let modalMappsSearchQuery = '';
+
+    window.openTotalApplicationsModal = (initialStatus = 'All') => {
+        const modal = document.getElementById('metric-modal-applications');
+        if (!modal) return;
+
+        const searchInput = document.getElementById('modal-mapps-search');
+        if (searchInput) searchInput.value = '';
+        modalMappsSearchQuery = '';
+        modalMappsActiveFilter = initialStatus || 'All';
+
+        const subtitleEl = document.getElementById('modal-mapps-subtitle');
+        if (subtitleEl) {
+            subtitleEl.innerText = `Comprehensive record of all applications for ${currentFilter} (${allDashboardApplications.length} records)`;
+        }
+
+        // Reset tab buttons
+        document.querySelectorAll('#modal-mapps-tabs .modal-status-tab').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-status') === modalMappsActiveFilter);
+        });
+
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        updateTotalApplicationsModalCounts();
+        renderTotalApplicationsModalTable();
+    };
+
+    window.closeTotalApplicationsModal = () => {
+        const modal = document.getElementById('metric-modal-applications');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function updateTotalApplicationsModalCounts() {
+        const total = allDashboardApplications.length;
+        const pending = allDashboardApplications.filter(a => normalizeApplicantStatus(a.status) === 'Pending').length;
+        const review = allDashboardApplications.filter(a => normalizeApplicantStatus(a.status) === 'Under Review').length;
+        const approved = allDashboardApplications.filter(a => normalizeApplicantStatus(a.status) === 'Approved').length;
+        const rejected = allDashboardApplications.filter(a => normalizeApplicantStatus(a.status) === 'Rejected').length;
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setTxt('modal-mapps-stat-total', total);
+        setTxt('modal-mapps-stat-pending', pending);
+        setTxt('modal-mapps-stat-review', review);
+        setTxt('modal-mapps-stat-approved', approved);
+        setTxt('modal-mapps-stat-rejected', rejected);
+
+        setTxt('modal-mapps-tab-all', total);
+        setTxt('modal-mapps-tab-pending', pending);
+        setTxt('modal-mapps-tab-review', review);
+        setTxt('modal-mapps-tab-approved', approved);
+        setTxt('modal-mapps-tab-rejected', rejected);
+        setTxt('modal-mapps-total-count', total);
+    }
+
+    function renderTotalApplicationsModalTable() {
+        const tbody = document.getElementById('modal-mapps-tbody');
+        if (!tbody) return;
+
+        let filtered = allDashboardApplications.filter(app => {
+            const st = normalizeApplicantStatus(app.status);
+
+            // Tab Filter
+            if (modalMappsActiveFilter !== 'All') {
+                if (modalMappsActiveFilter === 'Pending' && st !== 'Pending') return false;
+                if (modalMappsActiveFilter === 'Under Review' && st !== 'Under Review') return false;
+                if (modalMappsActiveFilter === 'Approved' && st !== 'Approved') return false;
+                if (modalMappsActiveFilter === 'Rejected' && st !== 'Rejected') return false;
+            }
+
+            // Search Query Filter
+            if (modalMappsSearchQuery) {
+                const q = modalMappsSearchQuery.toLowerCase();
+                const p = app.profiles || {};
+                const s = app.scholarships || {};
+                const name = `${p.first_name || ''} ${p.middle_name || ''} ${p.last_name || ''}`.toLowerCase();
+                const idNum = (p.id_number || '').toLowerCase();
+                const email = (p.email || '').toLowerCase();
+                const scholTitle = (s.title || '').toLowerCase();
+                const scholCat = (s.category || '').toLowerCase();
+                const prog = (p.program || '').toLowerCase();
+                const year = (p.year_level || '').toLowerCase();
+
+                const matches = name.includes(q) || idNum.includes(q) || email.includes(q) || scholTitle.includes(q) || scholCat.includes(q) || prog.includes(q) || year.includes(q);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+
+        const showingCountEl = document.getElementById('modal-mapps-showing-count');
+        if (showingCountEl) showingCountEl.innerText = filtered.length;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="py-10 text-center" style="color: var(--text-muted);">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <i data-lucide="file-text" style="width: 28px; height: 28px; color: var(--text-light);"></i>
+                            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-heading);">No applications found</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">No student applications match your search query or status filter.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            return;
+        }
+
+        let html = '';
+        filtered.forEach((app, index) => {
+            const p = app.profiles || {};
+            const s = app.scholarships || {};
+            const firstName = p.first_name || '';
+            const lastName = p.last_name || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Applicant';
+            const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'AP';
+            const email = p.email || 'No email';
+            const studentId = p.id_number || '-';
+            const scholTitle = s.title || 'Educational Assistance Program';
+            const scholCat = s.category || 'General';
+            const course = p.program || '-';
+            const year = p.year_level ? ` • ${p.year_level}` : '';
+            const courseYear = course !== '-' ? `${course}${year}` : (year ? p.year_level : '-');
+            const dateStr = app.created_at ? new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+
+            const normStatus = normalizeApplicantStatus(app.status);
+            let statusBadgeClass = 'status-pending';
+            let statusIcon = 'clock';
+
+            if (normStatus === 'Approved') {
+                statusBadgeClass = 'status-approved';
+                statusIcon = 'check-circle-2';
+            } else if (normStatus === 'Under Review') {
+                statusBadgeClass = 'status-review';
+                statusIcon = 'file-search';
+            } else if (normStatus === 'Rejected') {
+                statusBadgeClass = 'status-rejected';
+                statusIcon = 'x-circle';
+            }
+
+            const avatarHtml = p.avatar_url
+                ? `<img src="${p.avatar_url}" alt="${escapeHtmlAttr(fullName)}" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
+                : initials;
+
+            html += `
+                <tr>
+                    <td style="color: var(--text-light); font-size: 12px; font-weight: 600;">${index + 1}</td>
+                    <td>
+                        <div class="applicant-profile-cell">
+                            <div class="applicant-avatar-circle">${avatarHtml}</div>
+                            <div>
+                                <div class="applicant-name-text">${escapeHtmlAttr(fullName)}</div>
+                                <div class="applicant-email-text">${escapeHtmlAttr(email)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="applicant-id-pill">${escapeHtmlAttr(studentId)}</span></td>
+                    <td>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-heading); font-size: 13px;">${escapeHtmlAttr(scholTitle)}</div>
+                            <span class="audit-module-badge" style="font-size: 10.5px; padding: 1px 7px; margin-top: 2px;">${escapeHtmlAttr(scholCat)}</span>
+                        </div>
+                    </td>
+                    <td style="font-size: 12.5px; color: var(--text-main); max-width: 170px;">${escapeHtmlAttr(courseYear)}</td>
+                    <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">${dateStr}</td>
+                    <td>
+                        <span class="app-status-badge ${statusBadgeClass}">
+                            <i data-lucide="${statusIcon}" style="width: 12px; height: 12px;"></i>
+                            ${normStatus}
+                        </span>
+                    </td>
+                    <td style="text-align: right;">
+                        <a href="admin-applications.html?scholarship_id=${app.scholarship_id || ''}&status=${encodeURIComponent(normStatus === 'Under Review' ? 'Pending' : normStatus)}&applicant_id=${app.id}" class="btn-review-applicant-mini" title="Open and evaluate application">
+                            <i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Review
+                        </a>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    }
+
+    // ==========================================================================
+    // --- 7.3 METRIC MODAL: PENDING REVIEW QUEUE ---
+    // ==========================================================================
+    let modalMpendingActiveFilter = 'All';
+    let modalMpendingSearchQuery = '';
+
+    window.openPendingReviewModal = (initialStatus = 'All') => {
+        const modal = document.getElementById('metric-modal-pending');
+        if (!modal) return;
+
+        const searchInput = document.getElementById('modal-mpending-search');
+        if (searchInput) searchInput.value = '';
+        modalMpendingSearchQuery = '';
+        modalMpendingActiveFilter = initialStatus || 'All';
+
+        const pendingList = allDashboardApplications.filter(a => ['Pending', 'Under Review'].includes(normalizeApplicantStatus(a.status)));
+        const subtitleEl = document.getElementById('modal-mpending-subtitle');
+        if (subtitleEl) {
+            subtitleEl.innerText = `Applications awaiting coordinator screening or committee evaluation for ${currentFilter} (${pendingList.length} awaiting)`;
+        }
+
+        // Reset tab buttons
+        document.querySelectorAll('#modal-mpending-tabs .modal-status-tab').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-status') === modalMpendingActiveFilter);
+        });
+
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        updatePendingReviewModalCounts();
+        renderPendingReviewModalTable();
+    };
+
+    window.closePendingReviewModal = () => {
+        const modal = document.getElementById('metric-modal-pending');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function updatePendingReviewModalCounts() {
+        const pendingList = allDashboardApplications.filter(a => ['Pending', 'Under Review'].includes(normalizeApplicantStatus(a.status)));
+        const totalPending = pendingList.length;
+        const initialPending = pendingList.filter(a => normalizeApplicantStatus(a.status) === 'Pending').length;
+        const underReview = pendingList.filter(a => normalizeApplicantStatus(a.status) === 'Under Review').length;
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setTxt('modal-mpending-stat-total', totalPending);
+        setTxt('modal-mpending-stat-pending', initialPending);
+        setTxt('modal-mpending-stat-review', underReview);
+
+        setTxt('modal-mpending-tab-all', totalPending);
+        setTxt('modal-mpending-tab-pending', initialPending);
+        setTxt('modal-mpending-tab-review', underReview);
+        setTxt('modal-mpending-total-count', totalPending);
+    }
+
+    function renderPendingReviewModalTable() {
+        const tbody = document.getElementById('modal-mpending-tbody');
+        if (!tbody) return;
+
+        const pendingList = allDashboardApplications.filter(a => ['Pending', 'Under Review'].includes(normalizeApplicantStatus(a.status)));
+
+        let filtered = pendingList.filter(app => {
+            const st = normalizeApplicantStatus(app.status);
+
+            // Tab Filter
+            if (modalMpendingActiveFilter !== 'All') {
+                if (modalMpendingActiveFilter === 'Pending' && st !== 'Pending') return false;
+                if (modalMpendingActiveFilter === 'Under Review' && st !== 'Under Review') return false;
+            }
+
+            // Search Query Filter
+            if (modalMpendingSearchQuery) {
+                const q = modalMpendingSearchQuery.toLowerCase();
+                const p = app.profiles || {};
+                const s = app.scholarships || {};
+                const name = `${p.first_name || ''} ${p.middle_name || ''} ${p.last_name || ''}`.toLowerCase();
+                const idNum = (p.id_number || '').toLowerCase();
+                const email = (p.email || '').toLowerCase();
+                const scholTitle = (s.title || '').toLowerCase();
+                const prog = (p.program || '').toLowerCase();
+                const year = (p.year_level || '').toLowerCase();
+
+                const matches = name.includes(q) || idNum.includes(q) || email.includes(q) || scholTitle.includes(q) || prog.includes(q) || year.includes(q);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+
+        const showingCountEl = document.getElementById('modal-mpending-showing-count');
+        if (showingCountEl) showingCountEl.innerText = filtered.length;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="py-10 text-center" style="color: var(--text-muted);">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <i data-lucide="check-circle" style="width: 28px; height: 28px; color: var(--success-green);"></i>
+                            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-heading);">All caught up!</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">No pending applications currently require evaluation.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            return;
+        }
+
+        let html = '';
+        filtered.forEach((app, index) => {
+            const p = app.profiles || {};
+            const s = app.scholarships || {};
+            const firstName = p.first_name || '';
+            const lastName = p.last_name || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Applicant';
+            const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'AP';
+            const email = p.email || 'No email';
+            const studentId = p.id_number || '-';
+            const scholTitle = s.title || 'Educational Assistance Program';
+            const scholCat = s.category || 'General';
+            const course = p.program || '-';
+            const year = p.year_level ? ` • ${p.year_level}` : '';
+            const courseYear = course !== '-' ? `${course}${year}` : (year ? p.year_level : '-');
+            
+            const dateObj = app.created_at ? new Date(app.created_at) : null;
+            const dateStr = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+
+            const normStatus = normalizeApplicantStatus(app.status);
+            const statusBadgeClass = normStatus === 'Under Review' ? 'status-review' : 'status-pending';
+            const statusIcon = normStatus === 'Under Review' ? 'file-search' : 'clock';
+
+            const avatarHtml = p.avatar_url
+                ? `<img src="${p.avatar_url}" alt="${escapeHtmlAttr(fullName)}" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
+                : initials;
+
+            html += `
+                <tr>
+                    <td style="color: var(--text-light); font-size: 12px; font-weight: 600;">${index + 1}</td>
+                    <td>
+                        <div class="applicant-profile-cell">
+                            <div class="applicant-avatar-circle">${avatarHtml}</div>
+                            <div>
+                                <div class="applicant-name-text">${escapeHtmlAttr(fullName)}</div>
+                                <div class="applicant-email-text">${escapeHtmlAttr(email)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="applicant-id-pill">${escapeHtmlAttr(studentId)}</span></td>
+                    <td>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-heading); font-size: 13px;">${escapeHtmlAttr(scholTitle)}</div>
+                            <span class="audit-module-badge" style="font-size: 10.5px; padding: 1px 7px; margin-top: 2px;">${escapeHtmlAttr(scholCat)}</span>
+                        </div>
+                    </td>
+                    <td style="font-size: 12.5px; color: var(--text-main); max-width: 170px;">${escapeHtmlAttr(courseYear)}</td>
+                    <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">${dateStr}</td>
+                    <td>
+                        <span class="app-status-badge ${statusBadgeClass}">
+                            <i data-lucide="${statusIcon}" style="width: 12px; height: 12px;"></i>
+                            ${normStatus}
+                        </span>
+                    </td>
+                    <td style="text-align: right;">
+                        <a href="admin-applications.html?scholarship_id=${app.scholarship_id || ''}&status=Pending&applicant_id=${app.id}" class="btn-review-applicant-mini" style="background-color: var(--primary-color); color: #fff; border-color: var(--primary-color);" title="Evaluate application immediately">
+                            <i data-lucide="clipboard-check" style="width: 12px; height: 12px;"></i> Evaluate
+                        </a>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    }
+
+    // ==========================================================================
+    // --- 7.4 METRIC MODAL: PROCESSED DECISIONS (APPROVED & REJECTED) ---
+    // ==========================================================================
+    let modalMoutcomesActiveFilter = 'All';
+    let modalMoutcomesSearchQuery = '';
+
+    window.openProcessedOutcomesModal = (initialStatus = 'All') => {
+        const modal = document.getElementById('metric-modal-outcomes');
+        if (!modal) return;
+
+        const searchInput = document.getElementById('modal-moutcomes-search');
+        if (searchInput) searchInput.value = '';
+        modalMoutcomesSearchQuery = '';
+        modalMoutcomesActiveFilter = initialStatus || 'All';
+
+        const decidedList = allDashboardApplications.filter(a => ['Approved', 'Rejected'].includes(normalizeApplicantStatus(a.status)));
+        const subtitleEl = document.getElementById('modal-moutcomes-subtitle');
+        if (subtitleEl) {
+            subtitleEl.innerText = `Processed application outcomes for ${currentFilter} (${decidedList.length} total processed decisions)`;
+        }
+
+        // Reset tab buttons
+        document.querySelectorAll('#modal-moutcomes-tabs .modal-status-tab').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-status') === modalMoutcomesActiveFilter);
+        });
+
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        updateProcessedOutcomesModalCounts();
+        renderProcessedOutcomesModalTable();
+    };
+
+    window.closeProcessedOutcomesModal = () => {
+        const modal = document.getElementById('metric-modal-outcomes');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function updateProcessedOutcomesModalCounts() {
+        const decidedList = allDashboardApplications.filter(a => ['Approved', 'Rejected'].includes(normalizeApplicantStatus(a.status)));
+        const total = decidedList.length;
+        const approved = decidedList.filter(a => normalizeApplicantStatus(a.status) === 'Approved').length;
+        const rejected = decidedList.filter(a => normalizeApplicantStatus(a.status) === 'Rejected').length;
+
+        const approvedPct = total > 0 ? ((approved / total) * 100).toFixed(1) : '0';
+        const rejectedPct = total > 0 ? ((rejected / total) * 100).toFixed(1) : '0';
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setTxt('modal-moutcomes-stat-total', total);
+        setTxt('modal-moutcomes-stat-approved', approved);
+        setTxt('modal-moutcomes-pct-approved', `${approvedPct}%`);
+        setTxt('modal-moutcomes-stat-rejected', rejected);
+        setTxt('modal-moutcomes-pct-rejected', `${rejectedPct}%`);
+
+        setTxt('modal-moutcomes-tab-all', total);
+        setTxt('modal-moutcomes-tab-approved', approved);
+        setTxt('modal-moutcomes-tab-rejected', rejected);
+        setTxt('modal-moutcomes-total-count', total);
+    }
+
+    function renderProcessedOutcomesModalTable() {
+        const tbody = document.getElementById('modal-moutcomes-tbody');
+        if (!tbody) return;
+
+        const decidedList = allDashboardApplications.filter(a => ['Approved', 'Rejected'].includes(normalizeApplicantStatus(a.status)));
+
+        let filtered = decidedList.filter(app => {
+            const st = normalizeApplicantStatus(app.status);
+
+            // Tab Filter
+            if (modalMoutcomesActiveFilter !== 'All') {
+                if (modalMoutcomesActiveFilter === 'Approved' && st !== 'Approved') return false;
+                if (modalMoutcomesActiveFilter === 'Rejected' && st !== 'Rejected') return false;
+            }
+
+            // Search Query Filter
+            if (modalMoutcomesSearchQuery) {
+                const q = modalMoutcomesSearchQuery.toLowerCase();
+                const p = app.profiles || {};
+                const s = app.scholarships || {};
+                const name = `${p.first_name || ''} ${p.middle_name || ''} ${p.last_name || ''}`.toLowerCase();
+                const idNum = (p.id_number || '').toLowerCase();
+                const email = (p.email || '').toLowerCase();
+                const scholTitle = (s.title || '').toLowerCase();
+                const prog = (p.program || '').toLowerCase();
+                const year = (p.year_level || '').toLowerCase();
+
+                const matches = name.includes(q) || idNum.includes(q) || email.includes(q) || scholTitle.includes(q) || prog.includes(q) || year.includes(q);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+
+        const showingCountEl = document.getElementById('modal-moutcomes-showing-count');
+        if (showingCountEl) showingCountEl.innerText = filtered.length;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="py-10 text-center" style="color: var(--text-muted);">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <i data-lucide="inbox" style="width: 28px; height: 28px; color: var(--text-light);"></i>
+                            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-heading);">No processed decisions found</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">No approved or rejected records match your search filter.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            return;
+        }
+
+        let html = '';
+        filtered.forEach((app, index) => {
+            const p = app.profiles || {};
+            const s = app.scholarships || {};
+            const firstName = p.first_name || '';
+            const lastName = p.last_name || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Applicant';
+            const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'AP';
+            const email = p.email || 'No email';
+            const studentId = p.id_number || '-';
+            const scholTitle = s.title || 'Educational Assistance Program';
+            const scholCat = s.category || 'General';
+            const course = p.program || '-';
+            const year = p.year_level ? ` • ${p.year_level}` : '';
+            const courseYear = course !== '-' ? `${course}${year}` : (year ? p.year_level : '-');
+            
+            const dateObj = app.created_at ? new Date(app.created_at) : null;
+            const dateStr = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+
+            const normStatus = normalizeApplicantStatus(app.status);
+            const isApproved = normStatus === 'Approved';
+            const statusBadgeClass = isApproved ? 'status-approved' : 'status-rejected';
+            const statusIcon = isApproved ? 'check-circle-2' : 'x-circle';
+
+            const avatarHtml = p.avatar_url
+                ? `<img src="${p.avatar_url}" alt="${escapeHtmlAttr(fullName)}" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
+                : initials;
+
+            const actionBtn = isApproved
+                ? `<a href="admin-applications.html?scholarship_id=${app.scholarship_id || ''}&status=Approved&applicant_id=${app.id}" class="btn-review-applicant-mini" style="background-color: rgba(46, 107, 69, 0.12); color: var(--success-green); border-color: rgba(46, 107, 69, 0.3);" title="View responses in applications">
+                       <i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Details
+                   </a>`
+                : `<a href="admin-applications.html?scholarship_id=${app.scholarship_id || ''}&status=Rejected&applicant_id=${app.id}" class="btn-review-applicant-mini" title="View responses in applications">
+                       <i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Details
+                   </a>`;
+
+            html += `
+                <tr>
+                    <td style="color: var(--text-light); font-size: 12px; font-weight: 600;">${index + 1}</td>
+                    <td>
+                        <div class="applicant-profile-cell">
+                            <div class="applicant-avatar-circle">${avatarHtml}</div>
+                            <div>
+                                <div class="applicant-name-text">${escapeHtmlAttr(fullName)}</div>
+                                <div class="applicant-email-text">${escapeHtmlAttr(email)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="applicant-id-pill">${escapeHtmlAttr(studentId)}</span></td>
+                    <td>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-heading); font-size: 13px;">${escapeHtmlAttr(scholTitle)}</div>
+                            <span class="audit-module-badge" style="font-size: 10.5px; padding: 1px 7px; margin-top: 2px;">${escapeHtmlAttr(scholCat)}</span>
+                        </div>
+                    </td>
+                    <td style="font-size: 12.5px; color: var(--text-main); max-width: 170px;">${escapeHtmlAttr(courseYear)}</td>
+                    <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">${dateStr}</td>
+                    <td>
+                        <span class="app-status-badge ${statusBadgeClass}">
+                            <i data-lucide="${statusIcon}" style="width: 12px; height: 12px;"></i>
+                            ${normStatus}
+                        </span>
+                    </td>
+                    <td style="text-align: right;">
+                        ${actionBtn}
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    }
+
     // --- 8. SCHOLARSHIP APPLICANTS MODAL LOGIC ---
     let modalScholarshipData = null;
     let modalAllApplicants = [];
@@ -862,7 +1766,7 @@
         return 'Pending';
     };
 
-    window.openScholarshipApplicantsModal = async (scholarshipId) => {
+    window.openScholarshipApplicantsModal = async (scholarshipId, initialStatus = 'All') => {
         if (!scholarshipId) return;
 
         const modal = document.getElementById('scholarship-applicants-modal');
@@ -875,11 +1779,15 @@
         const manageLink = document.getElementById('modal-btn-manage-all');
         const searchInput = document.getElementById('modal-applicant-search');
 
-        if (manageLink) manageLink.href = `admin-applications.html?scholarship_id=${scholarshipId}`;
+        if (manageLink) {
+            manageLink.href = (initialStatus && initialStatus !== 'All')
+                ? `admin-applications.html?scholarship_id=${scholarshipId}&status=${encodeURIComponent(initialStatus)}`
+                : `admin-applications.html?scholarship_id=${scholarshipId}`;
+        }
         if (searchInput) searchInput.value = '';
 
         modalSearchQuery = '';
-        modalActiveFilter = 'All';
+        modalActiveFilter = initialStatus || 'All';
 
         // Check if scholarship info is in local dashboard memory
         const cachedSchol = allDashboardScholarships.find(s => s.id === scholarshipId);
@@ -895,14 +1803,14 @@
             if (cachedSchol.slots) subtitleParts.push(`Slots: ${cachedSchol.slots}`);
             if (subtitleEl) subtitleEl.innerText = subtitleParts.length > 0 ? subtitleParts.join(' • ') : 'Educational Assistance Program';
         } else {
-            if (titleEl) titleEl.innerText = 'Scholarship Program';
+            if (titleEl) titleEl.innerText = 'Educational Assistance Program';
             if (categoryEl) categoryEl.innerText = 'Loading...';
             if (subtitleEl) subtitleEl.innerText = 'Fetching details...';
         }
 
-        // Reset Tab Buttons
-        document.querySelectorAll('.modal-status-tab').forEach(t => {
-            t.classList.toggle('active', t.getAttribute('data-status') === 'All');
+        // Set Tab Buttons
+        document.querySelectorAll('#modal-status-tabs .modal-status-tab').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-status') === modalActiveFilter);
         });
 
         // Skeleton loading rows for modal table
@@ -1131,7 +2039,7 @@
                         </span>
                     </td>
                     <td style="text-align: right;">
-                        <a href="admin-applications.html?scholarship_id=${app.scholarship_id}" class="btn-review-applicant-mini" title="Open and evaluate application">
+                        <a href="admin-applications.html?scholarship_id=${app.scholarship_id}&status=${encodeURIComponent(normStatus === 'Under Review' ? 'Pending' : normStatus)}&applicant_id=${app.id}" class="btn-review-applicant-mini" title="Open and evaluate application">
                             <i data-lucide="external-link" style="width: 13px; height: 13px;"></i> Review
                         </a>
                     </td>
@@ -1177,12 +2085,388 @@
         });
     }
 
+    // --- 9. ALL ACTIVITY LOGS MODAL LOGIC ---
+    let modalActivitySearchQuery = '';
+    let modalActivityActiveModule = 'All';
+
+    const getModuleCategory = (log) => {
+        const mod = (log.module || '').toLowerCase();
+        const act = (log.action || '').toLowerCase();
+        if (mod.includes('scholar') || act.includes('scholar') || mod.includes('grant') || act.includes('educational assistance')) return 'Scholarship';
+        if (mod.includes('app') || act.includes('app') || mod.includes('beneficiar') || act.includes('applicant') || act.includes('grantee')) return 'Application';
+        if (mod.includes('announc') || act.includes('announc') || mod.includes('news')) return 'Announcement';
+        if (mod.includes('auth') || act.includes('auth') || mod.includes('login') || act.includes('login') || mod.includes('user') || mod.includes('system') || mod.includes('session') || mod.includes('security')) return 'Authentication';
+        return 'Other';
+    };
+
+    window.openAllActivityModal = async () => {
+        const modal = document.getElementById('all-activity-modal');
+        if (!modal) return;
+
+        const searchInput = document.getElementById('modal-activity-search');
+        if (searchInput) searchInput.value = '';
+        modalActivitySearchQuery = '';
+        modalActivityActiveModule = 'All';
+
+        // Reset Tab Buttons
+        document.querySelectorAll('#modal-activity-module-tabs .modal-status-tab').forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-module') === 'All');
+        });
+
+        // Update Subtitle with current date filter and count info
+        const subtitleEl = document.getElementById('modal-activity-subtitle');
+        if (subtitleEl) {
+            subtitleEl.innerText = `Chronological activity records for ${currentFilter} (${allDashboardAuditLogs.length} total entries)`;
+        }
+
+        // Show Modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        // Ensure target user profiles are loaded
+        await fetchTargetUserProfiles(allDashboardAuditLogs);
+
+        // Update counts & render table
+        updateActivityModalCounts();
+        renderActivityModalTable();
+    };
+
+    window.closeAllActivityModal = () => {
+        const modal = document.getElementById('all-activity-modal');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function updateActivityModalCounts() {
+        const allCount = allDashboardAuditLogs.length;
+        const scholCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Scholarship').length;
+        const appCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Application').length;
+        const annCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Announcement').length;
+        const authCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Authentication').length;
+        const otherCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Other').length;
+
+        if (document.getElementById('modal-activity-count-all')) document.getElementById('modal-activity-count-all').innerText = allCount;
+        if (document.getElementById('modal-activity-count-schol')) document.getElementById('modal-activity-count-schol').innerText = scholCount;
+        if (document.getElementById('modal-activity-count-app')) document.getElementById('modal-activity-count-app').innerText = appCount;
+        if (document.getElementById('modal-activity-count-ann')) document.getElementById('modal-activity-count-ann').innerText = annCount;
+        if (document.getElementById('modal-activity-count-auth')) document.getElementById('modal-activity-count-auth').innerText = authCount;
+        if (document.getElementById('modal-activity-count-other')) document.getElementById('modal-activity-count-other').innerText = otherCount;
+        if (document.getElementById('modal-activity-total-count')) document.getElementById('modal-activity-total-count').innerText = allCount;
+    }
+
+    function renderActivityModalTable() {
+        const tbody = document.getElementById('modal-activity-tbody');
+        if (!tbody) return;
+
+        let filtered = allDashboardAuditLogs.filter(log => {
+            // Category Tab Filter
+            if (modalActivityActiveModule !== 'All') {
+                const cat = getModuleCategory(log);
+                if (cat !== modalActivityActiveModule) return false;
+            }
+
+            // Search Filter
+            if (modalActivitySearchQuery) {
+                const q = modalActivitySearchQuery.toLowerCase();
+                const userName = log.profiles ? `${log.profiles.first_name || ''} ${log.profiles.last_name || ''}`.toLowerCase() : 'unknown admin';
+                const action = (log.action || '').toLowerCase();
+                const module = (log.module || '').toLowerCase();
+                const details = formatLogDetails(log.details).toLowerCase();
+                const dateStr = new Date(log.created_at).toLocaleString().toLowerCase();
+
+                const matches = userName.includes(q) || action.includes(q) || module.includes(q) || details.includes(q) || dateStr.includes(q);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+
+        if (document.getElementById('modal-activity-showing-count')) {
+            document.getElementById('modal-activity-showing-count').innerText = filtered.length;
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-12 text-center" style="color: var(--text-muted);">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <i data-lucide="history" style="width: 28px; height: 28px; color: var(--text-light);"></i>
+                            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-heading);">No activity logs found</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">No activity records match your search or module filter.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            return;
+        }
+
+        let html = '';
+        filtered.forEach((log, index) => {
+            const timeObj = new Date(log.created_at);
+            const timeFormatted = timeObj.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            const p = log.profiles || {};
+            const firstName = p.first_name || '';
+            const lastName = p.last_name || '';
+            const userName = `${firstName} ${lastName}`.trim() || 'Admin User';
+            const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'AU';
+            const avatarUrl = p.avatar_url;
+
+            const avatarHtml = avatarUrl
+                ? `<img src="${avatarUrl}" alt="${userName}" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
+                : initials;
+
+            const detailsText = formatLogDetails(log.details);
+            const safeDetails = escapeHtmlAttr(detailsText);
+
+            html += `
+                <tr>
+                    <td style="color: var(--text-light); font-size: 12px; font-weight: 600;">${index + 1}</td>
+                    <td style="color: var(--text-muted); font-size: 12px; white-space: nowrap;">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="clock" style="width: 12px; height: 12px; color: var(--text-light);"></i>
+                            ${timeFormatted}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="activity-user-badge">
+                            <div class="activity-user-avatar">${avatarHtml}</div>
+                            <span>${userName}</span>
+                        </div>
+                    </td>
+                    <td><span class="activity-action-text">${log.action || '-'}</span></td>
+                    <td><span class="audit-module-badge">${log.module || 'System'}</span></td>
+                    <td><div class="activity-details-cell" title="${safeDetails}">${detailsText}</div></td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    }
+
+    // Activity Modal Filter Events & Dismissal
+    const modalActivitySearchInput = document.getElementById('modal-activity-search');
+    if (modalActivitySearchInput) {
+        modalActivitySearchInput.addEventListener('input', (e) => {
+            modalActivitySearchQuery = e.target.value.trim();
+            renderActivityModalTable();
+        });
+    }
+
+    const modalActivityTabsContainer = document.getElementById('modal-activity-module-tabs');
+    if (modalActivityTabsContainer) {
+        modalActivityTabsContainer.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('.modal-status-tab');
+            if (!tabBtn) return;
+            modalActivityActiveModule = tabBtn.getAttribute('data-module') || 'All';
+            document.querySelectorAll('#modal-activity-module-tabs .modal-status-tab').forEach(t => t.classList.remove('active'));
+            tabBtn.classList.add('active');
+            renderActivityModalTable();
+        });
+    }
+
+    const modalActivityCloseBtn = document.getElementById('modal-activity-close-btn');
+    if (modalActivityCloseBtn) modalActivityCloseBtn.addEventListener('click', closeAllActivityModal);
+
+    const modalActivityBtnClose = document.getElementById('modal-activity-btn-close');
+    if (modalActivityBtnClose) modalActivityBtnClose.addEventListener('click', closeAllActivityModal);
+
+    const activityModalEl = document.getElementById('all-activity-modal');
+    if (activityModalEl) {
+        activityModalEl.addEventListener('click', (e) => {
+            if (e.target === activityModalEl) closeAllActivityModal();
+        });
+    }
+
+    // ==========================================================================
+    // METRIC CARDS CLICK & KEYBOARD EVENT HANDLERS
+    // ==========================================================================
+    const cardSchol = document.getElementById('card-metric-scholarships');
+    if (cardSchol) {
+        cardSchol.addEventListener('click', (e) => {
+            e.preventDefault();
+            openTotalScholarshipsModal();
+        });
+        cardSchol.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openTotalScholarshipsModal();
+            }
+        });
+    }
+
+    const cardApps = document.getElementById('card-metric-applications');
+    if (cardApps) {
+        cardApps.addEventListener('click', (e) => {
+            e.preventDefault();
+            openTotalApplicationsModal();
+        });
+        cardApps.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openTotalApplicationsModal();
+            }
+        });
+    }
+
+    const cardPending = document.getElementById('card-metric-pending');
+    if (cardPending) {
+        cardPending.addEventListener('click', (e) => {
+            e.preventDefault();
+            openPendingReviewModal();
+        });
+        cardPending.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openPendingReviewModal();
+            }
+        });
+    }
+
+    const cardOutcomes = document.getElementById('card-metric-outcomes');
+    if (cardOutcomes) {
+        cardOutcomes.addEventListener('click', (e) => {
+            e.preventDefault();
+            openProcessedOutcomesModal();
+        });
+        cardOutcomes.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openProcessedOutcomesModal();
+            }
+        });
+    }
+
+    // ==========================================================================
+    // METRIC MODALS EVENT LISTENERS (SEARCH & TABS)
+    // ==========================================================================
+    // 1. Total Scholarships Modal Listeners
+    const modalMscholSearchInput = document.getElementById('modal-mschol-search');
+    if (modalMscholSearchInput) {
+        modalMscholSearchInput.addEventListener('input', (e) => {
+            modalMscholSearchQuery = e.target.value.trim();
+            renderTotalScholarshipsModalTable();
+        });
+    }
+
+    const modalMscholTabsContainer = document.getElementById('modal-mschol-tabs');
+    if (modalMscholTabsContainer) {
+        modalMscholTabsContainer.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('.modal-status-tab');
+            if (!tabBtn) return;
+            modalMscholActiveFilter = tabBtn.getAttribute('data-status') || 'All';
+            document.querySelectorAll('#modal-mschol-tabs .modal-status-tab').forEach(t => t.classList.remove('active'));
+            tabBtn.classList.add('active');
+            renderTotalScholarshipsModalTable();
+        });
+    }
+
+    // 2. Total Applications Modal Listeners
+    const modalMappsSearchInput = document.getElementById('modal-mapps-search');
+    if (modalMappsSearchInput) {
+        modalMappsSearchInput.addEventListener('input', (e) => {
+            modalMappsSearchQuery = e.target.value.trim();
+            renderTotalApplicationsModalTable();
+        });
+    }
+
+    const modalMappsTabsContainer = document.getElementById('modal-mapps-tabs');
+    if (modalMappsTabsContainer) {
+        modalMappsTabsContainer.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('.modal-status-tab');
+            if (!tabBtn) return;
+            modalMappsActiveFilter = tabBtn.getAttribute('data-status') || 'All';
+            document.querySelectorAll('#modal-mapps-tabs .modal-status-tab').forEach(t => t.classList.remove('active'));
+            tabBtn.classList.add('active');
+            renderTotalApplicationsModalTable();
+        });
+    }
+
+    // 3. Pending Review Modal Listeners
+    const modalMpendingSearchInput = document.getElementById('modal-mpending-search');
+    if (modalMpendingSearchInput) {
+        modalMpendingSearchInput.addEventListener('input', (e) => {
+            modalMpendingSearchQuery = e.target.value.trim();
+            renderPendingReviewModalTable();
+        });
+    }
+
+    const modalMpendingTabsContainer = document.getElementById('modal-mpending-tabs');
+    if (modalMpendingTabsContainer) {
+        modalMpendingTabsContainer.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('.modal-status-tab');
+            if (!tabBtn) return;
+            modalMpendingActiveFilter = tabBtn.getAttribute('data-status') || 'All';
+            document.querySelectorAll('#modal-mpending-tabs .modal-status-tab').forEach(t => t.classList.remove('active'));
+            tabBtn.classList.add('active');
+            renderPendingReviewModalTable();
+        });
+    }
+
+    // 4. Processed Outcomes Modal Listeners
+    const modalMoutcomesSearchInput = document.getElementById('modal-moutcomes-search');
+    if (modalMoutcomesSearchInput) {
+        modalMoutcomesSearchInput.addEventListener('input', (e) => {
+            modalMoutcomesSearchQuery = e.target.value.trim();
+            renderProcessedOutcomesModalTable();
+        });
+    }
+
+    const modalMoutcomesTabsContainer = document.getElementById('modal-moutcomes-tabs');
+    if (modalMoutcomesTabsContainer) {
+        modalMoutcomesTabsContainer.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('.modal-status-tab');
+            if (!tabBtn) return;
+            modalMoutcomesActiveFilter = tabBtn.getAttribute('data-status') || 'All';
+            document.querySelectorAll('#modal-moutcomes-tabs .modal-status-tab').forEach(t => t.classList.remove('active'));
+            tabBtn.classList.add('active');
+            renderProcessedOutcomesModalTable();
+        });
+    }
+
+    // ==========================================================================
+    // BACKDROP CLICK & GLOBAL ESCAPE DISMISSAL FOR ALL MODALS
+    // ==========================================================================
+    const modalBackdropList = [
+        { id: 'metric-modal-scholarships', closeFn: closeTotalScholarshipsModal },
+        { id: 'metric-modal-applications', closeFn: closeTotalApplicationsModal },
+        { id: 'metric-modal-pending', closeFn: closePendingReviewModal },
+        { id: 'metric-modal-outcomes', closeFn: closeProcessedOutcomesModal },
+        { id: 'scholarship-applicants-modal', closeFn: closeScholarshipApplicantsModal },
+        { id: 'all-activity-modal', closeFn: closeAllActivityModal }
+    ];
+
+    modalBackdropList.forEach(({ id, closeFn }) => {
+        const modalEl = document.getElementById(id);
+        if (modalEl) {
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) closeFn();
+            });
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const modal = document.getElementById('scholarship-applicants-modal');
-            if (modal && (modal.classList.contains('show') || modal.classList.contains('active'))) {
-                closeScholarshipApplicantsModal();
-            }
+            modalBackdropList.forEach(({ id, closeFn }) => {
+                const el = document.getElementById(id);
+                if (el && (el.classList.contains('show') || el.classList.contains('active') || el.style.display === 'flex')) {
+                    closeFn();
+                }
+            });
         }
     });
 

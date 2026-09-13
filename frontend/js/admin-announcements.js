@@ -94,6 +94,50 @@
     window.showToast = showUIToast;
 
     // ==========================================
+    // OPTIONS DROPDOWN HELPERS (GLOBAL & INSTANT)
+    // ==========================================
+    window.closeAllAnnouncementOptions = function () {
+        document.querySelectorAll('.post-options-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+        document.querySelectorAll('.post-options-container').forEach(c => {
+            c.classList.remove('menu-active');
+            c.style.zIndex = '';
+        });
+        document.querySelectorAll('.social-card').forEach(card => {
+            card.classList.remove('card-menu-open');
+            card.style.zIndex = '';
+        });
+    };
+
+    window.toggleAnnouncementOptions = function (event, annId) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const targetMenuId = `menu-feed-${annId}`;
+        const targetMenu = document.getElementById(targetMenuId);
+        const isCurrentlyOpen = targetMenu && targetMenu.classList.contains('show');
+
+        // Close all dropdowns first
+        window.closeAllAnnouncementOptions();
+
+        if (targetMenu && !isCurrentlyOpen) {
+            targetMenu.classList.add('show');
+            const parentContainer = targetMenu.closest('.post-options-container');
+            if (parentContainer) {
+                parentContainer.classList.add('menu-active');
+                parentContainer.style.zIndex = '1150';
+            }
+            const parentCard = targetMenu.closest('.social-card');
+            if (parentCard) {
+                parentCard.classList.add('card-menu-open');
+                parentCard.style.zIndex = '1100';
+            }
+        }
+    };
+
+    // ==========================================
     // 1. AUTH CHECK & INITIALIZATION
     // ==========================================
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
@@ -371,19 +415,19 @@
                             </div>
                         </div>
                     </div>
-                    <div class="post-options-container">
-                        <button type="button" class="btn-option btn-menu-toggle" data-target="${menuId}">
+                    <div class="post-options-container" id="container-menu-${ann.id}">
+                        <button type="button" class="btn-option btn-menu-toggle" onclick="window.toggleAnnouncementOptions(event, '${ann.id}')" data-target="${menuId}" aria-label="Announcement options">
                             <i data-lucide="more-horizontal"></i>
                             <span>Options</span>
                         </button>
                         <div class="post-options-menu" id="${menuId}">
-                            <button type="button" class="btn-edit-ann" data-id="${ann.id}"><i data-lucide="edit-3"></i> Edit Announcement</button>
-                            <button type="button" class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned}"><i data-lucide="pin"></i> ${ann.is_pinned ? 'Unpin from Top' : 'Pin to Top'}</button>
-                            <button type="button" class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments}"><i data-lucide="${ann.allow_comments !== false ? 'lock' : 'unlock'}"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
-                            <button type="button" class="btn-duplicate-ann" data-id="${ann.id}"><i data-lucide="copy"></i> Duplicate</button>
-                            ${ann.status === 'Archived' ? `<button type="button" class="btn-unarchive-ann" data-id="${ann.id}"><i data-lucide="archive-restore"></i> Unarchive</button>` : `<button type="button" class="btn-archive-ann" data-id="${ann.id}"><i data-lucide="archive"></i> Archive</button>`}
+                            <button type="button" class="btn-edit-ann" onclick="window.editAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="edit-3"></i> Edit Announcement</button>
+                            <button type="button" class="btn-pin-ann" onclick="window.togglePin('${ann.id}', ${ann.is_pinned === true})" data-id="${ann.id}" data-pinned="${ann.is_pinned}"><i data-lucide="pin"></i> ${ann.is_pinned ? 'Unpin from Top' : 'Pin to Top'}</button>
+                            <button type="button" class="btn-comments-ann" onclick="window.toggleCommentsStatus('${ann.id}', ${ann.allow_comments !== false})" data-id="${ann.id}" data-state="${ann.allow_comments}"><i data-lucide="${ann.allow_comments !== false ? 'lock' : 'unlock'}"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
+                            <button type="button" class="btn-duplicate-ann" onclick="window.duplicateAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="copy"></i> Duplicate</button>
+                            ${ann.status === 'Archived' ? `<button type="button" class="btn-unarchive-ann" onclick="window.unarchiveAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="archive-restore"></i> Unarchive</button>` : `<button type="button" class="btn-archive-ann" onclick="window.archiveAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="archive"></i> Archive</button>`}
                             <div class="options-menu-divider"></div>
-                            <button type="button" class="btn-delete-ann" data-id="${ann.id}"><i data-lucide="trash-2"></i> Delete</button>
+                            <button type="button" class="btn-delete-ann" onclick="window.deleteAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="trash-2"></i> Delete</button>
                         </div>
                     </div>
                 </div>
@@ -526,21 +570,20 @@
     // ==========================================
     // EVENT DELEGATION FOR ALL BUTTONS
     // ==========================================
-    document.body.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
         const menuToggleBtn = e.target.closest('.btn-menu-toggle');
         if (menuToggleBtn) {
             e.stopPropagation();
             const targetId = menuToggleBtn.getAttribute('data-target');
-            document.querySelectorAll('.post-options-menu').forEach(menu => {
-                if (menu.id !== targetId) menu.classList.remove('show');
-            });
-            const targetMenu = document.getElementById(targetId);
-            if (targetMenu) targetMenu.classList.toggle('show');
+            const annId = targetId ? targetId.replace('menu-feed-', '') : null;
+            if (annId) {
+                window.toggleAnnouncementOptions(e, annId);
+            }
             return;
         }
 
-        if (!e.target.closest('.post-options-menu')) {
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+        if (!e.target.closest('.post-options-container')) {
+            window.closeAllAnnouncementOptions();
         }
 
         if (e.target.closest('#btn-trigger-post')) {
@@ -549,7 +592,7 @@
             return;
         }
 
-        if (e.target.closest('#modal-close-ann') || (e.target.tagName === 'BUTTON' && e.target.innerText.trim() === 'Cancel')) {
+        if (e.target.closest('#modal-close-ann') || (e.target.tagName === 'BUTTON' && e.target.id === 'btn-cancel-ann')) {
             e.preventDefault();
             const annModal = document.getElementById('announcement-modal');
             if (annModal) annModal.style.display = 'none';
@@ -566,7 +609,7 @@
         const editBtn = e.target.closest('.btn-edit-ann');
         if (editBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.editAnnouncement(editBtn.getAttribute('data-id'));
             return;
         }
@@ -574,7 +617,7 @@
         const pinBtn = e.target.closest('.btn-pin-ann');
         if (pinBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.togglePin(pinBtn.getAttribute('data-id'), pinBtn.getAttribute('data-pinned') === 'true');
             return;
         }
@@ -582,7 +625,7 @@
         const commBtn = e.target.closest('.btn-comments-ann');
         if (commBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.toggleCommentsStatus(commBtn.getAttribute('data-id'), commBtn.getAttribute('data-state') !== 'false');
             return;
         }
@@ -590,7 +633,7 @@
         const dupBtn = e.target.closest('.btn-duplicate-ann');
         if (dupBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.duplicateAnnouncement(dupBtn.getAttribute('data-id'));
             return;
         }
@@ -598,7 +641,7 @@
         const archiveBtn = e.target.closest('.btn-archive-ann');
         if (archiveBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.archiveAnnouncement(archiveBtn.getAttribute('data-id'));
             return;
         }
@@ -606,7 +649,7 @@
         const unarchiveBtn = e.target.closest('.btn-unarchive-ann');
         if (unarchiveBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.unarchiveAnnouncement(unarchiveBtn.getAttribute('data-id'));
             return;
         }
@@ -614,7 +657,7 @@
         const delBtn = e.target.closest('.btn-delete-ann');
         if (delBtn) {
             e.preventDefault();
-            document.querySelectorAll('.post-options-menu').forEach(menu => menu.classList.remove('show'));
+            window.closeAllAnnouncementOptions();
             window.deleteAnnouncement(delBtn.getAttribute('data-id'));
             return;
         }
@@ -863,6 +906,7 @@
     }
 
     window.editAnnouncement = (id) => {
+        window.closeAllAnnouncementOptions();
         const annModal = document.getElementById('announcement-modal');
         if (!annModal) return;
         const ann = allAnnouncements.find(x => x.id === id);
@@ -899,6 +943,7 @@
     };
 
     window.duplicateAnnouncement = (id) => {
+        window.closeAllAnnouncementOptions();
         const annModal = document.getElementById('announcement-modal');
         if (!annModal) return;
         const ann = allAnnouncements.find(x => x.id === id);
@@ -1348,6 +1393,7 @@
     // 12. MISSING ANNOUNCEMENT ACTIONS
     // ==========================================
     window.togglePin = async (id, isPinned) => {
+        window.closeAllAnnouncementOptions();
         try {
             await window.supabaseClient.from('announcements').update({ is_pinned: !isPinned }).eq('id', id);
 
@@ -1360,6 +1406,7 @@
     };
 
     window.toggleCommentsStatus = async (id, currentStatus) => {
+        window.closeAllAnnouncementOptions();
         try {
             await window.supabaseClient.from('announcements').update({ allow_comments: !currentStatus }).eq('id', id);
 
@@ -1372,6 +1419,7 @@
     };
 
     window.archiveAnnouncement = async (id) => {
+        window.closeAllAnnouncementOptions();
         try {
             await window.supabaseClient.from('announcements').update({ status: 'Archived' }).eq('id', id);
             showUIToast('info', 'Announcement Archived', 'Post moved to archives.');
@@ -1383,6 +1431,7 @@
     };
 
     window.unarchiveAnnouncement = async (id) => {
+        window.closeAllAnnouncementOptions();
         try {
             await window.supabaseClient.from('announcements').update({ status: 'Draft' }).eq('id', id);
             showUIToast('success', 'Announcement Restored', 'Post restored to drafts.');
@@ -1394,6 +1443,7 @@
     };
 
     window.deleteAnnouncement = async (id) => {
+        window.closeAllAnnouncementOptions();
         const confirmDelete = await Swal.fire({
             title: 'Delete Announcement?',
             text: "This will permanently delete this announcement and all its comments. This action cannot be undone.",

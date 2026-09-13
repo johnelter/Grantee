@@ -10,7 +10,7 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <!-- Font Awesome Icons -->
+    <!-- FontAwesome Icons for Components & AI Assistant -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
     <!-- Design System & Stylesheets -->
@@ -21,9 +21,25 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
+    <!-- QRCode Generator Library for High-Scannability 2FA -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
     <!-- Immediate Theme Application to Avoid Flash -->
     <script>
-        (function() {
+        (function () {
+            try {
+                var cached = sessionStorage.getItem('grantee_student_profile');
+                if (cached) {
+                    var profile = JSON.parse(cached);
+                    if (profile && profile.id) {
+                        var userTheme = localStorage.getItem('grantee_student_theme_' + profile.id);
+                        if (userTheme) {
+                            document.documentElement.setAttribute('data-theme', userTheme);
+                            return;
+                        }
+                    }
+                }
+            } catch(e) {}
             var theme = localStorage.getItem('grantee_student_theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
@@ -99,8 +115,137 @@
             <div class="dashboard-scroll-area">
                 <div class="content-wrapper">
 
-                    <!-- Single Column Layout for Clean Sequence -->
-                    <div class="profile-layout-single">
+                    <!-- SKELETON LOADING STATE (Visible while loading profile) -->
+                    <div id="profile-skeleton-state" class="profile-layout-single">
+                        
+                        <!-- Skeleton 1: Profile Photo Card -->
+                        <div class="card profile-photo-card skeleton-card">
+                            <div class="skeleton-line skeleton-title-shimmer" style="width: 150px; height: 20px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-line skeleton-desc-shimmer" style="width: 280px; height: 13px; margin-bottom: 24px;"></div>
+                            <div class="photo-wrapper">
+                                <div class="large-avatar-container skeleton-avatar-circle"></div>
+                            </div>
+                            <div class="skeleton-line skeleton-desc-shimmer" style="width: 220px; height: 12px; margin-top: 20px;"></div>
+                        </div>
+
+                        <!-- Skeleton 2: Personal Information -->
+                        <div class="card skeleton-card">
+                            <div class="card-header">
+                                <div>
+                                    <div class="skeleton-line skeleton-title-shimmer" style="width: 190px; height: 19px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-line skeleton-desc-shimmer" style="width: 300px; height: 13px;"></div>
+                                </div>
+                            </div>
+                            <div class="grid-form">
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 130px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 140px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 160px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 110px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group full-width">
+                                    <div class="skeleton-line" style="width: 150px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 160px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 150px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 100px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 80px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group full-width">
+                                    <div class="skeleton-line" style="width: 120px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group full-width">
+                                    <div class="skeleton-line" style="width: 90px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="form-actions full-width mt-10">
+                                    <div class="skeleton-button" style="width: 145px; height: 42px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Skeleton 3: Academic Information -->
+                        <div class="card skeleton-card">
+                            <div class="card-header">
+                                <div>
+                                    <div class="skeleton-line skeleton-title-shimmer" style="width: 180px; height: 19px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-line skeleton-desc-shimmer" style="width: 270px; height: 13px;"></div>
+                                </div>
+                            </div>
+                            <div class="grid-form">
+                                <div class="input-group full-width">
+                                    <div class="skeleton-line" style="width: 110px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group full-width">
+                                    <div class="skeleton-line" style="width: 160px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 130px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 100px; height: 13px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="form-actions full-width mt-10">
+                                    <div class="skeleton-button" style="width: 175px; height: 42px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Skeleton 4: Account Status -->
+                        <div class="card skeleton-card">
+                            <div class="card-header">
+                                <div>
+                                    <div class="skeleton-line skeleton-title-shimmer" style="width: 140px; height: 19px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-line skeleton-desc-shimmer" style="width: 250px; height: 13px;"></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 14px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                                    <div class="skeleton-line" style="width: 110px; height: 14px;"></div>
+                                    <div class="skeleton-pill" style="width: 80px; height: 22px;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                                    <div class="skeleton-line" style="width: 140px; height: 14px;"></div>
+                                    <div class="skeleton-pill" style="width: 80px; height: 22px;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="skeleton-line" style="width: 120px; height: 14px;"></div>
+                                    <div class="skeleton-pill" style="width: 70px; height: 22px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ACTUAL LOADED PROFILE CONTENT (Initially Hidden, Smooth Fade-In) -->
+                    <div id="profile-loaded-content" class="profile-layout-single" style="display: none;">
 
                         <!-- 1. Profile Photo Card -->
                         <div class="card profile-photo-card">
@@ -111,10 +256,10 @@
                                 <div class="large-avatar-container">
                                     <img src="assets/default-avatar.png" alt="Profile" class="large-avatar"
                                         id="profile-avatar"
-                                        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22><i class=%22fa-solid fa-user%22></i></text></svg>'">
+                                        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><path d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/></svg>'">
                                 </div>
-                                <button id="change-photo-btn" type="button" title="Change Photo">
-                                    <i class="fa-solid fa-camera"></i>
+                                <button id="change-photo-btn" type="button" title="Change Photo" aria-label="Change Profile Photo">
+                                    <i data-lucide="camera"></i>
                                 </button>
                             </div>
 
@@ -152,7 +297,9 @@
                                     <label>Email Address (Locked)</label>
                                     <div class="input-with-badge">
                                         <input type="email" id="email" class="locked-input italic-muted" disabled readonly tabindex="-1">
-                                        <span class="status-badge verified">Verified</span>
+                                        <span class="status-badge verified">
+                                            <i data-lucide="check-circle-2" class="badge-icon"></i> Verified
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="input-group">
@@ -188,7 +335,7 @@
 
                                 <div class="form-actions full-width mt-10">
                                     <button type="submit" id="save-personal-btn" class="btn-primary">
-                                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                                        <i data-lucide="save"></i> Save Changes
                                     </button>
                                 </div>
                             </form>
@@ -224,7 +371,7 @@
                                 </div>
                                 <div class="form-actions full-width mt-10">
                                     <button type="submit" id="save-academic-btn" class="btn-primary">
-                                        <i class="fa-solid fa-floppy-disk"></i> Save Academic Info
+                                        <i data-lucide="save"></i> Save Academic Info
                                     </button>
                                 </div>
                             </form>
@@ -241,15 +388,15 @@
                             <ul class="status-list">
                                 <li>
                                     <span>Email Address</span>
-                                    <span class="text-green font-semibold"><i class="fa-solid fa-circle-check" style="margin-right: 4px;"></i> Verified</span>
+                                    <span class="status-verified-pill"><i data-lucide="check-circle-2"></i> Verified</span>
                                 </li>
                                 <li>
                                     <span>Student Verification</span>
-                                    <span class="text-green font-semibold"><i class="fa-solid fa-circle-check" style="margin-right: 4px;"></i> Verified</span>
+                                    <span class="status-verified-pill"><i data-lucide="check-circle-2"></i> Verified</span>
                                 </li>
                                 <li>
                                     <span>Account Status</span>
-                                    <span class="text-green font-semibold"><i class="fa-solid fa-circle-check" style="margin-right: 4px;"></i> Active</span>
+                                    <span class="status-verified-pill"><i data-lucide="check-circle-2"></i> Active</span>
                                 </li>
                             </ul>
                         </div>
@@ -263,33 +410,39 @@
                                 </div>
                             </div>
                             <form id="password-form" class="grid-form">
-                                <div class="input-group full-width" style="position: relative;">
+                                <div class="input-group full-width password-input-wrap">
                                     <label>Current Password <span class="text-red">*</span></label>
-                                    <input type="password" id="current-password" class="form-input" required
-                                        placeholder="Enter current password" style="padding-right: 42px;">
-                                    <button type="button" class="btn-password-toggle" onclick="togglePasswordVisibility('current-password', this)" title="Toggle visibility">
-                                        <i class="fa-solid fa-eye-slash"></i>
-                                    </button>
+                                    <div class="password-input-box">
+                                        <input type="password" id="current-password" class="form-input" required
+                                            placeholder="Enter current password">
+                                        <button type="button" class="btn-password-toggle" onclick="togglePasswordVisibility('current-password', this)" title="Toggle visibility" aria-label="Toggle password visibility">
+                                            <i data-lucide="eye-off"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="input-group" style="position: relative;">
+                                <div class="input-group password-input-wrap">
                                     <label>New Password <span class="text-red">*</span></label>
-                                    <input type="password" id="new-password" class="form-input" minlength="8" required
-                                        placeholder="Minimum 8 characters" style="padding-right: 42px;">
-                                    <button type="button" class="btn-password-toggle" onclick="togglePasswordVisibility('new-password', this)" title="Toggle visibility">
-                                        <i class="fa-solid fa-eye-slash"></i>
-                                    </button>
+                                    <div class="password-input-box">
+                                        <input type="password" id="new-password" class="form-input" minlength="8" required
+                                            placeholder="Minimum 8 characters">
+                                        <button type="button" class="btn-password-toggle" onclick="togglePasswordVisibility('new-password', this)" title="Toggle visibility" aria-label="Toggle password visibility">
+                                            <i data-lucide="eye-off"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="input-group" style="position: relative;">
+                                <div class="input-group password-input-wrap">
                                     <label>Confirm New Password <span class="text-red">*</span></label>
-                                    <input type="password" id="confirm-password" class="form-input" minlength="8" required
-                                        placeholder="Retype new password" style="padding-right: 42px;">
-                                    <button type="button" class="btn-password-toggle" onclick="togglePasswordVisibility('confirm-password', this)" title="Toggle visibility">
-                                        <i class="fa-solid fa-eye-slash"></i>
-                                    </button>
+                                    <div class="password-input-box">
+                                        <input type="password" id="confirm-password" class="form-input" minlength="8" required
+                                            placeholder="Retype new password">
+                                        <button type="button" class="btn-password-toggle" onclick="togglePasswordVisibility('confirm-password', this)" title="Toggle visibility" aria-label="Toggle password visibility">
+                                            <i data-lucide="eye-off"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-actions full-width mt-10">
                                     <button type="submit" id="btn-save-password" class="btn-primary full-width">
-                                        <i class="fa-solid fa-shield-halved"></i> Update Password
+                                        <i data-lucide="shield-check"></i> Update Password
                                     </button>
                                 </div>
                             </form>
@@ -305,7 +458,7 @@
                             </div>
 
                             <button id="start-2fa-btn" class="btn-outline full-width" type="button">
-                                <i class="fa-solid fa-key"></i> Set Up 2FA
+                                <i data-lucide="key-round"></i> Set Up 2FA
                             </button>
 
                             <div id="setup-2fa-section" style="display: none; margin-top: 20px; padding-top: 20px;">
@@ -317,7 +470,7 @@
                                 <div style="display: flex; gap: 10px;">
                                     <input type="text" id="verify-2fa-input" maxlength="6" placeholder="000000" style="flex: 1; text-align: center;">
                                     <button id="confirm-2fa-btn" type="button" class="btn-primary" style="padding: 11px 22px;">
-                                        Confirm
+                                        <i data-lucide="check"></i> Confirm
                                     </button>
                                 </div>
                             </div>
@@ -334,14 +487,14 @@
     <div id="logout-modal" class="global-modal-overlay" style="display: none;">
         <div class="global-modal-content">
             <div class="global-modal-icon">
-                <i class="fa-solid fa-right-from-bracket"></i>
+                <i data-lucide="log-out"></i>
             </div>
             <h3>Logout</h3>
             <p>Are you sure you want to log out of your account?</p>
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i class="fa-solid fa-power-off"></i> Logout
+                    <i data-lucide="power"></i> Logout
                 </button>
             </div>
         </div>
@@ -350,7 +503,7 @@
     <!-- Modals kept for compatibility with profile-settings.js -->
     <div id="save-confirm-modal" class="global-modal-overlay" style="display: none; z-index: 99999;">
         <div class="global-modal-content">
-            <div class="global-modal-icon" style="color: var(--primary-color);"><i class="fa-solid fa-floppy-disk"></i></div>
+            <div class="global-modal-icon" style="color: var(--primary-color);"><i data-lucide="save"></i></div>
             <h3>Save Changes</h3>
             <p>Are you sure you want to save these changes to your profile?</p>
             <div class="global-modal-actions">
@@ -362,7 +515,7 @@
 
     <div id="success-modal" class="global-modal-overlay" style="display: none; z-index: 99999;">
         <div class="global-modal-content">
-            <div class="global-modal-icon" style="color: var(--success-color);"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="global-modal-icon" style="color: var(--success-color);"><i data-lucide="check-circle-2"></i></div>
             <h3 id="success-title">Success!</h3>
             <p id="success-message">Your profile settings have been successfully updated.</p>
             <div class="global-modal-actions">

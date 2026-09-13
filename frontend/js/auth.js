@@ -62,47 +62,181 @@ const validatePasswordStrength = (password) => {
     return null; // Valid password
 };
 
-// --- CUSTOM TOAST UI ---
-const showToast = (type, title, message) => {
-    let container = document.querySelector('.toast-container');
+// --- INLINE ALERT UI (LOGIN & INLINE FORMS) ---
+const showInlineAlert = (type, title, message) => {
+    let alertEl = document.getElementById('loginAlert') || document.querySelector('.inline-alert');
+    
+    // If not present in HTML, dynamically create it right before the active login form
+    if (!alertEl) {
+        const form = document.querySelector('form');
+        if (form && (form.id === 'student-login-form' || form.id === 'admin-login-form' || form.id === 'staff-login-form')) {
+            alertEl = document.createElement('div');
+            alertEl.id = 'loginAlert';
+            alertEl.className = 'inline-alert';
+            alertEl.setAttribute('role', 'alert');
+            alertEl.innerHTML = `
+                <div class="inline-alert-icon"><i data-lucide="alert-circle" style="width: 18px; height: 18px; stroke-width: 2.2;"></i></div>
+                <div class="inline-alert-content">
+                    <strong class="inline-alert-title" id="loginAlertTitle"></strong>
+                    <span class="inline-alert-message" id="loginAlertMessage"></span>
+                </div>
+                <button type="button" class="inline-alert-close" id="loginAlertClose" aria-label="Dismiss alert">
+                    <i data-lucide="x" style="width: 15px; height: 15px; stroke-width: 2.2;"></i>
+                </button>
+            `;
+            form.parentNode.insertBefore(alertEl, form);
+        }
+    }
+
+    if (!alertEl) {
+        showToast(type, title, message);
+        return;
+    }
+
+    const titleEl = alertEl.querySelector('.inline-alert-title') || document.getElementById('loginAlertTitle');
+    const messageEl = alertEl.querySelector('.inline-alert-message') || document.getElementById('loginAlertMessage');
+    const iconContainer = alertEl.querySelector('.inline-alert-icon');
+    const closeBtn = alertEl.querySelector('.inline-alert-close') || document.getElementById('loginAlertClose');
+
+    if (titleEl) titleEl.innerText = title;
+    if (messageEl) messageEl.innerText = message;
+
+    alertEl.classList.remove('inline-alert-error', 'inline-alert-warning', 'inline-alert-info', 'inline-alert-success');
+    alertEl.classList.add(`inline-alert-${type || 'error'}`);
+
+    let lucideIcon = 'alert-circle';
+    if (type === 'success') lucideIcon = 'check-circle-2';
+    if (type === 'warning') lucideIcon = 'alert-triangle';
+    if (type === 'info') lucideIcon = 'info';
+
+    if (iconContainer) {
+        iconContainer.innerHTML = `<i data-lucide="${lucideIcon}" style="width: 18px; height: 18px; stroke-width: 2.2;"></i>`;
+    }
+
+    if (closeBtn && !closeBtn.querySelector('svg, i')) {
+        closeBtn.innerHTML = `<i data-lucide="x" style="width: 15px; height: 15px; stroke-width: 2.2;"></i>`;
+    }
+
+    alertEl.style.display = 'flex';
+    alertEl.classList.add('show');
+
+    // Trigger re-shake animation so user notices updates
+    alertEl.classList.remove('shake');
+    void alertEl.offsetWidth;
+    alertEl.classList.add('shake');
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    if (closeBtn) {
+        closeBtn.onclick = (e) => {
+            e.preventDefault();
+            hideInlineAlert();
+        };
+    }
+};
+
+const hideInlineAlert = () => {
+    const alertEl = document.getElementById('loginAlert') || document.querySelector('.inline-alert');
+    if (alertEl) {
+        alertEl.style.display = 'none';
+        alertEl.classList.remove('show', 'shake');
+    }
+};
+
+// --- CUSTOM TOAST UI SYSTEM (PICTURE 2 SPECIFICATION) ---
+const showToast = (type = 'success', title = '', message = '') => {
+    let container = document.querySelector('.toast-container') || document.getElementById('custom-toast-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'toast-container';
+        container.id = 'custom-toast-container';
         document.body.appendChild(container);
     }
     
+    type = (type || 'success').toLowerCase();
+    if (!['success', 'error', 'info', 'warning'].includes(type)) {
+        type = 'info';
+    }
+
+    if (!title) {
+        if (type === 'success') title = 'Success';
+        else if (type === 'error') title = 'Error';
+        else if (type === 'info') title = 'Info';
+        else if (type === 'warning') title = 'Warning';
+    }
+
+    let iconSvg = '';
+    if (type === 'success') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    } else if (type === 'error') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+    } else if (type === 'info') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+    } else if (type === 'warning') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+    }
+    
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    let iconClass = 'fa-info-circle';
-    if (type === 'success') iconClass = 'fa-check-circle';
-    if (type === 'error') iconClass = 'fa-circle-xmark';
-    if (type === 'warning') iconClass = 'fa-triangle-exclamation';
-    
+    toast.className = `toast custom-ui-toast toast-${type}`;
     toast.innerHTML = `
-        <div class="toast-icon">
-            <i class="fa-solid ${iconClass}"></i>
+        <div class="toast-left-bar"></div>
+        <div class="toast-icon toast-icon-wrapper">
+            ${iconSvg}
         </div>
-        <div class="toast-content">
-            <span class="toast-title">${title}</span>
-            <span class="toast-message">${message}</span>
+        <div class="toast-content toast-details">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message || ''}</div>
         </div>
-        <i class="fa-solid fa-xmark toast-close"></i>
+        <button type="button" class="toast-close toast-close-btn" aria-label="Close notification">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
     `;
     
     container.appendChild(toast);
     
-    setTimeout(() => toast.classList.add('active'), 10);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.classList.add('active', 'toast-show');
+        });
+    });
     
-    const removeToast = () => {
-        toast.classList.remove('active');
-        toast.classList.add('exit');
-        setTimeout(() => toast.remove(), 500);
+    let isDismissed = false;
+    const dismissToast = () => {
+        if (isDismissed) return;
+        isDismissed = true;
+        toast.classList.remove('active', 'toast-show');
+        toast.classList.add('exit', 'toast-hide');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 320);
     };
     
-    toast.querySelector('.toast-close').addEventListener('click', removeToast);
-    setTimeout(removeToast, 5000);
+    const closeBtn = toast.querySelector('.toast-close, .toast-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dismissToast();
+        });
+    }
+
+    let autoDismissTimer = setTimeout(dismissToast, 4500);
+
+    toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+    toast.addEventListener('mouseleave', () => {
+        if (!isDismissed) {
+            autoDismissTimer = setTimeout(dismissToast, 2500);
+        }
+    });
 };
+window.showToast = showToast;
+window.showUIToast = showToast;
 
 // --- 1. STUDENT REGISTRATION HANDLER ---
 const studentRegisterForm = document.getElementById('student-register-form');
@@ -189,7 +323,7 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
 
         // Block entry if a STUDENT account is flagged as not approved (Admins bypass this)
         if (profile.role !== 'admin' && profile.is_approved === false) {
-            showToast('info', 'Pending Approval', 'Your account access is currently set to pending. Please wait for an administrator to approve your account.');
+            showInlineAlert('info', 'Pending Approval', 'Your account access is currently set to pending. Please wait for an administrator to approve your account.');
             await supabaseClient.auth.signOut();
             if(submitBtn) {
                 submitBtn.innerText = originalBtnText;
@@ -232,7 +366,7 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
         }, 500);
 
     } catch (error) {
-        showToast('error', 'Error', 'Failed to route user profile: ' + error.message);
+        showInlineAlert('error', 'Error', 'Failed to route user profile: ' + error.message);
         if(submitBtn) {
             submitBtn.innerText = originalBtnText;
             submitBtn.disabled = false;
@@ -241,6 +375,7 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
 };
 
 const handleLoginSubmit = async (emailId, passwordId) => {
+    hideInlineAlert();
     const email = document.getElementById(emailId).value.trim();
     const password = document.getElementById(passwordId).value;
 
@@ -255,7 +390,6 @@ const handleLoginSubmit = async (emailId, passwordId) => {
 
     const submitBtn = document.querySelector(`#${emailId}`).closest('form').querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerText;
-    // submitBtn.innerText = "Authenticating..."; // Removed as per user request
     submitBtn.disabled = true;
 
     try {
@@ -301,7 +435,7 @@ const handleLoginSubmit = async (emailId, passwordId) => {
             verifyBtn.onclick = async () => {
                 const code = codeInput.value.trim();
                 if (code.length !== 6) {
-                    alert("Please enter a valid 6-digit code.");
+                    showInlineAlert('warning', 'Invalid Code', 'Please enter a valid 6-digit code.');
                     return;
                 }
                 
@@ -341,11 +475,25 @@ const handleLoginSubmit = async (emailId, passwordId) => {
         }
 
     } catch (error) {
-        showToast('error', 'Authentication Failed', error.message);
+        let errMsg = error.message || 'An error occurred during authentication.';
+        if (errMsg.toLowerCase().includes('invalid login credentials')) {
+            errMsg = 'Invalid login credentials';
+        }
+        showInlineAlert('error', 'Authentication Failed', errMsg);
         submitBtn.innerText = originalBtnText;
         submitBtn.disabled = false;
     }
 };
+
+// Auto-dismiss inline alert when the user begins typing
+document.addEventListener('DOMContentLoaded', () => {
+    const loginInputs = document.querySelectorAll('#loginEmail, #loginPassword, #adminLoginEmail, #adminLoginPassword, #staffLoginEmail, #staffLoginPassword');
+    loginInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            hideInlineAlert();
+        });
+    });
+});
 
 const studentLoginForm = document.getElementById('student-login-form');
 if (studentLoginForm) {
@@ -385,7 +533,7 @@ googleBtns.forEach(btn => {
     });
 });
 
-// --- 4. FORGOT PASSWORD LOGIC (SWEETALERT) ---
+// --- 4. FORGOT PASSWORD LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
     const forgotPasswordLinks = document.querySelectorAll('a[href="#"], .forgot-password-link');
 
@@ -401,8 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     inputPlaceholder: 'name@example.com',
                     showCancelButton: true,
                     confirmButtonText: 'Send Link',
-                    confirmButtonColor: '#10b981',
-                    cancelButtonColor: '#cbd5e1'
+                    confirmButtonColor: '#1F3D2E',
+                    cancelButtonColor: '#94a3b8'
                 });
                 
                 if (email) {
@@ -423,20 +571,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (error) throw error;
 
-                        Swal.fire({
-                            title: 'Sent!',
-                            text: `Password reset instructions have been sent to ${email}. Please check your inbox (and spam folder).`,
-                            icon: 'success',
-                            confirmButtonColor: '#10b981'
-                        });
+                        Swal.close();
+                        showToast('success', 'Sent!', `Password reset instructions have been sent to ${email}. Please check your inbox (and spam folder).`);
 
                     } catch (error) {
-                        Swal.fire({
-                            title: 'Error',
-                            text: `Error sending password reset: ${error.message}`,
-                            icon: 'error',
-                            confirmButtonColor: '#10b981'
-                        });
+                        Swal.close();
+                        showToast('error', 'Error', error.message || 'Error sending password reset.');
                     }
                 }
             });
@@ -451,18 +591,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
             
-            const icon = togglePassword.querySelector('i');
-            if (type === 'text') {
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+            if (isPassword) {
+                togglePassword.innerHTML = '<i data-lucide="eye" style="width: 18px; height: 18px;"></i>';
+                togglePassword.setAttribute('title', 'Hide Password');
             } else {
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+                togglePassword.innerHTML = '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i>';
+                togglePassword.setAttribute('title', 'Show Password');
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
             }
         });
+    }
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
     }
 });
 

@@ -1,40 +1,96 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // Toast UI Helper
-    function showUIToast(type, title, message) {
-        let iconClass = 'fa-check';
-        let colorClass = 'toast-success';
-        
-        if (type === 'error') {
-            iconClass = 'fa-xmark';
-            colorClass = 'toast-error';
-        } else if (type === 'info') {
-            iconClass = 'fa-info';
-            colorClass = 'toast-info';
-        } else if (type === 'warning') {
-            iconClass = 'fa-exclamation';
-            colorClass = 'toast-warning';
-        }
+    // Toast UI Helper (Top Center UI Toast Design)
+    function showUIToast(type = 'success', title = '', message = '', duration = 3500) {
+        return new Promise((resolve) => {
+            // Dismiss any open loading or dialog modal immediately
+            if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+                Swal.close();
+            }
 
-        Swal.fire({
-            toast: true,
-            position: 'top',
-            showConfirmButton: false,
-            timer: 3000,
-            showCloseButton: true,
-            customClass: {
-                popup: 'ui-toast-popup ' + colorClass
-            },
-            html: `
-                <div class="ui-toast-content">
-                    <div class="toast-icon"><i class="fa-solid ${iconClass}"></i></div>
-                    <div class="toast-text">
-                        <h4>${title}</h4>
-                        <p>${message}</p>
-                    </div>
+            let container = document.getElementById('custom-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'custom-toast-container';
+                document.body.appendChild(container);
+            }
+
+            type = (type || 'success').toLowerCase();
+            if (!['success', 'error', 'info', 'warning'].includes(type)) {
+                type = 'info';
+            }
+
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                if (!title) title = 'Success';
+            } else if (type === 'error') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                if (!title) title = 'Error';
+            } else if (type === 'info') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+                if (!title) title = 'Info';
+            } else if (type === 'warning') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                if (!title) title = 'Warning';
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `custom-ui-toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-left-bar"></div>
+                <div class="toast-icon-wrapper">
+                    ${iconSvg}
                 </div>
-            `
+                <div class="toast-details">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message || ''}</div>
+                </div>
+                <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    toast.classList.add('toast-show');
+                });
+            });
+
+            let isDismissed = false;
+            const dismissToast = () => {
+                if (isDismissed) return;
+                isDismissed = true;
+                toast.classList.remove('toast-show');
+                toast.classList.add('toast-hide');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                    resolve();
+                }, 300);
+            };
+
+            const closeBtn = toast.querySelector('.toast-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dismissToast();
+                });
+            }
+
+            let autoDismissTimer = setTimeout(dismissToast, duration);
+
+            toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+            toast.addEventListener('mouseleave', () => {
+                if (!isDismissed) {
+                    autoDismissTimer = setTimeout(dismissToast, 1800);
+                }
+            });
         });
     }
+
+    window.showUIToast = showUIToast;
+    window.showToast = showUIToast;
 
     // Forms and Buttons
     const personalForm = document.getElementById('personal-info-form');
@@ -190,11 +246,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         setup2faSection.style.borderTop = 'none';
 
                         setup2faSection.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; align-items:center; background:#ecfdf5; padding:15px; border-radius:8px; border:1px solid #10b981;">
-                                <p style="color: #065f46; font-weight: 600; margin: 0; font-size:14px;">✅ Two-Factor Authentication is Active.</p>
-                                <button type="button" id="disable-2fa-btn" style="background:#ef4444; color:white; border:none; padding:8px 16px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">Turn Off 2FA</button>
+                            <div class="twofa-active-banner">
+                                <div class="twofa-active-text">
+                                    <i data-lucide="shield-check" class="twofa-shield-icon"></i>
+                                    <span>Two-Factor Authentication is Active.</span>
+                                </div>
+                                <button type="button" id="disable-2fa-btn" class="btn-disable-2fa">Turn Off 2FA</button>
                             </div>
                         `;
+
+                        if (window.lucide) {
+                            window.lucide.createIcons({ root: setup2faSection });
+                        }
 
                         document.getElementById('disable-2fa-btn').addEventListener('click', async () => {
                             const result = await Swal.fire({
@@ -202,21 +265,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 text: "Are you sure you want to disable Two-Factor Authentication? This will make your account less secure.",
                                 icon: 'warning',
                                 showCancelButton: true,
-                                confirmButtonColor: '#ef4444',
+                                confirmButtonColor: '#d94841',
                                 confirmButtonText: 'Yes, turn it off'
                             });
 
                             if (result.isConfirmed) {
-                                try {
-                                    Swal.fire({ title: 'Disabling...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                                const disableBtn = document.getElementById('disable-2fa-btn');
+                                if (disableBtn) {
+                                    disableBtn.disabled = true;
+                                    disableBtn.innerText = 'Disabling...';
+                                }
 
+                                try {
                                     const { error: unenrollError } = await window.supabaseClient.auth.mfa.unenroll({ factorId: activeFactorId });
                                     if (unenrollError) throw unenrollError;
 
-                                    await showUIToast('success', 'Success', '2FA has been successfully disabled.');
+                                    if (typeof Swal !== 'undefined') Swal.close();
+                                    await showUIToast('success', 'Success', '2FA has been successfully disabled.', 2500);
                                     window.location.reload();
                                 } catch (err) {
+                                    if (typeof Swal !== 'undefined') Swal.close();
                                     showUIToast('error', 'Error', 'Failed to disable 2FA: ' + err.message);
+                                    if (disableBtn) {
+                                        disableBtn.disabled = false;
+                                        disableBtn.innerText = 'Turn Off 2FA';
+                                    }
                                 }
                             }
                         });
@@ -226,6 +299,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Error loading profile:", err);
+        } finally {
+            // Smoothly remove skeleton and reveal loaded content
+            const skeletonState = document.getElementById('profile-skeleton-state');
+            const loadedContent = document.getElementById('profile-loaded-content');
+            if (skeletonState) {
+                skeletonState.style.display = 'none';
+            }
+            if (loadedContent) {
+                loadedContent.style.display = 'flex';
+                loadedContent.style.animation = 'profileFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+            }
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         }
     }
 
@@ -242,14 +329,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 text: 'Are you sure you want to save these changes to your personal profile?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#10b981',
+                confirmButtonColor: '#2e6b45',
                 confirmButtonText: 'Yes, Save'
             });
 
             if (result.isConfirmed) {
-                try {
-                    Swal.fire({ title: 'Saving...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                const saveBtn = personalForm.querySelector('button[type="submit"]');
+                const origHtml = saveBtn ? saveBtn.innerHTML : '';
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+                }
 
+                try {
                     const updates = {
                         suffix: document.getElementById('suffix')?.value.trim() || null,
                         gender: document.getElementById('gender')?.value || null,
@@ -262,9 +354,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { error } = await window.supabaseClient.from('profiles').update(updates).eq('id', userId);
                     if (error) throw error;
 
+                    // Immediately update local profile cache
+                    try {
+                        const cached = sessionStorage.getItem('grantee_student_profile');
+                        if (cached) {
+                            const p = JSON.parse(cached);
+                            Object.assign(p, updates);
+                            sessionStorage.setItem('grantee_student_profile', JSON.stringify(p));
+                        }
+                    } catch (e) {}
+
+                    if (typeof Swal !== 'undefined') Swal.close();
                     showUIToast('success', 'Success', 'Your personal profile settings have been successfully updated.');
                 } catch (error) {
+                    if (typeof Swal !== 'undefined') Swal.close();
                     showUIToast('error', 'Error', "Failed to save updates: " + error.message);
+                } finally {
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = origHtml;
+                        if (window.lucide) window.lucide.createIcons({ root: saveBtn });
+                    }
                 }
             }
         });
@@ -279,14 +389,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 text: 'Are you sure you want to save these changes to your academic profile?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#10b981',
+                confirmButtonColor: '#2e6b45',
                 confirmButtonText: 'Yes, Save'
             });
 
             if (result.isConfirmed) {
-                try {
-                    Swal.fire({ title: 'Saving...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                const saveBtn = academicForm.querySelector('button[type="submit"]');
+                const origHtml = saveBtn ? saveBtn.innerHTML : '';
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+                }
 
+                try {
                     const gwaInput = document.getElementById('gwa')?.value;
                     const updates = { updated_at: new Date() };
 
@@ -303,9 +418,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                         throw error;
                     }
 
+                    // Immediately update local profile cache
+                    try {
+                        const cached = sessionStorage.getItem('grantee_student_profile');
+                        if (cached) {
+                            const p = JSON.parse(cached);
+                            Object.assign(p, updates);
+                            sessionStorage.setItem('grantee_student_profile', JSON.stringify(p));
+                        }
+                    } catch (e) {}
+
+                    if (typeof Swal !== 'undefined') Swal.close();
                     showUIToast('success', 'Success', 'Your academic profile settings have been successfully updated.');
                 } catch (error) {
+                    if (typeof Swal !== 'undefined') Swal.close();
                     showUIToast('error', 'Error', "Failed to save updates: " + error.message);
+                } finally {
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = origHtml;
+                        if (window.lucide) window.lucide.createIcons({ root: saveBtn });
+                    }
                 }
             }
         });
@@ -334,15 +467,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/;
             if (!strongPasswordRegex.test(newPassword)) {
-                Swal.fire(
+                showUIToast(
+                    'warning',
                     'Security Requirement',
-                    "Password must be at least 8 characters long and contain:\n\n• One uppercase letter (A-Z)\n• One lowercase letter (a-z)\n• One number (0-9)\n• One special character (e.g., !@#$%^&*)",
-                    'warning'
+                    'Password must be at least 8 characters with uppercase, lowercase, number, and special character.'
                 );
                 return;
             }
 
             const btn = document.getElementById('btn-save-password');
+            const originalBtnContent = btn.innerHTML;
             btn.innerText = "Verifying...";
             btn.disabled = true;
 
@@ -361,25 +495,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (updateError) throw updateError;
 
-                Swal.fire({
-                    title: 'Password Updated',
-                    text: 'Your password has been changed securely. You will now be logged out.',
-                    icon: 'success',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
+                await showUIToast(
+                    'success',
+                    'Password Updated',
+                    'Your password has been changed securely. You will now be logged out.',
+                    3000
+                );
 
                 setTimeout(async () => {
                     await window.supabaseClient.auth.signOut();
                     window.location.href = 'login.html';
-                }, 3000);
+                }, 1000);
 
             } catch (err) {
                 console.error("Password change error:", err);
                 showUIToast('error', 'Error', err.message);
             } finally {
-                btn.innerText = "Update Password";
+                btn.innerHTML = originalBtnContent;
                 btn.disabled = false;
+                if (window.lucide) window.lucide.createIcons({ root: btn });
                 passwordForm.reset();
             }
         });
@@ -413,39 +547,117 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (error) throw error;
                 factorId = data.id;
 
-                qrCodeContainer.innerHTML = `<div style="display: inline-block; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 0 auto;">
-                    ${data.totp.qr_code}
-                </div>`;
-                
-                const svgEl = qrCodeContainer.querySelector('svg');
-                if (svgEl) {
-                    svgEl.style.width = '200px';
-                    svgEl.style.height = '200px';
-                    svgEl.style.display = 'block';
-                    svgEl.style.margin = '0 auto';
-                }
+                const totpUri = data.totp.uri || `otpauth://totp/Grantee%20System:${encodeURIComponent(userEmail || 'Student')}?secret=${data.totp.secret}&issuer=Grantee%20System`;
+                const secretKey = data.totp.secret;
 
-                qrCodeContainer.innerHTML += `
-                    <div style="font-size: 12px; color: #64748b; margin-top: 15px; line-height: 1.4;">
-                        Can't scan the QR code? Enter this secret key manually into your app:<br>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
-                            <strong style="color: #0f172a; font-family: monospace; font-size: 16px; letter-spacing: 2px; background: #f1f5f9; padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                                ${data.totp.secret}
-                            </strong>
-                            <button type="button" onclick="navigator.clipboard.writeText('${data.totp.secret}'); this.innerHTML = '<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(() => this.innerHTML = '<i class=\\'fa-regular fa-copy\\'></i>', 2000);" title="Copy Secret Key" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
-                                <i class="fa-regular fa-copy"></i>
-                            </button>
+                qrCodeContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
+                        <div id="qr-code-box">
+                            <div id="qr-canvas-holder"></div>
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 0; max-width: 400px; line-height: 1.4;">
+                            Scan this QR code with <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or any 2FA app.
+                        </p>
+                        <div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 4px; width: 100%;">
+                            Can't scan the QR code? Enter this secret key manually into your app:
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
+                                <strong style="color: var(--text-heading); font-family: monospace; font-size: 15px; letter-spacing: 2px; background: var(--bg-card-secondary); padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color); user-select: all;">
+                                    ${secretKey}
+                                </strong>
+                                <button type="button" id="copy-totp-secret-btn" title="Copy Secret Key" class="btn-copy-key" aria-label="Copy secret key">
+                                    <i data-lucide="copy"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
+
+                const holder = document.getElementById('qr-canvas-holder');
+                let qrRendered = false;
+
+                // 1. Primary: Use QRCode.js library for clean, instant, high-contrast QR code
+                if (typeof QRCode !== 'undefined' && holder) {
+                    try {
+                        holder.innerHTML = '';
+                        new QRCode(holder, {
+                            text: totpUri,
+                            width: 200,
+                            height: 200,
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                        
+                        // QRCode.js produces both a working <canvas> and an <img>. Hide working canvas to prevent duplicate vertical stacking.
+                        const hideWorkingCanvas = () => {
+                            const canvasEl = holder.querySelector('canvas');
+                            const imgEl = holder.querySelector('img');
+                            if (canvasEl && imgEl) {
+                                canvasEl.style.display = 'none';
+                            }
+                        };
+                        hideWorkingCanvas();
+                        setTimeout(hideWorkingCanvas, 50);
+
+                        qrRendered = true;
+                    } catch (e) {
+                        console.warn("QRCodeJS generation failed, falling back:", e);
+                    }
+                }
+
+                // 2. Secondary: Parse Supabase data.totp.qr_code (handles data:image and inline <svg>)
+                if (!qrRendered && holder && data.totp.qr_code) {
+                    const rawQr = String(data.totp.qr_code).trim();
+                    if (rawQr.startsWith('data:image') || rawQr.startsWith('http')) {
+                        holder.innerHTML = `<img src="${rawQr}" alt="2FA QR Code" style="width: 200px; height: 200px; display: block; border-radius: 4px; image-rendering: pixelated;">`;
+                        qrRendered = true;
+                    } else if (rawQr.startsWith('<svg')) {
+                        holder.innerHTML = rawQr;
+                        const svg = holder.querySelector('svg');
+                        if (svg) {
+                            svg.setAttribute('width', '200');
+                            svg.setAttribute('height', '200');
+                            svg.style.width = '200px';
+                            svg.style.height = '200px';
+                            svg.style.display = 'block';
+                        }
+                        qrRendered = true;
+                    }
+                }
+
+                // 3. Tertiary: High-speed QR Server image fallback
+                if (!qrRendered && holder) {
+                    const encodedUri = encodeURIComponent(totpUri);
+                    holder.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUri}&margin=2" alt="2FA QR Code" style="width: 200px; height: 200px; display: block; border-radius: 4px;">`;
+                }
+
+                // Attach copy secret button handler
+                const copyBtn = document.getElementById('copy-totp-secret-btn');
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(secretKey).then(() => {
+                            copyBtn.innerHTML = '<i data-lucide="check"></i>';
+                            if (window.lucide) window.lucide.createIcons({ root: copyBtn });
+                            setTimeout(() => {
+                                copyBtn.innerHTML = '<i data-lucide="copy"></i>';
+                                if (window.lucide) window.lucide.createIcons({ root: copyBtn });
+                            }, 2000);
+                        });
+                    });
+                }
+
+                if (window.lucide) {
+                    window.lucide.createIcons({ root: qrCodeContainer });
+                }
 
                 setup2faSection.style.display = 'block';
                 start2faBtn.style.display = 'none';
 
             } catch (error) {
                 showUIToast('error', 'Error', "Error starting 2FA setup: " + error.message);
-                start2faBtn.innerText = "Set Up 2FA";
+                start2faBtn.innerHTML = '<i data-lucide="key-round"></i> Set Up 2FA';
                 start2faBtn.disabled = false;
+                if (window.lucide) window.lucide.createIcons({ root: start2faBtn });
             }
         });
     }
@@ -455,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const code = verify2faInput.value.trim();
 
             if (code.length !== 6) {
-                Swal.fire('Warning', "Please enter a valid 6-digit code.", 'warning');
+                showUIToast('warning', 'Warning', "Please enter a valid 6-digit code.");
                 return;
             }
 
@@ -474,13 +686,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (verifyError) throw verifyError;
 
-                await Swal.fire('Success', "2FA has been successfully enabled! You will be asked for a code next time you log in.", 'success');
+                await showUIToast('success', 'Success', "2FA has been successfully enabled! You will be asked for a code next time you log in.", 3000);
                 window.location.reload();
 
             } catch (error) {
                 showUIToast('error', 'Error', "Invalid code. Please try again. " + error.message);
-                confirm2faBtn.innerText = "Confirm";
+                confirm2faBtn.innerHTML = '<i data-lucide="check"></i> Confirm';
                 confirm2faBtn.disabled = false;
+                if (window.lucide) window.lucide.createIcons({ root: confirm2faBtn });
                 verify2faInput.value = '';
                 verify2faInput.focus();
             }
@@ -522,12 +735,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const file = e.target.files[0];
             if (!file) return;
 
-            try {
+            const origHtml = btnChangePhoto ? btnChangePhoto.innerHTML : '';
+            if (btnChangePhoto) {
                 btnChangePhoto.disabled = true;
+                btnChangePhoto.innerHTML = '<span class="loading-spinner"></span> Uploading...';
+            }
 
-                // Optional loading state while upload runs
-                Swal.fire({ title: 'Uploading photo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
+            try {
                 const fileExt = file.name.split('.').pop();
                 const filePath = `${userId}.${fileExt}`;
 
@@ -554,13 +768,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (profileAvatarImg) profileAvatarImg.src = cacheBustedUrl;
                 if (headerAvatarImg) headerAvatarImg.src = cacheBustedUrl;
 
+                // Update session storage
+                try {
+                    const cached = sessionStorage.getItem('grantee_student_profile');
+                    if (cached) {
+                        const p = JSON.parse(cached);
+                        p.avatar_url = cacheBustedUrl;
+                        sessionStorage.setItem('grantee_student_profile', JSON.stringify(p));
+                    }
+                } catch (e) {}
+
+                if (typeof Swal !== 'undefined') Swal.close();
                 showUIToast('success', 'Success', 'Profile photo updated successfully.');
 
             } catch (error) {
                 console.error("Upload error:", error);
+                if (typeof Swal !== 'undefined') Swal.close();
                 showUIToast('error', 'Error', "Failed to upload photo: " + error.message);
             } finally {
-                btnChangePhoto.disabled = false;
+                if (btnChangePhoto) {
+                    btnChangePhoto.disabled = false;
+                    btnChangePhoto.innerHTML = origHtml;
+                    if (window.lucide) window.lucide.createIcons({ root: btnChangePhoto });
+                }
+                avatarUploadInput.value = '';
             }
         });
     }
@@ -639,7 +870,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Also update supabase directly just in case local state needs it immediately
                 await window.supabaseClient.from('profiles').update({ email_preferences: preferences }).eq('id', userId);
 
-                Swal.fire('Success', 'Notification preferences updated.', 'success');
+                showUIToast('success', 'Success', 'Notification preferences updated.');
             } catch (err) {
                 console.error('Error saving prefs:', err);
                 showUIToast('error', 'Error', err.message);
@@ -656,14 +887,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 window.togglePasswordVisibility = function(inputId, button) {
     const input = document.getElementById(inputId);
-    const icon = button.querySelector('i');
+    if (!input || !button) return;
     if (input.type === 'password') {
         input.type = 'text';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
+        button.innerHTML = '<i data-lucide="eye"></i>';
     } else {
         input.type = 'password';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
+        button.innerHTML = '<i data-lucide="eye-off"></i>';
+    }
+    if (window.lucide) {
+        window.lucide.createIcons({ root: button });
     }
 };

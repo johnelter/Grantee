@@ -30,8 +30,7 @@
                     <div class="scholarship-name-cell">
                         <div class="skeleton-table-icon skeleton-box"></div>
                         <div>
-                            <div class="skeleton-table-title skeleton-line"></div>
-                            <div class="skeleton-table-sub skeleton-line"></div>
+                            <div class="skeleton-table-title skeleton-line" style="width: 180px;"></div>
                         </div>
                     </div>
                 </td>
@@ -57,7 +56,6 @@
                         <div class="skeleton-table-icon skeleton-box"></div>
                         <div>
                             <div class="skeleton-table-title skeleton-line" style="width: 220px;"></div>
-                            <div class="skeleton-table-sub skeleton-line" style="width: 140px;"></div>
                         </div>
                     </div>
                 </td>
@@ -83,7 +81,6 @@
                         <div class="skeleton-table-icon skeleton-box"></div>
                         <div>
                             <div class="skeleton-table-title skeleton-line" style="width: 160px;"></div>
-                            <div class="skeleton-table-sub skeleton-line" style="width: 110px;"></div>
                         </div>
                     </div>
                 </td>
@@ -109,7 +106,6 @@
                         <div class="skeleton-table-icon skeleton-box"></div>
                         <div>
                             <div class="skeleton-table-title skeleton-line" style="width: 190px;"></div>
-                            <div class="skeleton-table-sub skeleton-line" style="width: 130px;"></div>
                         </div>
                     </div>
                 </td>
@@ -135,7 +131,6 @@
                         <div class="skeleton-table-icon skeleton-box"></div>
                         <div>
                             <div class="skeleton-table-title skeleton-line" style="width: 170px;"></div>
-                            <div class="skeleton-table-sub skeleton-line" style="width: 100px;"></div>
                         </div>
                     </div>
                 </td>
@@ -225,9 +220,36 @@
     }
 
     // --- 3. DATA FORMATTERS & BADGE GENERATORS ---
+    const escapeHtml = (str) => {
+        if (!str || typeof str !== 'string') return str || '';
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const formatPeriod = (sch) => {
+        if (!sch) return 'N/A';
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        if (sch.start_date && sch.end_date) {
+            const sDate = new Date(sch.start_date).toLocaleDateString('en-US', options);
+            const eDate = new Date(sch.end_date).toLocaleDateString('en-US', options);
+            return `${sDate} - ${eDate}`;
+        } else if (sch.end_date) {
+            const eDate = new Date(sch.end_date).toLocaleDateString('en-US', options);
+            return `Until ${eDate}`;
+        } else if (sch.start_date) {
+            const sDate = new Date(sch.start_date).toLocaleDateString('en-US', options);
+            return `From ${sDate}`;
+        }
+        return 'Open / Ongoing';
     };
 
     const getStatusHTML = (status) => {
@@ -279,6 +301,28 @@
         return 'Closed';
     };
 
+    const statusSortOrder = {
+        'Active': 1,
+        'Upcoming': 2,
+        'Closed': 3,
+        'Draft': 4
+    };
+
+    const sortScholarshipsActiveFirst = (list) => {
+        return list.sort((a, b) => {
+            const priorityA = statusSortOrder[a.dynamic_status] || 99;
+            const priorityB = statusSortOrder[b.dynamic_status] || 99;
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+        });
+    };
+
     // --- 4. FETCH & LOAD SCHOLARSHIPS ---
     const loadScholarships = async () => {
         try {
@@ -316,6 +360,9 @@
                     dynamic_status: calculateDynamicStatus(sch)
                 };
             });
+
+            // Sort Active educational assistance first by default
+            sortScholarshipsActiveFirst(allScholarships);
 
             filteredScholarships = [...allScholarships];
             updateTopStats(allScholarships);
@@ -355,6 +402,13 @@
 
         // Remove loading state from stat cards
         removeStatSkeletons();
+
+        // If stats breakdown modal is currently open, refresh its contents
+        const statsModal = document.getElementById('stats-info-modal');
+        if (statsModal && statsModal.classList.contains('show')) {
+            updateStatsModalCounts();
+            renderStatsModalTable();
+        }
     };
 
     const renderTable = (data) => {
@@ -382,13 +436,8 @@
                 slotsDisplay = `<div style="font-size:11.5px; margin-top:3px; font-weight:700; color:var(--moss-green);">${sch.remaining_slots}/${sch.slots} Slot(s) Left</div>`;
             }
 
-            // Stripping HTML from description for the table preview
-            let rawTextDesc = 'No description provided';
-            if (sch.description) {
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = sch.description;
-                rawTextDesc = (tempDiv.textContent || tempDiv.innerText || "").trim();
-            }
+            const appCount = sch.applications_count || 0;
+            const appLabel = appCount === 1 ? 'Application' : 'Applications';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -398,8 +447,7 @@
                             <i data-lucide="graduation-cap"></i>
                         </div>
                         <div>
-                            <strong>${sch.title}</strong>
-                            <span>${rawTextDesc.substring(0, 42) + (rawTextDesc.length > 42 ? '...' : '')}</span>
+                            <strong>${escapeHtml(sch.title || 'Untitled Program')}</strong>
                         </div>
                     </div>
                 </td>
@@ -409,7 +457,7 @@
                 <td>${formatDate(sch.end_date)}</td>
                 <td>${getStatusHTML(sch.dynamic_status)}</td>
                 <td style="text-align:center;">
-                    <div style="font-weight:700; color:var(--text-heading);">${sch.applications_count || 0} Apps</div>
+                    <div style="font-weight:700; color:var(--text-heading); font-size:13px;">${appCount} ${appLabel}</div>
                     ${slotsDisplay}
                 </td>
                 <td>
@@ -464,6 +512,8 @@
                 }
                 return sortBy.endsWith('asc') ? dateA - dateB : dateB - dateA;
             });
+        } else {
+            sortScholarshipsActiveFirst(filteredScholarships);
         }
 
         renderTable(filteredScholarships);
@@ -864,7 +914,7 @@
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         doc.text(`Generated on: ${today}`, 14, 22);
 
-        const tableColumn = ["Program Name", "Category", "Type", "Start Date", "Deadline", "Status", "Apps", "Slots"];
+        const tableColumn = ["Program Name", "Category", "Type", "Start Date", "Deadline", "Status", "Applications", "Slots"];
         const tableRows = [];
 
         filteredScholarships.forEach(sch => {
@@ -896,6 +946,290 @@
         const dateStr = new Date().toISOString().split('T')[0];
         doc.save(`Educational_Assistance_Export_${dateStr}.pdf`);
     }
+
+    // ==========================================
+    // 8. STATS BREAKDOWN MODAL (TOTAL / ACTIVE / CLOSED)
+    // ==========================================
+    let modalStatActiveFilter = 'All';
+    let modalStatSearchQuery = '';
+    let currentModalType = 'All';
+
+    window.openStatsModal = (type = 'All') => {
+        const modal = document.getElementById('stats-info-modal');
+        if (!modal) return;
+
+        currentModalType = type;
+        modalStatActiveFilter = type === 'Closed' ? 'Closed' : (type === 'Active' ? 'Active' : 'All');
+        modalStatSearchQuery = '';
+
+        const searchInput = document.getElementById('modal-stat-search');
+        if (searchInput) searchInput.value = '';
+
+        // Configure Header Details based on clicked card type
+        const iconWrapper = document.getElementById('modal-stat-icon-wrapper');
+        const headerIcon = document.getElementById('modal-stat-header-icon');
+        const titleEl = document.getElementById('modal-stat-title');
+        const badgeEl = document.getElementById('modal-stat-badge');
+        const subtitleEl = document.getElementById('modal-stat-subtitle');
+
+        if (type === 'Active') {
+            if (iconWrapper) iconWrapper.className = 'applicants-modal-badge-icon icon-active-gradient';
+            if (headerIcon) headerIcon.setAttribute('data-lucide', 'sparkles');
+            if (titleEl) titleEl.innerText = 'Active Educational Assistance Programs';
+            if (badgeEl) {
+                badgeEl.innerText = 'Currently Open';
+                badgeEl.className = 'audit-module-badge';
+            }
+            if (subtitleEl) subtitleEl.innerText = 'Programs actively accepting student submissions and applications';
+        } else if (type === 'Closed') {
+            if (iconWrapper) iconWrapper.className = 'applicants-modal-badge-icon icon-closed-gradient';
+            if (headerIcon) headerIcon.setAttribute('data-lucide', 'clock');
+            if (titleEl) titleEl.innerText = 'Closed Educational Assistance Programs';
+            if (badgeEl) {
+                badgeEl.innerText = 'Application Closed';
+                badgeEl.className = 'audit-module-badge';
+            }
+            if (subtitleEl) subtitleEl.innerText = 'Programs whose application deadlines have elapsed or are currently archived';
+        } else {
+            // All / Total Programs
+            if (iconWrapper) iconWrapper.className = 'applicants-modal-badge-icon icon-schol-gradient';
+            if (headerIcon) headerIcon.setAttribute('data-lucide', 'graduation-cap');
+            if (titleEl) titleEl.innerText = 'Total Educational Assistance Directory';
+            if (badgeEl) {
+                badgeEl.innerText = 'Directory Breakdown';
+                badgeEl.className = 'audit-module-badge';
+            }
+            if (subtitleEl) subtitleEl.innerText = 'Detailed record of educational assistance programs, allocated slots, and status';
+        }
+
+        // Sync tab buttons
+        document.querySelectorAll('#modal-stat-tabs .modal-status-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.getAttribute('data-status') === modalStatActiveFilter);
+        });
+
+        // Show Modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        updateStatsModalCounts();
+        renderStatsModalTable();
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    };
+
+    window.closeStatsModal = () => {
+        const modal = document.getElementById('stats-info-modal');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function updateStatsModalCounts() {
+        const total = allScholarships.length;
+        const active = allScholarships.filter(s => s.dynamic_status === 'Active').length;
+        const upcoming = allScholarships.filter(s => s.dynamic_status === 'Upcoming').length;
+        const closed = allScholarships.filter(s => s.dynamic_status === 'Closed' || s.dynamic_status === 'Draft').length;
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setTxt('modal-stat-pill-total', total);
+        setTxt('modal-stat-pill-active', active);
+        setTxt('modal-stat-pill-closed', closed);
+
+        setTxt('modal-tab-all-count', total);
+        setTxt('modal-tab-active-count', active);
+        setTxt('modal-tab-upcoming-count', upcoming);
+        setTxt('modal-tab-closed-count', closed);
+        setTxt('modal-stat-total-count', total);
+    }
+
+    function renderStatsModalTable() {
+        const tbody = document.getElementById('modal-stat-tbody');
+        if (!tbody) return;
+
+        let filtered = allScholarships.filter(sch => {
+            const dynamicSt = sch.dynamic_status;
+
+            // Tab Filter
+            if (modalStatActiveFilter === 'Active' && dynamicSt !== 'Active') return false;
+            if (modalStatActiveFilter === 'Upcoming' && dynamicSt !== 'Upcoming') return false;
+            if (modalStatActiveFilter === 'Closed' && dynamicSt !== 'Closed' && dynamicSt !== 'Draft') return false;
+
+            // Search Query Filter
+            if (modalStatSearchQuery) {
+                const q = modalStatSearchQuery.toLowerCase();
+                const title = (sch.title || '').toLowerCase();
+                const cat = (sch.category || '').toLowerCase();
+                const type = (sch.scholarship_type || '').toLowerCase();
+                const batch = (sch.batch || '').toString().toLowerCase();
+                const sem = (sch.semester || '').toLowerCase();
+                const sy = (sch.school_year || '').toLowerCase();
+                const desc = (sch.description || '').toLowerCase();
+
+                const matches = title.includes(q) || cat.includes(q) || type.includes(q) || batch.includes(q) || sem.includes(q) || sy.includes(q) || desc.includes(q);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+
+        const showingCountEl = document.getElementById('modal-stat-showing-count');
+        if (showingCountEl) showingCountEl.innerText = filtered.length;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 44px 20px; color: var(--text-muted);">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                            <i data-lucide="graduation-cap" style="width: 28px; height: 28px; color: var(--text-light);"></i>
+                            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-heading);">No educational assistance programs found</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">No programs match your search query or status filter.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        let html = '';
+        filtered.forEach((sch, index) => {
+            const title = sch.title || 'Untitled Program';
+            const safeTitle = escapeHtml(title);
+
+            // Academic term info
+            const termParts = [];
+            if (sch.batch) termParts.push(`Batch ${sch.batch}`);
+            if (sch.semester) termParts.push(sch.semester);
+            if (sch.school_year) termParts.push(`SY ${sch.school_year}`);
+            const termStr = termParts.join(' • ') || 'All Academic Terms';
+
+            // Slots & Applications display
+            let slotsDisplay = '';
+            if (sch.is_unlimited) {
+                slotsDisplay = `<div style="font-size:11.5px; margin-top:2px; color:var(--text-muted);">Unlimited Slots</div>`;
+            } else if (sch.remaining_slots === 0) {
+                slotsDisplay = `<div style="font-size:11.5px; margin-top:2px; font-weight:700; color:var(--danger-color);">FULL (0/${sch.slots} Left)</div>`;
+            } else {
+                slotsDisplay = `<div style="font-size:11.5px; margin-top:2px; font-weight:700; color:var(--moss-green);">${sch.remaining_slots}/${sch.slots} Slot(s) Left</div>`;
+            }
+
+            const periodStr = formatPeriod(sch);
+
+            const appCount = sch.applications_count || 0;
+            const appLabel = appCount === 1 ? 'Application' : 'Applications';
+
+            html += `
+                <tr>
+                    <td style="color: var(--text-light); font-size: 12px; font-weight: 600;">${index + 1}</td>
+                    <td>
+                        <div>
+                            <div style="font-weight: 700; color: var(--text-heading); font-size: 13.5px;" title="${safeTitle}">${safeTitle}</div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">${escapeHtml(termStr)}</div>
+                        </div>
+                    </td>
+                    <td>${getTypeBadge(sch.category)}</td>
+                    <td>${getScholarshipTypeBadge(sch.scholarship_type)}</td>
+                    <td>
+                        <div style="font-weight: 700; color: var(--text-heading); font-size: 12.5px;">${appCount} ${appLabel}</div>
+                        ${slotsDisplay}
+                    </td>
+                    <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="calendar" style="width: 12px; height: 12px; color: var(--text-light);"></i>
+                            <span>${escapeHtml(periodStr)}</span>
+                        </div>
+                    </td>
+                    <td>${getStatusHTML(sch.dynamic_status)}</td>
+                    <td style="text-align: right;">
+                        <button type="button" class="btn-stat-modal-preview" onclick="openStatsProgramPreview('${sch.id}')" title="Preview Application Form">
+                            <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
+                            <span>Preview</span>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    window.openStatsProgramPreview = (id) => {
+        const targetScholarship = allScholarships.find(s => s.id == id);
+        if (targetScholarship) {
+            showPreviewModal(targetScholarship);
+        }
+    };
+
+    // Modal Filter Tabs Event Listener
+    const modalTabsContainer = document.getElementById('modal-stat-tabs');
+    if (modalTabsContainer) {
+        modalTabsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.modal-status-tab');
+            if (!btn) return;
+
+            document.querySelectorAll('#modal-stat-tabs .modal-status-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            modalStatActiveFilter = btn.getAttribute('data-status') || 'All';
+            renderStatsModalTable();
+        });
+    }
+
+    // Modal Search Input Event Listener
+    const modalSearchInput = document.getElementById('modal-stat-search');
+    if (modalSearchInput) {
+        modalSearchInput.addEventListener('input', (e) => {
+            modalStatSearchQuery = e.target.value.trim();
+            renderStatsModalTable();
+        });
+    }
+
+    // Modal Backdrop Click & Escape Key Listener
+    const statsModal = document.getElementById('stats-info-modal');
+    if (statsModal) {
+        statsModal.addEventListener('click', (e) => {
+            if (e.target === statsModal) {
+                closeStatsModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const sm = document.getElementById('stats-info-modal');
+            if (sm && sm.classList.contains('show')) {
+                closeStatsModal();
+            }
+        }
+    });
+
+    // Keyboard accessibility for stat cards
+    ['stat-card-total', 'stat-card-active', 'stat-card-closed'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (id === 'stat-card-total') openStatsModal('All');
+                    else if (id === 'stat-card-active') openStatsModal('Active');
+                    else if (id === 'stat-card-closed') openStatsModal('Closed');
+                }
+            });
+        }
+    });
 
     // INIT
     loadProfile();

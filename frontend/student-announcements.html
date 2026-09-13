@@ -114,34 +114,6 @@
             <div class="dashboard-scroll-area">
                 <div class="content-wrapper">
 
-                    <!-- SUMMARY STATS OVERVIEW CARDS (With Nature Theme & Skeleton Shimmer) -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon icon-total"><i data-lucide="bullhorn"></i></div>
-                            <div class="stat-value is-loading" id="stat-total">&nbsp;</div>
-                            <div class="stat-label">Total Posts</div>
-                            <div class="stat-link link-total">All Announcements</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon icon-unread"><i data-lucide="sparkles"></i></div>
-                            <div class="stat-value is-loading" id="stat-unread">&nbsp;</div>
-                            <div class="stat-label">New Updates</div>
-                            <div class="stat-link link-unread">Unread Posts</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon icon-categories"><i data-lucide="layers"></i></div>
-                            <div class="stat-value is-loading" id="stat-categories">&nbsp;</div>
-                            <div class="stat-label">Categories</div>
-                            <div class="stat-link link-categories">Active Topics</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon icon-discussions"><i data-lucide="message-square"></i></div>
-                            <div class="stat-value is-loading" id="stat-discussions">&nbsp;</div>
-                            <div class="stat-label">Discussions</div>
-                            <div class="stat-link link-discussions">Student Inquiries</div>
-                        </div>
-                    </div>
-
                     <!-- FILTER & SEARCH BAR (Nature Palette) -->
                     <div class="filter-bar">
                         <div class="search-box">
@@ -215,12 +187,81 @@
                                 <div class="skeleton-card-footer">
                                     <div class="skeleton-button" style="width: 130px; height: 36px; border-radius: 20px;"></div>
                                 </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW ANNOUNCEMENT POST & COMMENTS MODAL (Nature Palette & Clean UX) -->
+            <div id="view-announcement-modal" class="announcement-modal-overlay" style="display: none;">
+                <div class="announcement-modal-card">
+                    <div class="modal-header">
+                        <div class="modal-header-title-box">
+                            <i data-lucide="message-square-quote" class="modal-header-icon"></i>
+                            <h3 class="modal-title">Announcement Post & Discussion</h3>
+                        </div>
+                        <button type="button" class="close-btn" id="modal-close-view" aria-label="Close dialog">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal-body-scroll">
+                        <!-- Post Details -->
+                        <div id="announcement-detail-view" class="announcement-detail-box">
+                            <!-- Dynamic Post Content injected via JS -->
+                        </div>
+
+                        <!-- Discussion Comments Section -->
+                        <div class="comments-section">
+                            <div class="comments-header" id="comments-count-header">
+                                <div class="comments-header-left">
+                                    <i data-lucide="messages-square"></i>
+                                    <span>Comments (0)</span>
+                                </div>
+                                <span class="comments-guideline-pill"><i data-lucide="shield-check"></i> Monitored Discussion</span>
+                            </div>
+
+                            <div class="comments-list" id="comments-list">
+                                <div class="comments-loading-state">
+                                    <span class="loading-spinner"></span> Loading comments...
+                                </div>
+                            </div>
+
+                            <div class="comment-input-area" id="comment-input-area">
+                                <div class="comment-input-card">
+                                    <input type="text" id="reply-input" placeholder="Write a comment or ask a question..." autocomplete="off">
+                                    <button class="btn-send-reply" id="btn-send-reply" title="Post comment">
+                                        <i data-lucide="send"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
+
+            <!-- MEDIA VIEWER / LIGHTBOX MODAL -->
+            <div id="media-viewer-modal" class="media-viewer-overlay" style="display: none;">
+                <div class="media-viewer-wrapper">
+                    <button id="close-media-viewer" class="btn-close-viewer" title="Close"><i data-lucide="x"></i></button>
+                    
+                    <button id="prev-media" class="btn-nav-media btn-prev" title="Previous Image" style="display: none;">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    
+                    <div class="media-content-container">
+                        <img id="viewer-image" class="lightbox-img" alt="Announcement Media Preview" style="display: none;">
+                        <iframe id="viewer-iframe" class="lightbox-frame" title="Attachment Document Preview" style="display: none;"></iframe>
+                    </div>
+
+                    <button id="next-media" class="btn-nav-media btn-next" title="Next Image" style="display: none;">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+
+                    <div id="media-counter" class="media-counter" style="display: none;">1 / 1</div>
+                </div>
+            </div>
+
+            <div id="modal-root"></div>
         </main>
     </div>
 
@@ -240,78 +281,6 @@
             </div>
         </div>
     </div>
-
-    <!-- VIEW ANNOUNCEMENT POST & COMMENTS MODAL (Nature Palette & Clean UX) -->
-    <div id="view-announcement-modal" class="announcement-modal-overlay" style="display: none;">
-        <div class="announcement-modal-card">
-            <div class="modal-header">
-                <div class="modal-header-title-box">
-                    <i data-lucide="message-square-quote" class="modal-header-icon"></i>
-                    <h3 class="modal-title">Announcement Post & Discussion</h3>
-                </div>
-                <button type="button" class="close-btn" id="modal-close-view" aria-label="Close dialog">
-                    <i data-lucide="x"></i>
-                </button>
-            </div>
-
-            <div class="modal-body-scroll">
-                <!-- Post Details -->
-                <div id="announcement-detail-view" class="announcement-detail-box">
-                    <!-- Dynamic Post Content injected via JS -->
-                </div>
-
-                <!-- Discussion Comments Section -->
-                <div class="comments-section">
-                    <div class="comments-header" id="comments-count-header">
-                        <div class="comments-header-left">
-                            <i data-lucide="messages-square"></i>
-                            <span>Comments (0)</span>
-                        </div>
-                        <span class="comments-guideline-pill"><i data-lucide="shield-check"></i> Monitored Discussion</span>
-                    </div>
-
-                    <div class="comments-list" id="comments-list">
-                        <div class="comments-loading-state">
-                            <span class="loading-spinner"></span> Loading comments...
-                        </div>
-                    </div>
-
-                    <div class="comment-input-area" id="comment-input-area">
-                        <div class="comment-input-card">
-                            <input type="text" id="reply-input" placeholder="Write a comment or ask a question..." autocomplete="off">
-                            <button class="btn-send-reply" id="btn-send-reply" title="Post comment">
-                                <i data-lucide="send"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MEDIA VIEWER / LIGHTBOX MODAL -->
-    <div id="media-viewer-modal" class="media-viewer-overlay" style="display: none;">
-        <div class="media-viewer-wrapper">
-            <button id="close-media-viewer" class="btn-close-viewer" title="Close"><i data-lucide="x"></i></button>
-            
-            <button id="prev-media" class="btn-nav-media btn-prev" title="Previous Image" style="display: none;">
-                <i data-lucide="chevron-left"></i>
-            </button>
-            
-            <div class="media-content-container">
-                <img id="viewer-image" class="lightbox-img" alt="Announcement Media Preview" style="display: none;">
-                <iframe id="viewer-iframe" class="lightbox-frame" title="Attachment Document Preview" style="display: none;"></iframe>
-            </div>
-
-            <button id="next-media" class="btn-nav-media btn-next" title="Next Image" style="display: none;">
-                <i data-lucide="chevron-right"></i>
-            </button>
-
-            <div id="media-counter" class="media-counter" style="display: none;">1 / 1</div>
-        </div>
-    </div>
-
-    <div id="modal-root"></div>
 
     <!-- MOBILE SIDEBAR OVERLAY -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>

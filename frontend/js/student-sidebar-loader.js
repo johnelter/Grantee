@@ -103,6 +103,67 @@ function applyTheme(theme) {
 // Immediate initial execution
 applyTheme(getStoredTheme());
 
+// --- MOBILE SIDEBAR & OVERLAY CONTROLS ---
+function getOrCreateSidebarOverlay() {
+    let overlay = document.getElementById('sidebar-overlay') || document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'sidebar-overlay';
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+    return overlay;
+}
+
+function openMobileSidebar() {
+    const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
+    getOrCreateSidebarOverlay();
+    const overlays = document.querySelectorAll('#sidebar-overlay, .sidebar-overlay');
+    const mainContent = document.querySelector('.main-content');
+
+    if (sidebar) {
+        sidebar.classList.add('active', 'show');
+    }
+    overlays.forEach(o => o.classList.add('active', 'show'));
+    document.body.classList.add('sidebar-open');
+    if (mainContent) {
+        mainContent.classList.add('sidebar-blurred');
+    }
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
+    const overlays = document.querySelectorAll('#sidebar-overlay, .sidebar-overlay');
+    const mainContent = document.querySelector('.main-content');
+
+    if (sidebar) {
+        sidebar.classList.remove('active', 'show');
+    }
+    overlays.forEach(o => o.classList.remove('active', 'show'));
+    document.body.classList.remove('sidebar-open');
+    if (mainContent) {
+        mainContent.classList.remove('sidebar-blurred');
+    }
+}
+
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
+    const isOpen = sidebar && (sidebar.classList.contains('active') || sidebar.classList.contains('show'));
+    if (isOpen) {
+        closeMobileSidebar();
+    } else {
+        openMobileSidebar();
+    }
+}
+
+// Expose globally on window
+window.openMobileSidebar = openMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.openStudentSidebar = openMobileSidebar;
+window.closeStudentSidebar = closeMobileSidebar;
+window.toggleStudentSidebar = toggleMobileSidebar;
+
 // --- GLOBAL DELEGATED CONTROLS (Run once) ---
 let delegatedInitialized = false;
 
@@ -110,52 +171,63 @@ function initGlobalDelegatedHandlers() {
     if (delegatedInitialized) return;
     delegatedInitialized = true;
 
+    // Ensure overlay exists in DOM early
+    getOrCreateSidebarOverlay();
+
     // 1. Mobile Menu & Overlay Handler
     document.addEventListener('click', (e) => {
         const toggle = e.target.closest('#mobile-menu-toggle, .hamburger-btn');
         const overlay = e.target.closest('#sidebar-overlay, .sidebar-overlay');
         const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
-        const allOverlays = document.querySelectorAll('#sidebar-overlay, .sidebar-overlay');
+        const isOpen = sidebar && (sidebar.classList.contains('active') || sidebar.classList.contains('show'));
 
         if (toggle) {
             e.preventDefault();
             e.stopPropagation();
-            if (sidebar) {
-                const isActive = sidebar.classList.contains('active');
-                if (isActive) {
-                    sidebar.classList.remove('active', 'show');
-                    allOverlays.forEach(o => o.classList.remove('active', 'show'));
-                } else {
-                    sidebar.classList.add('active', 'show');
-                    allOverlays.forEach(o => o.classList.add('active', 'show'));
-                }
-            }
+            toggleMobileSidebar();
             return;
         }
 
         if (overlay) {
             e.preventDefault();
-            if (sidebar) sidebar.classList.remove('active', 'show');
-            allOverlays.forEach(o => o.classList.remove('active', 'show'));
+            e.stopPropagation();
+            closeMobileSidebar();
+            return;
+        }
+
+        // If sidebar is open on mobile/tablet and user clicks outside the sidebar, close it
+        if (isOpen && window.innerWidth <= 1024) {
+            if (!sidebar.contains(e.target) && !e.target.closest('#mobile-menu-toggle, .hamburger-btn')) {
+                closeMobileSidebar();
+            }
         }
     });
 
     document.addEventListener('touchstart', (e) => {
         const overlay = e.target.closest('#sidebar-overlay, .sidebar-overlay');
         if (overlay) {
-            const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
-            const allOverlays = document.querySelectorAll('#sidebar-overlay, .sidebar-overlay');
-            if (sidebar) sidebar.classList.remove('active', 'show');
-            allOverlays.forEach(o => o.classList.remove('active', 'show'));
+            e.preventDefault();
+            closeMobileSidebar();
         }
-    }, { passive: true });
+    }, { passive: false });
+
+    // Close on Escape key press
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+            closeMobileSidebar();
+            const profileMenu = document.getElementById('profile-menu');
+            if (profileMenu) profileMenu.classList.remove('show');
+            const notifDropdown = document.getElementById('notification-dropdown');
+            if (notifDropdown) {
+                notifDropdown.style.display = 'none';
+                notifDropdown.classList.remove('show');
+            }
+        }
+    });
 
     window.addEventListener('resize', () => {
         if (window.innerWidth > 1024) {
-            const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
-            const allOverlays = document.querySelectorAll('#sidebar-overlay, .sidebar-overlay');
-            if (sidebar) sidebar.classList.remove('active', 'show');
-            allOverlays.forEach(o => o.classList.remove('active', 'show'));
+            closeMobileSidebar();
         }
     });
 
@@ -368,11 +440,8 @@ function initSidebarNavigation() {
             if (currentPath === targetPath) return;
 
             // Close mobile sidebar immediately ONLY if on mobile viewport
-            const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
-            const allOverlays = document.querySelectorAll('#sidebar-overlay, .sidebar-overlay');
-            if (sidebar && window.innerWidth <= 1024) {
-                sidebar.classList.remove('active', 'show');
-                allOverlays.forEach(o => o.classList.remove('active', 'show'));
+            if (window.innerWidth <= 1024) {
+                closeMobileSidebar();
             }
 
             // Update active link visually
@@ -456,6 +525,8 @@ function initSidebarNavigation() {
                     // Update main content
                     mainContent.innerHTML = newMain.innerHTML;
                     mainContent.className = newMain.className;
+                    mainContent.classList.remove('sidebar-blurred');
+                    document.body.classList.remove('sidebar-open');
 
                     // Sync theme button icon
                     applyTheme(getStoredTheme());
@@ -618,5 +689,100 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initBackToTopButton);
 } else {
     initBackToTopButton();
+}
+
+// ==========================================
+// GLOBAL STUDENT UI TOAST SYSTEM (TOP CENTER)
+// ==========================================
+if (!window.showUIToast) {
+    window.showUIToast = function (type = 'success', title = '', message = '', duration = 3500) {
+        return new Promise((resolve) => {
+            // Dismiss any open loading or dialog modal immediately
+            if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+                Swal.close();
+            }
+
+            let container = document.getElementById('custom-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'custom-toast-container';
+                document.body.appendChild(container);
+            }
+
+            type = (type || 'success').toLowerCase();
+            if (!['success', 'error', 'info', 'warning'].includes(type)) {
+                type = 'info';
+            }
+
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                if (!title) title = 'Success';
+            } else if (type === 'error') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                if (!title) title = 'Error';
+            } else if (type === 'info') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+                if (!title) title = 'Info';
+            } else if (type === 'warning') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                if (!title) title = 'Warning';
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `custom-ui-toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-left-bar"></div>
+                <div class="toast-icon-wrapper">
+                    ${iconSvg}
+                </div>
+                <div class="toast-details">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message || ''}</div>
+                </div>
+                <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    toast.classList.add('toast-show');
+                });
+            });
+
+            let isDismissed = false;
+            const dismissToast = () => {
+                if (isDismissed) return;
+                isDismissed = true;
+                toast.classList.remove('toast-show');
+                toast.classList.add('toast-hide');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                    resolve();
+                }, 300);
+            };
+
+            const closeBtn = toast.querySelector('.toast-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dismissToast();
+                });
+            }
+
+            let autoDismissTimer = setTimeout(dismissToast, duration);
+
+            toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+            toast.addEventListener('mouseleave', () => {
+                if (!isDismissed) {
+                    autoDismissTimer = setTimeout(dismissToast, 1800);
+                }
+            });
+        });
+    };
+    window.showToast = window.showUIToast;
 }
 

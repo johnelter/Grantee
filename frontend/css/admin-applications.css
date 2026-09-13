@@ -1756,6 +1756,10 @@ body.dark-theme .modal-header-icon {
 
 /* Tablet Screens (<= 1024px) */
 @media (max-width: 1024px) {
+    .hamburger-btn {
+        display: flex !important;
+    }
+
     .top-header {
         padding: 14px 20px;
         min-height: 72px;

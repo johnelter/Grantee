@@ -417,13 +417,6 @@ button { font-family: inherit; cursor: pointer; }
     margin: 4px 0;
 }
 
-.hamburger-btn {
-    display: none;
-    background: transparent;
-    border: none;
-    color: var(--text-main);
-    cursor: pointer;
-}
 
 /* =========================================================
    3. SKELETON SHIMMER LOADING SYSTEM

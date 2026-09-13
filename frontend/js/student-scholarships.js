@@ -42,23 +42,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (let i = 0; i < 6; i++) {
             skeletonHTML += `
                 <div class="sch-card sch-skeleton-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <div class="skeleton-shimmer" style="width: 110px; height: 22px; border-radius: 12px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <div class="skeleton-shimmer" style="width: 120px; height: 24px; border-radius: 12px;"></div>
                         <div class="skeleton-shimmer" style="width: 50px; height: 16px; border-radius: 6px;"></div>
                     </div>
-                    <div class="sch-card-header" style="margin-bottom: 14px;">
-                        <div class="card-icon skeleton-shimmer" style="width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;"></div>
-                        <div class="card-title-group" style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-                            <div class="skeleton-shimmer" style="width: 80%; height: 18px;"></div>
-                            <div class="skeleton-shimmer" style="width: 60%; height: 12px;"></div>
+                    <div class="sch-card-header" style="margin-bottom: 16px;">
+                        <div class="card-icon skeleton-shimmer" style="width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0;"></div>
+                        <div class="card-title-group" style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div class="skeleton-shimmer" style="width: 85%; height: 20px; border-radius: 6px;"></div>
+                            <div class="skeleton-shimmer" style="width: 60%; height: 14px; border-radius: 4px;"></div>
                         </div>
                     </div>
-                    <div class="sch-card-footer" style="padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <div class="sch-card-footer" style="padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <div class="skeleton-shimmer" style="width: 90px; height: 12px;"></div>
-                            <div class="skeleton-shimmer" style="width: 65px; height: 11px;"></div>
+                            <div class="skeleton-shimmer" style="width: 100px; height: 14px; border-radius: 4px;"></div>
+                            <div class="skeleton-shimmer" style="width: 70px; height: 12px; border-radius: 4px;"></div>
                         </div>
-                        <div class="skeleton-shimmer" style="width: 105px; height: 36px; border-radius: 8px;"></div>
+                        <div class="skeleton-shimmer" style="width: 110px; height: 38px; border-radius: 9px;"></div>
                     </div>
                 </div>
             `;
@@ -653,7 +653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+                <div class="sch-card-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
                     ${getBadgeHTML(sch.category)}
                     ${isClosed ? '<span class="sch-badge sch-badge-closed"><i data-lucide="lock" style="width:11px;height:11px;"></i> CLOSED</span>' : ''}
                 </div>
@@ -737,7 +737,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- FILTER LOGIC (Category & Keyword Search) ---
+    // Priority calculation function to rank active / Apply Now cards first
+    const getScholarshipPriority = (sch) => {
+        const btnState = validateEligibility(sch);
+        const isClosed = sch.display_status === 'Closed';
+
+        // 1. Actionable Apply: "Apply Now" or "Continue Application" -> Priority 1
+        if (btnState.action === 'apply') {
+            if (btnState.text === 'Apply Now') return 1;
+            if (btnState.text === 'Continue Application') return 2;
+            return 3;
+        }
+
+        // 2. Needs Profile Completion but Scholarship is Active -> Priority 2
+        if (btnState.action === 'profile' && !isClosed) {
+            return 4;
+        }
+
+        // 3. Opening Soon / Upcoming -> Priority 3
+        if (sch.display_status === 'Upcoming') {
+            return 5;
+        }
+
+        // 4. Already Applied / Existing application view -> Priority 4
+        if (btnState.text === 'Already Applied' || btnState.action === 'view') {
+            return 6;
+        }
+
+        // 5. Restricted by academic policy / program / year / GWA / slots full but not closed -> Priority 5
+        if (!isClosed) {
+            return 7;
+        }
+
+        // 6. Closed programs -> Lowest Priority (Bottom)
+        return 8;
+    };
+
+    // --- FILTER LOGIC (Category & Keyword Search + Priority Ranking) ---
     const applyFilters = () => {
         const searchInput = document.getElementById('search-input');
         const catSelect = document.getElementById('category-filter') || document.getElementById('side-filter-category');
@@ -757,6 +793,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sch.category === catVal;
 
             return matchesSearch && matchesCat;
+        });
+
+        // Priority sort: "Apply Now" / active scholarships first
+        filteredScholarships.sort((a, b) => {
+            const pA = getScholarshipPriority(a);
+            const pB = getScholarshipPriority(b);
+            if (pA !== pB) return pA - pB;
+
+            // Secondary sort: creation date descending (newest programs first)
+            const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+            const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+            return dateB - dateA;
         });
 
         renderCards(filteredScholarships);

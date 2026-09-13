@@ -201,8 +201,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     initGlobalLogoutLogic();
 
-    // Clean up any dangling flatpickr calendar DOM elements from previous sessions
-    document.querySelectorAll('.flatpickr-calendar:not(.open):not(.inline), select.flatpickr-monthDropdown-months, .flatpickr-wrapper').forEach(el => el.remove());
+    // Only clean up detached/orphaned body-level flatpickr calendars from prior pages if any
+    document.querySelectorAll('body > .flatpickr-calendar:not(.open):not(.inline)').forEach(el => {
+        if (!document.querySelector('.flatpickr-input')) el.remove();
+    });
 });
 
 // Helper to highlight active menu item based on current URL

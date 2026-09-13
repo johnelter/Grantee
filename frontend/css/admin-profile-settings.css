@@ -200,9 +200,7 @@ button { font-family: inherit; cursor: pointer; }
 
 .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
 
-/* Header dropdown & profile styles are handled globally by admin-global.css */
-
-.hamburger-btn { display: none; background: none; border: none; font-size: 24px; color: var(--text-main); cursor: pointer; padding: 5px; }
+/* Header dropdown & hamburger button styles are handled globally by admin-global.css */
 
 /* --- Settings Grid Layout --- */
 .settings-grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; align-items: start; }

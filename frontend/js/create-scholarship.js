@@ -208,16 +208,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dateRangeInput = document.getElementById('sch_date_range');
     const startInput = document.getElementById('sch_start');
     const endInput = document.getElementById('sch_end');
+    const datePickerWrapper = document.querySelector('.date-range-picker-wrapper');
 
-    if (dateRangeInput && typeof flatpickr !== 'undefined') {
-        dateRangePicker = flatpickr(dateRangeInput, {
+    function initCreateScholarshipFlatpickr() {
+        const inputEl = document.getElementById('sch_date_range');
+        if (!inputEl) return;
+
+        if (typeof flatpickr === 'undefined') {
+            setTimeout(initCreateScholarshipFlatpickr, 100);
+            return;
+        }
+
+        if (dateRangePicker) {
+            try { dateRangePicker.destroy(); } catch (e) {}
+        }
+
+        dateRangePicker = flatpickr(inputEl, {
             mode: "range",
             dateFormat: "Y-m-d",
             altInput: true,
             altFormat: "F j, Y",
             altInputClass: "form-input",
+            static: true, // Anchors the calendar directly to the input inside its container so it scrolls naturally with the page
+            disableMobile: true,
             locale: {
                 rangeSeparator: "  to  "
+            },
+            onOpen: (selectedDates, dateStr, instance) => {
+                if (instance && instance.calendarContainer) {
+                    instance.calendarContainer.style.zIndex = '999999';
+                }
             },
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
@@ -238,7 +258,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         });
+
+        if (datePickerWrapper) {
+            datePickerWrapper.onclick = (e) => {
+                if (dateRangePicker && !dateRangePicker.isOpen) {
+                    dateRangePicker.open();
+                }
+            };
+        }
     }
+
+    initCreateScholarshipFlatpickr();
 
     // ==========================================
     // 3C. TOUCH-FRIENDLY ELIGIBILITY CHECKBOX LISTS

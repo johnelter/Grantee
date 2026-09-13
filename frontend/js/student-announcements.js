@@ -87,6 +87,97 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.showToast = showUIToast;
 
     // ==========================================
+    // 0.1 MODAL INJECTION HELPER (Guarantees modals exist)
+    // ==========================================
+    function ensureAnnouncementModals() {
+        let modal = document.getElementById('view-announcement-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'view-announcement-modal';
+            modal.className = 'announcement-modal-overlay';
+            modal.style.display = 'none';
+            modal.innerHTML = `
+                <div class="announcement-modal-card">
+                    <div class="modal-header">
+                        <div class="modal-header-title-box">
+                            <i data-lucide="message-square-quote" class="modal-header-icon"></i>
+                            <h3 class="modal-title">Announcement Post & Discussion</h3>
+                        </div>
+                        <button type="button" class="close-btn" id="modal-close-view" aria-label="Close dialog">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal-body-scroll">
+                        <div id="announcement-detail-view" class="announcement-detail-box"></div>
+
+                        <div class="comments-section">
+                            <div class="comments-header" id="comments-count-header">
+                                <div class="comments-header-left">
+                                    <i data-lucide="messages-square"></i>
+                                    <span>Comments (0)</span>
+                                </div>
+                                <span class="comments-guideline-pill"><i data-lucide="shield-check"></i> Monitored Discussion</span>
+                            </div>
+
+                            <div class="comments-list" id="comments-list">
+                                <div class="comments-loading-state">
+                                    <span class="loading-spinner"></span> Loading comments...
+                                </div>
+                            </div>
+
+                            <div class="comment-input-area" id="comment-input-area">
+                                <div class="comment-input-card">
+                                    <input type="text" id="reply-input" placeholder="Write a comment or ask a question..." autocomplete="off">
+                                    <button class="btn-send-reply" id="btn-send-reply" title="Post comment">
+                                        <i data-lucide="send"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const mainContainer = document.querySelector('.main-content') || document.body;
+            mainContainer.appendChild(modal);
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+
+        let mediaViewer = document.getElementById('media-viewer-modal');
+        if (!mediaViewer) {
+            mediaViewer = document.createElement('div');
+            mediaViewer.id = 'media-viewer-modal';
+            mediaViewer.className = 'media-viewer-overlay';
+            mediaViewer.style.display = 'none';
+            mediaViewer.innerHTML = `
+                <div class="media-viewer-wrapper">
+                    <button id="close-media-viewer" class="btn-close-viewer" title="Close"><i data-lucide="x"></i></button>
+                    
+                    <button id="prev-media" class="btn-nav-media btn-prev" title="Previous Image" style="display: none;">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    
+                    <div class="media-content-container">
+                        <img id="viewer-image" class="lightbox-img" alt="Announcement Media Preview" style="display: none;">
+                        <iframe id="viewer-iframe" class="lightbox-frame" title="Attachment Document Preview" style="display: none;"></iframe>
+                    </div>
+
+                    <button id="next-media" class="btn-nav-media btn-next" title="Next Image" style="display: none;">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+
+                    <div id="media-counter" class="media-counter" style="display: none;">1 / 1</div>
+                </div>
+            `;
+            const mainContainer = document.querySelector('.main-content') || document.body;
+            mainContainer.appendChild(mediaViewer);
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+        return modal;
+    }
+    ensureAnnouncementModals();
+
+    // ==========================================
     // 1. AUTH CHECK & STATE INITIALIZATION
     // ==========================================
     const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
@@ -112,6 +203,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     async function initializeApp() {
         try {
+            ensureAnnouncementModals();
+
             const { data: profile, error: profileError } = await window.supabaseClient
                 .from('profiles')
                 .select('*')
@@ -168,6 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             await fetchAnnouncements();
+            setupRealtimeAnnouncements();
 
             if (currentSelectedId) {
                 setTimeout(() => {
@@ -183,8 +277,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     // 3. FETCH & FILTER ANNOUNCEMENTS
     // ==========================================
-    async function fetchAnnouncements() {
+    async function fetchAnnouncements(isSilent = false) {
         try {
+            // Refresh read statuses in background
+            try {
+                const { data: readData } = await window.supabaseClient
+                    .from('announcement_reads')
+                    .select('announcement_id')
+                    .eq('student_id', studentId);
+                if (readData) {
+                    readAnnouncementIds = new Set(readData.map(r => r.announcement_id));
+                }
+            } catch (e) { }
+
             let query = window.supabaseClient
                 .from('announcements')
                 .select(`
@@ -217,16 +322,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Error fetching announcements:", err);
-            const container = document.getElementById('announcements-list-container');
-            if (container) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 48px 24px; background: var(--card-bg); border-radius: 16px; border: 1px dashed var(--border-color); color: var(--danger-color);">
-                        <i data-lucide="alert-triangle" style="width: 32px; height: 32px; margin: 0 auto 12px auto; display: block;"></i>
-                        <p style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">Failed to load announcements</p>
-                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Please check your connection and refresh the page.</p>
-                    </div>
-                `;
-                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            if (!isSilent) {
+                const container = document.getElementById('announcements-list-container');
+                if (container && (!allAnnouncements || allAnnouncements.length === 0)) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 48px 24px; background: var(--card-bg); border-radius: 16px; border: 1px dashed var(--border-color); color: var(--danger-color);">
+                            <i data-lucide="alert-triangle" style="width: 32px; height: 32px; margin: 0 auto 12px auto; display: block;"></i>
+                            <p style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">Failed to load announcements</p>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Please check your connection and refresh the page.</p>
+                        </div>
+                    `;
+                    if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+                }
             }
         }
     }
@@ -345,7 +452,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 6. MULTI-IMAGE GRID HELPER
     // ==========================================
     window.generateImageGrid = (urls) => {
-        if (!urls || !Array.isArray(urls) || urls.length === 0) return '';
+        if (!urls) return '';
+        if (typeof urls === 'string') {
+            try {
+                urls = JSON.parse(urls);
+            } catch (e) {
+                urls = [urls];
+            }
+        }
+        if (!Array.isArray(urls) || urls.length === 0) return '';
         const count = urls.length;
         let imagesHtml = '';
         let layoutClass = '';
@@ -429,7 +544,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 catIcon = 'calendar';
             }
 
-            const commentsOpen = ann.allow_comments !== false;
+            const commentsOpen = ann.allow_comments !== false && ann.allow_comments !== 'false' && ann.allow_comments !== 0;
             const commentsBadge = commentsOpen ? 
                 `<span class="tag-badge tag-comments-open"><i data-lucide="messages-square"></i> Comments Open</span>` : 
                 `<span class="tag-badge tag-comments-closed"><i data-lucide="lock"></i> Comments Closed</span>`;
@@ -439,7 +554,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const plainText = tempDiv.textContent || tempDiv.innerText || "";
             const isLong = plainText.length > 250;
 
-            const coverHtml = window.generateImageGrid(ann.image_urls);
+            let rawImages = ann.image_urls;
+            if (typeof rawImages === 'string') {
+                try {
+                    rawImages = JSON.parse(rawImages);
+                } catch (e) {
+                    rawImages = rawImages ? [rawImages] : [];
+                }
+            }
+            const coverHtml = window.generateImageGrid(rawImages);
 
             const card = document.createElement('div');
             card.className = `social-card ${ann.is_pinned ? 'is-pinned-card' : ''}`;
@@ -478,9 +601,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${coverHtml}
 
                 <div class="card-actions">
-                    <button type="button" class="btn-comment-action" onclick="openAnnouncementModal('${ann.id}')">
+                    <button type="button" class="btn-comment-action" data-id="${ann.id}" onclick="openAnnouncementModal('${ann.id}')">
                         <i data-lucide="message-square"></i>
-                        <span>${commentsOpen ? 'Comments & Discussion' : 'View Discussion'} (${commentCount})</span>
+                        <span>Comments (${commentCount})</span>
                     </button>
                 </div>
             `;
@@ -509,150 +632,199 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 8. ANNOUNCEMENT POST & COMMENTS MODAL
     // ==========================================
     window.openAnnouncementModal = async (id) => {
-        currentSelectedId = id;
+        try {
+            currentSelectedId = id;
+            ensureAnnouncementModals();
 
-        const activeAnn = allAnnouncements.find(a => a.id == id);
-        if (!activeAnn) return;
-
-        const detailContainer = document.getElementById('announcement-detail-view');
-        const modal = document.getElementById('view-announcement-modal');
-        if (!detailContainer || !modal) return;
-
-        modal.style.display = 'flex';
-
-        // Mark as read in real-time
-        if (!readAnnouncementIds.has(id)) {
-            readAnnouncementIds.add(id);
-            const card = document.querySelector(`.social-card[data-id="${id}"]`);
-            if (card) {
-                const newBadge = card.querySelector('.badge-new-pill');
-                if (newBadge) newBadge.remove();
+            let activeAnn = allAnnouncements.find(a => String(a.id) === String(id));
+            if (!activeAnn) {
+                // Fallback direct Supabase fetch
+                const { data, error } = await window.supabaseClient
+                    .from('announcements')
+                    .select(`
+                        *, 
+                        profiles:author_id ( first_name, last_name, avatar_url, role ), 
+                        announcement_comments ( id )
+                    `)
+                    .eq('id', id)
+                    .single();
+                if (data && !error) {
+                    activeAnn = data;
+                }
             }
-            updateStatsOverview(allAnnouncements);
-            window.supabaseClient.from('announcement_reads').insert([{ student_id: studentId, announcement_id: id }]).then();
-        }
 
-        const dateStr = new Date(activeAnn.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+            if (!activeAnn) {
+                console.warn("Announcement not found for ID:", id);
+                return;
+            }
 
-        let authorName = "Scholarship Office";
-        let authorAvatar = "assets/admin-avatar.png";
-        if (activeAnn.profiles) {
-            authorName = `${activeAnn.profiles.first_name || ''} ${activeAnn.profiles.last_name || ''}`.trim();
-            if (activeAnn.profiles.avatar_url) authorAvatar = activeAnn.profiles.avatar_url;
-        }
+            const detailContainer = document.getElementById('announcement-detail-view');
+            const modal = document.getElementById('view-announcement-modal');
+            if (!detailContainer || !modal) return;
 
-        const pinnedBadge = activeAnn.is_pinned ? `<span class="tag-badge tag-pinned"><i data-lucide="pin"></i> Pinned</span>` : '';
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
 
-        let catClass = 'tag-category-general';
-        let catIcon = 'bullhorn';
-        const catLower = (activeAnn.category || '').toLowerCase();
-        if (catLower.includes('educational') || catLower.includes('assistance') || catLower.includes('scholarship')) {
-            catClass = 'tag-category-edu';
-            catIcon = 'graduation-cap';
-        } else if (catLower.includes('reminder')) {
-            catClass = 'tag-category-reminder';
-            catIcon = 'clock';
-        } else if (catLower.includes('event')) {
-            catClass = 'tag-category-event';
-            catIcon = 'calendar';
-        }
+            // Mark as read in real-time
+            if (!readAnnouncementIds.has(id)) {
+                readAnnouncementIds.add(id);
+                const card = document.querySelector(`.social-card[data-id="${id}"]`);
+                if (card) {
+                    const newBadge = card.querySelector('.badge-new-pill');
+                    if (newBadge) newBadge.remove();
+                }
+                updateStatsOverview(allAnnouncements);
+                window.supabaseClient.from('announcement_reads').insert([{ student_id: studentId, announcement_id: id }]).then();
+            }
 
-        const coverHtml = window.generateImageGrid(activeAnn.image_urls);
+            const dateStr = new Date(activeAnn.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-        let eduButtonHtml = '';
-        if (catLower.includes('educational') || catLower.includes('assistance') || catLower.includes('scholarship')) {
-            eduButtonHtml = `
-                <button type="button" class="btn-primary-large" onclick="window.location.href='apply-scholarships.html'">
-                    <span>View Educational Assistance & Apply</span>
-                    <i data-lucide="arrow-right"></i>
-                </button>
-            `;
-        }
+            let authorName = "Scholarship Office";
+            let authorAvatar = "assets/admin-avatar.png";
+            if (activeAnn.profiles) {
+                authorName = `${activeAnn.profiles.first_name || ''} ${activeAnn.profiles.last_name || ''}`.trim();
+                if (activeAnn.profiles.avatar_url) authorAvatar = activeAnn.profiles.avatar_url;
+            }
 
-        let attachmentsHtml = '';
-        if (activeAnn.attachments && Array.isArray(activeAnn.attachments) && activeAnn.attachments.length > 0) {
-            const filesList = activeAnn.attachments.map(file => `
-                <div class="attachment-box-readonly">
-                    <div class="file-info">
-                        <i data-lucide="file-text"></i>
-                        <div>
-                            <span class="file-name" title="${file.name}">${file.name}</span>
-                            <span class="file-size">${file.size || 'Attachment document'}</span>
+            const pinnedBadge = activeAnn.is_pinned ? `<span class="tag-badge tag-pinned"><i data-lucide="pin"></i> Pinned</span>` : '';
+
+            let catClass = 'tag-category-general';
+            let catIcon = 'bullhorn';
+            const catLower = (activeAnn.category || '').toLowerCase();
+            if (catLower.includes('educational') || catLower.includes('assistance') || catLower.includes('scholarship')) {
+                catClass = 'tag-category-edu';
+                catIcon = 'graduation-cap';
+            } else if (catLower.includes('reminder')) {
+                catClass = 'tag-category-reminder';
+                catIcon = 'clock';
+            } else if (catLower.includes('event')) {
+                catClass = 'tag-category-event';
+                catIcon = 'calendar';
+            }
+
+            // Safe parsing of image_urls
+            let imageUrls = activeAnn.image_urls;
+            if (typeof imageUrls === 'string') {
+                try {
+                    imageUrls = JSON.parse(imageUrls);
+                } catch (e) {
+                    imageUrls = imageUrls ? [imageUrls] : [];
+                }
+            }
+            if (!Array.isArray(imageUrls)) imageUrls = [];
+
+            const coverHtml = window.generateImageGrid(imageUrls);
+
+            // Safe parsing of attachments
+            let attachments = activeAnn.attachments;
+            if (typeof attachments === 'string') {
+                try {
+                    attachments = JSON.parse(attachments);
+                } catch (e) {
+                    attachments = [];
+                }
+            }
+            if (!Array.isArray(attachments)) attachments = [];
+
+            let attachmentsHtml = '';
+            if (attachments.length > 0) {
+                const filesList = attachments.map(file => `
+                    <div class="attachment-box-readonly">
+                        <div class="file-info">
+                            <i data-lucide="file-text"></i>
+                            <div>
+                                <span class="file-name" title="${file.name || 'Attachment'}">${file.name || 'Attachment'}</span>
+                                <span class="file-size">${file.size || 'Attachment document'}</span>
+                            </div>
+                        </div>
+                        <a href="${file.url || file.file_url || '#'}" target="_blank" class="btn-view-file" title="View document">
+                            <i data-lucide="external-link"></i>
+                        </a>
+                    </div>
+                `).join('');
+
+                attachmentsHtml = `
+                    <div class="detail-attachments-section">
+                        <h4 class="detail-attachments-title">
+                            <i data-lucide="paperclip" style="width: 15px; height: 15px; color: var(--fern-green);"></i>
+                            Attachments (${attachments.length})
+                        </h4>
+                        <div class="attachment-grid">${filesList}</div>
+                    </div>
+                `;
+            }
+
+            detailContainer.innerHTML = `
+                <div class="card-header-wrapper" style="padding: 0 0 14px 0;">
+                    <div class="card-author-row">
+                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                        <div class="card-author-meta">
+                            <div class="author-name-line">
+                                <span class="author-name-text">${authorName}</span>
+                                <span class="author-role-badge">Coordinator</span>
+                            </div>
+                            <span class="post-time-meta">${dateStr}</span>
                         </div>
                     </div>
-                    <a href="${file.url}" target="_blank" class="btn-view-file" title="View document">
-                        <i data-lucide="external-link"></i>
-                    </a>
                 </div>
-            `).join('');
 
-            attachmentsHtml = `
-                <div class="detail-attachments-section">
-                    <h4 class="detail-attachments-title">
-                        <i data-lucide="paperclip" style="width: 15px; height: 15px; color: var(--fern-green);"></i>
-                        Attachments (${activeAnn.attachments.length})
-                    </h4>
-                    <div class="attachment-grid">${filesList}</div>
+                <div class="card-tags-row" style="padding: 0 0 14px 0;">
+                    ${pinnedBadge}
+                    <span class="tag-badge ${catClass}"><i data-lucide="${catIcon}"></i> ${activeAnn.category || 'General'}</span>
                 </div>
-            `;
-        }
 
-        detailContainer.innerHTML = `
-            <div class="card-header-wrapper" style="padding: 0 0 14px 0;">
-                <div class="card-author-row">
-                    <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
-                    <div class="card-author-meta">
-                        <div class="author-name-line">
-                            <span class="author-name-text">${authorName}</span>
-                            <span class="author-role-badge">Coordinator</span>
-                        </div>
-                        <span class="post-time-meta">${dateStr}</span>
+                <h3 class="card-title" style="padding: 0 0 12px 0; font-size: 20px;">${activeAnn.title}</h3>
+
+                <div class="card-body" style="padding: 0 0 16px 0;">
+                    <div class="card-text-content">
+                        ${activeAnn.content || 'No description provided.'}
                     </div>
                 </div>
-            </div>
 
-            <div class="card-tags-row" style="padding: 0 0 14px 0;">
-                ${pinnedBadge}
-                <span class="tag-badge ${catClass}"><i data-lucide="${catIcon}"></i> ${activeAnn.category || 'General'}</span>
-            </div>
+                ${coverHtml}
+                ${attachmentsHtml}
+            `;
 
-            <h3 class="card-title" style="padding: 0 0 12px 0; font-size: 20px;">${activeAnn.title}</h3>
+            // Reset input and send button state unconditionally
+            const sendBtn = document.getElementById('btn-send-reply');
+            const inputEl = document.getElementById('reply-input');
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i data-lucide="send"></i>';
+            }
+            if (inputEl) {
+                inputEl.disabled = false;
+                inputEl.value = '';
+            }
 
-            <div class="card-body" style="padding: 0 0 16px 0;">
-                <div class="card-text-content">
-                    ${activeAnn.content || 'No description provided.'}
-                </div>
-            </div>
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
 
-            ${coverHtml}
-            ${eduButtonHtml}
-            ${attachmentsHtml}
-        `;
-
-        if (typeof lucide !== 'undefined' && lucide.createIcons) {
-            lucide.createIcons();
+            const isCommentsAllowed = activeAnn.allow_comments !== false && activeAnn.allow_comments !== 'false' && activeAnn.allow_comments !== 0;
+            loadComments(id, isCommentsAllowed);
+        } catch (modalErr) {
+            console.error("Error opening announcement modal:", modalErr);
         }
-
-        loadComments(id, activeAnn.allow_comments !== false);
     };
 
-    document.getElementById('modal-close-view')?.addEventListener('click', () => {
+    window.closeAnnouncementModal = () => {
         const modal = document.getElementById('view-announcement-modal');
         if (modal) modal.style.display = 'none';
+        document.body.style.overflow = '';
         currentSelectedId = null;
-    });
 
-    document.getElementById('view-announcement-modal')?.addEventListener('click', (e) => {
-        if (e.target.id === 'view-announcement-modal') {
-            document.getElementById('view-announcement-modal').style.display = 'none';
-            currentSelectedId = null;
+        const sendBtn = document.getElementById('btn-send-reply');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i data-lucide="send"></i>';
         }
-    });
+    };
 
     // ==========================================
     // 9. COMMENTS DISCUSSION ENGINE
     // ==========================================
-    async function loadComments(announcementId, isAllowed) {
+    async function loadComments(announcementId, isAllowed = true) {
         const commentsHeader = document.getElementById('comments-count-header');
         const commentsList = document.getElementById('comments-list');
         const commentInputArea = document.getElementById('comment-input-area');
@@ -697,13 +869,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 commentsHeader.innerHTML = `
                     <div class="comments-header-left">
                         <i data-lucide="messages-square"></i>
-                        <span>Comments (${comments.length})</span>
+                        <span>Comments (${(comments || []).length})</span>
                     </div>
                     <span class="comments-guideline-pill"><i data-lucide="shield-check"></i> Monitored Discussion</span>
                 `;
             }
 
-            if (comments.length === 0) {
+            if (!comments || comments.length === 0) {
                 commentsList.innerHTML = `
                     <div style="text-align: center; padding: 28px 16px; color: var(--text-muted); font-size: 13px;">
                         <i data-lucide="message-square-plus" style="width: 28px; height: 28px; margin: 0 auto 8px auto; display: block; color: var(--fern-green);"></i>
@@ -730,9 +902,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else if (diffHrs > 0) timeString = diffHrs + "h ago";
                 else timeString = diffMins === 0 ? "Just now" : diffMins + "m ago";
 
-                const replyActionBtn = `<button class="btn-comment-tool" onclick="replyToUser('${displayName.replace(/'/g, "\\'").replace(/<[^>]*>?/gm, '').trim()}')"><i data-lucide="message-square"></i> Reply</button>`;
-                const editBtn = isMe ? `<button class="btn-comment-tool tool-edit" onclick="editMyComment('${c.id}', \`${c.content.replace(/`/g, "\\`").replace(/'/g, "\\'")}\`)"><i data-lucide="edit-3"></i> Edit</button>` : '';
-                const deleteBtn = isMe ? `<button class="btn-comment-tool tool-delete" onclick="deleteMyComment('${c.id}')"><i data-lucide="trash-2"></i> Delete</button>` : '';
+                const replyActionBtn = `<button type="button" class="btn-comment-tool" onclick="replyToUser('${displayName.replace(/'/g, "\\'").replace(/<[^>]*>?/gm, '').trim()}')"><i data-lucide="message-square"></i> Reply</button>`;
+                const editBtn = isMe ? `<button type="button" class="btn-comment-tool tool-edit" onclick="editMyComment('${c.id}', \`${c.content.replace(/`/g, "\\`").replace(/'/g, "\\'")}\`)"><i data-lucide="edit-3"></i> Edit</button>` : '';
+                const deleteBtn = isMe ? `<button type="button" class="btn-comment-tool tool-delete" onclick="deleteMyComment('${c.id}')"><i data-lucide="trash-2"></i> Delete</button>` : '';
 
                 const commentHtml = `
                     <div class="comment-item">
@@ -770,9 +942,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
-    // 10. AI MODERATION & POSTING (BLAZING FAST)
+    // 10. AI MODERATION & POSTING (UNBREAKABLE)
     // ==========================================
-    let lastCommentText = "";
     const clientModerationCache = new Map();
 
     async function checkAiModeration(text) {
@@ -780,9 +951,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (t.length < 2) {
             return { passed: false, reason: "Comment is too short or empty." };
-        }
-        if (t === lastCommentText) {
-            return { passed: false, reason: "Duplicate comment detected." };
         }
 
         // Fast local profanity & URL pre-filter (instant, 0ms)
@@ -803,10 +971,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return clientModerationCache.get(t);
         }
 
-        // Fast fetch with 2.5s AbortController timeout to prevent hanging UI
+        // Fast fetch with 1.8s AbortController timeout to prevent hanging UI
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2500);
+            const timeoutId = setTimeout(() => controller.abort(), 1800);
 
             const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/moderate-comment', {
                 method: 'POST',
@@ -817,70 +985,76 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             clearTimeout(timeoutId);
 
-            if (response.ok) {
+            if (response && response.ok) {
                 const data = await response.json();
                 clientModerationCache.set(t, data);
                 return data;
             }
         } catch (err) {
-            console.warn("AI backend moderation unreachable or timed out, passed local verification:", err);
+            // Gracefully pass local verification if remote moderation service is unreachable
         }
         return { passed: true };
     }
 
-    const sendCommentBtn = document.getElementById('btn-send-reply');
-    const commentInput = document.getElementById('reply-input');
+    async function handleSendComment() {
+        const commentInput = document.getElementById('reply-input');
+        const sendCommentBtn = document.getElementById('btn-send-reply');
 
-    if (sendCommentBtn && commentInput) {
-        sendCommentBtn.addEventListener('click', async () => {
-            const text = commentInput.value.trim();
-            if (!text || !currentSelectedId) return;
+        if (!commentInput || !sendCommentBtn) return;
+        if (sendCommentBtn.disabled) return;
 
+        const text = commentInput.value.trim();
+        if (!text) return;
+        if (!currentSelectedId) {
+            showUIToast('error', 'Error', 'No announcement selected.');
+            return;
+        }
+
+        try {
             sendCommentBtn.disabled = true;
             sendCommentBtn.innerHTML = '<span class="loading-spinner"></span>';
 
             const modCheck = await checkAiModeration(text);
             if (!modCheck.passed) {
                 showUIToast('error', 'Comment Blocked', modCheck.reason);
-                sendCommentBtn.disabled = false;
-                sendCommentBtn.innerHTML = '<i data-lucide="send"></i>';
-                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
                 return;
             }
 
-            try {
-                const studentName = studentProfile ? `${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() : 'A student';
-                const payload = {
-                    announcement_id: currentSelectedId,
-                    user_id: studentId,
-                    content: text
-                };
+            const payload = {
+                announcement_id: currentSelectedId,
+                user_id: studentId,
+                content: text
+            };
 
-                const { error } = await window.supabaseClient.from('announcement_comments').insert([payload]);
-                if (error) throw error;
+            const { error } = await window.supabaseClient.from('announcement_comments').insert([payload]);
+            if (error) throw error;
 
-                lastCommentText = text.toLowerCase().trim();
-                commentInput.value = '';
-                showUIToast('success', 'Comment Posted', 'Your reply has been added to the discussion.');
-                loadComments(currentSelectedId, true);
+            commentInput.value = '';
+            showUIToast('success', 'Comment Posted', 'Your reply has been added to the discussion.');
+            loadComments(currentSelectedId, true);
 
-            } catch (err) {
-                console.error("Error posting comment:", err);
-                showUIToast('error', 'Error', 'Failed to post comment.');
-            } finally {
-                sendCommentBtn.disabled = false;
-                sendCommentBtn.innerHTML = '<i data-lucide="send"></i>';
-                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            // Update comment count on active announcement in cache and card
+            const activeAnn = allAnnouncements.find(a => String(a.id) === String(currentSelectedId));
+            if (activeAnn) {
+                if (!activeAnn.announcement_comments) activeAnn.announcement_comments = [];
+                activeAnn.announcement_comments.push({ id: 'temp-' + Date.now() });
+                const card = document.querySelector(`.social-card[data-id="${currentSelectedId}"]`);
+                if (card) {
+                    const btn = card.querySelector('.btn-comment-action span');
+                    if (btn) btn.innerText = `Comments (${activeAnn.announcement_comments.length})`;
+                }
             }
-        });
 
-        commentInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendCommentBtn.click();
-            }
-        });
+        } catch (err) {
+            console.error("Error posting comment:", err);
+            showUIToast('error', 'Error', err.message || 'Failed to post comment.');
+        } finally {
+            sendCommentBtn.disabled = false;
+            sendCommentBtn.innerHTML = '<i data-lucide="send"></i>';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
     }
+    window.handleSendComment = handleSendComment;
 
     window.replyToUser = (name) => {
         const input = document.getElementById('reply-input');
@@ -908,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
                 showUIToast('success', 'Comment Deleted', 'Your comment has been removed.');
-                loadComments(currentSelectedId, true);
+                if (currentSelectedId) loadComments(currentSelectedId, true);
             } catch (err) {
                 showUIToast('error', 'Error', 'Failed to delete comment.');
             }
@@ -935,7 +1109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 await window.supabaseClient.from('announcement_comments').update({ content: newText.trim() }).eq('id', commentId);
                 showUIToast('success', 'Comment Updated', 'Your comment has been edited.');
-                loadComments(currentSelectedId, true);
+                if (currentSelectedId) loadComments(currentSelectedId, true);
             } catch (err) {
                 showUIToast('error', 'Error', 'Failed to update comment.');
             }
@@ -943,33 +1117,134 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // ==========================================
+    // 10.1 GLOBAL DELEGATED EVENT LISTENERS
+    // ==========================================
+    document.addEventListener('click', (e) => {
+        // Open announcement modal from Comments button
+        const commentActionBtn = e.target.closest('.btn-comment-action, [data-open-announcement]');
+        if (commentActionBtn) {
+            e.preventDefault();
+            const id = commentActionBtn.dataset.id || commentActionBtn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+            if (id) {
+                openAnnouncementModal(id);
+            }
+            return;
+        }
+
+        // Send comment button
+        const sendBtn = e.target.closest('#btn-send-reply, .btn-send-reply');
+        if (sendBtn) {
+            e.preventDefault();
+            handleSendComment();
+            return;
+        }
+
+        // Close announcement modal button
+        const closeViewBtn = e.target.closest('#modal-close-view, .announcement-modal-card .close-btn');
+        if (closeViewBtn) {
+            e.preventDefault();
+            closeAnnouncementModal();
+            return;
+        }
+
+        // Close announcement modal backdrop
+        if (e.target.id === 'view-announcement-modal') {
+            closeAnnouncementModal();
+            return;
+        }
+
+        // Lightbox image click
+        const fbImg = e.target.closest('.fb-img');
+        if (fbImg) {
+            const layout = fbImg.closest('.fb-layout');
+            if (layout) {
+                const allImgs = Array.from(layout.querySelectorAll('.fb-img')).map(img => img.src);
+                const idx = allImgs.indexOf(fbImg.src);
+                openLightbox(allImgs, idx >= 0 ? idx : 0);
+            }
+            return;
+        }
+
+        // Close lightbox
+        const closeLightboxBtn = e.target.closest('#close-media-viewer');
+        if (closeLightboxBtn || e.target.id === 'media-viewer-modal') {
+            const modalViewer = document.getElementById('media-viewer-modal');
+            const viewerImg = document.getElementById('viewer-image');
+            if (modalViewer) modalViewer.style.display = 'none';
+            if (viewerImg) viewerImg.src = '';
+            document.body.style.overflow = '';
+            return;
+        }
+
+        // Prev media
+        if (e.target.closest('#prev-media')) {
+            e.stopPropagation();
+            if (lightboxCurrentIndex > 0) {
+                lightboxCurrentIndex--;
+                showLightboxImage();
+            }
+            return;
+        }
+
+        // Next media
+        if (e.target.closest('#next-media')) {
+            e.stopPropagation();
+            if (lightboxCurrentIndex < lightboxImages.length - 1) {
+                lightboxCurrentIndex++;
+                showLightboxImage();
+            }
+            return;
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.id === 'reply-input' || e.target.classList.contains('reply-input-field'))) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendComment();
+            }
+        }
+        if (e.key === 'Escape') {
+            const annModal = document.getElementById('view-announcement-modal');
+            if (annModal && annModal.style.display !== 'none') {
+                closeAnnouncementModal();
+            }
+            const mediaModal = document.getElementById('media-viewer-modal');
+            if (mediaModal && mediaModal.style.display !== 'none') {
+                mediaModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+    });
+
+    // ==========================================
     // 11. MEDIA LIGHTBOX & VIEWER LOGIC
     // ==========================================
     let lightboxImages = [];
     let lightboxCurrentIndex = 0;
 
-    const modalViewer = document.getElementById('media-viewer-modal');
-    const closeViewerBtn = document.getElementById('close-media-viewer');
-    const viewerImg = document.getElementById('viewer-image');
-    const viewerIframe = document.getElementById('viewer-iframe');
-    const btnPrev = document.getElementById('prev-media');
-    const btnNext = document.getElementById('next-media');
-    const mediaCounter = document.getElementById('media-counter');
-
     function openLightbox(images, startIndex = 0) {
         if (!images || images.length === 0) return;
+        ensureAnnouncementModals();
         lightboxImages = images;
         lightboxCurrentIndex = startIndex;
         showLightboxImage();
+        const modalViewer = document.getElementById('media-viewer-modal');
         if (modalViewer) {
             modalViewer.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
     }
+    window.openLightbox = openLightbox;
 
     function showLightboxImage() {
         if (!lightboxImages || lightboxImages.length === 0) return;
         const url = lightboxImages[lightboxCurrentIndex];
+        const viewerImg = document.getElementById('viewer-image');
+        const viewerIframe = document.getElementById('viewer-iframe');
+        const mediaCounter = document.getElementById('media-counter');
+        const btnPrev = document.getElementById('prev-media');
+        const btnNext = document.getElementById('next-media');
 
         if (viewerImg) {
             viewerImg.src = url;
@@ -991,81 +1266,89 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    if (closeViewerBtn) {
-        closeViewerBtn.addEventListener('click', () => {
-            if (modalViewer) modalViewer.style.display = 'none';
-            if (viewerImg) viewerImg.src = '';
-            document.body.style.overflow = '';
-        });
-    }
+    // ==========================================
+    // 12. SUPABASE REALTIME ANNOUNCEMENTS UPDATE
+    // ==========================================
+    let realtimeChannel = null;
 
-    if (btnPrev) {
-        btnPrev.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (lightboxCurrentIndex > 0) {
-                lightboxCurrentIndex--;
-                showLightboxImage();
+    function setupRealtimeAnnouncements() {
+        try {
+            if (realtimeChannel) {
+                window.supabaseClient.removeChannel(realtimeChannel);
+                realtimeChannel = null;
             }
-        });
-    }
 
-    if (btnNext) {
-        btnNext.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (lightboxCurrentIndex < lightboxImages.length - 1) {
-                lightboxCurrentIndex++;
-                showLightboxImage();
-            }
-        });
-    }
+            realtimeChannel = window.supabaseClient
+                .channel('student-announcements-live-sync')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'announcements'
+                    },
+                    async (payload) => {
+                        console.log('Realtime Postgres announcement change received:', payload);
+                        await fetchAnnouncements(true);
 
-    document.addEventListener('keydown', (e) => {
-        if (modalViewer && modalViewer.style.display === 'flex') {
-            if (e.key === 'Escape') {
-                closeViewerBtn?.click();
-            } else if (e.key === 'ArrowLeft') {
-                btnPrev?.click();
-            } else if (e.key === 'ArrowRight') {
-                btnNext?.click();
-            }
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        const fbImg = e.target.closest('.fb-img');
-        const moreContainer = e.target.closest('.more-images-container');
-
-        if (fbImg || moreContainer) {
-            const card = e.target.closest('.social-card') || e.target.closest('.announcement-detail-box');
-            if (!card) return;
-            const annId = card.dataset.id || currentSelectedId;
-
-            const targetAnn = allAnnouncements.find(a => a.id == annId);
-            if (targetAnn && targetAnn.image_urls && targetAnn.image_urls.length > 0) {
-                let index = 0;
-                let clickedImg = null;
-
-                if (moreContainer) {
-                    clickedImg = moreContainer.querySelector('img');
-                } else if (fbImg) {
-                    clickedImg = fbImg;
-                }
-
-                if (clickedImg) {
-                    const src = clickedImg.getAttribute('src');
-                    if (src) {
-                        index = targetAnn.image_urls.findIndex(url => url.includes(src) || src.includes(url));
+                        if (payload.eventType === 'INSERT') {
+                            if (payload.new && payload.new.status === 'Published') {
+                                showUIToast('info', 'New Announcement', payload.new.title ? `"${payload.new.title}" was just posted.` : 'A new announcement was published.');
+                            }
+                        } else if (payload.eventType === 'UPDATE') {
+                            if (currentSelectedId && String(currentSelectedId) === String(payload.new?.id)) {
+                                openAnnouncementModal(currentSelectedId);
+                            }
+                            if (payload.new && payload.new.status === 'Published') {
+                                showUIToast('info', 'Announcement Updated', payload.new.title ? `"${payload.new.title}" was updated.` : 'An announcement was updated.');
+                            }
+                        }
                     }
-                }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'announcement_comments'
+                    },
+                    async (payload) => {
+                        // If student is viewing the announcement where comments changed, reload comments
+                        if (currentSelectedId) {
+                            const changedAnnId = payload.new?.announcement_id || payload.old?.announcement_id;
+                            if (changedAnnId === currentSelectedId) {
+                                const ann = allAnnouncements.find(a => String(a.id) === String(currentSelectedId));
+                                loadComments(currentSelectedId, ann ? (ann.allow_comments !== false && ann.allow_comments !== 'false' && ann.allow_comments !== 0) : true);
+                            }
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('Successfully subscribed to student announcements realtime channel.');
+                    }
+                });
+        } catch (err) {
+            console.warn('Realtime announcements setup error:', err);
+        }
+    }
 
-                if (index === -1) index = 0;
-                openLightbox(targetAnn.image_urls, index);
-            }
+    // Auto-refresh when tab/browser becomes visible again
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchAnnouncements(true);
         }
     });
+
+    // Background polling fallback every 25 seconds
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            fetchAnnouncements(true);
+        }
+    }, 25000);
 
     // ==========================================
-    // 12. DROPDOWNS & LOGOUT
+    // 13. DROPDOWNS & LOGOUT
     // ==========================================
     const profileToggle = document.getElementById('profile-dropdown-toggle');
     const profileMenu = document.getElementById('profile-menu');

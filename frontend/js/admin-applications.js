@@ -229,7 +229,7 @@
     }
 
     // --- 4. FETCH EDUCATIONAL ASSISTANCE PROGRAMS ---
-    async function loadScholarships() {
+    async function loadScholarships(autoOpenFromUrl = true) {
         try {
             showProgramCardsSkeleton();
 
@@ -249,13 +249,18 @@
             allScholarships = scholarships || [];
             renderScholarshipCards();
 
-            // Auto-open target scholarship if provided in URL parameter (e.g. from Dashboard Top Scholarships or Performance Chart)
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetScholId = urlParams.get('scholarship_id') || urlParams.get('id');
-            if (targetScholId) {
-                const targetSchol = allScholarships.find(s => String(s.id) === String(targetScholId));
-                if (targetSchol) {
-                    openScholarship(targetSchol);
+            // Auto-open target scholarship if provided in URL parameter (e.g. from Dashboard Top Scholarships, Metric Modals, etc.)
+            if (autoOpenFromUrl) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetScholId = urlParams.get('scholarship_id') || urlParams.get('id');
+                const targetStatus = urlParams.get('status');
+                const targetApplicantId = urlParams.get('applicant_id') || urlParams.get('app_id') || urlParams.get('applicant');
+
+                if (targetScholId) {
+                    const targetSchol = allScholarships.find(s => String(s.id) === String(targetScholId));
+                    if (targetSchol) {
+                        await openScholarship(targetSchol, targetStatus, targetApplicantId);
+                    }
                 }
             }
         } catch (err) {
@@ -340,7 +345,7 @@
     }
 
     // --- 5. VIEW APPLICANTS FOR A PROGRAM ---
-    window.openScholarship = async (scholarshipObj) => {
+    window.openScholarship = async (scholarshipObj, initialTab, targetApplicantId) => {
         activeScholarshipData = scholarshipObj;
         const titleEl = document.getElementById('active-sch-title');
         if (titleEl) titleEl.innerText = scholarshipObj.title;
@@ -348,18 +353,35 @@
         if (viewGrid) viewGrid.style.display = 'none';
         if (viewList) viewList.style.display = 'block';
 
-        activeTabStatus = 'Pending';
+        let targetTab = 'Pending';
+        if (initialTab) {
+            const norm = initialTab.trim().toLowerCase();
+            if (norm === 'approved') targetTab = 'Approved';
+            else if (norm === 'rejected' || norm === 'declined') targetTab = 'Rejected';
+            else targetTab = 'Pending';
+        }
+
+        activeTabStatus = targetTab;
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
-            if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'Pending'`)) {
+            const onclickAttr = btn.getAttribute('onclick') || '';
+            if (onclickAttr.includes(`'${targetTab}'`)) {
                 btn.classList.add('active');
             }
         });
 
         const badge = document.getElementById('main-status-badge');
         if (badge) {
-            badge.innerHTML = `<i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation`;
-            badge.className = 'badge-status badge-pending';
+            if (targetTab === 'Pending') {
+                badge.innerHTML = `<i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation`;
+                badge.className = 'badge-status badge-pending';
+            } else if (targetTab === 'Approved') {
+                badge.innerHTML = `<i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Approved Applicants`;
+                badge.className = 'badge-status badge-approved';
+            } else if (targetTab === 'Rejected') {
+                badge.innerHTML = `<i data-lucide="x-circle" style="width: 12px; height: 12px;"></i> Rejected Applicants`;
+                badge.className = 'badge-status badge-rejected';
+            }
         }
 
         if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -367,12 +389,49 @@
         }
 
         await loadApplicationsForActiveTab();
+
+        // If targetApplicantId was specified, switch to their status tab if needed and open their View Responses modal
+        if (targetApplicantId && currentApplications && currentApplications.length > 0) {
+            const targetApp = currentApplications.find(a => String(a.id) === String(targetApplicantId));
+            if (targetApp) {
+                const appNorm = normalizeApplicantStatus(targetApp.status);
+                let neededTab = 'Pending';
+                if (appNorm === 'approved') neededTab = 'Approved';
+                else if (appNorm === 'rejected') neededTab = 'Rejected';
+
+                if (activeTabStatus !== neededTab) {
+                    window.switchTab(neededTab);
+                }
+
+                setTimeout(() => {
+                    if (typeof window.openApplicantModal === 'function') {
+                        window.openApplicantModal(targetApp.id);
+                    }
+                }, 100);
+            }
+        }
     };
 
     window.showGrid = () => {
+        try {
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (e) {
+            console.warn("Could not clean URL search params:", e);
+        }
+
+        if (typeof window.closeApplicantModal === 'function') {
+            window.closeApplicantModal();
+        }
+
+        activeScholarshipData = null;
+        currentApplications = [];
+
         if (viewList) viewList.style.display = 'none';
         if (viewGrid) viewGrid.style.display = 'block';
-        loadScholarships();
+
+        loadScholarships(false);
     };
 
     async function loadApplicationsForActiveTab() {

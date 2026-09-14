@@ -206,7 +206,7 @@
     const getDateRange = (filter) => {
         const now = new Date();
         let startDate = new Date();
-        let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
         // Check for Custom Dates from localStorage
         const customKey = `admin_dates_${filter.replace(/\s+/g, '_')}`;
@@ -216,39 +216,41 @@
             try {
                 const parsed = JSON.parse(savedDates);
                 if (parsed.start && parsed.end) {
-                    const parsedStart = new Date(parsed.start);
-                    const parsedEnd = new Date(parsed.end);
-                    parsedEnd.setHours(23, 59, 59, 999);
-                    return { start: parsedStart.toISOString(), end: parsedEnd.toISOString() };
+                    const startParts = parsed.start.split('-');
+                    const endParts = parsed.end.split('-');
+                    if (startParts.length === 3 && endParts.length === 3) {
+                        const parsedStart = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]), 0, 0, 0, 0);
+                        const parsedEnd = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]), 23, 59, 59, 999);
+                        return { start: parsedStart.toISOString(), end: parsedEnd.toISOString() };
+                    }
                 }
             } catch (e) { }
         }
 
         switch (filter) {
             case 'Today':
-                startDate.setHours(0, 0, 0, 0);
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
                 break;
             case 'This Week':
-                const firstDay = now.getDate() - now.getDay();
-                startDate = new Date(now.setDate(firstDay));
-                startDate.setHours(0, 0, 0, 0);
+                const dayOfWeek = now.getDay();
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0, 0);
                 break;
             case 'This Month':
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
                 break;
             case 'Current Semester':
                 const semStartMonth = now.getMonth() >= 5 ? 5 : 0;
-                startDate = new Date(now.getFullYear(), semStartMonth, 1);
+                startDate = new Date(now.getFullYear(), semStartMonth, 1, 0, 0, 0, 0);
                 break;
             case 'Current School Year':
                 const syStartYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-                startDate = new Date(syStartYear, 7, 1);
+                startDate = new Date(syStartYear, 7, 1, 0, 0, 0, 0);
                 break;
             case 'Custom Date Range':
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1); // fallback
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0); // fallback
                 break;
             default:
-                startDate = new Date(2000, 0, 1);
+                startDate = new Date(2000, 0, 1, 0, 0, 0, 0);
         }
         return { start: startDate.toISOString(), end: endDate.toISOString() };
     };
@@ -284,8 +286,7 @@
             altInput: true,
             altFormat: "M j, Y",
             altInputClass: "flatpickr-custom-input",
-            static: false,
-            appendTo: document.body,
+            static: true,
             disableMobile: true,
             locale: {
                 rangeSeparator: "  to  "
@@ -316,13 +317,27 @@
             }
         });
 
-        // Ensure clicking anywhere in the custom-date-input-box triggers calendar open
+        // Ensure clicking icon or non-input area of the custom-date-input-box opens flatpickr cleanly
         if (customInputBox) {
             customInputBox.onclick = (e) => {
                 if (customDateRangePicker && !customDateRangePicker.isOpen) {
-                    customDateRangePicker.open();
+                    if (!e.target.classList || !e.target.classList.contains('flatpickr-custom-input')) {
+                        customDateRangePicker.open();
+                    }
                 }
             };
+        }
+
+        const needsCustom = ['Current Semester', 'Current School Year', 'Custom Date Range'].includes(currentFilter);
+        if (needsCustom) {
+            const range = getDateRange(currentFilter);
+            const startStr = range.start.split('T')[0];
+            const endStr = range.end.split('T')[0];
+            if (customStart) customStart.value = startStr;
+            if (customEnd) customEnd.value = endStr;
+            if (customDateRangePicker) {
+                customDateRangePicker.setDate([startStr, endStr], false);
+            }
         }
     };
 
@@ -358,6 +373,10 @@
                         }
                     }, 50);
                 }
+            }
+
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
             }
         } else {
             customWrapper.classList.add('hidden');

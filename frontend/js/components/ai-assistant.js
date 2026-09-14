@@ -1,51 +1,112 @@
 document.addEventListener("DOMContentLoaded", () => {
     let studentId = null;
 
-    // Inject Rantee AI Assistant Widget and Floating Trigger
+    // Female Robot AI Assistant SVG Icon Template
+    const GIA_BOT_ICON_SVG = `
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="gia-bot-svg" style="width: 100%; height: 100%; display: block;">
+            <!-- Antenna with Glowing Orb -->
+            <path d="M18 7.5V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="18" cy="3.5" r="2.5" fill="#4ADE80" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="18" cy="3.5" r="1" fill="#FFFFFF"/>
+            
+            <!-- Female Robot Head Chassis -->
+            <rect x="6.5" y="7.5" width="23" height="20" rx="9" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="2"/>
+            
+            <!-- Tech Earpieces -->
+            <rect x="4" y="13" width="3" height="9" rx="1.5" fill="currentColor"/>
+            <rect x="29" y="13" width="3" height="9" rx="1.5" fill="currentColor"/>
+            
+            <!-- Cute Ribbon / Bow Accent on Head -->
+            <path d="M28 8.5C26.5 7.5 26.5 10.5 28 9.5C29.5 10.5 29.5 7.5 28 8.5Z" fill="#F472B6"/>
+            <circle cx="28" cy="9" r="1" fill="#FFFFFF"/>
+
+            <!-- Screen Face Visor -->
+            <rect x="9" y="10.5" width="18" height="14" rx="6" fill="#14281E" stroke="currentColor" stroke-width="1.2"/>
+            
+            <!-- Female Expressive Eyes with Eyelashes -->
+            <path d="M12.5 15.5C12.5 14.2 13.8 14 15 15.5" stroke="#4ADE80" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 14L11 12.5" stroke="#4ADE80" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M14 13.5L14 12" stroke="#4ADE80" stroke-width="1.4" stroke-linecap="round"/>
+            
+            <path d="M21 15.5C22.2 14 23.5 14.2 23.5 15.5" stroke="#4ADE80" stroke-width="2" stroke-linecap="round"/>
+            <path d="M24 14L25 12.5" stroke="#4ADE80" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M22 13.5L22 12" stroke="#4ADE80" stroke-width="1.4" stroke-linecap="round"/>
+
+            <!-- Rosy Cheeks -->
+            <circle cx="12" cy="18.5" r="1.2" fill="#F472B6" opacity="0.85"/>
+            <circle cx="24" cy="18.5" r="1.2" fill="#F472B6" opacity="0.85"/>
+            
+            <!-- Friendly Smile -->
+            <path d="M16 19.5C16.8 20.8 19.2 20.8 20 19.5" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
+            
+            <!-- Neck Base -->
+            <path d="M15 28.5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    `;
+
+    // Inject Gia AI Assistant Widget and Floating Trigger
     const widgetHTML = `
         <style>
             /* =========================================================
-               RANTEEE AI COMPANION STYLING (NATURE PALETTE & DARK MODE)
+               GIA AI COMPANION STYLING (NATURE PALETTE & DARK MODE)
             ========================================================= */
             :root {
-                --rantee-primary: #1F3D2E;
-                --rantee-primary-hover: #14281E;
-                --rantee-fern: #588157;
-                --rantee-moss: #6B7F4E;
-                --rantee-light-sage: #A3B18A;
-                --rantee-bg: #FFFFFF;
-                --rantee-card-bg: #FFFFFF;
-                --rantee-card-secondary: #EDF3EB;
-                --rantee-text-heading: #14281E;
-                --rantee-text-main: #20362B;
-                --rantee-text-muted: #586F62;
-                --rantee-border: #DFE6DC;
-                --rantee-input-bg: #F8FAF6;
-                --rantee-bot-bubble: #F4F7F2;
-                --rantee-bot-border: #E2EADF;
-                --rantee-shadow: 0 20px 45px -10px rgba(31, 61, 46, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
+                --gia-primary: #1F3D2E;
+                --gia-primary-hover: #14281E;
+                --gia-fern: #588157;
+                --gia-moss: #6B7F4E;
+                --gia-light-sage: #A3B18A;
+                --gia-bg: #FFFFFF;
+                --gia-card-bg: #FFFFFF;
+                --gia-card-secondary: #EDF3EB;
+                --gia-text-heading: #14281E;
+                --gia-text-main: #20362B;
+                --gia-text-muted: #586F62;
+                --gia-border: #DFE6DC;
+                --gia-input-bg: #F8FAF6;
+                --gia-bot-bubble: #F4F7F2;
+                --gia-bot-border: #E2EADF;
+                --gia-shadow: 0 20px 45px -10px rgba(31, 61, 46, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+                /* Backwards compatibility aliases */
+                --rantee-primary: var(--gia-primary);
+                --rantee-primary-hover: var(--gia-primary-hover);
+                --rantee-fern: var(--gia-fern);
+                --rantee-moss: var(--gia-moss);
+                --rantee-light-sage: var(--gia-light-sage);
+                --rantee-bg: var(--gia-bg);
+                --rantee-card-bg: var(--gia-card-bg);
+                --rantee-card-secondary: var(--gia-card-secondary);
+                --rantee-text-heading: var(--gia-text-heading);
+                --rantee-text-main: var(--gia-text-main);
+                --rantee-text-muted: var(--gia-text-muted);
+                --rantee-border: var(--gia-border);
+                --rantee-input-bg: var(--gia-input-bg);
+                --rantee-bot-bubble: var(--gia-bot-bubble);
+                --rantee-bot-border: var(--gia-bot-border);
+                --rantee-shadow: var(--gia-shadow);
             }
 
             [data-theme="dark"] {
-                --rantee-primary: #1F3D2E;
-                --rantee-primary-hover: #2E6B45;
-                --rantee-fern: #588157;
-                --rantee-moss: #6B7F4E;
-                --rantee-light-sage: #A3B18A;
-                --rantee-bg: #16271D;
-                --rantee-card-bg: #16271D;
-                --rantee-card-secondary: #1D3327;
-                --rantee-text-heading: #EDF3EE;
-                --rantee-text-main: #E2ECE5;
-                --rantee-text-muted: #8FA899;
-                --rantee-border: #243E2F;
-                --rantee-input-bg: #1D3327;
-                --rantee-bot-bubble: #1D3327;
-                --rantee-bot-border: #2A4736;
-                --rantee-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(36, 62, 47, 0.6);
+                --gia-primary: #1F3D2E;
+                --gia-primary-hover: #2E6B45;
+                --gia-fern: #588157;
+                --gia-moss: #6B7F4E;
+                --gia-light-sage: #A3B18A;
+                --gia-bg: #16271D;
+                --gia-card-bg: #16271D;
+                --gia-card-secondary: #1D3327;
+                --gia-text-heading: #EDF3EE;
+                --gia-text-main: #E2ECE5;
+                --gia-text-muted: #8FA899;
+                --gia-border: #243E2F;
+                --gia-input-bg: #1D3327;
+                --gia-bot-bubble: #1D3327;
+                --gia-bot-border: #2A4736;
+                --gia-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(36, 62, 47, 0.6);
             }
 
-            /* Floating Chat Button ("Ask Rantee!") */
+            /* Floating Chat Button ("Ask Gia!") */
             #open-ai-chat {
                 position: fixed !important;
                 bottom: 26px;
@@ -53,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 background: linear-gradient(135deg, #1F3D2E 0%, #3A5A40 55%, #588157 100%) !important;
                 color: #FFFFFF !important;
                 border: 1px solid rgba(255, 255, 255, 0.25) !important;
-                padding: 12px 22px 12px 16px !important;
+                padding: 11px 20px 11px 15px !important;
                 border-radius: 30px !important;
                 font-size: 14.5px !important;
                 font-weight: 700 !important;
@@ -70,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 opacity: 1 !important;
                 pointer-events: auto !important;
                 transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease !important;
-                animation: ranteeFloat 3.5s ease-in-out infinite !important;
+                animation: giaFloat 3.5s ease-in-out infinite !important;
             }
 
             #open-ai-chat * {
@@ -91,12 +152,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 transform: scale(1.05) !important;
             }
 
-            @keyframes ranteeFloat {
+            @keyframes giaFloat {
                 0%, 100% { transform: translateY(0); }
                 50% { transform: translateY(-6px); }
             }
 
-            /* Male Profile Avatar Icon for Rantee */
+            /* Female Bot Avatar Icon for Gia */
+            #open-ai-chat .gia-btn-icon,
             #open-ai-chat .rantee-btn-icon {
                 width: 28px;
                 height: 28px;
@@ -105,9 +167,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 14px;
                 color: #FFFFFF;
                 flex-shrink: 0;
+                padding: 2px;
+                box-sizing: border-box;
             }
 
             #open-ai-chat .status-dot {
@@ -119,21 +182,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 top: -1px;
                 right: -1px;
                 border: 2px solid #1F3D2E;
-                animation: ranteePulse 2s infinite;
+                animation: giaPulse 2s infinite;
             }
 
-            @keyframes ranteePulse {
+            @keyframes giaPulse {
                 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
                 70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
                 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
             }
 
             /* Reset Position Floating Button */
+            .reset-gia-pos-btn,
             .reset-rantee-pos-btn {
                 position: fixed !important;
-                background: var(--rantee-card-bg) !important;
-                color: var(--rantee-text-main) !important;
-                border: 1px solid var(--rantee-border) !important;
+                background: var(--gia-card-bg) !important;
+                color: var(--gia-text-main) !important;
+                border: 1px solid var(--gia-border) !important;
                 padding: 6px 12px !important;
                 border-radius: 20px !important;
                 font-size: 11.5px !important;
@@ -149,20 +213,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 touch-action: manipulation !important;
             }
 
+            .reset-gia-pos-btn:hover,
+            .reset-gia-pos-btn:active,
             .reset-rantee-pos-btn:hover,
             .reset-rantee-pos-btn:active {
-                background: var(--rantee-fern) !important;
+                background: var(--gia-fern) !important;
                 color: #FFFFFF !important;
-                border-color: var(--rantee-fern) !important;
+                border-color: var(--gia-fern) !important;
                 transform: scale(1.05) !important;
             }
 
+            .reset-gia-pos-btn.show,
             .reset-rantee-pos-btn.show {
                 display: flex !important;
-                animation: ranteeFadeIn 0.25s ease forwards !important;
+                animation: giaFadeIn 0.25s ease forwards !important;
             }
 
-            /* Rantee Chat Window Widget */
+            /* Gia Chat Window Widget */
             #ai-chat-widget {
                 position: fixed !important;
                 bottom: 85px;
@@ -171,10 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 max-width: calc(100vw - 24px);
                 height: 560px;
                 max-height: calc(100vh - 110px);
-                background: var(--rantee-card-bg) !important;
+                background: var(--gia-card-bg) !important;
                 border-radius: 20px !important;
-                box-shadow: var(--rantee-shadow) !important;
-                border: 1px solid var(--rantee-border) !important;
+                box-shadow: var(--gia-shadow) !important;
+                border: 1px solid var(--gia-border) !important;
                 display: flex !important;
                 flex-direction: column !important;
                 z-index: 99998 !important;
@@ -232,10 +299,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 18px;
                 color: #1F3D2E;
                 box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
                 flex-shrink: 0;
+                padding: 3px;
+                box-sizing: border-box;
             }
 
             .chat-header-info {
@@ -313,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 transform: scale(1.08) !important;
             }
 
-            /* Chat Body - Ultra Smooth Touch Scrolling */
+            /* Chat Body - Smooth Scrolling */
             #ai-chat-widget .chat-body {
                 flex: 1 !important;
                 padding: 16px !important;
@@ -322,7 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 -webkit-overflow-scrolling: touch !important;
                 touch-action: pan-y !important;
                 overscroll-behavior: contain !important;
-                background: var(--rantee-card-bg) !important;
+                background: var(--gia-card-bg) !important;
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 14px !important;
@@ -335,11 +403,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             #ai-chat-widget .chat-body::-webkit-scrollbar-thumb {
-                background: var(--rantee-border) !important;
+                background: var(--gia-border) !important;
                 border-radius: 10px !important;
             }
 
             /* Suggestion Chips */
+            .gia-chips-container,
             .rantee-chips-container {
                 display: flex;
                 flex-wrap: wrap;
@@ -348,10 +417,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 touch-action: pan-y !important;
             }
 
+            .gia-chip,
             .rantee-chip {
-                background: var(--rantee-card-secondary);
-                color: var(--rantee-text-main);
-                border: 1px solid var(--rantee-border);
+                background: var(--gia-card-secondary);
+                color: var(--gia-text-main);
+                border: 1px solid var(--gia-border);
                 border-radius: 16px;
                 padding: 6px 12px;
                 font-size: 12px;
@@ -364,10 +434,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 touch-action: manipulation !important;
             }
 
+            .gia-chip:hover,
             .rantee-chip:hover {
-                background: var(--rantee-fern);
+                background: var(--gia-fern);
                 color: #FFFFFF;
-                border-color: var(--rantee-fern);
+                border-color: var(--gia-fern);
                 transform: translateY(-1px);
             }
 
@@ -376,12 +447,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: flex !important;
                 gap: 10px !important;
                 max-width: 90% !important;
-                animation: ranteeFadeIn 0.25s ease forwards !important;
+                animation: giaFadeIn 0.25s ease forwards !important;
                 text-align: left !important;
                 touch-action: pan-y !important;
             }
 
-            @keyframes ranteeFadeIn {
+            @keyframes giaFadeIn {
                 from { opacity: 0; transform: translateY(8px); }
                 to { opacity: 1; transform: translateY(0); }
             }
@@ -404,9 +475,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: flex !important;
                 justify-content: center !important;
                 align-items: center !important;
-                font-size: 15px !important;
                 flex-shrink: 0 !important;
                 box-shadow: 0 2px 6px rgba(31, 61, 46, 0.25) !important;
+                padding: 3px !important;
+                box-sizing: border-box !important;
             }
 
             #ai-chat-widget .msg-bubble {
@@ -420,9 +492,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             #ai-chat-widget .bot-message .msg-bubble {
-                background: var(--rantee-bot-bubble) !important;
-                border: 1px solid var(--rantee-bot-border) !important;
-                color: var(--rantee-text-main) !important;
+                background: var(--gia-bot-bubble) !important;
+                border: 1px solid var(--gia-bot-border) !important;
+                color: var(--gia-text-main) !important;
                 border-top-left-radius: 4px !important;
             }
 
@@ -436,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
             #ai-chat-widget .msg-time {
                 display: block !important;
                 font-size: 10.5px !important;
-                color: var(--rantee-text-muted) !important;
+                color: var(--gia-text-muted) !important;
                 margin-top: 5px !important;
                 text-align: right !important;
             }
@@ -456,15 +528,15 @@ document.addEventListener("DOMContentLoaded", () => {
             .typing-dots span {
                 width: 6px;
                 height: 6px;
-                background: var(--rantee-fern);
+                background: var(--gia-fern);
                 border-radius: 50%;
-                animation: ranteeTyping 1.2s infinite ease-in-out;
+                animation: giaTyping 1.2s infinite ease-in-out;
             }
 
             .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
             .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-            @keyframes ranteeTyping {
+            @keyframes giaTyping {
                 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
                 30% { transform: translateY(-5px); opacity: 1; }
             }
@@ -472,8 +544,8 @@ document.addEventListener("DOMContentLoaded", () => {
             /* Chat Input Area */
             #ai-chat-widget .chat-input-area {
                 padding: 12px 14px !important;
-                background: var(--rantee-card-bg) !important;
-                border-top: 1px solid var(--rantee-border) !important;
+                background: var(--gia-card-bg) !important;
+                border-top: 1px solid var(--gia-border) !important;
                 display: flex !important;
                 gap: 8px !important;
                 align-items: center !important;
@@ -482,17 +554,17 @@ document.addEventListener("DOMContentLoaded", () => {
             #ai-chat-widget .chat-input-area input {
                 flex: 1 !important;
                 padding: 10px 16px !important;
-                background: var(--rantee-input-bg) !important;
-                border: 1px solid var(--rantee-border) !important;
+                background: var(--gia-input-bg) !important;
+                border: 1px solid var(--gia-border) !important;
                 border-radius: 24px !important;
                 font-size: 13.5px !important;
                 outline: none !important;
-                color: var(--rantee-text-main) !important;
+                color: var(--gia-text-main) !important;
                 transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
             }
 
             #ai-chat-widget .chat-input-area input:focus {
-                border-color: var(--rantee-fern) !important;
+                border-color: var(--gia-fern) !important;
                 box-shadow: 0 0 0 3px rgba(88, 129, 87, 0.15) !important;
             }
 
@@ -548,6 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 /* Hide floating trigger when chat is open on mobile */
+                body.gia-open #open-ai-chat,
                 body.rantee-open #open-ai-chat {
                     opacity: 0 !important;
                     visibility: hidden !important;
@@ -559,15 +632,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     display: none !important;
                 }
 
+                #open-ai-chat .gia-btn-icon,
                 #open-ai-chat .rantee-btn-icon {
                     width: 100% !important;
                     height: 100% !important;
                     background: transparent !important;
-                    font-size: 22px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     color: #FFFFFF !important;
+                    padding: 10px !important;
                 }
 
                 #open-ai-chat .status-dot {
@@ -623,15 +697,15 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         </style>
 
-        <!-- Rantee Chat Window Widget -->
-        <div class="chat-widget" id="ai-chat-widget" aria-label="Rantee AI Chat Window">
+        <!-- Gia Chat Window Widget -->
+        <div class="chat-widget" id="ai-chat-widget" aria-label="Gia AI Chat Window">
             <div class="chat-header" id="ai-chat-header" title="Drag to move chat">
                 <div class="chat-header-profile">
                     <div class="chat-header-avatar">
-                        <i class="fa-solid fa-user-tie"></i>
+                        ${GIA_BOT_ICON_SVG}
                     </div>
                     <div class="chat-header-info">
-                        <strong class="chat-header-name">Rantee <span style="font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px;">AI Helper</span></strong>
+                        <strong class="chat-header-name">Gia <span style="font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px;">AI Helper</span></strong>
                         <span class="chat-header-subtitle">Your scholarship companion</span>
                     </div>
                 </div>
@@ -647,21 +721,21 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
 
             <div class="chat-input-area">
-                <input type="text" id="ai-chat-input" placeholder="Ask Rantee anything about scholarships..." autocomplete="off">
+                <input type="text" id="ai-chat-input" placeholder="Ask Gia anything about scholarships..." autocomplete="off">
                 <button class="send-btn" id="ai-chat-send-btn" aria-label="Send message" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
 
         <!-- Floating Reset Position Button -->
-        <button class="reset-rantee-pos-btn" id="reset-rantee-pos" title="Reset button to original position" aria-label="Reset position">
+        <button class="reset-gia-pos-btn" id="reset-gia-pos" title="Reset button to original position" aria-label="Reset position">
             <i class="fa-solid fa-rotate-left"></i>
             <span class="reset-text">Reset</span>
         </button>
 
-        <!-- Draggable Floating "Ask Rantee!" Button (Male Profile Icon, Minimized on Mobile) -->
-        <button class="floating-chat-btn" id="open-ai-chat" aria-label="Open Rantee AI Chat" title="Click to chat or drag to reposition">
-            <span class="rantee-btn-icon"><i class="fa-solid fa-user-tie"></i></span>
-            <span class="btn-text">Ask Rantee!</span>
+        <!-- Draggable Floating "Ask Gia!" Button (Female Robot Icon, Minimized on Mobile) -->
+        <button class="floating-chat-btn" id="open-ai-chat" aria-label="Open Gia AI Chat" title="Click to chat or drag to reposition">
+            <span class="gia-btn-icon">${GIA_BOT_ICON_SVG}</span>
+            <span class="btn-text">Ask Gia!</span>
             <span class="status-dot"></span>
         </button>
     `;
@@ -672,7 +746,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const widgetHeader = document.getElementById('ai-chat-header');
     const openBtn = document.getElementById('open-ai-chat');
     const closeBtn = document.getElementById('close-ai-chat');
-    const resetBtn = document.getElementById('reset-rantee-pos');
+    const resetBtn = document.getElementById('reset-gia-pos') || document.getElementById('reset-rantee-pos');
     const resetChatHeaderBtn = document.getElementById('reset-chat-window-pos');
     const chatBody = document.getElementById('ai-chat-body');
     const chatInput = document.getElementById('ai-chat-input');
@@ -681,13 +755,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // Default friendly welcoming message
     const defaultWelcome = {
         role: 'bot',
-        content: "Hi! 👋 I'm **Rantee**, your friendly scholarship companion! How can I help you today? Feel free to ask about open scholarships, requirements, deadlines, or your application status! ✨",
+        content: "Hi! 👋 I'm **Gia**, your friendly scholarship companion! How can I help you today? Feel free to ask about open scholarships, requirements, deadlines, or your application status! ✨",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         showChips: true
     };
 
     // Chat History in Session Storage
     let chatHistory = JSON.parse(sessionStorage.getItem('ai_chat_history')) || [defaultWelcome];
+    if (chatHistory.length > 0 && chatHistory[0].role === 'bot' && chatHistory[0].content && chatHistory[0].content.includes('Rantee')) {
+        chatHistory[0].content = chatHistory[0].content.replace(/Rantee/g, 'Gia');
+        sessionStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+    }
+
     let isChatOpen = sessionStorage.getItem('ai_chat_open') === 'true';
     let lastToggleTime = 0;
     let justFinishedDrag = false;
@@ -707,17 +786,17 @@ document.addEventListener("DOMContentLoaded", () => {
         chatHistory.forEach((msg, idx) => {
             if (msg.role === 'bot') {
                 const chipsHtml = (idx === 0 || msg.showChips) ? `
-                    <div class="rantee-chips-container">
-                        <button type="button" class="rantee-chip" onclick="window.sendRanteeQuickQuery('What scholarships or educational assistance are open right now?')">🎓 Open Scholarships</button>
-                        <button type="button" class="rantee-chip" onclick="window.sendRanteeQuickQuery('What is my current application status?')">📋 My Application Status</button>
-                        <button type="button" class="rantee-chip" onclick="window.sendRanteeQuickQuery('What documents do I need to prepare for scholarship applications?')">📄 Required Documents</button>
-                        <button type="button" class="rantee-chip" onclick="window.sendRanteeQuickQuery('Are there any new announcements or deadlines I should know?')">📢 Latest Announcements</button>
+                    <div class="gia-chips-container">
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What scholarships or educational assistance are open right now?')">🎓 Open Scholarships</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What is my current application status?')">📋 My Application Status</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What documents do I need to prepare for scholarship applications?')">📄 Required Documents</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('Are there any new announcements or deadlines I should know?')">📢 Latest Announcements</button>
                     </div>
                 ` : '';
 
                 chatBody.insertAdjacentHTML('beforeend', `
                     <div class="chat-message bot-message">
-                        <div class="msg-avatar"><i class="fa-solid fa-user-tie"></i></div>
+                        <div class="msg-avatar">${GIA_BOT_ICON_SVG}</div>
                         <div class="msg-bubble">
                             <div>${parseSimpleMarkdown(msg.content)}</div>
                             ${chipsHtml}
@@ -750,11 +829,13 @@ document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.setItem('ai_chat_open', isChatOpen);
 
         if (isChatOpen) {
+            document.body.classList.add('gia-open');
             document.body.classList.add('rantee-open');
             widget.classList.add('open');
             chatBody.scrollTop = chatBody.scrollHeight;
             setTimeout(() => chatInput?.focus(), 150);
         } else {
+            document.body.classList.remove('gia-open');
             document.body.classList.remove('rantee-open');
             widget.classList.remove('open');
         }
@@ -814,6 +895,8 @@ document.addEventListener("DOMContentLoaded", () => {
         widget.style.bottom = window.innerWidth <= 768 ? '10px' : '85px';
         widget.dataset.moved = 'false';
 
+        sessionStorage.removeItem('gia_btn_pos');
+        sessionStorage.removeItem('gia_widget_pos');
         sessionStorage.removeItem('rantee_btn_pos');
         sessionStorage.removeItem('rantee_widget_pos');
 
@@ -935,17 +1018,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize dragging for floating button and chat widget header
     makeDraggable(openBtn, openBtn, (btn) => {
+        sessionStorage.setItem('gia_btn_pos', JSON.stringify({ left: btn.style.left, top: btn.style.top }));
         sessionStorage.setItem('rantee_btn_pos', JSON.stringify({ left: btn.style.left, top: btn.style.top }));
         updateResetButtonVisibility();
     });
 
     makeDraggable(widget, widgetHeader, (w) => {
+        sessionStorage.setItem('gia_widget_pos', JSON.stringify({ left: w.style.left, top: w.style.top }));
         sessionStorage.setItem('rantee_widget_pos', JSON.stringify({ left: w.style.left, top: w.style.top }));
     });
 
     // Safely restore saved positions only if within visible viewport
     try {
-        const savedBtn = JSON.parse(sessionStorage.getItem('rantee_btn_pos'));
+        const savedBtn = JSON.parse(sessionStorage.getItem('gia_btn_pos') || sessionStorage.getItem('rantee_btn_pos'));
         if (savedBtn && savedBtn.left && savedBtn.top) {
             const numericLeft = parseFloat(savedBtn.left);
             const numericTop = parseFloat(savedBtn.top);
@@ -958,7 +1043,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 setTimeout(updateResetButtonVisibility, 200);
             }
         }
-        const savedWidget = JSON.parse(sessionStorage.getItem('rantee_widget_pos'));
+        const savedWidget = JSON.parse(sessionStorage.getItem('gia_widget_pos') || sessionStorage.getItem('rantee_widget_pos'));
         if (savedWidget && savedWidget.left && savedWidget.top) {
             const numericLeft = parseFloat(savedWidget.left);
             const numericTop = parseFloat(savedWidget.top);
@@ -989,12 +1074,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================
     let isWaitingForReply = false;
 
-    window.sendRanteeQuickQuery = (queryText) => {
+    window.sendGiaQuickQuery = (queryText) => {
         if (chatInput) {
             chatInput.value = queryText;
             sendMessage();
         }
     };
+    window.sendRanteeQuickQuery = window.sendGiaQuickQuery;
 
     async function sendMessage() {
         if (isWaitingForReply) return;
@@ -1017,7 +1103,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const typingId = 'typing-' + Date.now();
         chatBody.insertAdjacentHTML('beforeend', `
             <div class="chat-message bot-message" id="${typingId}">
-                <div class="msg-avatar"><i class="fa-solid fa-user-tie"></i></div>
+                <div class="msg-avatar">${GIA_BOT_ICON_SVG}</div>
                 <div class="msg-bubble">
                     <div class="typing-dots">
                         <span></span><span></span><span></span>
@@ -1078,7 +1164,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
         } catch (e) {
-            console.error("Rantee AI Error:", e);
+            console.error("Gia AI Error:", e);
             const typingEl = document.getElementById(typingId);
             if (typingEl) typingEl.remove();
             chatHistory.push({
@@ -1108,6 +1194,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial render
     renderMessages();
     if (isChatOpen) {
+        document.body.classList.add('gia-open');
         document.body.classList.add('rantee-open');
         widget.classList.add('open');
     }

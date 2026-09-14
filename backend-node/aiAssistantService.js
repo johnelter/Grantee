@@ -65,7 +65,7 @@ async function getStudentContext(studentId) {
         });
 
     } catch (e) {
-        console.error("Error fetching student context for Rantee AI:", e);
+        console.error("Error fetching student context for Gia AI:", e);
     }
 
     return contextStr;
@@ -74,7 +74,7 @@ async function getStudentContext(studentId) {
 async function handleStudentChat(studentId, messages) {
     const contextStr = await getStudentContext(studentId);
 
-    const systemPrompt = `You are "Rantee", the smart, friendly, empathetic, and accommodating AI scholarship companion for the 'Grantee' Scholarship Management System.
+    const systemPrompt = `You are "Gia", the smart, friendly, empathetic, and accommodating female AI scholarship companion for the 'Grantee' Scholarship Management System.
 
 Your Persona & Core Intelligence:
 - You are genuinely intelligent, knowledgeable, empathetic, warm, and conversational.
@@ -112,9 +112,9 @@ ${contextStr}`;
     }
 
     if (formattedContents.length === 0) {
-        formattedContents.push({ role: 'user', parts: [{ text: "Hello Rantee!" }] });
+        formattedContents.push({ role: 'user', parts: [{ text: "Hello Gia!" }] });
     } else if (formattedContents[formattedContents.length - 1].role !== 'user') {
-        formattedContents.push({ role: 'user', parts: [{ text: "Hello Rantee!" }] });
+        formattedContents.push({ role: 'user', parts: [{ text: "Hello Gia!" }] });
     }
 
     try {
@@ -133,7 +133,7 @@ ${contextStr}`;
         
         return result.response.text();
     } catch (error) {
-        console.error("Rantee AI Chat Error:", error);
+        console.error("Gia AI Chat Error:", error);
         throw error;
     }
 }

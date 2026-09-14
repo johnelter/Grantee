@@ -426,6 +426,318 @@ function highlightActiveMenu() {
     });
 }
 
+// --- 0. SPA DOMContentLoaded POLYFILL ---
+(function () {
+    const origDocAdd = document.addEventListener;
+    const origWinAdd = window.addEventListener;
+
+    document.addEventListener = function (type, listener, options) {
+        if (type === 'DOMContentLoaded' && (document.readyState === 'interactive' || document.readyState === 'complete')) {
+            setTimeout(() => {
+                try {
+                    listener.call(document, new Event('DOMContentLoaded'));
+                } catch (e) {
+                    console.error('DOMContentLoaded listener error:', e);
+                }
+            }, 0);
+            return;
+        }
+        return origDocAdd.call(document, type, listener, options);
+    };
+
+    window.addEventListener = function (type, listener, options) {
+        if (type === 'DOMContentLoaded' && (document.readyState === 'interactive' || document.readyState === 'complete')) {
+            setTimeout(() => {
+                try {
+                    listener.call(window, new Event('DOMContentLoaded'));
+                } catch (e) {
+                    console.error('DOMContentLoaded listener error:', e);
+                }
+            }, 0);
+            return;
+        }
+        return origWinAdd.call(window, type, listener, options);
+    };
+})();
+
+// ==========================================
+// ZERO-FLASH SPA ROUTING ENGINE (STUDENT)
+// ==========================================
+
+// Preload all student stylesheets in background so transitions are instantaneous
+function preloadStudentStylesheets() {
+    const studentStyles = [
+        'css/student-sidebar.css',
+        'css/student-dashboard.css',
+        'css/student-scholarships.css',
+        'css/student-applications.css',
+        'css/student-announcements.css',
+        'css/profile-settings.css',
+        'css/apply-scholarships.css'
+    ];
+    setTimeout(() => {
+        studentStyles.forEach(stylePath => {
+            const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(l => l.getAttribute('href') && l.getAttribute('href').includes(stylePath));
+            if (!exists) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = stylePath;
+                document.head.appendChild(link);
+            }
+        });
+    }, 150);
+}
+preloadStudentStylesheets();
+
+const studentPageCache = new Map();
+let isStudentNavigating = false;
+
+async function navigateToStudentPage(targetUrl, pushState = true) {
+    if (isStudentNavigating) return;
+
+    const currentUrl = window.location.href;
+    const currentPath = window.location.pathname.split('/').pop() || 'student-dashboard.html';
+    const targetPath = new URL(targetUrl, window.location.href).pathname.split('/').pop() || 'student-dashboard.html';
+
+    if (currentUrl === targetUrl) return;
+
+    isStudentNavigating = true;
+
+    // 1. Immediately update active sidebar link
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (sidebarContainer) {
+        sidebarContainer.querySelectorAll('a.menu-item').forEach(link => {
+            const linkHref = link.getAttribute('href');
+            if (!linkHref) return;
+            const linkBase = linkHref.split('?')[0].split('#')[0];
+            if (linkBase === targetPath) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    // 2. Close mobile drawer if open
+    const sidebar = document.getElementById('app-sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('active', 'show');
+    if (sidebarOverlay) sidebarOverlay.classList.remove('active', 'show');
+    if (sidebarContainer) sidebarContainer.classList.remove('active', 'show');
+    document.body.classList.remove('sidebar-open');
+
+    // 3. Smooth main-content micro-transition
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.style.transition = 'opacity 0.12s ease';
+        mainContent.style.opacity = '0.88';
+        mainContent.classList.remove('sidebar-blurred');
+    }
+
+    try {
+        let html = studentPageCache.get(targetUrl);
+        if (!html) {
+            const response = await fetch(targetUrl);
+            if (!response.ok) throw new Error('Page fetch failed: ' + response.status);
+            html = await response.text();
+            studentPageCache.set(targetUrl, html);
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newMain = doc.querySelector('.main-content');
+
+        if (!newMain || !mainContent) {
+            window.location.href = targetUrl;
+            return;
+        }
+
+        // 4. Preload incoming stylesheets before swapping content
+        const incomingStyles = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
+        const stylePromises = [];
+        incomingStyles.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            const fullHref = new URL(href, targetUrl).href;
+            const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(l => l.href === fullHref);
+            if (!exists) {
+                const newLink = document.createElement('link');
+                newLink.rel = 'stylesheet';
+                newLink.href = href;
+                const p = new Promise(resolve => {
+                    newLink.onload = resolve;
+                    newLink.onerror = resolve;
+                });
+                stylePromises.push(p);
+                document.head.appendChild(newLink);
+            }
+        });
+
+        if (stylePromises.length > 0) {
+            await Promise.race([
+                Promise.all(stylePromises),
+                new Promise(r => setTimeout(r, 200))
+            ]);
+        }
+
+        // 5. Ensure external CDN libraries are loaded
+        const incomingLibScripts = Array.from(doc.querySelectorAll('script[src]')).filter(s => {
+            const src = s.getAttribute('src') || '';
+            return src.startsWith('http') || src.includes('cdn') || src.includes('cdnjs') || src.includes('unpkg');
+        });
+
+        for (const lib of incomingLibScripts) {
+            const src = lib.getAttribute('src');
+            const exists = Array.from(document.querySelectorAll('script')).some(s => s.src === src);
+            if (!exists) {
+                await new Promise(resolve => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = resolve;
+                    document.head.appendChild(script);
+                });
+            }
+        }
+
+        // 6. Preserve existing header profile details
+        const curName = document.getElementById('header-name')?.innerText;
+        const curProgram = document.getElementById('header-program')?.innerText;
+        const curAvatar = document.getElementById('header-avatar')?.src;
+        const curBadge = document.getElementById('notification-badge')?.innerText;
+        const curBadgeDisplay = document.getElementById('notification-badge')?.style.display;
+
+        if (curName && curName !== 'Loading...' && newMain.querySelector('#header-name')) {
+            newMain.querySelector('#header-name').innerText = curName;
+        }
+        if (curProgram && newMain.querySelector('#header-program')) {
+            newMain.querySelector('#header-program').innerText = curProgram;
+        }
+        if (curAvatar && newMain.querySelector('#header-avatar')) {
+            newMain.querySelector('#header-avatar').src = curAvatar;
+        }
+        if (curBadge && newMain.querySelector('#notification-badge')) {
+            newMain.querySelector('#notification-badge').innerText = curBadge;
+            newMain.querySelector('#notification-badge').style.display = curBadgeDisplay || 'none';
+        }
+
+        // Hydrate from cache
+        hydrateUserProfile(newMain);
+
+        // 7. Swap main content HTML and class list
+        mainContent.innerHTML = newMain.innerHTML;
+        mainContent.className = newMain.className;
+
+        // 8. Sync Modals (Keep #logout-modal)
+        document.querySelectorAll('.modal-overlay, .global-modal-overlay').forEach(m => {
+            if (m.id !== 'logout-modal') m.remove();
+        });
+        doc.querySelectorAll('.modal-overlay, .global-modal-overlay').forEach(m => {
+            if (m.id !== 'logout-modal') {
+                document.body.appendChild(m.cloneNode(true));
+            }
+        });
+
+        // 9. Clean up flatpickr calendars
+        document.querySelectorAll('.flatpickr-calendar:not(.open):not(.inline), select.flatpickr-monthDropdown-months, .flatpickr-wrapper').forEach(el => el.remove());
+
+        // 10. Update document title & history state
+        document.title = doc.title;
+        if (pushState) {
+            window.history.pushState({ url: targetUrl }, '', targetUrl);
+        }
+
+        // Scroll mainContent to top
+        mainContent.scrollTop = 0;
+        window.scrollTo(0, 0);
+
+        // 11. Re-initialize Student Notifications if present
+        if (typeof window.initStudentNotifications === 'function') {
+            window.initStudentNotifications();
+        }
+
+        // 12. Re-initialize Lucide Icons
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+
+        // 13. Apply theme
+        applyTheme(getStoredTheme());
+
+        // 14. Execute page-specific controller scripts
+        const pageScripts = Array.from(doc.querySelectorAll('script')).filter(s => {
+            const src = s.getAttribute('src') || '';
+            if (src) {
+                return !src.includes('student-sidebar-loader') &&
+                       !src.includes('sidebar-loader') &&
+                       !src.includes('supabase-config') &&
+                       !src.includes('components/') &&
+                       !src.startsWith('http') &&
+                       !src.includes('cdn');
+            }
+            return s.innerHTML.trim().length > 0 && !s.innerHTML.includes('grantee_student_theme');
+        });
+
+        for (const script of pageScripts) {
+            if (script.src) {
+                const scriptBaseName = script.src.split('/').pop().split('?')[0];
+                document.querySelectorAll(`script[src*="${scriptBaseName}"]`).forEach(el => el.remove());
+                
+                const newScript = document.createElement('script');
+                newScript.src = script.src + (script.src.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                document.body.appendChild(newScript);
+            } else if (script.innerHTML.trim()) {
+                const newScript = document.createElement('script');
+                newScript.innerHTML = script.innerHTML;
+                document.body.appendChild(newScript);
+            }
+        }
+
+        // Smooth fade in
+        requestAnimationFrame(() => {
+            if (mainContent) {
+                mainContent.style.opacity = '1';
+            }
+        });
+
+    } catch (err) {
+        console.error('Student SPA Navigation error, falling back to full navigation:', err);
+        window.location.href = targetUrl;
+    } finally {
+        isStudentNavigating = false;
+    }
+}
+window.navigateToStudentPage = navigateToStudentPage;
+
+// --- UNIFIED STUDENT LINK INTERCEPTOR ---
+document.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
+    const link = e.target.closest('a');
+    if (!link || !link.href) return;
+
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+    if (link.hasAttribute('download') || link.getAttribute('target') === '_blank') return;
+
+    const targetUrl = link.href;
+    const origin = window.location.origin;
+    if (!targetUrl.startsWith(origin)) return;
+
+    const targetPath = new URL(targetUrl).pathname.split('/').pop();
+    const isStudentTarget = targetPath.includes('student-') || targetPath.includes('profile-settings') || targetPath.includes('apply-scholarships');
+
+    if (isStudentTarget) {
+        e.preventDefault();
+        navigateToStudentPage(targetUrl, true);
+    }
+});
+
+// Handle browser back and forward buttons
+window.addEventListener('popstate', (e) => {
+    navigateToStudentPage(window.location.href, false);
+});
+
 // --- SIDEBAR NAVIGATION ---
 function initSidebarNavigation() {
     highlightActiveMenu();

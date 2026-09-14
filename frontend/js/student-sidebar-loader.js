@@ -1,21 +1,3 @@
-// --- 0. SPA DOMContentLoaded FIX ---
-// Ensures scripts injected dynamically that listen to DOMContentLoaded will still run
-(function () {
-    function overrideListener(obj) {
-        if (!obj) return;
-        const original = obj.addEventListener;
-        obj.addEventListener = function (type, listener, options) {
-            if (type === 'DOMContentLoaded' && (document.readyState === 'interactive' || document.readyState === 'complete')) {
-                setTimeout(() => listener.call(obj, new Event('DOMContentLoaded')), 0);
-                return;
-            }
-            return original.call(obj, type, listener, options);
-        };
-    }
-    overrideListener(document);
-    overrideListener(window);
-})();
-
 // --- INSTANT PROFILE HYDRATION HELPER ---
 function hydrateUserProfile(root = document) {
     try {
@@ -332,6 +314,68 @@ function initGlobalDelegatedHandlers() {
     });
 }
 
+// --- 1. INJECT SIDEBAR (Instant hydration from cache + background fresh fetch) ---
+async function loadStudentSidebar() {
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (!sidebarContainer) return;
+
+    const sidebarFile = 'components/student-sidebar.html';
+    const cacheKey = 'grantee_cached_student_sidebar';
+
+    const cachedHtml = sessionStorage.getItem(cacheKey);
+    if (cachedHtml && !sidebarContainer.querySelector('#app-sidebar')) {
+        sidebarContainer.innerHTML = cachedHtml;
+        highlightActiveMenu();
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    }
+
+    try {
+        const response = await fetch(sidebarFile);
+        if (response.ok) {
+            const html = await response.text();
+            sessionStorage.setItem(cacheKey, html);
+            if (!cachedHtml || sidebarContainer.innerHTML !== html) {
+                sidebarContainer.innerHTML = html;
+                highlightActiveMenu();
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons();
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load student sidebar component:', error);
+    }
+}
+
+// --- 2. INJECT LOGOUT MODAL ---
+async function loadStudentLogoutModal() {
+    if (document.getElementById('logout-modal')) return;
+    const cacheKey = 'grantee_cached_logout_modal';
+    const cachedModal = sessionStorage.getItem(cacheKey);
+    if (cachedModal && !document.getElementById('logout-modal')) {
+        document.body.insertAdjacentHTML('beforeend', cachedModal);
+    }
+    try {
+        const modalResponse = await fetch('components/logout-modal.html');
+        if (modalResponse.ok) {
+            const modalHtml = await modalResponse.text();
+            sessionStorage.setItem(cacheKey, modalHtml);
+            if (!document.getElementById('logout-modal')) {
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load logout modal component:', error);
+    }
+}
+
+// Initial sidebar attempt as early as possible
+if (document.getElementById('sidebar-container')) {
+    loadStudentSidebar();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Apply theme
     applyTheme(getStoredTheme());
@@ -362,60 +406,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         lucide.createIcons();
     }
 
-    // --- 1. INJECT SIDEBAR ---
-    const sidebarContainer = document.getElementById('sidebar-container');
-    if (sidebarContainer) {
-        if (!sidebarContainer.querySelector('#app-sidebar')) {
-            const sidebarFile = 'components/student-sidebar.html';
-
-            try {
-                const response = await fetch(sidebarFile);
-                if (response.ok) {
-                    const html = await response.text();
-                    sidebarContainer.innerHTML = html;
-
-                    // Highlight active link
-                    highlightActiveMenu();
-                    initSidebarNavigation();
-
-                    if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to load sidebar component:', error);
-                if (window.location.protocol === 'file:') {
-                    alert("WARNING: The sidebar cannot be loaded because you are opening this file directly from your computer (file:// protocol). Browsers block local file fetching for security reasons. Please serve this folder using a local web server (like VS Code Live Server) to see the sidebar and use the SPA navigation.");
-                }
-            }
-        } else {
-            highlightActiveMenu();
-            initSidebarNavigation();
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-    }
-
-    // --- 2. INJECT LOGOUT MODAL ---
-    try {
-        if (!document.getElementById('logout-modal')) {
-            const modalResponse = await fetch('components/logout-modal.html');
-            if (modalResponse.ok) {
-                const modalHtml = await modalResponse.text();
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load logout modal component:', error);
-    }
+    // Inject sidebar and logout modal
+    await loadStudentSidebar();
+    await loadStudentLogoutModal();
 });
 
 function highlightActiveMenu() {
     const currentPath = window.location.pathname.split('/').pop() || 'index.html';
     const links = document.querySelectorAll('#sidebar-container a.menu-item');
     links.forEach(link => {
-        if (link.getAttribute('href') === currentPath) {
+        const linkHref = link.getAttribute('href');
+        if (!linkHref) return;
+        const linkBase = linkHref.split('?')[0].split('#')[0];
+        if (linkBase === currentPath) {
             link.classList.add('active');
         } else {
             link.classList.remove('active');
@@ -423,207 +426,10 @@ function highlightActiveMenu() {
     });
 }
 
-// --- SPA NAVIGATION FOR SIDEBAR ---
+// --- SIDEBAR NAVIGATION ---
 function initSidebarNavigation() {
-    const sidebarContainer = document.getElementById('sidebar-container');
-    if (!sidebarContainer || sidebarContainer.dataset.navBound === 'true') return;
-    sidebarContainer.dataset.navBound = 'true';
-
-    sidebarContainer.addEventListener('click', async (e) => {
-        const link = e.target.closest('a.menu-item');
-        if (link && link.href && !link.href.startsWith('javascript:') && !link.href.includes('#')) {
-            e.preventDefault();
-            const url = link.href;
-            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-            const targetPath = new URL(url, window.location.href).pathname.split('/').pop();
-
-            if (currentPath === targetPath) return;
-
-            // Close mobile sidebar immediately ONLY if on mobile viewport
-            if (window.innerWidth <= 1024) {
-                closeMobileSidebar();
-            }
-
-            // Update active link visually
-            document.querySelectorAll('a.menu-item').forEach(el => el.classList.remove('active'));
-            link.classList.add('active');
-
-            try {
-                // Apply skeleton loading to header-titles and dim scrollable body ONLY
-                const currentTitles = document.querySelector('.header-titles');
-                if (currentTitles) {
-                    currentTitles.classList.add('is-loading');
-                }
-
-                const scrollArea = document.querySelector('.dashboard-scroll-area, .content-wrapper');
-                if (scrollArea) {
-                    scrollArea.style.opacity = '0.4';
-                    scrollArea.style.transition = 'opacity 0.2s ease';
-                }
-
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const html = await response.text();
-
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                const newMain = doc.querySelector('.main-content');
-                const mainContent = document.querySelector('.main-content');
-
-                if (newMain && mainContent) {
-                    // Pre-load incoming stylesheets BEFORE swapping DOM to prevent layout jump
-                    const newLinks = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
-                    const currentLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
-
-                    const loadPromises = [];
-                    newLinks.forEach(n => {
-                        if (!currentLinks.find(curr => curr.href === n.href)) {
-                            const newLink = document.createElement('link');
-                            newLink.rel = 'stylesheet';
-                            newLink.href = n.href;
-                            const p = new Promise(resolve => {
-                                newLink.onload = resolve;
-                                newLink.onerror = resolve;
-                            });
-                            loadPromises.push(p);
-                            document.head.appendChild(newLink);
-                        }
-                    });
-
-                    if (loadPromises.length > 0) {
-                        await Promise.race([
-                            Promise.all(loadPromises),
-                            new Promise(r => setTimeout(r, 120))
-                        ]);
-                    }
-
-                    // Preserve existing profile header details into newMain before swapping to prevent reload flash
-                    const curName = document.getElementById('header-name')?.innerText;
-                    const curProgram = document.getElementById('header-program')?.innerText;
-                    const curAvatar = document.getElementById('header-avatar')?.src;
-                    const curBadge = document.getElementById('notification-badge')?.innerText;
-                    const curBadgeDisplay = document.getElementById('notification-badge')?.style.display;
-
-                    if (curName && newMain.querySelector('#header-name')) newMain.querySelector('#header-name').innerText = curName;
-                    if (curProgram && newMain.querySelector('#header-program')) newMain.querySelector('#header-program').innerText = curProgram;
-                    if (curAvatar && newMain.querySelector('#header-avatar')) newMain.querySelector('#header-avatar').src = curAvatar;
-                    if (curBadge && newMain.querySelector('#notification-badge')) {
-                        newMain.querySelector('#notification-badge').innerText = curBadge;
-                        newMain.querySelector('#notification-badge').style.display = curBadgeDisplay || 'none';
-                    }
-
-                    // Hydrate from cache
-                    hydrateUserProfile(newMain);
-
-                    // Add temporary skeleton class to the incoming header-titles
-                    const incomingTitles = newMain.querySelector('.header-titles');
-                    if (incomingTitles) {
-                        incomingTitles.classList.add('is-loading');
-                    }
-
-                    // Update main content
-                    mainContent.innerHTML = newMain.innerHTML;
-                    mainContent.className = newMain.className;
-                    mainContent.classList.remove('sidebar-blurred');
-                    document.body.classList.remove('sidebar-open');
-
-                    // Sync theme button icon
-                    applyTheme(getStoredTheme());
-
-                    // Update Title
-                    document.title = doc.title;
-
-                    // Update URL
-                    window.history.pushState({}, '', url);
-                    highlightActiveMenu();
-
-                    // Smoothly remove skeleton loading from header-titles after brief transition
-                    setTimeout(() => {
-                        const activeTitles = document.querySelector('.header-titles');
-                        if (activeTitles) {
-                            activeTitles.classList.remove('is-loading');
-                        }
-                    }, 280);
-
-                    // Clean up orphaned flatpickr calendars and dropdowns from previous page
-                    document.querySelectorAll('.flatpickr-calendar, .flatpickr-wrapper, select.flatpickr-monthDropdown-months, .flatpickr-monthDropdown-month').forEach(el => el.remove());
-
-                    // Re-initialize notification engine on new page
-                    if (window.initStudentNotifications) {
-                        window.initStudentNotifications();
-                    }
-
-                    // Remove obsolete stylesheets that aren't on the incoming page (never removing core styles)
-                    currentLinks.forEach(curr => {
-                        if (!curr.href.includes('student-sidebar.css') &&
-                            !curr.href.includes('font-awesome') &&
-                            !curr.href.includes('cdnjs') &&
-                            !newLinks.find(n => n.href === curr.href)) {
-                            curr.remove();
-                        }
-                    });
-
-                    const currentStyles = Array.from(document.querySelectorAll('style')).map(s => s.innerHTML.trim());
-                    doc.querySelectorAll('style').forEach(style => {
-                        if (!currentStyles.includes(style.innerHTML.trim())) {
-                            const newStyle = document.createElement('style');
-                            newStyle.innerHTML = style.innerHTML;
-                            document.head.appendChild(newStyle);
-                        }
-                    });
-
-                    // Execute page-specific scripts to initialize logic (from head and body)
-                    const newScripts = doc.querySelectorAll('script');
-                    newScripts.forEach(script => {
-                        if (script.src) {
-                            if (!script.src.includes('sidebar-loader')
-                                && !script.src.includes('supabase-config')
-                                && !script.src.includes('components/')) {
-
-                                // Remove old script element if it exists (for our custom js)
-                                if (script.src.includes('js/')) {
-                                    const scriptName = script.src.split('/').pop();
-                                    const existing = document.querySelector(`script[src*="${scriptName}"]`);
-                                    if (existing) existing.remove();
-                                }
-
-                                const isLib = !script.src.includes('js/') && document.querySelector(`script[src="${script.src}"]`);
-                                if (!isLib) {
-                                    const newScript = document.createElement('script');
-                                    newScript.src = script.src;
-                                    document.body.appendChild(newScript);
-                                }
-                            }
-                        } else if (script.innerHTML.trim() !== '') {
-                            // Don't re-run toggle listeners or redundant boilerplate scripts
-                            if (!script.innerHTML.includes('mobileMenuToggle') && !script.innerHTML.includes('modalConfirm')) {
-                                const newScript = document.createElement('script');
-                                newScript.innerHTML = script.innerHTML;
-                                document.body.appendChild(newScript);
-                            }
-                        }
-                    });
-
-                    // Re-initialize icons
-                    if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
-                    }
-                } else {
-                    window.location.href = url;
-                }
-            } catch (error) {
-                console.error('SPA Navigation error:', error);
-                window.location.href = url; // Fallback
-            }
-        }
-    });
+    highlightActiveMenu();
 }
-
-// Handle browser back/forward buttons
-window.addEventListener('popstate', () => {
-    window.location.reload();
-});
 
 // ==========================================
 // BACK TO TOP BUTTON COMPONENT

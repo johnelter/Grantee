@@ -1,21 +1,3 @@
-// --- 0. SPA DOMContentLoaded FIX ---
-// Ensures scripts injected dynamically that listen to DOMContentLoaded will still run
-(function () {
-    function overrideListener(obj) {
-        if (!obj) return;
-        const original = obj.addEventListener;
-        obj.addEventListener = function (type, listener, options) {
-            if (type === 'DOMContentLoaded' && (document.readyState === 'interactive' || document.readyState === 'complete')) {
-                setTimeout(() => listener.call(obj, new Event('DOMContentLoaded')), 0);
-                return;
-            }
-            return original.call(obj, type, listener, options);
-        };
-    }
-    overrideListener(document);
-    overrideListener(window);
-})();
-
 // --- ADMIN PROFILE INSTANT HYDRATION HELPER ---
 function hydrateAdminProfile(root = document) {
     try {
@@ -141,65 +123,91 @@ async function fetchAndCacheAdminProfile() {
     }
 }
 
+// --- 1. INJECT SIDEBAR (Instant hydration from cache + background fresh fetch) ---
+async function loadAdminSidebar() {
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (!sidebarContainer) return;
+
+    const path = window.location.pathname;
+    const isAdminPage = path.includes('admin') || path.includes('create-scholarship');
+    const sidebarFile = isAdminPage ? 'components/admin-sidebar.html' : 'components/student-sidebar.html';
+    const cacheKey = isAdminPage ? 'grantee_cached_admin_sidebar' : 'grantee_cached_student_sidebar';
+
+    // Instant synchronous hydration if cached (0ms delay)
+    const cachedHtml = sessionStorage.getItem(cacheKey);
+    if (cachedHtml && !sidebarContainer.querySelector('#app-sidebar')) {
+        sidebarContainer.innerHTML = cachedHtml;
+        highlightActiveSidebarMenu();
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    }
+
+    try {
+        const response = await fetch(sidebarFile);
+        if (response.ok) {
+            const html = await response.text();
+            sessionStorage.setItem(cacheKey, html);
+            if (!cachedHtml || sidebarContainer.innerHTML !== html) {
+                sidebarContainer.innerHTML = html;
+                highlightActiveSidebarMenu();
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons();
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load sidebar component:', error);
+    }
+}
+
+// --- 2. ENSURE LOGOUT MODAL EXISTS & INITIALIZE LOGIC ---
+async function loadLogoutModal() {
+    if (document.getElementById('logout-modal')) {
+        initGlobalLogoutLogic();
+        return;
+    }
+    const cacheKey = 'grantee_cached_logout_modal';
+    const cachedModal = sessionStorage.getItem(cacheKey);
+    if (cachedModal && !document.getElementById('logout-modal')) {
+        document.body.insertAdjacentHTML('beforeend', cachedModal);
+    }
+    try {
+        const modalResponse = await fetch('components/logout-modal.html');
+        if (modalResponse.ok) {
+            const modalHtml = await modalResponse.text();
+            sessionStorage.setItem(cacheKey, modalHtml);
+            if (!document.getElementById('logout-modal')) {
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load logout modal component:', error);
+    }
+    initGlobalLogoutLogic();
+}
+
 // Immediately hydrate profile on load
 hydrateAdminProfile(document);
+
+// Initial sidebar attempt as early as possible
+if (document.getElementById('sidebar-container')) {
+    loadAdminSidebar();
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Apply theme and hydrate again on DOMContentLoaded
     applyAdminTheme(getAdminStoredTheme());
     hydrateAdminProfile(document);
 
-    // If Supabase client is ready, fetch latest profile in background
+    // Background profile refresh
     setTimeout(() => {
         fetchAndCacheAdminProfile();
     }, 100);
 
-    // --- 1. INJECT SIDEBAR ---
-    const sidebarContainer = document.getElementById('sidebar-container');
-    if (sidebarContainer) {
-        const path = window.location.pathname;
-        const isAdminPage = path.includes('admin') || path.includes('create-scholarship');
-        const sidebarFile = isAdminPage ? 'components/admin-sidebar.html' : 'components/student-sidebar.html';
-
-        try {
-            const response = await fetch(sidebarFile);
-            if (response.ok) {
-                const html = await response.text();
-                sidebarContainer.innerHTML = html;
-
-                // Highlight active link
-                highlightActiveSidebarMenu();
-
-                initMobileMenu();
-                initSidebarNavigation();
-
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
-            }
-        } catch (error) {
-            console.error('Failed to load sidebar component:', error);
-            if (window.location.protocol === 'file:') {
-                alert("WARNING: The sidebar cannot be loaded because you are opening this file directly from your computer (file:// protocol). Browsers block local file fetching for security reasons. Please serve this folder using a local web server (like VS Code Live Server) to see the sidebar and use the SPA navigation.");
-            }
-        }
-    }
-
-    // --- 2. ENSURE LOGOUT MODAL EXISTS & INITIALIZE LOGIC ---
-    if (!document.getElementById('logout-modal')) {
-        try {
-            const modalResponse = await fetch('components/logout-modal.html');
-            if (modalResponse.ok) {
-                const modalHtml = await modalResponse.text();
-                if (!document.getElementById('logout-modal')) {
-                    document.body.insertAdjacentHTML('beforeend', modalHtml);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to load logout modal component:', error);
-        }
-    }
-    initGlobalLogoutLogic();
+    // Inject sidebar and logout modal
+    await loadAdminSidebar();
+    await loadLogoutModal();
 
     // Only clean up detached/orphaned body-level flatpickr calendars from prior pages if any
     document.querySelectorAll('body > .flatpickr-calendar:not(.open):not(.inline)').forEach(el => {
@@ -215,7 +223,11 @@ function highlightActiveSidebarMenu() {
     const links = sidebarContainer.querySelectorAll('a.menu-item');
     links.forEach(link => {
         const linkHref = link.getAttribute('href');
-        if (linkHref === currentPath || (linkHref.includes('admin-scholarships') && currentPath.includes('create-scholarship'))) {
+        if (!linkHref) return;
+        const linkBase = linkHref.split('?')[0].split('#')[0];
+        if (linkBase === currentPath || 
+            (linkBase.includes('admin-scholarships') && currentPath.includes('create-scholarship')) ||
+            (linkBase.includes('admin-scholarships') && currentPath.includes('view-scholarship'))) {
             link.classList.add('active');
         } else {
             link.classList.remove('active');
@@ -470,203 +482,10 @@ function initGlobalLogoutLogic() {
     });
 }
 
-// --- SPA NAVIGATION FOR SIDEBAR ---
+// --- SIDEBAR NAVIGATION ---
 function initSidebarNavigation() {
-    const sidebarContainer = document.getElementById('sidebar-container');
-    if (!sidebarContainer) return;
-
-    sidebarContainer.addEventListener('click', async (e) => {
-        const link = e.target.closest('a.menu-item');
-        if (link && link.href && link.href.startsWith(window.location.origin) && !link.href.includes('#')) {
-            e.preventDefault();
-            const url = link.href;
-            const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-            const targetPath = new URL(url).pathname.split('/').pop();
-
-            if (currentPath === targetPath) return;
-
-            // Update active link visually
-            document.querySelectorAll('a.menu-item').forEach(el => el.classList.remove('active'));
-            link.classList.add('active');
-
-            // Close mobile sidebar if open
-            const sidebar = document.getElementById('app-sidebar');
-            const sidebarOverlay = document.getElementById('sidebar-overlay');
-            if (sidebarContainer.classList.contains('active')) {
-                sidebarContainer.classList.remove('active');
-                sidebarOverlay.classList.remove('active');
-                if (sidebar) sidebar.classList.remove('active');
-            }
-
-            try {
-                const mainContent = document.querySelector('.main-content');
-
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const html = await response.text();
-
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                const newMain = doc.querySelector('.main-content');
-                if (newMain && mainContent) {
-                    // 1. Preserve existing profile header details into newMain before swapping to prevent reload flash
-                    const curName = document.getElementById('header-name')?.innerText;
-                    const curRole = document.getElementById('header-role')?.innerText;
-                    const curAvatar = document.getElementById('header-avatar')?.src;
-                    const curSchoolHtml = document.getElementById('admin-school-display')?.innerHTML;
-
-                    if (curName && curName !== 'Loading...' && newMain.querySelector('#header-name')) {
-                        newMain.querySelector('#header-name').innerText = curName;
-                    }
-                    if (curRole && newMain.querySelector('#header-role')) {
-                        newMain.querySelector('#header-role').innerText = curRole;
-                    }
-                    if (curAvatar && newMain.querySelector('#header-avatar')) {
-                        newMain.querySelector('#header-avatar').src = curAvatar;
-                    }
-                    if (curSchoolHtml && newMain.querySelector('#admin-school-display')) {
-                        newMain.querySelector('#admin-school-display').innerHTML = curSchoolHtml;
-                    }
-
-                    // Hydrate from sessionStorage cache
-                    hydrateAdminProfile(newMain);
-
-                    // 2. Add skeleton loading class to incoming header-titles
-                    const incomingTitles = newMain.querySelector('.header-titles');
-                    if (incomingTitles) {
-                        incomingTitles.classList.add('is-loading');
-                    }
-
-                    // 3. Update main content DOM
-                    mainContent.innerHTML = newMain.innerHTML;
-                    mainContent.className = newMain.className;
-
-                    // Initialize notifications on new page DOM
-                    if (typeof window.initAdminNotifications === 'function') {
-                        window.initAdminNotifications();
-                    }
-
-                    // 4. Update Document Title & URL
-                    document.title = doc.title;
-                    window.history.pushState({}, '', url);
-                    highlightActiveSidebarMenu();
-
-                    // 5. Smoothly remove skeleton loading from header-titles after brief transition
-                    setTimeout(() => {
-                        const activeTitles = document.querySelector('.header-titles');
-                        if (activeTitles) {
-                            activeTitles.classList.remove('is-loading');
-                        }
-                        applyAdminTheme(getAdminStoredTheme());
-                        if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                            lucide.createIcons();
-                        }
-                    }, 280);
-
-                    // 6. Sync Modals (Crucial for action buttons that open modals)
-                    const oldModals = document.querySelectorAll('.modal-overlay, .global-modal-overlay');
-                    oldModals.forEach(m => {
-                        if (m.id !== 'logout-modal') m.remove();
-                    });
-
-                    const newModals = doc.querySelectorAll('.modal-overlay, .global-modal-overlay');
-                    newModals.forEach(m => {
-                        if (m.id !== 'logout-modal') {
-                            document.body.appendChild(m.cloneNode(true));
-                        }
-                    });
-
-                    // 7. Sync Bulk Action Bar
-                    const oldActionBar = document.getElementById('bulk-action-bar');
-                    if (oldActionBar) oldActionBar.remove();
-
-                    const newActionBar = doc.getElementById('bulk-action-bar');
-                    if (newActionBar) {
-                        document.body.appendChild(newActionBar.cloneNode(true));
-                    }
-
-                    // 7B. Clean up orphaned flatpickr calendars and dropdowns from previous page
-                    document.querySelectorAll('.flatpickr-calendar, .flatpickr-wrapper, select.flatpickr-monthDropdown-months, .flatpickr-monthDropdown-month').forEach(el => el.remove());
-
-                    // 8. Sync stylesheets
-                    const newLinks = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
-                    const currentLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
-
-                    currentLinks.forEach(curr => {
-                        if (!curr.href.includes('sidebar.css') &&
-                            !curr.href.includes('font-awesome') &&
-                            !curr.href.includes('admin-global.css') &&
-                            !newLinks.find(n => n.href === curr.href)) {
-                            curr.remove();
-                        }
-                    });
-
-                    newLinks.forEach(n => {
-                        if (!currentLinks.find(curr => curr.href === n.href)) {
-                            const newLink = document.createElement('link');
-                            newLink.rel = 'stylesheet';
-                            newLink.href = n.href;
-                            document.head.appendChild(newLink);
-                        }
-                    });
-
-                    const currentStyles = Array.from(document.querySelectorAll('style')).map(s => s.innerHTML.trim());
-                    doc.querySelectorAll('style').forEach(style => {
-                        if (!currentStyles.includes(style.innerHTML.trim())) {
-                            const newStyle = document.createElement('style');
-                            newStyle.innerHTML = style.innerHTML;
-                            document.head.appendChild(newStyle);
-                        }
-                    });
-
-                    // 9. Execute page-specific scripts to initialize logic
-                    const newScripts = doc.querySelectorAll('script');
-                    newScripts.forEach(script => {
-                        if (script.src) {
-                            if (!script.src.includes('sidebar-loader')
-                                && !script.src.includes('supabase-config')
-                                && !script.src.includes('components/')) {
-
-                                if (script.src.includes('js/')) {
-                                    const scriptName = script.src.split('/').pop();
-                                    const existing = document.querySelector(`script[src*="${scriptName}"]`);
-                                    if (existing) existing.remove();
-                                }
-
-                                const isLib = !script.src.includes('js/') && document.querySelector(`script[src="${script.src}"]`);
-                                if (!isLib) {
-                                    const newScript = document.createElement('script');
-                                    newScript.src = script.src;
-                                    document.body.appendChild(newScript);
-                                }
-                            }
-                        } else if (script.innerHTML.trim() !== '') {
-                            const newScript = document.createElement('script');
-                            newScript.innerHTML = script.innerHTML;
-                            document.body.appendChild(newScript);
-                        }
-                    });
-
-                    // 10. Re-initialize Lucide Icons
-                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                        lucide.createIcons();
-                    }
-                } else {
-                    window.location.href = url;
-                }
-            } catch (error) {
-                console.error('SPA Navigation error:', error);
-                window.location.href = url;
-            }
-        }
-    });
+    highlightActiveSidebarMenu();
 }
-
-// Handle browser back/forward buttons
-window.addEventListener('popstate', () => {
-    window.location.reload();
-});
 
 // ==========================================
 // GLOBAL ADMIN UI TOAST SYSTEM (TOP CENTER)

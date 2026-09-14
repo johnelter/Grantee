@@ -20,11 +20,11 @@
     ];
 
     function getCategoryIcon(cat) {
-        if (cat.includes("Institution")) return { badgeClass: "cat-inst", sumClass: "sum-inst", icon: "building-2" };
-        if (cat.includes("Ched")) return { badgeClass: "cat-ched", sumClass: "sum-ched", icon: "graduation-cap" };
-        if (cat.includes("Private")) return { badgeClass: "cat-priv", sumClass: "sum-priv", icon: "handshake" };
-        if (cat.includes("Government")) return { badgeClass: "cat-gov", sumClass: "sum-gov", icon: "award" };
-        return { badgeClass: "cat-inst", sumClass: "sum-inst", icon: "layers" };
+        if (cat.includes("Institution")) return { badgeClass: "cat-inst", icon: "building-2" };
+        if (cat.includes("Ched")) return { badgeClass: "cat-ched", icon: "graduation-cap" };
+        if (cat.includes("Private")) return { badgeClass: "cat-priv", icon: "handshake" };
+        if (cat.includes("Government")) return { badgeClass: "cat-gov", icon: "award" };
+        return { badgeClass: "cat-inst", icon: "layers" };
     }
 
     // --- DOM Elements ---
@@ -38,8 +38,7 @@
     const btnSave = document.getElementById('btn-save-policies');
 
     const categoryCard = document.getElementById('category-limits-container');
-    const matrixCard = document.getElementById('matrix-container');
-    const summaryCard = document.getElementById('summary-container'); 
+    const matrixCard = document.getElementById('matrix-container'); 
 
     // --- 2. INITIALIZATION ---
     async function init() {
@@ -109,7 +108,6 @@
 
             renderCategoryLimits();
             renderMatrix();
-            renderSummary();
             attachDynamicListeners();
             triggerGlobalUIUpdates();
 
@@ -117,7 +115,6 @@
             console.error("Error fetching policies:", err);
             renderCategoryLimits();
             renderMatrix();
-            renderSummary();
             attachDynamicListeners();
             triggerGlobalUIUpdates();
         }
@@ -238,80 +235,13 @@
         }
     }
 
-    function renderSummary() {
-        if (!summaryCard) return;
-
-        let html = `
-            <div class="card-header">
-                <h3>5. Live Policy Summary</h3>
-            </div>
-            <p class="hint-text mb-20">Real-time overview of current active limits configured for this institution.</p>
-            <div class="summary-grid">
-        `;
-        
-        // Global Limit Summary
-        const globalUnli = !chkGlobalEnabled?.checked || parseInt(inputGlobalLimit?.value || 0) === 0;
-        const globalVal = globalUnli ? "∞" : (inputGlobalLimit?.value || "3");
-        
-        html += `
-            <div class="summary-card">
-                <div class="sum-icon-badge sum-global">
-                    <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
-                </div>
-                <div>
-                    <span class="sum-label">Global Limit</span>
-                    <strong class="sum-val">${globalVal}</strong>
-                    <span class="sum-sub">Active programs</span>
-                </div>
-            </div>
-        `;
-
-        // Category Limit Summary Cards
-        categoriesArray.forEach(cat => {
-            const safeId = cat.replace(/\s+/g, '_').toLowerCase();
-            const unliEl = document.getElementById(`unli_${safeId}`);
-            const limitEl = document.getElementById(`limit_${safeId}`);
-            
-            const isUnli = unliEl ? unliEl.checked : false;
-            const limitVal = limitEl ? limitEl.value : "0";
-            
-            const finalVal = isUnli || parseInt(limitVal) === 0 ? "∞" : limitVal;
-            const styling = getCategoryIcon(cat);
-            let shortName = cat.replace(" Educational Assistance", "").replace("Institution-Funded", "Institution");
-
-            html += `
-            <div class="summary-card">
-                <div class="sum-icon-badge ${styling.sumClass}">
-                    <i data-lucide="${styling.icon}" style="width: 22px; height: 22px;"></i>
-                </div>
-                <div style="overflow: hidden;">
-                    <span class="sum-label" title="${cat}">${shortName}</span>
-                    <strong class="sum-val">${finalVal}</strong>
-                    <span class="sum-sub">Active limit</span>
-                </div>
-            </div>
-            `;
-        });
-
-        html += `</div>`;
-        summaryCard.innerHTML = html;
-        if (typeof lucide !== 'undefined' && lucide.createIcons) {
-            lucide.createIcons();
-        }
-    }
-
     function attachDynamicListeners() {
         document.querySelectorAll('.dynamic-unli').forEach(chk => {
             chk.addEventListener('change', (e) => {
                 const safeId = e.target.id.replace('unli_', '');
                 const sel = document.getElementById(`limit_${safeId}`);
                 if (sel) sel.disabled = e.target.checked;
-                renderSummary();
             });
-        });
-        
-        document.querySelectorAll('.dynamic-limit').forEach(sel => {
-            sel.addEventListener('change', () => renderSummary());
         });
 
         document.querySelectorAll('.master-combo').forEach(chk => {
@@ -336,7 +266,6 @@
                 badgeGlobalStatus.classList.add("disabled");
             }
         }
-        renderSummary();
     }
 
     if (chkGlobalEnabled) chkGlobalEnabled.addEventListener('change', triggerGlobalUIUpdates);

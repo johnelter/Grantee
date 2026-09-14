@@ -1,57 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // --- Theme Controller ---
-    let themeTransitionTimer = null;
-
-    function getStoredTheme() {
-        return localStorage.getItem('grantee_theme') || localStorage.getItem('grantee_admin_theme') || 'light';
-    }
-
-    function applyTheme(theme, animate = false) {
-        if (animate) {
-            document.documentElement.classList.add('theme-transition');
-            clearTimeout(themeTransitionTimer);
-            themeTransitionTimer = setTimeout(() => {
-                document.documentElement.classList.remove('theme-transition');
-            }, 450);
-        }
-
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('grantee_theme', theme);
-        localStorage.setItem('grantee_admin_theme', theme);
-
-        document.querySelectorAll('#theme-toggle, .btn-theme-toggle').forEach(btn => {
-            const iconClass = animate ? 'theme-icon-animate' : '';
-            if (theme === 'dark') {
-                btn.innerHTML = `<i data-lucide="sun" class="${iconClass}" style="color: #DCC8A3; width: 19px; height: 19px;"></i>`;
-                btn.setAttribute('title', 'Switch to Light Mode');
-                btn.setAttribute('aria-label', 'Switch to Light Mode');
-            } else {
-                btn.innerHTML = `<i data-lucide="moon" class="${iconClass}" style="color: #586F62; width: 19px; height: 19px;"></i>`;
-                btn.setAttribute('title', 'Switch to Dark Mode');
-                btn.setAttribute('aria-label', 'Switch to Dark Mode');
-            }
-        });
-
-        if (window.lucide && lucide.createIcons) {
-            try { lucide.createIcons(); } catch (e) {}
-        }
-    }
-
-    // Initialize theme immediately without animation
-    applyTheme(getStoredTheme(), false);
-
-    // Theme Toggle Click Handler
-    document.addEventListener('click', (e) => {
-        const themeBtn = e.target.closest('#theme-toggle, .btn-theme-toggle');
-        if (themeBtn) {
-            e.preventDefault();
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme, true);
-        }
-    });
-
     const schoolSelect = document.getElementById('school-select');
     const scholarshipsSection = document.getElementById('scholarships-section');
     const scholarshipGrid = document.getElementById('scholarship-grid');

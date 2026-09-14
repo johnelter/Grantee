@@ -33,6 +33,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .eq('id_number', profile.id_number)
                     .single();
 
+                if (masterlistData && masterlistData.school_id) {
+                    currentProfile.school_id = masterlistData.school_id;
+                }
+
                 if (masterlistError) {
                     console.warn("Could not find student in masterlist to assign school.");
                 }
@@ -51,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }));
 
                 if (document.getElementById('welcome-text')) {
-                    document.getElementById('welcome-text').innerText = `Welcome back, ${firstName}! 👋`;
+                    document.getElementById('welcome-text').innerText = `Welcome back, ${firstName}!`;
                 }
                 if (document.getElementById('header-name')) {
                     document.getElementById('header-name').innerText = fullName;
@@ -710,35 +714,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- X. FETCH ANNOUNCEMENTS ---
+    // --- 5. FETCH ANNOUNCEMENTS ---
     async function loadAnnouncements() {
         try {
             const container = document.getElementById('announcements-list-container');
             if (!container) return;
 
-            const { data: profile } = await window.supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('id', studentId)
-                .single();
+            // Ensure profile is loaded
+            let profile = currentProfile;
+            if (!profile) {
+                const { data: p } = await window.supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', studentId)
+                    .single();
+                profile = p;
+                currentProfile = p;
+            }
 
-            const { data: userApps } = await window.supabaseClient
-                .from('applications')
-                .select('*, scholarships(title)')
-                .eq('student_id', studentId)
-                .order('created_at', { ascending: false });
-
-            const userApp = (userApps && userApps.length > 0) ? userApps[0] : null;
+            // Resolve school_id with fallback to enrolled_masterlist
+            let schoolId = profile?.school_id;
+            if (!schoolId && profile?.id_number) {
+                const { data: masterlistData } = await window.supabaseClient
+                    .from('enrolled_masterlist')
+                    .select('school_id')
+                    .eq('id_number', profile.id_number)
+                    .single();
+                if (masterlistData && masterlistData.school_id) {
+                    schoolId = masterlistData.school_id;
+                    if (profile) profile.school_id = schoolId;
+                }
+            }
 
             let query = window.supabaseClient
                 .from('announcements')
-                .select('*, profiles:author_id ( first_name, last_name )')
+                .select('*, profiles:author_id ( first_name, last_name, avatar_url, role )')
                 .eq('status', 'Published')
                 .order('is_pinned', { ascending: false })
                 .order('created_at', { ascending: false });
 
-            if (profile && profile.school_id) {
-                query = query.eq('school_id', profile.school_id);
+            if (schoolId) {
+                query = query.eq('school_id', schoolId);
             }
 
             const { data: announcements, error } = await query;
@@ -750,7 +766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            function isAudienceMatch(announcement, profile, applications) {
+            function isAudienceMatch(announcement, pProfile, applications) {
                 const aud = announcement.audience_type;
                 if (!aud) return true;
 
@@ -758,13 +774,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (audStr === 'all_students' || audStr === 'all_enrolled_students' || audStr === 'all') return true;
 
-                if (audStr.startsWith('prog_') && profile && profile.program) {
-                    return profile.program.toLowerCase() === audStr.replace('prog_', '').toLowerCase();
+                const studentProg = (pProfile?.program || pProfile?.course || '').toLowerCase().trim();
+                if (audStr.startsWith('prog_') && studentProg) {
+                    const targetProg = audStr.replace('prog_', '').toLowerCase().trim();
+                    return studentProg === targetProg || studentProg.includes(targetProg) || targetProg.includes(studentProg);
                 }
 
                 if (audStr.startsWith('app_')) {
-                    const scholarshipKeyword = audStr.replace('app_', '').toLowerCase();
-
+                    const scholarshipKeyword = audStr.replace('app_', '').toLowerCase().trim();
                     if (applications && applications.length > 0) {
                         return applications.some(app => {
                             const title = app.scholarships?.title?.toLowerCase() || '';
@@ -774,23 +791,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return false;
                 }
 
-                if (audStr.includes('active') || audStr.includes('approved')) {
+                if (audStr.includes('active') || audStr.includes('approved') || audStr.includes('grantee')) {
                     if (applications && applications.length > 0) {
-                        return applications.some(app => app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'grantee');
+                        return applications.some(app => {
+                            const st = (app.status || '').toLowerCase();
+                            return st === 'approved' || st === 'grantee';
+                        });
                     }
-                    return profile && profile.is_approved === true;
+                    return pProfile && pProfile.is_approved === true;
                 }
 
                 if (audStr.includes('pending')) {
                     if (applications && applications.length > 0) {
-                        return applications.some(app => app.status.toLowerCase() === 'pending');
+                        return applications.some(app => (app.status || '').toLowerCase() === 'pending');
                     }
-                    return profile && profile.is_approved === false;
+                    return pProfile && pProfile.is_approved === false;
                 }
 
                 if (audStr.includes('rejected')) {
                     if (applications && applications.length > 0) {
-                        return applications.some(app => app.status.toLowerCase() === 'rejected');
+                        return applications.some(app => (app.status || '').toLowerCase() === 'rejected');
                     }
                     return false;
                 }
@@ -798,16 +818,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return false;
             }
 
-            function getCategoryIcon(category) {
-                if (!category) return { icon: '📢', cssClass: 'icon-cat-general' };
-                const cat = category.toLowerCase();
-                if (cat.includes('educational assistance') || cat.includes('scholarship')) return { icon: '🎓', cssClass: 'icon-cat-edu' };
-                if (cat.includes('reminder') || cat.includes('deadline')) return { icon: '📅', cssClass: 'icon-cat-reminder' };
-                if (cat.includes('event')) return { icon: '🗓️', cssClass: 'icon-cat-event' };
-                return { icon: '📢', cssClass: 'icon-cat-general' };
-            }
-
-            let filtered = announcements.filter(ann => isAudienceMatch(ann, profile, userApps || []));
+            const userApps = applicationsData || [];
+            let filtered = announcements.filter(ann => isAudienceMatch(ann, profile, userApps));
 
             if (filtered.length === 0) {
                 container.innerHTML = `<div class="list-empty-state">No announcements available for you at the moment.</div>`;
@@ -816,19 +828,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             container.innerHTML = '';
 
-            filtered.slice(0, 5).forEach(ann => {
+            // Show top 3 announcements on dashboard
+            filtered.slice(0, 3).forEach(ann => {
                 const dateStr = new Date(ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+                // Strip HTML cleanly and truncate
                 let tempDiv = document.createElement("div");
                 tempDiv.innerHTML = ann.content || "";
                 let excerpt = tempDiv.textContent || tempDiv.innerText || "";
-                if (excerpt.length > 80) excerpt = excerpt.substring(0, 80) + '...';
+                excerpt = excerpt.replace(/\s+/g, ' ').trim();
+                if (excerpt.length > 85) excerpt = excerpt.substring(0, 85) + '...';
+                if (!excerpt) excerpt = 'Click to read full announcement details.';
+
+                const isPinned = ann.is_pinned === true;
+                const pinnedBadge = isPinned ? `<span class="badge-pinned-tag"><i data-lucide="pin" style="width: 11px; height: 11px;"></i> Pinned</span>` : '';
 
                 container.innerHTML += `
-                    <div class="list-item announcement-list-item" style="cursor:pointer;" onclick="window.location.href='student-announcements.html?id=${ann.id}'">
+                    <div class="list-item announcement-list-item" style="cursor:pointer;" onclick="openAnnouncementDetails('${ann.id}')">
                         <div class="item-icon icon-announcement-item"><i data-lucide="megaphone"></i></div>
                         <div class="item-details">
-                            <h4>${ann.title || 'Untitled'}</h4>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                                <h4>${ann.title || 'Untitled Announcement'}</h4>
+                                ${pinnedBadge}
+                            </div>
                             <p>${excerpt}</p>
                         </div>
                         <div class="item-meta">
@@ -847,6 +869,108 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     }
+
+    // --- ANNOUNCEMENT DETAILS MODAL ON DASHBOARD ---
+    window.openAnnouncementDetails = async function (annId) {
+        try {
+            const { data: ann, error } = await window.supabaseClient
+                .from('announcements')
+                .select('*, profiles:author_id ( first_name, last_name, avatar_url, role )')
+                .eq('id', annId)
+                .single();
+
+            if (error || !ann) {
+                console.error("Error fetching announcement details:", error);
+                window.location.href = `student-announcements.html?id=${annId}`;
+                return;
+            }
+
+            const existingModal = document.getElementById('ann-details-modal');
+            if (existingModal) existingModal.remove();
+
+            const dateStr = new Date(ann.created_at).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            let authorName = "Scholarship Coordinator";
+            if (ann.profiles) {
+                authorName = `${ann.profiles.first_name || ''} ${ann.profiles.last_name || ''}`.trim() || authorName;
+            }
+
+            const isPinned = ann.is_pinned === true;
+            const pinnedBadge = isPinned ? `<span class="badge-status badge-approved" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="pin" style="width:12px;height:12px;"></i> Pinned</span>` : '';
+
+            // Handle images
+            let imageUrls = ann.image_urls;
+            if (typeof imageUrls === 'string') {
+                try { imageUrls = JSON.parse(imageUrls); } catch (e) { imageUrls = imageUrls ? [imageUrls] : []; }
+            }
+            if (!Array.isArray(imageUrls)) imageUrls = [];
+
+            let imagesHTML = '';
+            if (imageUrls.length > 0) {
+                imagesHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;">
+                        ${imageUrls.map(url => `
+                            <a href="${url}" target="_blank" style="display: block; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color);">
+                                <img src="${url}" alt="Announcement attachment" style="width: 100%; height: 160px; object-fit: cover; display: block;">
+                            </a>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            const modalHTML = `
+                <div id="ann-details-modal" class="modal-overlay-custom">
+                    <div class="modal-dialog-custom" style="max-width: 680px;">
+                        <div class="modal-header-custom">
+                            <div>
+                                <h2>${ann.title || 'Announcement'}</h2>
+                                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px;">
+                                    <span style="font-size: 13px; color: var(--text-muted);"><i data-lucide="calendar" style="width:13px; height:13px; display:inline-block; vertical-align:middle; margin-right:3px;"></i>${dateStr}</span>
+                                    <span style="font-size: 13px; color: var(--text-muted);">&bull;</span>
+                                    <span style="font-size: 13px; color: var(--text-muted);"><i data-lucide="user" style="width:13px; height:13px; display:inline-block; vertical-align:middle; margin-right:3px;"></i>${authorName}</span>
+                                    ${pinnedBadge}
+                                </div>
+                            </div>
+                            <button class="modal-close-btn" onclick="document.getElementById('ann-details-modal')?.remove()" aria-label="Close modal">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body-custom">
+                            <div class="announcement-modal-body-content" style="font-size: 14.5px; line-height: 1.65; color: var(--text-main); word-break: break-word;">
+                                ${ann.content || '<p style="color:var(--text-muted);">No content.</p>'}
+                            </div>
+                            ${imagesHTML}
+                        </div>
+                        <div class="modal-footer-custom" style="display: flex; justify-content: space-between; align-items: center; padding: 18px 28px; border-top: 1px solid var(--border-color); background: var(--card-bg);">
+                            <a href="student-announcements.html?id=${ann.id}" class="btn-apply" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; font-size: 13.5px;">
+                                <i data-lucide="message-square" style="width: 15px; height: 15px;"></i> View & Discuss
+                            </a>
+                            <button type="button" class="btn-modal-close" onclick="document.getElementById('ann-details-modal')?.remove()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            if (window.lucide) { window.lucide.createIcons(); }
+
+            const modalEl = document.getElementById('ann-details-modal');
+            if (modalEl) {
+                modalEl.addEventListener('click', (e) => {
+                    if (e.target === modalEl) modalEl.remove();
+                });
+            }
+        } catch (err) {
+            console.error("Error opening announcement details:", err);
+            window.location.href = `student-announcements.html?id=${annId}`;
+        }
+    };
 
     // --- INIT ---
     loadProfile();

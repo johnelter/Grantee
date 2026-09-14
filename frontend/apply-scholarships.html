@@ -9,7 +9,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="css/student-theme.css">
-    <link rel="stylesheet" href="css/apply-scholarships.css">
+    <link rel="stylesheet" href="css/apply-scholarships.css?v=2">
     <link rel="stylesheet" href="css/student-sidebar.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -289,7 +289,10 @@
                                         </div>
                                     </div>
                                     <div id="ocr-documents-container" class="documents-container">
-                                        <!-- Populated by JS -->
+                                        <p class="no-docs-message" style="font-size: 13.5px; color: var(--text-muted); padding: 14px 18px; background: var(--bg-card-secondary); border: 1px solid var(--border-color); border-radius: 8px; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+                                            <i data-lucide="file-check-2" style="width: 18px; height: 18px; color: var(--palette-moss-green, #6B7F4E); flex-shrink: 0;"></i>
+                                            <span>No documents required.</span>
+                                        </p>
                                     </div>
                                 </div>
 
@@ -333,7 +336,7 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/components/student-notifications.js"></script>
     <script src="js/components/ai-assistant.js"></script>
-    <script src="js/apply-scholarships.js"></script>
+    <script src="js/apply-scholarships.js?v=3"></script>
     <script src="js/student-sidebar-loader.js"></script>
 </body>
 

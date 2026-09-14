@@ -181,12 +181,29 @@
   animation: globalModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#logout-modal .global-modal-icon {
-  font-size: 42px;
+#logout-modal .global-modal-icon,
+.global-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: rgba(239, 68, 68, 0.12);
   color: #ef4444;
-  margin-bottom: 16px;
-  display: inline-block;
+  margin: 0 auto 16px auto;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
+  font-size: 24px;
+}
+
+#logout-modal .global-modal-icon svg,
+#logout-modal .global-modal-icon i,
+.global-modal-icon svg,
+.global-modal-icon i {
+  width: 28px;
+  height: 28px;
+  display: block;
+  margin: auto;
 }
 
 #logout-modal .global-modal-content h3,

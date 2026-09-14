@@ -1278,32 +1278,60 @@
         }
     });
 
-    window.deleteComment = async (commentId) => {
-        const confirmAction = await Swal.fire({
-            title: 'Delete Student Comment?',
-            text: "Are you sure you want to permanently delete this student's comment? This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it!',
-            customClass: {
-                popup: 'swal-nature-popup'
-            }
-        });
+    let pendingDeleteCommentId = null;
 
-        if (confirmAction.isConfirmed) {
-            try {
-                await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
-                const annId = currentSelectedAnnId;
-                const ann = allAnnouncements.find(a => a.id === annId);
-                window.loadComments(annId, ann ? ann.allow_comments !== false : true);
-                showUIToast('success', 'Comment Deleted', 'The comment has been removed.');
-            } catch (err) {
-                showUIToast('error', 'Error', 'Failed to delete comment.');
-            }
+    window.deleteComment = (commentId) => {
+        pendingDeleteCommentId = commentId;
+        const deleteCommentModal = document.getElementById('delete-comment-modal');
+        if (deleteCommentModal) {
+            deleteCommentModal.style.display = 'flex';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     };
+
+    document.getElementById('btn-cancel-delete-comment')?.addEventListener('click', () => {
+        const deleteCommentModal = document.getElementById('delete-comment-modal');
+        if (deleteCommentModal) deleteCommentModal.style.display = 'none';
+        pendingDeleteCommentId = null;
+    });
+
+    document.getElementById('delete-comment-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'delete-comment-modal') {
+            document.getElementById('delete-comment-modal').style.display = 'none';
+            pendingDeleteCommentId = null;
+        }
+    });
+
+    document.getElementById('btn-confirm-delete-comment')?.addEventListener('click', async () => {
+        const commentId = pendingDeleteCommentId;
+        if (!commentId) return;
+
+        const confirmBtn = document.getElementById('btn-confirm-delete-comment');
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i data-lucide="loader-2" class="spin-icon" style="width:15px; height:15px;"></i> Deleting...';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+
+        try {
+            await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
+            const annId = currentSelectedAnnId;
+            const ann = allAnnouncements.find(a => a.id === annId);
+            window.loadComments(annId, ann ? ann.allow_comments !== false : true);
+
+            const deleteCommentModal = document.getElementById('delete-comment-modal');
+            if (deleteCommentModal) deleteCommentModal.style.display = 'none';
+
+            showUIToast('success', 'Comment Deleted', 'The comment has been removed.');
+        } catch (err) {
+            console.error("Error deleting comment:", err);
+            showUIToast('error', 'Error', 'Failed to delete comment.');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+            pendingDeleteCommentId = null;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+    });
 
     // ==========================================
     // 10. NOTIFICATION HELPER
@@ -1442,40 +1470,66 @@
         }
     };
 
-    window.deleteAnnouncement = async (id) => {
+    let pendingDeleteAnnId = null;
+
+    window.deleteAnnouncement = (id) => {
         window.closeAllAnnouncementOptions();
-        const confirmDelete = await Swal.fire({
-            title: 'Delete Announcement?',
-            text: "This will permanently delete this announcement and all its comments. This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it!',
-            customClass: {
-                popup: 'swal-nature-popup'
-            }
-        });
-
-        if (confirmDelete.isConfirmed) {
-            try {
-                await window.supabaseClient.from('announcement_comments').delete().eq('announcement_id', id);
-                await window.supabaseClient.from('announcement_reads').delete().eq('announcement_id', id);
-                await window.supabaseClient.from('announcements').delete().eq('id', id);
-
-                showUIToast('success', 'Announcement Deleted', 'Post has been permanently deleted.');
-                fetchAnnouncements();
-
-                const annModal = document.getElementById('announcement-modal');
-                if (annModal && annModal.style.display !== 'none' && currentSelectedAnnId === id) {
-                    annModal.style.display = 'none';
-                }
-            } catch (err) {
-                console.error("Error deleting:", err);
-                showUIToast('error', 'Error', 'Failed to delete announcement.');
-            }
+        pendingDeleteAnnId = id;
+        const deleteModal = document.getElementById('delete-announcement-modal');
+        if (deleteModal) {
+            deleteModal.style.display = 'flex';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     };
+
+    document.getElementById('btn-cancel-delete-ann')?.addEventListener('click', () => {
+        const deleteModal = document.getElementById('delete-announcement-modal');
+        if (deleteModal) deleteModal.style.display = 'none';
+        pendingDeleteAnnId = null;
+    });
+
+    document.getElementById('delete-announcement-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'delete-announcement-modal') {
+            document.getElementById('delete-announcement-modal').style.display = 'none';
+            pendingDeleteAnnId = null;
+        }
+    });
+
+    document.getElementById('btn-confirm-delete-ann')?.addEventListener('click', async () => {
+        const id = pendingDeleteAnnId;
+        if (!id) return;
+
+        const confirmBtn = document.getElementById('btn-confirm-delete-ann');
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i data-lucide="loader-2" class="spin-icon" style="width:15px; height:15px;"></i> Deleting...';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+
+        try {
+            await window.supabaseClient.from('announcement_comments').delete().eq('announcement_id', id);
+            await window.supabaseClient.from('announcement_reads').delete().eq('announcement_id', id);
+            await window.supabaseClient.from('announcements').delete().eq('id', id);
+
+            const deleteModal = document.getElementById('delete-announcement-modal');
+            if (deleteModal) deleteModal.style.display = 'none';
+
+            showUIToast('success', 'Announcement Deleted', 'Post has been permanently deleted.');
+            fetchAnnouncements();
+
+            const annModal = document.getElementById('announcement-modal');
+            if (annModal && annModal.style.display !== 'none' && currentSelectedAnnId === id) {
+                annModal.style.display = 'none';
+            }
+        } catch (err) {
+            console.error("Error deleting:", err);
+            showUIToast('error', 'Error', 'Failed to delete announcement.');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+            pendingDeleteAnnId = null;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+    });
 
     // ==========================================
     // 9. LIGHTBOX / MEDIA VIEWER LOGIC

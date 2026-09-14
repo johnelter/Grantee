@@ -25,7 +25,7 @@
                         }
                     }
                 }
-            } catch(e) {}
+            } catch (e) { }
             var theme = localStorage.getItem('grantee_student_theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
@@ -45,7 +45,7 @@
                 <!-- Left Side: Titles (Greeting & School with Skeleton) -->
                 <div class="header-left">
                     <div class="header-titles is-loading" id="header-titles-box">
-                        <h1 id="welcome-text">Welcome back, Student! 👋</h1>
+                        <h1 id="welcome-text">Welcome back, Student!</h1>
                         <p id="student-school-display" class="student-school-text">&nbsp;</p>
                     </div>
                 </div>
@@ -53,13 +53,15 @@
                 <!-- Right Side: Notifications, Profile Dropdown, & Mobile Menu -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
                     <!-- Notifications -->
                     <div class="notification-wrapper">
-                        <button class="btn-notification" id="notification-bell" type="button" aria-label="Notifications">
+                        <button class="btn-notification" id="notification-bell" type="button"
+                            aria-label="Notifications">
                             <i data-lucide="bell"></i>
                             <span class="badge" id="notification-badge" style="display:none;">0</span>
                         </button>
@@ -86,12 +88,14 @@
                         <div class="profile-dropdown-menu" id="profile-menu">
                             <a href="profile-settings.html"><i data-lucide="user"></i> Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    data-lucide="log-out"></i> Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu"></i>
                     </button>
                 </div>
@@ -112,7 +116,8 @@
                                         <div class="stat-icon icon-submitted"><i data-lucide="file-text"></i></div>
                                         <div class="stat-value is-loading" id="stat-submitted">&nbsp;</div>
                                         <div class="stat-label">Submitted</div>
-                                        <a href="student-applications.html?filter=all" class="stat-link link-submitted">View
+                                        <a href="student-applications.html?filter=all"
+                                            class="stat-link link-submitted">View
                                             Details</a>
                                     </div>
                                     <div class="stat-card">
@@ -120,7 +125,7 @@
                                         <div class="stat-value is-loading" id="stat-review">&nbsp;</div>
                                         <div class="stat-label">Under Review</div>
                                         <a href="student-applications.html?filter=under_review"
-                                             class="stat-link link-review">View Details</a>
+                                            class="stat-link link-review">View Details</a>
                                     </div>
                                     <div class="stat-card">
                                         <div class="stat-icon icon-approved"><i data-lucide="check-circle-2"></i></div>

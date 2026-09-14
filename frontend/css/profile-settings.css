@@ -20,16 +20,16 @@
 [data-theme="light"] {
   /* Nature Brand Tokens */
   --forest-shade: #1F3D2E;
-  --moss-green:   #6B7F4E;
-  --fern-green:   #588157;
-  --sage-mist:    #A2B5A0;
-  --light-sage:   #A3B18A;
-  --sand-beige:   #DCC8A3;
-  --linen-sand:   #DAD7CD;
-  --river-blue:   #4C6A73;
-  --earth-brown:  #5A4A3A;
-  --forest-pine:  #3A5A40;
-  --hunter-dark:  #344E41;
+  --moss-green: #6B7F4E;
+  --fern-green: #588157;
+  --sage-mist: #A2B5A0;
+  --light-sage: #A3B18A;
+  --sand-beige: #DCC8A3;
+  --linen-sand: #DAD7CD;
+  --river-blue: #4C6A73;
+  --earth-brown: #5A4A3A;
+  --forest-pine: #3A5A40;
+  --hunter-dark: #344E41;
 
   /* Surfaces & Layout */
   --bg-main: #F4F6F2;
@@ -112,14 +112,14 @@
 body.dark-theme {
   /* Nature Brand Tokens */
   --forest-shade: #1F3D2E;
-  --moss-green:   #819B61;
-  --fern-green:   #6D9E6C;
-  --sage-mist:    #A2B5A0;
-  --light-sage:   #A3B18A;
-  --sand-beige:   #DCC8A3;
-  --linen-sand:   #DAD7CD;
-  --river-blue:   #6A909C;
-  --earth-brown:  #8C7561;
+  --moss-green: #819B61;
+  --fern-green: #6D9E6C;
+  --sage-mist: #A2B5A0;
+  --light-sage: #A3B18A;
+  --sand-beige: #DCC8A3;
+  --linen-sand: #DAD7CD;
+  --river-blue: #6A909C;
+  --earth-brown: #8C7561;
 
   /* Surfaces & Backgrounds */
   --bg-main: #101B14;
@@ -207,7 +207,12 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text-heading);
   margin: 0;
 }
@@ -271,9 +276,9 @@ svg.lucide,
   margin-top: 16px;
 }
 
-.mt-20 {
+/* .mt-20 {
   margin-top: 20px;
-}
+} */
 
 .mt-24 {
   margin-top: 24px;
@@ -421,8 +426,13 @@ svg.lucide,
    5. SKELETON SHIMMER LOADING ENGINE
 ========================================================= */
 @keyframes profileSkeletonShimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes profileFadeIn {
@@ -430,6 +440,7 @@ svg.lucide,
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1146,8 +1157,13 @@ svg.lucide,
 }
 
 @keyframes globalModalOverlayFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes globalModalFadeIn {
@@ -1155,6 +1171,7 @@ svg.lucide,
     opacity: 0;
     transform: scale(0.94) translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -1227,10 +1244,21 @@ svg.lucide,
   border-bottom-left-radius: 12px;
 }
 
-.custom-ui-toast.toast-success .toast-left-bar { background-color: #22c55e; }
-.custom-ui-toast.toast-error .toast-left-bar { background-color: #ef4444; }
-.custom-ui-toast.toast-info .toast-left-bar { background-color: #3b82f6; }
-.custom-ui-toast.toast-warning .toast-left-bar { background-color: #f59e0b; }
+.custom-ui-toast.toast-success .toast-left-bar {
+  background-color: #22c55e;
+}
+
+.custom-ui-toast.toast-error .toast-left-bar {
+  background-color: #ef4444;
+}
+
+.custom-ui-toast.toast-info .toast-left-bar {
+  background-color: #3b82f6;
+}
+
+.custom-ui-toast.toast-warning .toast-left-bar {
+  background-color: #f59e0b;
+}
 
 /* Circular Filled Icon Badge */
 .custom-ui-toast .toast-icon-wrapper {
@@ -1245,10 +1273,21 @@ svg.lucide,
   color: #FFFFFF;
 }
 
-.custom-ui-toast.toast-success .toast-icon-wrapper { background-color: #22c55e; }
-.custom-ui-toast.toast-error .toast-icon-wrapper { background-color: #ef4444; }
-.custom-ui-toast.toast-info .toast-icon-wrapper { background-color: #3b82f6; }
-.custom-ui-toast.toast-warning .toast-icon-wrapper { background-color: #f59e0b; }
+.custom-ui-toast.toast-success .toast-icon-wrapper {
+  background-color: #22c55e;
+}
+
+.custom-ui-toast.toast-error .toast-icon-wrapper {
+  background-color: #ef4444;
+}
+
+.custom-ui-toast.toast-info .toast-icon-wrapper {
+  background-color: #3b82f6;
+}
+
+.custom-ui-toast.toast-warning .toast-icon-wrapper {
+  background-color: #f59e0b;
+}
 
 .custom-ui-toast .toast-icon-wrapper svg {
   display: block;

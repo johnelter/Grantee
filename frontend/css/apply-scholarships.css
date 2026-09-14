@@ -1181,6 +1181,29 @@ input[type="number"] {
   gap: 18px;
 }
 
+.no-docs-message {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--bg-card-secondary, #EDF2EB);
+  border: 1.5px dashed var(--border-dark, #C8D3C4);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted, #586F62);
+  margin: 4px 0 14px 0;
+  line-height: 1.5;
+}
+
+.no-docs-message i,
+.no-docs-message svg {
+  color: var(--palette-moss-green, #6B7F4E);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .preview-doc-box {
   border: 1.5px dashed var(--border-dark);
   padding: 24px;

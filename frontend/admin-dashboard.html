@@ -63,9 +63,7 @@
                 <!-- Titles Section -->
                 <div class="header-titles-wrapper">
                     <div class="header-titles is-loading" id="header-titles-box">
-                        <h1>Dashboard <i data-lucide="hand"
-                                style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: #eab308; stroke-width: 2.2;"></i>
-                        </h1>
+                        <h1>Dashboard </h1>
                         <p class="welcome-text">Welcome back, Educational Assistance Coordinator!</p>
                         <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
                             <i data-lucide="school"
@@ -133,7 +131,8 @@
                             <option value="Custom Date Range">Custom Date Range</option>
                         </select>
                         <div id="custom-date-wrapper" class="custom-date-wrapper hidden">
-                            <div class="custom-date-input-box" id="custom-date-input-box" title="Click to choose date range">
+                            <div class="custom-date-input-box" id="custom-date-input-box"
+                                title="Click to choose date range">
                                 <span class="date-picker-icon-wrapper">
                                     <i data-lucide="calendar-days"></i>
                                 </span>
@@ -155,7 +154,9 @@
 
                 <!-- 4 Top Metric Cards (With Shimmer Skeleton Support & Clickable Modals) -->
                 <section class="metrics-grid">
-                    <div class="metric-card is-clickable is-loading" id="card-metric-scholarships" role="button" tabindex="0" title="Click to view Total Educational Assistance directory and breakdown" onclick="openTotalScholarshipsModal()">
+                    <div class="metric-card is-clickable is-loading" id="card-metric-scholarships" role="button"
+                        tabindex="0" title="Click to view Total Educational Assistance directory and breakdown"
+                        onclick="openTotalScholarshipsModal()">
                         <div class="metric-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -170,7 +171,9 @@
                         </div>
                     </div>
 
-                    <div class="metric-card is-clickable is-loading" id="card-metric-applications" role="button" tabindex="0" title="Click to view Total Applications registry and details" onclick="openTotalApplicationsModal()">
+                    <div class="metric-card is-clickable is-loading" id="card-metric-applications" role="button"
+                        tabindex="0" title="Click to view Total Applications registry and details"
+                        onclick="openTotalApplicationsModal()">
                         <div class="metric-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -184,7 +187,9 @@
                         </div>
                     </div>
 
-                    <div class="metric-card is-clickable is-loading" id="card-metric-pending" role="button" tabindex="0" title="Click to view Pending Review and Under Evaluation queue" onclick="openPendingReviewModal()">
+                    <div class="metric-card is-clickable is-loading" id="card-metric-pending" role="button" tabindex="0"
+                        title="Click to view Pending Review and Under Evaluation queue"
+                        onclick="openPendingReviewModal()">
                         <div class="metric-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -198,7 +203,9 @@
                         </div>
                     </div>
 
-                    <div class="metric-card is-clickable is-loading" id="card-metric-outcomes" role="button" tabindex="0" title="Click to view Approved vs Rejected processed decisions" onclick="openProcessedOutcomesModal()">
+                    <div class="metric-card is-clickable is-loading" id="card-metric-outcomes" role="button"
+                        tabindex="0" title="Click to view Approved vs Rejected processed decisions"
+                        onclick="openProcessedOutcomesModal()">
                         <div class="metric-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -346,7 +353,8 @@
                 <div class="dashboard-row">
                     <div class="data-panel">
                         <div class="panel-header">
-                            <h3 class="panel-title"><i data-lucide="bar-chart-3"></i> Educational Assistance Performance (Approval
+                            <h3 class="panel-title"><i data-lucide="bar-chart-3"></i> Educational Assistance Performance
+                                (Approval
                                 Rates)</h3>
                         </div>
                         <div class="bar-chart-wrapper">
@@ -508,7 +516,8 @@
                             <h3 class="applicants-modal-title">Total Educational Assistance Directory</h3>
                             <span id="modal-mschol-badge" class="audit-module-badge">All Programs</span>
                         </div>
-                        <p class="applicants-modal-subtitle">Overview of all educational assistance programs, allocated slots, and status</p>
+                        <p class="applicants-modal-subtitle">Overview of all educational assistance programs, allocated
+                            slots, and status</p>
                     </div>
                 </div>
                 <button class="modal-close-icon-btn" onclick="closeTotalScholarshipsModal()" title="Close modal">
@@ -531,10 +540,14 @@
                         placeholder="Search educational assistance by name, category, batch, or semester...">
                 </div>
                 <div class="modal-status-tabs" id="modal-mschol-tabs">
-                    <button class="modal-status-tab active" data-status="All">All (<span id="modal-mschol-tab-all">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Active">Active (<span id="modal-mschol-tab-active">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Upcoming">Upcoming (<span id="modal-mschol-tab-upcoming">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Closed">Closed (<span id="modal-mschol-tab-closed">0</span>)</button>
+                    <button class="modal-status-tab active" data-status="All">All (<span
+                            id="modal-mschol-tab-all">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Active">Active (<span
+                            id="modal-mschol-tab-active">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Upcoming">Upcoming (<span
+                            id="modal-mschol-tab-upcoming">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Closed">Closed (<span
+                            id="modal-mschol-tab-closed">0</span>)</button>
                 </div>
             </div>
 
@@ -563,7 +576,8 @@
             <!-- Modal Footer -->
             <div class="applicants-modal-footer">
                 <div class="applicants-modal-stats-summary">
-                    <span>Showing <strong id="modal-mschol-showing-count">0</strong> of <strong id="modal-mschol-total-count">0</strong> programs</span>
+                    <span>Showing <strong id="modal-mschol-showing-count">0</strong> of <strong
+                            id="modal-mschol-total-count">0</strong> programs</span>
                 </div>
                 <div class="applicants-modal-footer-actions">
                     <button class="modal-btn-secondary-action" onclick="closeTotalScholarshipsModal()">Close</button>
@@ -571,7 +585,8 @@
                         <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Create New
                     </a>
                     <a href="admin-scholarships.html" class="modal-btn-primary-action" style="text-decoration: none;">
-                        <i data-lucide="external-link" style="width: 15px; height: 15px;"></i> Manage Educational Assistance
+                        <i data-lucide="external-link" style="width: 15px; height: 15px;"></i> Manage Educational
+                        Assistance
                     </a>
                 </div>
             </div>
@@ -594,7 +609,8 @@
                             <h3 class="applicants-modal-title">Total Applications Registry</h3>
                             <span id="modal-mapps-badge" class="audit-module-badge">All Applications</span>
                         </div>
-                        <p id="modal-mapps-subtitle" class="applicants-modal-subtitle">Comprehensive record of all student applications across all programs</p>
+                        <p id="modal-mapps-subtitle" class="applicants-modal-subtitle">Comprehensive record of all
+                            student applications across all programs</p>
                     </div>
                 </div>
                 <button class="modal-close-icon-btn" onclick="closeTotalApplicationsModal()" title="Close modal">
@@ -606,8 +622,10 @@
             <div class="metric-modal-stat-strip">
                 <div class="metric-stat-pill">Total: <strong id="modal-mapps-stat-total">0</strong></div>
                 <div class="metric-stat-pill pill-amber">Pending: <strong id="modal-mapps-stat-pending">0</strong></div>
-                <div class="metric-stat-pill pill-blue">Under Review: <strong id="modal-mapps-stat-review">0</strong></div>
-                <div class="metric-stat-pill pill-green">Approved: <strong id="modal-mapps-stat-approved">0</strong></div>
+                <div class="metric-stat-pill pill-blue">Under Review: <strong id="modal-mapps-stat-review">0</strong>
+                </div>
+                <div class="metric-stat-pill pill-green">Approved: <strong id="modal-mapps-stat-approved">0</strong>
+                </div>
                 <div class="metric-stat-pill pill-red">Rejected: <strong id="modal-mapps-stat-rejected">0</strong></div>
             </div>
 
@@ -619,11 +637,16 @@
                         placeholder="Search by student name, ID, educational assistance, course, or email...">
                 </div>
                 <div class="modal-status-tabs" id="modal-mapps-tabs">
-                    <button class="modal-status-tab active" data-status="All">All (<span id="modal-mapps-tab-all">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Pending">Pending (<span id="modal-mapps-tab-pending">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Under Review">Under Review (<span id="modal-mapps-tab-review">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Approved">Approved (<span id="modal-mapps-tab-approved">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Rejected">Rejected (<span id="modal-mapps-tab-rejected">0</span>)</button>
+                    <button class="modal-status-tab active" data-status="All">All (<span
+                            id="modal-mapps-tab-all">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Pending">Pending (<span
+                            id="modal-mapps-tab-pending">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Under Review">Under Review (<span
+                            id="modal-mapps-tab-review">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Approved">Approved (<span
+                            id="modal-mapps-tab-approved">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Rejected">Rejected (<span
+                            id="modal-mapps-tab-rejected">0</span>)</button>
                 </div>
             </div>
 
@@ -653,7 +676,8 @@
             <!-- Modal Footer -->
             <div class="applicants-modal-footer">
                 <div class="applicants-modal-stats-summary">
-                    <span>Showing <strong id="modal-mapps-showing-count">0</strong> of <strong id="modal-mapps-total-count">0</strong> applications</span>
+                    <span>Showing <strong id="modal-mapps-showing-count">0</strong> of <strong
+                            id="modal-mapps-total-count">0</strong> applications</span>
                 </div>
                 <div class="applicants-modal-footer-actions">
                     <button class="modal-btn-secondary-action" onclick="closeTotalApplicationsModal()">Close</button>
@@ -679,9 +703,12 @@
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <h3 class="applicants-modal-title">Pending Applications Queue</h3>
-                            <span id="modal-mpending-badge" class="audit-module-badge" style="background: rgba(220, 200, 163, 0.3); color: #8C733E; border-color: rgba(220, 200, 163, 0.6);">Action Required</span>
+                            <span id="modal-mpending-badge" class="audit-module-badge"
+                                style="background: rgba(220, 200, 163, 0.3); color: #8C733E; border-color: rgba(220, 200, 163, 0.6);">Action
+                                Required</span>
                         </div>
-                        <p id="modal-mpending-subtitle" class="applicants-modal-subtitle">Applications currently awaiting coordinator screening or evaluation</p>
+                        <p id="modal-mpending-subtitle" class="applicants-modal-subtitle">Applications currently
+                            awaiting coordinator screening or evaluation</p>
                     </div>
                 </div>
                 <button class="modal-close-icon-btn" onclick="closePendingReviewModal()" title="Close modal">
@@ -691,9 +718,12 @@
 
             <!-- Modal Stat Strip -->
             <div class="metric-modal-stat-strip">
-                <div class="metric-stat-pill pill-amber">Total Awaiting: <strong id="modal-mpending-stat-total">0</strong></div>
-                <div class="metric-stat-pill">Pending Screening: <strong id="modal-mpending-stat-pending">0</strong></div>
-                <div class="metric-stat-pill pill-blue">Under Evaluation: <strong id="modal-mpending-stat-review">0</strong></div>
+                <div class="metric-stat-pill pill-amber">Total Awaiting: <strong
+                        id="modal-mpending-stat-total">0</strong></div>
+                <div class="metric-stat-pill">Pending Screening: <strong id="modal-mpending-stat-pending">0</strong>
+                </div>
+                <div class="metric-stat-pill pill-blue">Under Evaluation: <strong
+                        id="modal-mpending-stat-review">0</strong></div>
             </div>
 
             <!-- Modal Filter / Search Controls -->
@@ -704,9 +734,12 @@
                         placeholder="Search pending applicant by name, student ID, educational assistance, course...">
                 </div>
                 <div class="modal-status-tabs" id="modal-mpending-tabs">
-                    <button class="modal-status-tab active" data-status="All">All Awaiting (<span id="modal-mpending-tab-all">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Pending">Pending Screening (<span id="modal-mpending-tab-pending">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Under Review">Under Review (<span id="modal-mpending-tab-review">0</span>)</button>
+                    <button class="modal-status-tab active" data-status="All">All Awaiting (<span
+                            id="modal-mpending-tab-all">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Pending">Pending Screening (<span
+                            id="modal-mpending-tab-pending">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Under Review">Under Review (<span
+                            id="modal-mpending-tab-review">0</span>)</button>
                 </div>
             </div>
 
@@ -736,11 +769,13 @@
             <!-- Modal Footer -->
             <div class="applicants-modal-footer">
                 <div class="applicants-modal-stats-summary">
-                    <span>Showing <strong id="modal-mpending-showing-count">0</strong> of <strong id="modal-mpending-total-count">0</strong> awaiting evaluation</span>
+                    <span>Showing <strong id="modal-mpending-showing-count">0</strong> of <strong
+                            id="modal-mpending-total-count">0</strong> awaiting evaluation</span>
                 </div>
                 <div class="applicants-modal-footer-actions">
                     <button class="modal-btn-secondary-action" onclick="closePendingReviewModal()">Close</button>
-                    <a href="admin-applications.html?status=Pending" class="modal-btn-primary-action" style="text-decoration: none;">
+                    <a href="admin-applications.html?status=Pending" class="modal-btn-primary-action"
+                        style="text-decoration: none;">
                         <i data-lucide="clipboard-check" style="width: 15px; height: 15px;"></i> Evaluate Applications
                     </a>
                 </div>
@@ -764,7 +799,8 @@
                             <h3 class="applicants-modal-title">Processed Decisions (Approved & Rejected)</h3>
                             <span id="modal-moutcomes-badge" class="audit-module-badge">Final Outcomes</span>
                         </div>
-                        <p id="modal-moutcomes-subtitle" class="applicants-modal-subtitle">Processed application decisions, granted assistance, and rejected records</p>
+                        <p id="modal-moutcomes-subtitle" class="applicants-modal-subtitle">Processed application
+                            decisions, granted assistance, and rejected records</p>
                     </div>
                 </div>
                 <button class="modal-close-icon-btn" onclick="closeProcessedOutcomesModal()" title="Close modal">
@@ -775,8 +811,11 @@
             <!-- Modal Stat Strip -->
             <div class="metric-modal-stat-strip">
                 <div class="metric-stat-pill">Total Decided: <strong id="modal-moutcomes-stat-total">0</strong></div>
-                <div class="metric-stat-pill pill-green">Approved Grantees: <strong id="modal-moutcomes-stat-approved">0</strong> (<span id="modal-moutcomes-pct-approved">0%</span>)</div>
-                <div class="metric-stat-pill pill-red">Rejected: <strong id="modal-moutcomes-stat-rejected">0</strong> (<span id="modal-moutcomes-pct-rejected">0%</span>)</div>
+                <div class="metric-stat-pill pill-green">Approved Grantees: <strong
+                        id="modal-moutcomes-stat-approved">0</strong> (<span
+                        id="modal-moutcomes-pct-approved">0%</span>)</div>
+                <div class="metric-stat-pill pill-red">Rejected: <strong id="modal-moutcomes-stat-rejected">0</strong>
+                    (<span id="modal-moutcomes-pct-rejected">0%</span>)</div>
             </div>
 
             <!-- Modal Filter / Search Controls -->
@@ -787,9 +826,12 @@
                         placeholder="Search processed applicant by name, ID, educational assistance, course...">
                 </div>
                 <div class="modal-status-tabs" id="modal-moutcomes-tabs">
-                    <button class="modal-status-tab active" data-status="All">All Decisions (<span id="modal-moutcomes-tab-all">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Approved">Approved Only (<span id="modal-moutcomes-tab-approved">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Rejected">Rejected Only (<span id="modal-moutcomes-tab-rejected">0</span>)</button>
+                    <button class="modal-status-tab active" data-status="All">All Decisions (<span
+                            id="modal-moutcomes-tab-all">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Approved">Approved Only (<span
+                            id="modal-moutcomes-tab-approved">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Rejected">Rejected Only (<span
+                            id="modal-moutcomes-tab-rejected">0</span>)</button>
                 </div>
             </div>
 
@@ -819,11 +861,13 @@
             <!-- Modal Footer -->
             <div class="applicants-modal-footer">
                 <div class="applicants-modal-stats-summary">
-                    <span>Showing <strong id="modal-moutcomes-showing-count">0</strong> of <strong id="modal-moutcomes-total-count">0</strong> processed records</span>
+                    <span>Showing <strong id="modal-moutcomes-showing-count">0</strong> of <strong
+                            id="modal-moutcomes-total-count">0</strong> processed records</span>
                 </div>
                 <div class="applicants-modal-footer-actions">
                     <button class="modal-btn-secondary-action" onclick="closeProcessedOutcomesModal()">Close</button>
-                    <a href="admin-active-scholars.html" class="modal-btn-secondary-action" style="text-decoration: none;">
+                    <a href="admin-active-scholars.html" class="modal-btn-secondary-action"
+                        style="text-decoration: none;">
                         <i data-lucide="users" style="width: 14px; height: 14px;"></i> View Active Scholars
                     </a>
                     <a href="admin-applications.html" class="modal-btn-primary-action" style="text-decoration: none;">
@@ -845,7 +889,8 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 id="modal-schol-title" class="applicants-modal-title">Educational Assistance Program</h3>
+                            <h3 id="modal-schol-title" class="applicants-modal-title">Educational Assistance Program
+                            </h3>
                             <span id="modal-schol-category" class="audit-module-badge">Category</span>
                         </div>
                         <p id="modal-schol-subtitle" class="applicants-modal-subtitle">Educational Assistance Program

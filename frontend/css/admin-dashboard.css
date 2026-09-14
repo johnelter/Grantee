@@ -1515,22 +1515,29 @@ span.flatpickr-weekday {
     animation: globalModalFadeIn 0.3s ease;
 }
 
+#logout-modal .global-modal-icon,
 .global-modal-icon {
     width: 56px;
     height: 56px;
     border-radius: 50%;
     background-color: rgba(217, 72, 65, 0.12);
     color: #D94841;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     margin: 0 auto 16px auto;
+    line-height: 1;
+    font-size: 24px;
 }
 
+#logout-modal .global-modal-icon i,
+#logout-modal .global-modal-icon svg,
 .global-modal-icon i,
 .global-modal-icon svg {
     width: 28px;
     height: 28px;
+    display: block;
+    margin: auto;
 }
 
 .global-modal-content h3 {

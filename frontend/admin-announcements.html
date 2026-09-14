@@ -20,7 +20,7 @@
 
     <!-- Global & Page CSS -->
     <link rel="stylesheet" href="css/admin-global.css">
-    <link rel="stylesheet" href="css/admin-announcements.css">
+    <link rel="stylesheet" href="css/admin-announcements.css?v=4">
 
     <!-- Immediate Theme Application to Avoid Flash -->
     <script>
@@ -111,58 +111,6 @@
                     <button class="btn-primary" id="btn-trigger-post" onclick="window.openCreateModal ? window.openCreateModal() : null">
                         <i data-lucide="plus"></i> <span>Create Announcement</span>
                     </button>
-                </div>
-
-                <!-- STATS CARDS ROW (With Nature Palette & Skeleton Loading) -->
-                <div class="stats-grid">
-                    <div class="stat-card is-loading" id="card-stat-total">
-                        <div class="stat-info">
-                            <span class="stat-label">Total Announcements</span>
-                            <h2 class="stat-value" id="stat-total">&nbsp;</h2>
-                            <span class="stat-sub">All time</span>
-                        </div>
-                        <div class="stat-icon icon-total"><i data-lucide="file-text"></i></div>
-                    </div>
-                    <div class="stat-card is-loading" id="card-stat-published">
-                        <div class="stat-info">
-                            <span class="stat-label">Published</span>
-                            <h2 class="stat-value" id="stat-published">&nbsp;</h2>
-                            <span class="stat-sub">Active & visible</span>
-                        </div>
-                        <div class="stat-icon icon-published"><i data-lucide="send"></i></div>
-                    </div>
-                    <div class="stat-card is-loading" id="card-stat-scheduled">
-                        <div class="stat-info">
-                            <span class="stat-label">Scheduled</span>
-                            <h2 class="stat-value" id="stat-scheduled">&nbsp;</h2>
-                            <span class="stat-sub">Upcoming posts</span>
-                        </div>
-                        <div class="stat-icon icon-scheduled"><i data-lucide="calendar-clock"></i></div>
-                    </div>
-                    <div class="stat-card is-loading" id="card-stat-drafts">
-                        <div class="stat-info">
-                            <span class="stat-label">Drafts</span>
-                            <h2 class="stat-value" id="stat-drafts">&nbsp;</h2>
-                            <span class="stat-sub">Unpublished</span>
-                        </div>
-                        <div class="stat-icon icon-drafts"><i data-lucide="file-edit"></i></div>
-                    </div>
-                    <div class="stat-card is-loading" id="card-stat-archived">
-                        <div class="stat-info">
-                            <span class="stat-label">Archived</span>
-                            <h2 class="stat-value" id="stat-archived">&nbsp;</h2>
-                            <span class="stat-sub">Closed / Expired</span>
-                        </div>
-                        <div class="stat-icon icon-archived"><i data-lucide="archive"></i></div>
-                    </div>
-                    <div class="stat-card is-loading" id="card-stat-comments">
-                        <div class="stat-info">
-                            <span class="stat-label">Total Comments</span>
-                            <h2 class="stat-value" id="stat-comments">&nbsp;</h2>
-                            <span class="stat-sub">Student queries</span>
-                        </div>
-                        <div class="stat-icon icon-comments"><i data-lucide="message-square"></i></div>
-                    </div>
                 </div>
 
                 <!-- FILTER BAR -->
@@ -575,6 +523,48 @@
         </div>
     </div>
 
+    <!-- DELETE ANNOUNCEMENT CONFIRMATION MODAL -->
+    <div id="delete-announcement-modal" class="global-modal-overlay" style="display: none; z-index: 100050;">
+        <div class="global-modal-content delete-modal-box">
+            <div class="delete-modal-icon">
+                <i data-lucide="trash-2"></i>
+            </div>
+            <h3 class="delete-modal-title">Delete Announcement?</h3>
+            <p class="delete-modal-desc">
+                This will permanently delete this announcement and all its comments. This action cannot be undone.
+            </p>
+            <div class="global-modal-actions">
+                <button type="button" id="btn-cancel-delete-ann" class="global-btn-cancel">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-delete-ann" class="global-btn-confirm">
+                    <i data-lucide="trash-2"></i> Yes, delete it!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE COMMENT CONFIRMATION MODAL -->
+    <div id="delete-comment-modal" class="global-modal-overlay" style="display: none; z-index: 100050;">
+        <div class="global-modal-content delete-modal-box">
+            <div class="delete-modal-icon">
+                <i data-lucide="trash-2"></i>
+            </div>
+            <h3 class="delete-modal-title">Delete Student Comment?</h3>
+            <p class="delete-modal-desc">
+                Are you sure you want to permanently delete this student's comment? This action cannot be undone.
+            </p>
+            <div class="global-modal-actions">
+                <button type="button" id="btn-cancel-delete-comment" class="global-btn-cancel">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-delete-comment" class="global-btn-confirm">
+                    <i data-lucide="trash-2"></i> Yes, delete it!
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Media Viewer Modal (Lightbox & Document Viewer) -->
     <div id="media-viewer-modal" class="global-modal-overlay media-viewer-overlay" style="display: none;">
         <button type="button" id="close-media-viewer" class="btn-close-viewer" aria-label="Close viewer">
@@ -601,7 +591,7 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
-    <script src="js/admin-announcements.js"></script>
+    <script src="js/admin-announcements.js?v=3"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof lucide !== 'undefined' && lucide.createIcons) {

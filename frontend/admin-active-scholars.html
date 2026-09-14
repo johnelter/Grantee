@@ -11,14 +11,15 @@
     <link rel="stylesheet" href="css/admin-global.css">
     <link rel="stylesheet" href="css/admin-active-scholars.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- jsPDF libraries for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Tailwind CSS (Required for dynamic JS classes in notifications) -->
@@ -34,7 +35,7 @@
                 flex-direction: column;
             }
 
-            .filter-group > * {
+            .filter-group>* {
                 width: 100%;
                 max-width: none !important;
             }
@@ -73,14 +74,19 @@
                 <!-- Titles Section -->
                 <div class="header-titles-wrapper">
                     <div class="header-titles is-loading" id="header-titles-box">
-                        <div class="breadcrumbs">
+                        <!-- <div class="breadcrumbs">
                             <a href="admin-dashboard.html">Dashboard</a> &gt;
                             <span>Active Beneficiaries</span>
-                        </div>
-                        <h1>Active Beneficiaries <i data-lucide="award" style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i></h1>
-                        <p class="welcome-text">Manage and monitor students who currently hold active educational assistance.</p>
-                        <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5" style="color: var(--moss-green);">
-                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                        </div> -->
+                        <h1>Active Beneficiaries <i data-lucide="award"
+                                style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i>
+                        </h1>
+                        <p class="welcome-text">Manage and monitor students who currently hold active educational
+                            assistance.</p>
+                        <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5"
+                            style="color: var(--moss-green);">
+                            <i data-lucide="school"
+                                style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
                     </div>
@@ -89,7 +95,8 @@
                 <!-- Actions Section -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
@@ -103,17 +110,24 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
+                                style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    data-lucide="log-out"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
@@ -137,12 +151,17 @@
 
                 <!-- CONTROLS & FILTER PANEL -->
                 <div class="data-panel controls-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
 
-                        <div class="filter-group" style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap;">
+                        <div class="filter-group"
+                            style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap;">
                             <div style="position: relative; flex: 1; min-width: 180px; max-width: 240px;">
-                                <i data-lucide="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 14px; height: 14px; pointer-events: none;"></i>
-                                <input type="text" id="search-input" class="form-input" placeholder="Search Name, ID, or Assistance..." style="width: 100%; padding-left: 34px;">
+                                <i data-lucide="search"
+                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 14px; height: 14px; pointer-events: none;"></i>
+                                <input type="text" id="search-input" class="form-input"
+                                    placeholder="Search Name, ID, or Assistance..."
+                                    style="width: 100%; padding-left: 34px;">
                             </div>
 
                             <select id="filter-scholarship" class="form-input" style="max-width: 190px;">
@@ -165,10 +184,12 @@
                         <div style="display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; align-items: center;">
                             <!-- STREAMLINED EXPORT DROPDOWN -->
                             <div class="export-dropdown-wrapper">
-                                <button id="btn-export-toggle" class="btn-export-dropdown" type="button" title="Export Data Options">
+                                <button id="btn-export-toggle" class="btn-export-dropdown" type="button"
+                                    title="Export Data Options">
                                     <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                                     <span>Export List</span>
-                                    <i data-lucide="chevron-down" style="width: 13px; height: 13px; margin-left: 2px;"></i>
+                                    <i data-lucide="chevron-down"
+                                        style="width: 13px; height: 13px; margin-left: 2px;"></i>
                                 </button>
                                 <div id="export-menu" class="export-menu">
                                     <button type="button" class="export-item" id="export-excel-btn">
@@ -197,7 +218,8 @@
                             <thead>
                                 <tr>
                                     <th class="th-checkbox">
-                                        <input type="checkbox" id="select-all-checkbox" class="row-checkbox" title="Select All">
+                                        <input type="checkbox" id="select-all-checkbox" class="row-checkbox"
+                                            title="Select All">
                                     </th>
                                     <th class="th-student">Student Info</th>
                                     <th class="th-name">Full Name</th>
@@ -212,37 +234,112 @@
                             <tbody id="beneficiaries-tbody">
                                 <!-- SKELETON PLACEHOLDER ROWS -->
                                 <tr>
-                                    <td style="text-align: center;"><div class="skeleton-line" style="width: 16px; height: 16px; margin: 0 auto; border-radius: 4px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 90px; margin-bottom: 6px;"></div><div class="skeleton-line" style="width: 120px; height: 10px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 130px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 150px; margin-bottom: 6px;"></div><div class="skeleton-line" style="width: 70px; height: 10px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 140px; margin-bottom: 6px;"></div><div class="skeleton-pill" style="width: 100px; height: 18px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 80px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 85px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 90px;"></div></td>
-                                    <td style="text-align: right;"><div class="skeleton-circle" style="width: 30px; height: 30px; margin-left: auto; border-radius: 6px;"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-line"
+                                            style="width: 16px; height: 16px; margin: 0 auto; border-radius: 4px;">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 90px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-line" style="width: 120px; height: 10px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 130px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 150px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-line" style="width: 70px; height: 10px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 140px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-pill" style="width: 100px; height: 18px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 80px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 85px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 90px;"></div>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div class="skeleton-circle"
+                                            style="width: 30px; height: 30px; margin-left: auto; border-radius: 6px;">
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align: center;"><div class="skeleton-line" style="width: 16px; height: 16px; margin: 0 auto; border-radius: 4px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 90px; margin-bottom: 6px;"></div><div class="skeleton-line" style="width: 120px; height: 10px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 130px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 150px; margin-bottom: 6px;"></div><div class="skeleton-line" style="width: 70px; height: 10px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 140px; margin-bottom: 6px;"></div><div class="skeleton-pill" style="width: 100px; height: 18px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 80px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 85px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 90px;"></div></td>
-                                    <td style="text-align: right;"><div class="skeleton-circle" style="width: 30px; height: 30px; margin-left: auto; border-radius: 6px;"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-line"
+                                            style="width: 16px; height: 16px; margin: 0 auto; border-radius: 4px;">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 90px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-line" style="width: 120px; height: 10px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 130px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 150px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-line" style="width: 70px; height: 10px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 140px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-pill" style="width: 100px; height: 18px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 80px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 85px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 90px;"></div>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div class="skeleton-circle"
+                                            style="width: 30px; height: 30px; margin-left: auto; border-radius: 6px;">
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align: center;"><div class="skeleton-line" style="width: 16px; height: 16px; margin: 0 auto; border-radius: 4px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 90px; margin-bottom: 6px;"></div><div class="skeleton-line" style="width: 120px; height: 10px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 130px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 150px; margin-bottom: 6px;"></div><div class="skeleton-line" style="width: 70px; height: 10px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 140px; margin-bottom: 6px;"></div><div class="skeleton-pill" style="width: 100px; height: 18px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 80px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 85px;"></div></td>
-                                    <td><div class="skeleton-line" style="width: 90px;"></div></td>
-                                    <td style="text-align: right;"><div class="skeleton-circle" style="width: 30px; height: 30px; margin-left: auto; border-radius: 6px;"></div></td>
+                                    <td style="text-align: center;">
+                                        <div class="skeleton-line"
+                                            style="width: 16px; height: 16px; margin: 0 auto; border-radius: 4px;">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 90px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-line" style="width: 120px; height: 10px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 130px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 150px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-line" style="width: 70px; height: 10px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 140px; margin-bottom: 6px;"></div>
+                                        <div class="skeleton-pill" style="width: 100px; height: 18px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 80px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 85px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton-line" style="width: 90px;"></div>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div class="skeleton-circle"
+                                            style="width: 30px; height: 30px; margin-left: auto; border-radius: 6px;">
+                                        </div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -260,30 +357,38 @@
     <div id="import-modal" class="global-modal-overlay" style="display: none;">
         <div class="global-modal-content" style="width: 95%; max-width: 900px; text-align: left; padding: 30px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin:0; font-size: 20px; color: var(--text-heading); display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="file-up" style="width: 20px; height: 20px; color: var(--moss-green);"></i> Bulk Import Beneficiaries
+                <h3
+                    style="margin:0; font-size: 20px; color: var(--text-heading); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="file-up" style="width: 20px; height: 20px; color: var(--moss-green);"></i> Bulk
+                    Import Beneficiaries
                 </h3>
-                <button type="button" style="background:transparent; border:none; cursor:pointer; color: var(--text-muted);"
+                <button type="button"
+                    style="background:transparent; border:none; cursor:pointer; color: var(--text-muted);"
                     onclick="document.getElementById('import-modal').style.display='none'">
                     <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                 </button>
             </div>
 
             <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5;">
-                Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file to automatically register students as Active Beneficiaries. This system supports importing students with Outside Educational Assistance.
+                Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file to automatically register students as
+                Active Beneficiaries. This system supports importing students with Outside Educational Assistance.
             </p>
 
             <div class="modal-rule-banner">
-                <strong><i data-lucide="info" style="width: 15px; height: 15px; color: var(--river-blue);"></i> Import Rules:</strong>
+                <strong><i data-lucide="info" style="width: 15px; height: 15px; color: var(--river-blue);"></i> Import
+                    Rules:</strong>
                 <ul style="margin-top: 5px; padding-left: 20px;">
-                    <li>Students <strong>must be present</strong> in the Enrolled Masterlist. Unenrolled IDs will be skipped.</li>
-                    <li>If a student has a pending application for an internal program, it will be automatically approved.</li>
+                    <li>Students <strong>must be present</strong> in the Enrolled Masterlist. Unenrolled IDs will be
+                        skipped.</li>
+                    <li>If a student has a pending application for an internal program, it will be automatically
+                        approved.</li>
                     <li>Ensure your headers match the template.</li>
                 </ul>
             </div>
 
             <div style="text-align: right; margin-bottom: 12px;">
-                <button type="button" onclick="downloadTemplate()" style="background:none; border:none; color: var(--moss-green); font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" onclick="downloadTemplate()"
+                    style="background:none; border:none; color: var(--moss-green); font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download Template (.CSV)
                 </button>
             </div>
@@ -291,15 +396,22 @@
             <div class="upload-dropzone">
                 <label for="import-file-input" style="cursor:pointer; display:block;">
                     <div class="upload-dropzone-icon">
-                        <i data-lucide="file-spreadsheet" style="width: 36px; height: 36px; margin: 0 auto; color: var(--moss-green);"></i>
+                        <i data-lucide="file-spreadsheet"
+                            style="width: 36px; height: 36px; margin: 0 auto; color: var(--moss-green);"></i>
                     </div>
-                    <div style="font-size: 14px; font-weight: 700; color: var(--text-heading);">Click to browse CSV or Excel files</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">.CSV, .XLSX, or .XLS supported</div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--text-heading);">Click to browse CSV or
+                        Excel files</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">.CSV, .XLSX, or .XLS
+                        supported</div>
                 </label>
-                <input type="file" id="import-file-input" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
+                <input type="file" id="import-file-input"
+                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                    style="display:none;">
             </div>
 
-            <div id="import-status" style="font-size: 13px; font-weight: 500; text-align: center; min-height: 20px; margin-top: 15px;"></div>
+            <div id="import-status"
+                style="font-size: 13px; font-weight: 500; text-align: center; min-height: 20px; margin-top: 15px;">
+            </div>
         </div>
     </div>
 
@@ -307,10 +419,13 @@
     <div id="manual-add-modal" class="global-modal-overlay" style="display: none;">
         <div class="global-modal-content" style="width: 90%; max-width: 450px; text-align: left; padding: 28px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin:0; font-size: 20px; color: var(--text-heading); display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="user-plus" style="width: 20px; height: 20px; color: var(--river-blue);"></i> Add Beneficiary
+                <h3
+                    style="margin:0; font-size: 20px; color: var(--text-heading); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="user-plus" style="width: 20px; height: 20px; color: var(--river-blue);"></i> Add
+                    Beneficiary
                 </h3>
-                <button type="button" style="background:transparent; border:none; cursor:pointer; color: var(--text-muted);"
+                <button type="button"
+                    style="background:transparent; border:none; cursor:pointer; color: var(--text-muted);"
                     onclick="document.getElementById('manual-add-modal').style.display='none'">
                     <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                 </button>
@@ -318,14 +433,17 @@
 
             <form id="form-manual-add">
                 <div style="margin-bottom: 14px;">
-                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Student ID Number <span style="color: var(--danger-color);">*</span>
                     </label>
-                    <input type="text" id="manual-student-id" class="form-input" required placeholder="Enter Enrolled Student ID">
+                    <input type="text" id="manual-student-id" class="form-input" required
+                        placeholder="Enter Enrolled Student ID">
                 </div>
 
                 <div style="margin-bottom: 14px;">
-                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Internal Program (Leave blank for outside)
                     </label>
                     <select id="manual-scholarship-select" class="form-input">
@@ -334,19 +452,22 @@
                 </div>
 
                 <div style="margin-bottom: 14px;">
-                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Outside Assistance Name
                     </label>
                     <input type="text" id="manual-outside-name" class="form-input" placeholder="e.g. CHED, DOST">
                 </div>
 
                 <div style="margin-bottom: 14px;">
-                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Educational Assistance Category <span style="color: var(--danger-color);">*</span>
                     </label>
                     <select id="manual-category" class="form-input" required>
                         <option value="">Select category</option>
-                        <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
+                        <option value="Institution-Funded Educational Assistance">Institution-Funded Educational
+                            Assistance</option>
                         <option value="Ched Educational Assistance">Ched Educational Assistance</option>
                         <option value="Private Educational Assistance">Private Educational Assistance</option>
                         <option value="Government Educational Assistance">Government Educational Assistance</option>
@@ -354,7 +475,8 @@
                 </div>
 
                 <div style="margin-bottom: 22px;">
-                    <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Assistance Duration
                     </label>
                     <select id="manual-duration" class="form-input">
@@ -389,7 +511,9 @@
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i data-lucide="power" style="width: 15px; height: 15px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Logout
+                    <i data-lucide="power"
+                        style="width: 15px; height: 15px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i>
+                    Logout
                 </button>
             </div>
         </div>

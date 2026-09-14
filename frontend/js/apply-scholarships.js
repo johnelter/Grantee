@@ -412,22 +412,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
 
+            // Safe parse helper for JSON/Array columns
+            const safeParseArray = (data) => {
+                if (!data) return [];
+                if (typeof data === 'string') {
+                    try {
+                        const parsed = JSON.parse(data);
+                        return Array.isArray(parsed) ? parsed : [];
+                    } catch (e) {
+                        return [];
+                    }
+                }
+                return Array.isArray(data) ? data : [];
+            };
+
             // E. Render Document Uploads
             const ocrContainer = document.getElementById('ocr-documents-container');
 
-            let docsConfigList = [];
-            if (sch.document_configurations && sch.document_configurations.length > 0) {
-                docsConfigList = sch.document_configurations;
-            } else if (sch.required_documents && sch.required_documents.length > 0) {
-                docsConfigList = sch.required_documents.map(name => ({
-                    name: name, required: true, ocr_enabled: true, max_size: 5, description: ""
-                }));
+            let rawDocs = safeParseArray(sch.document_configurations);
+            if (rawDocs.length === 0) {
+                const rawReq = safeParseArray(sch.required_documents);
+                if (rawReq.length > 0) {
+                    rawDocs = rawReq.map(item => {
+                        if (typeof item === 'string' && item.trim()) {
+                            return { name: item.trim(), required: true, ocr_enabled: true, max_size: 5, description: "" };
+                        } else if (item && typeof item === 'object' && item.name) {
+                            return item;
+                        }
+                        return null;
+                    }).filter(Boolean);
+                }
             }
+
+            // Filter out any entries without a valid document name
+            const docsConfigList = rawDocs.filter(d => d && typeof d === 'object' && typeof d.name === 'string' && d.name.trim().length > 0);
 
             const hasAnyOcr = docsConfigList.some(d => d.ocr_enabled !== false);
             const aiNoticeBanner = document.getElementById('ai-verification-banner') || document.querySelector('.preview-ai-banner');
             if (aiNoticeBanner) {
-                aiNoticeBanner.style.display = hasAnyOcr ? 'flex' : 'none';
+                aiNoticeBanner.style.display = (hasAnyOcr && docsConfigList.length > 0) ? 'flex' : 'none';
             }
 
             if (docsConfigList.length > 0 && ocrContainer) {
@@ -542,6 +565,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         processDocumentSelection(file, i, docName, isOcr);
                     });
                 });
+            } else if (ocrContainer) {
+                ocrContainer.innerHTML = '<p class="no-docs-message" style="font-size: 13.5px; color: var(--text-muted); padding: 14px 18px; background: var(--bg-card-secondary); border: 1px solid var(--border-color); border-radius: 8px; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; font-weight: 500;"><i data-lucide="file-check-2" style="width: 18px; height: 18px; color: var(--palette-moss-green, #6B7F4E); flex-shrink: 0;"></i> <span>No documents required.</span></p>';
             }
 
             const formObj = document.getElementById('scholarship-application-form');

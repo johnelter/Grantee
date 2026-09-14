@@ -198,16 +198,41 @@
         }
     }
 
+    function escapeHtml(str) {
+        if (!str || typeof str !== 'string') return str || '';
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     function getCategoryBadge(category) {
         if (!category) return `<span class="category-badge-pill cat-badge-outside">Outside Assistance</span>`;
         const catLower = category.toLowerCase();
         let cls = 'cat-badge-inst';
-        if (catLower.includes('ched')) cls = 'cat-badge-ched';
-        else if (catLower.includes('priv')) cls = 'cat-badge-priv';
-        else if (catLower.includes('gov')) cls = 'cat-badge-gov';
-        else if (catLower.includes('inst')) cls = 'cat-badge-inst';
-        else if (catLower.includes('outside')) cls = 'cat-badge-outside';
-        return `<span class="category-badge-pill ${cls}">${category}</span>`;
+        let label = 'Institution-Funded';
+
+        if (catLower.includes('ched')) {
+            cls = 'cat-badge-ched';
+            label = 'CHED Assistance';
+        } else if (catLower.includes('priv')) {
+            cls = 'cat-badge-priv';
+            label = 'Private Assistance';
+        } else if (catLower.includes('gov')) {
+            cls = 'cat-badge-gov';
+            label = "Gov't Assistance";
+        } else if (catLower.includes('inst')) {
+            cls = 'cat-badge-inst';
+            label = 'Institution-Funded';
+        } else if (catLower.includes('outside')) {
+            cls = 'cat-badge-outside';
+            label = 'Outside Assistance';
+        } else {
+            label = category.replace(/\s+Educational\s+Assistance/gi, '').replace(/\s+Scholarship/gi, '').trim() || category;
+        }
+        return `<span class="category-badge-pill ${cls}" title="${escapeHtml(category)}">${escapeHtml(label)}</span>`;
     }
 
     function formatDate(dateString) {
@@ -251,29 +276,29 @@
             const dateRewarded = formatDate(app.created_at);
             
             const termDetails = [];
-            if (batch) termDetails.push(`<div><span style="color:var(--text-muted);">Batch:</span> ${batch}</div>`);
-            if (semester) termDetails.push(`<div><span style="color:var(--text-muted);">Sem:</span> ${semester}</div>`);
-            if (schoolYear) termDetails.push(`<div><span style="color:var(--text-muted);">SY:</span> ${schoolYear}</div>`);
+            if (batch) termDetails.push(`<div><span style="color:var(--text-muted);">Batch:</span> ${escapeHtml(String(batch))}</div>`);
+            if (semester) termDetails.push(`<div><span style="color:var(--text-muted);">Sem:</span> ${escapeHtml(String(semester))}</div>`);
+            if (schoolYear) termDetails.push(`<div><span style="color:var(--text-muted);">SY:</span> ${escapeHtml(String(schoolYear))}</div>`);
             const detailsHtml = termDetails.length > 0 ? termDetails.join('') : '<span style="color:var(--text-muted);">-</span>';
 
             const email = app.profiles?.email || masterInfo.email || '';
-            const emailHtml = email ? `<div style="font-size:11px; color:var(--text-muted); margin-top:3px; word-break:break-all;">${email}</div>` : '';
+            const emailHtml = email ? `<div style="font-size:11px; color:var(--text-muted); margin-top:3px; word-break:break-all;">${escapeHtml(email)}</div>` : '';
 
             tr.innerHTML = `
-                <td style="text-align:center; vertical-align:middle; padding:14px 10px;">
+                <td style="text-align:center; vertical-align:middle;">
                     <input type="checkbox" class="row-checkbox" data-id="${app.id}" ${selectedIds.has(app.id) ? 'checked' : ''}>
                 </td>
                 <td>
-                    <strong style="color:var(--text-heading); font-size:13px; display:block;">${studentId}</strong>
+                    <strong style="color:var(--text-heading); font-size:13px; display:block;">${escapeHtml(studentId)}</strong>
                     ${emailHtml}
                 </td>
-                <td style="font-weight: 600; color:var(--text-heading); line-height:1.35;">${fullName}</td>
+                <td style="font-weight: 600; color:var(--text-heading); line-height:1.35;">${escapeHtml(fullName)}</td>
                 <td>
-                    <div style="color:var(--text-main); font-weight:600; font-size:12.5px; line-height:1.35;">${program}</div>
-                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${yearLevel}</div>
+                    <div style="color:var(--text-main); font-weight:600; font-size:12.5px; line-height:1.35;">${escapeHtml(program)}</div>
+                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(yearLevel)}</div>
                 </td>
                 <td>
-                    <strong style="color:var(--primary-color); display:block; margin-bottom:4px; font-size:13px; line-height:1.3;">${schTitle}</strong>
+                    <strong style="color:var(--primary-color); display:block; margin-bottom:4px; font-size:13px; line-height:1.3;">${escapeHtml(schTitle)}</strong>
                     ${catBadge}
                 </td>
                 <td style="font-size:12px; line-height:1.4; color:var(--text-main);">
@@ -284,13 +309,13 @@
                 </td>
                 <td>
                     <div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
-                        <span style="font-weight:600; font-size:12.5px; color:var(--text-main);">${duration}</span>
-                        <button class="btn-edit-duration" onclick="editDuration('${app.id}', '${duration}')" title="Edit Duration">
+                        <span style="font-weight:600; font-size:12.5px; color:var(--text-main);">${escapeHtml(duration)}</span>
+                        <button class="btn-edit-duration" onclick="editDuration('${app.id}', '${escapeHtml(duration)}')" title="Edit Duration">
                             <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
                     </div>
                 </td>
-                <td style="text-align: right; padding-right:18px;">
+                <td style="text-align: center; padding-right:14px;">
                     <button class="btn-table-revoke" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')">
                         <i data-lucide="trash-2" style="width:15px; height:15px;"></i>
                     </button>

@@ -714,7 +714,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- 5. FETCH ANNOUNCEMENTS ---
+    // --- 5. FETCH ANNOUNCEMENTS (Top 3 Recent) ---
     async function loadAnnouncements() {
         try {
             const container = document.getElementById('announcements-list-container');
@@ -748,7 +748,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let query = window.supabaseClient
                 .from('announcements')
-                .select('*, profiles:author_id ( first_name, last_name, avatar_url, role )')
+                .select('*, profiles:author_id ( first_name, last_name, avatar_url, role ), announcement_comments ( id )')
                 .eq('status', 'Published')
                 .order('is_pinned', { ascending: false })
                 .order('created_at', { ascending: false });
@@ -762,7 +762,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (error) throw error;
 
             if (!announcements || announcements.length === 0) {
-                container.innerHTML = `<div class="list-empty-state">No announcements available at the moment.</div>`;
+                container.innerHTML = `
+                    <div class="list-empty-state">
+                        <i data-lucide="megaphone-off" style="width: 28px; height: 28px; margin: 0 auto 8px auto; display: block; opacity: 0.5;"></i>
+                        No announcements available at the moment.
+                    </div>
+                `;
+                if (window.lucide) { window.lucide.createIcons(); }
                 return;
             }
 
@@ -822,39 +828,84 @@ document.addEventListener('DOMContentLoaded', async () => {
             let filtered = announcements.filter(ann => isAudienceMatch(ann, profile, userApps));
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="list-empty-state">No announcements available for you at the moment.</div>`;
+                container.innerHTML = `
+                    <div class="list-empty-state">
+                        <i data-lucide="megaphone-off" style="width: 28px; height: 28px; margin: 0 auto 8px auto; display: block; opacity: 0.5;"></i>
+                        No announcements available for you at the moment.
+                    </div>
+                `;
+                if (window.lucide) { window.lucide.createIcons(); }
                 return;
             }
 
             container.innerHTML = '';
 
-            // Show top 3 announcements on dashboard
-            filtered.slice(0, 3).forEach(ann => {
-                const dateStr = new Date(ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            // Strictly display only 3 recent announcement posts on the student dashboard
+            const top3Announcements = filtered.slice(0, 3);
 
-                // Strip HTML cleanly and truncate
+            top3Announcements.forEach(ann => {
+                const dateStr = new Date(ann.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+
+                // Clean plain text excerpt
                 let tempDiv = document.createElement("div");
                 tempDiv.innerHTML = ann.content || "";
                 let excerpt = tempDiv.textContent || tempDiv.innerText || "";
                 excerpt = excerpt.replace(/\s+/g, ' ').trim();
-                if (excerpt.length > 85) excerpt = excerpt.substring(0, 85) + '...';
+                if (excerpt.length > 130) excerpt = excerpt.substring(0, 130) + '...';
                 if (!excerpt) excerpt = 'Click to read full announcement details.';
+
+                let authorName = "Coordinator";
+                if (ann.profiles) {
+                    const fn = ann.profiles.first_name || '';
+                    const ln = ann.profiles.last_name || '';
+                    authorName = `${fn} ${ln}`.trim() || authorName;
+                }
 
                 const isPinned = ann.is_pinned === true;
                 const pinnedBadge = isPinned ? `<span class="badge-pinned-tag"><i data-lucide="pin" style="width: 11px; height: 11px;"></i> Pinned</span>` : '';
+
+                let catClass = 'tag-cat-general';
+                const catLower = (ann.category || '').toLowerCase();
+                if (catLower.includes('educational') || catLower.includes('assistance') || catLower.includes('scholarship')) {
+                    catClass = 'tag-cat-edu';
+                } else if (catLower.includes('reminder') || catLower.includes('urgent')) {
+                    catClass = 'tag-cat-reminder';
+                } else if (catLower.includes('event')) {
+                    catClass = 'tag-cat-event';
+                }
+
+                const commentCount = ann.announcement_comments ? ann.announcement_comments.length : 0;
+                const commentCountBadge = commentCount > 0 ?
+                    `<span class="meta-dot">&bull;</span><span class="meta-comments"><i data-lucide="message-square" style="width:12px;height:12px;"></i> ${commentCount}</span>` : '';
 
                 container.innerHTML += `
                     <div class="list-item announcement-list-item" style="cursor:pointer;" onclick="openAnnouncementDetails('${ann.id}')">
                         <div class="item-icon icon-announcement-item"><i data-lucide="megaphone"></i></div>
                         <div class="item-details">
-                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                                <h4>${ann.title || 'Untitled Announcement'}</h4>
-                                ${pinnedBadge}
+                            <div class="announcement-item-top">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0;">
+                                    <h4 class="announcement-title">${ann.title || 'Untitled Announcement'}</h4>
+                                    ${pinnedBadge}
+                                    <span class="badge-cat-tag ${catClass}">${ann.category || 'General'}</span>
+                                </div>
                             </div>
-                            <p>${excerpt}</p>
+                            <p class="announcement-excerpt">${excerpt}</p>
+                            <div class="announcement-item-meta">
+                                <span class="meta-author"><i data-lucide="user" style="width:12px;height:12px;"></i> ${authorName}</span>
+                                <span class="meta-dot">&bull;</span>
+                                <span class="meta-date"><i data-lucide="calendar" style="width:12px;height:12px;"></i> ${dateStr}</span>
+                                ${commentCountBadge}
+                            </div>
                         </div>
-                        <div class="item-meta">
-                            <span class="meta-date">${dateStr}</span>
+                        <div class="item-meta announcement-meta-action">
+                            <button type="button" class="btn-read-announcement" aria-label="Read Announcement">
+                                <span>Read</span>
+                                <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+                            </button>
                         </div>
                     </div>
                 `;

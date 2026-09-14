@@ -1295,6 +1295,176 @@ svg.lucide,
   border-color: rgba(220, 200, 163, 0.3);
 }
 
+/* --- Dashboard Announcement Specific Styling --- */
+.announcement-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.announcement-list-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.announcement-list-item:last-child {
+  border-bottom: none;
+}
+
+.announcement-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.announcement-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.announcement-excerpt {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 6px 0;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.announcement-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-light);
+  flex-wrap: wrap;
+}
+
+.meta-author,
+.meta-date,
+.meta-comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-dot {
+  color: var(--border-dark);
+  font-size: 10px;
+}
+
+.badge-cat-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-card-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.badge-cat-tag.tag-cat-edu {
+  background: rgba(88, 129, 87, 0.12);
+  color: var(--palette-fern-green, #588157);
+  border-color: rgba(88, 129, 87, 0.25);
+}
+
+.badge-cat-tag.tag-cat-reminder {
+  background: rgba(220, 200, 163, 0.25);
+  color: #8C6A2E;
+  border-color: rgba(220, 200, 163, 0.5);
+}
+
+.badge-cat-tag.tag-cat-event {
+  background: rgba(76, 106, 115, 0.12);
+  color: var(--palette-river-blue, #4C6A73);
+  border-color: rgba(76, 106, 115, 0.25);
+}
+
+.announcement-meta-action {
+  flex-shrink: 0;
+}
+
+.btn-read-announcement {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.announcement-list-item:hover .btn-read-announcement {
+  background: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(31, 61, 46, 0.2);
+}
+
+/* Dark Theme overrides for dashboard announcements */
+[data-theme="dark"] .badge-cat-tag {
+  background: #1D3327;
+  border-color: #243E2F;
+  color: var(--palette-light-sage);
+}
+
+[data-theme="dark"] .badge-cat-tag.tag-cat-edu {
+  background: rgba(109, 158, 108, 0.2);
+  color: var(--palette-sand-beige);
+  border-color: rgba(109, 158, 108, 0.35);
+}
+
+[data-theme="dark"] .badge-cat-tag.tag-cat-reminder {
+  background: rgba(220, 200, 163, 0.15);
+  color: var(--palette-sand-beige);
+  border-color: rgba(220, 200, 163, 0.3);
+}
+
+[data-theme="dark"] .badge-cat-tag.tag-cat-event {
+  background: rgba(76, 106, 115, 0.25);
+  color: #76A0AD;
+  border-color: rgba(76, 106, 115, 0.4);
+}
+
+[data-theme="dark"] .btn-read-announcement {
+  background: #1D3327;
+  border-color: #243E2F;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .announcement-list-item:hover .btn-read-announcement {
+  background: var(--palette-fern-green);
+  border-color: var(--palette-fern-green);
+  color: #ffffff;
+}
+
 /* Status Badges */
 .badge-status {
   padding: 4px 12px;

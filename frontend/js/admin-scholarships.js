@@ -269,23 +269,33 @@
     const getTypeBadge = (type) => {
         const safeType = type || 'Institution-Funded Educational Assistance';
         let badgeClass = 'badge-cat-inst';
+        let label = 'Institution-Funded';
 
-        if (safeType === 'Ched Educational Assistance') {
+        const lower = safeType.toLowerCase();
+        if (lower.includes('ched')) {
             badgeClass = 'badge-cat-ched';
-        } else if (safeType === 'Private Educational Assistance') {
+            label = 'CHED Assistance';
+        } else if (lower.includes('priv')) {
             badgeClass = 'badge-cat-priv';
-        } else if (safeType === 'Government Educational Assistance') {
+            label = 'Private Assistance';
+        } else if (lower.includes('gov')) {
             badgeClass = 'badge-cat-gov';
+            label = "Gov't Assistance";
+        } else if (lower.includes('institution') || lower.includes('inst')) {
+            badgeClass = 'badge-cat-inst';
+            label = 'Institution-Funded';
+        } else {
+            label = safeType.replace(/\s+Educational\s+Assistance/gi, '').replace(/\s+Scholarship/gi, '').trim() || safeType;
         }
 
-        return `<span class="badge-category ${badgeClass}">${safeType}</span>`;
+        return `<span class="badge-category ${badgeClass}" title="${escapeHtml(safeType)}">${escapeHtml(label)}</span>`;
     };
 
     const getScholarshipTypeBadge = (schType) => {
         const safeType = schType || 'Merit-Based';
         const isNeed = safeType.toLowerCase().includes('need');
         const badgeClass = isNeed ? 'need-based' : 'merit-based';
-        return `<span class="badge-type ${badgeClass}">${safeType}</span>`;
+        return `<span class="badge-type ${badgeClass}" title="${escapeHtml(safeType)}">${escapeHtml(safeType)}</span>`;
     };
 
     const calculateDynamicStatus = (sch) => {

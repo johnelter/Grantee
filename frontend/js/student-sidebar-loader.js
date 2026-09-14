@@ -314,6 +314,9 @@ function initGlobalDelegatedHandlers() {
     });
 }
 
+// Execute delegated handlers immediately so clicks and mobile drawer work without waiting
+initGlobalDelegatedHandlers();
+
 // --- 1. INJECT SIDEBAR (Instant hydration from cache + background fresh fetch) ---
 async function loadStudentSidebar() {
     const sidebarContainer = document.getElementById('sidebar-container');
@@ -323,7 +326,10 @@ async function loadStudentSidebar() {
     const cacheKey = 'grantee_cached_student_sidebar';
 
     const cachedHtml = sessionStorage.getItem(cacheKey);
-    if (cachedHtml && !sidebarContainer.querySelector('#app-sidebar')) {
+    const hasSidebarInDOM = !!sidebarContainer.querySelector('#app-sidebar');
+
+    // Instant synchronous hydration if cached and not yet in DOM
+    if (cachedHtml && !hasSidebarInDOM) {
         sidebarContainer.innerHTML = cachedHtml;
         highlightActiveMenu();
         if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -335,8 +341,9 @@ async function loadStudentSidebar() {
         const response = await fetch(sidebarFile);
         if (response.ok) {
             const html = await response.text();
+            const wasDifferent = (cachedHtml !== html);
             sessionStorage.setItem(cacheKey, html);
-            if (!cachedHtml || sidebarContainer.innerHTML !== html) {
+            if (!sidebarContainer.querySelector('#app-sidebar') || wasDifferent) {
                 sidebarContainer.innerHTML = html;
                 highlightActiveMenu();
                 if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -412,8 +419,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function highlightActiveMenu() {
-    const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-    const links = document.querySelectorAll('#sidebar-container a.menu-item');
+    let currentPath = window.location.pathname.split('/').pop().split('?')[0].split('#')[0] || 'student-dashboard.html';
+    if (!currentPath || currentPath === 'index.html') currentPath = 'student-dashboard.html';
+    if (currentPath === 'apply-scholarships.html') currentPath = 'student-scholarships.html';
+
+    const links = document.querySelectorAll('#sidebar-container a.menu-item, #app-sidebar a.menu-item');
     links.forEach(link => {
         const linkHref = link.getAttribute('href');
         if (!linkHref) return;
@@ -504,23 +514,25 @@ async function navigateToStudentPage(targetUrl, pushState = true) {
     isStudentNavigating = true;
 
     // 1. Immediately update active sidebar link
+    let targetBase = targetPath.split('?')[0].split('#')[0];
+    if (targetBase === 'apply-scholarships.html') targetBase = 'student-scholarships.html';
+
     const sidebarContainer = document.getElementById('sidebar-container');
-    if (sidebarContainer) {
-        sidebarContainer.querySelectorAll('a.menu-item').forEach(link => {
-            const linkHref = link.getAttribute('href');
-            if (!linkHref) return;
-            const linkBase = linkHref.split('?')[0].split('#')[0];
-            if (linkBase === targetPath) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
-        });
-    }
+    const links = document.querySelectorAll('#sidebar-container a.menu-item, #app-sidebar a.menu-item, .sidebar a.menu-item');
+    links.forEach(link => {
+        const linkHref = link.getAttribute('href');
+        if (!linkHref) return;
+        const linkBase = linkHref.split('?')[0].split('#')[0];
+        if (linkBase === targetBase) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
 
     // 2. Close mobile drawer if open
-    const sidebar = document.getElementById('app-sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay') || document.querySelector('.sidebar-overlay');
     if (sidebar) sidebar.classList.remove('active', 'show');
     if (sidebarOverlay) sidebarOverlay.classList.remove('active', 'show');
     if (sidebarContainer) sidebarContainer.classList.remove('active', 'show');

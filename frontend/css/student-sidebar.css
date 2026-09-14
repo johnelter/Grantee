@@ -50,7 +50,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 36px;
+  margin-bottom: 32px;
+  min-height: 40px;
+  flex-shrink: 0;
 }
 
 #app-sidebar .logo-icon,
@@ -85,48 +87,86 @@
 .sidebar .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
 }
 
 #app-sidebar .menu-item,
 #app-sidebar .sidebar-nav a,
+#app-sidebar .sidebar-menu a,
 .sidebar .menu-item,
-.sidebar .sidebar-nav a {
+.sidebar .sidebar-nav a,
+.sidebar .sidebar-menu a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 11px 16px;
   border-radius: 8px;
   color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   text-decoration: none;
+  border-left: 4px solid transparent;
+  box-sizing: border-box;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
 }
 
 #app-sidebar .menu-item:hover,
 #app-sidebar .sidebar-nav a:hover,
+#app-sidebar .sidebar-menu a:hover,
 .sidebar .menu-item:hover,
-.sidebar .sidebar-nav a:hover {
+.sidebar .sidebar-nav a:hover,
+.sidebar .sidebar-menu a:hover {
   background: var(--bg-hover);
   color: var(--text-heading);
 }
 
 #app-sidebar .menu-item.active,
 #app-sidebar .sidebar-nav a.active,
+#app-sidebar .sidebar-menu a.active,
 .sidebar .menu-item.active,
-.sidebar .sidebar-nav a.active {
+.sidebar .sidebar-nav a.active,
+.sidebar .sidebar-menu a.active {
   background: var(--accent-light);
   color: var(--primary-color);
   font-weight: 600;
-  border-left: 4px solid var(--accent-color);
+  border-left-color: var(--accent-color);
 }
 
 #app-sidebar .menu-icon,
 .sidebar .menu-icon {
   font-size: 18px;
   width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   text-align: center;
+  line-height: 1;
+}
+
+#app-sidebar .menu-icon i,
+#app-sidebar .menu-icon svg,
+.sidebar .menu-icon i,
+.sidebar .menu-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  display: block;
+  stroke-width: 2;
+  flex-shrink: 0;
 }
 
 #app-sidebar .badge,

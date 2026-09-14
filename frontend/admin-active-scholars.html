@@ -149,70 +149,77 @@
                     </div>
                 </div>
 
-                <!-- CONTROLS & FILTER PANEL -->
-                <div class="data-panel controls-panel">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-
-                        <div class="filter-group"
-                            style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap;">
-                            <div style="position: relative; flex: 1; min-width: 180px; max-width: 240px;">
-                                <i data-lucide="search"
-                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 14px; height: 14px; pointer-events: none;"></i>
+                <!-- MAIN DATA PANEL (Controls & Table Unified) -->
+                <div class="data-panel" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+                    <div class="table-controls">
+                        <!-- Top Toolbar: Search on Left, Action Buttons on Right -->
+                        <div class="table-controls-top">
+                            <div class="search-box">
+                                <i data-lucide="search"></i>
                                 <input type="text" id="search-input" class="form-input"
-                                    placeholder="Search Name, ID, or Assistance..."
-                                    style="width: 100%; padding-left: 34px;">
+                                    placeholder="Search Name, ID, or Assistance...">
                             </div>
 
-                            <select id="filter-scholarship" class="form-input" style="max-width: 190px;">
-                                <option value="">All Programs</option>
-                            </select>
+                            <div class="actions">
+                                <!-- STREAMLINED EXPORT DROPDOWN -->
+                                <div class="export-dropdown-wrapper">
+                                    <button id="btn-export-toggle" class="btn-export-dropdown" type="button"
+                                        title="Export Data Options">
+                                        <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                        <span>Export List</span>
+                                        <i data-lucide="chevron-down"
+                                            style="width: 13px; height: 13px; margin-left: 2px;"></i>
+                                    </button>
+                                    <div id="export-menu" class="export-menu">
+                                        <button type="button" class="export-item" id="export-excel-btn">
+                                            <i data-lucide="file-spreadsheet"></i> Export as Excel (CSV)
+                                        </button>
+                                        <button type="button" class="export-item" id="export-pdf-btn">
+                                            <i data-lucide="file-text"></i> Export as PDF Document
+                                        </button>
+                                    </div>
+                                </div>
 
-                            <select id="filter-school-year" class="form-input" style="max-width: 150px;">
-                                <option value="">All School Years</option>
-                            </select>
-
-                            <select id="filter-semester" class="form-input" style="max-width: 140px;">
-                                <option value="">All Semesters</option>
-                            </select>
-
-                            <select id="filter-batch" class="form-input" style="max-width: 140px;">
-                                <option value="">All Batches</option>
-                            </select>
+                                <button id="btn-add-manual" class="btn-outline btn-action-add" type="button">
+                                    <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
+                                    <span>Add Beneficiary</span>
+                                </button>
+                                <button id="btn-open-import" class="btn-primary" type="button">
+                                    <i data-lucide="file-up" style="width: 14px; height: 14px;"></i>
+                                    <span>Bulk Import</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; align-items: center;">
-                            <!-- STREAMLINED EXPORT DROPDOWN -->
-                            <div class="export-dropdown-wrapper">
-                                <button id="btn-export-toggle" class="btn-export-dropdown" type="button"
-                                    title="Export Data Options">
-                                    <i data-lucide="download" style="width: 14px; height: 14px;"></i>
-                                    <span>Export List</span>
-                                    <i data-lucide="chevron-down"
-                                        style="width: 13px; height: 13px; margin-left: 2px;"></i>
-                                </button>
-                                <div id="export-menu" class="export-menu">
-                                    <button type="button" class="export-item" id="export-excel-btn">
-                                        <i data-lucide="file-spreadsheet"></i> Export as Excel (CSV)
-                                    </button>
-                                    <button type="button" class="export-item" id="export-pdf-btn">
-                                        <i data-lucide="file-text"></i> Export as PDF Document
-                                    </button>
-                                </div>
+                        <!-- Filter Toolbar: Clean Grid for Filter Dropdowns -->
+                        <div class="table-controls-filters filter-group">
+                            <div class="filter-item">
+                                <select id="filter-scholarship" class="form-input filter-select" aria-label="Filter by Program">
+                                    <option value="">All Programs</option>
+                                </select>
                             </div>
 
-                            <button id="btn-add-manual" class="btn-outline btn-action-add" type="button">
-                                <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Add Beneficiary
-                            </button>
-                            <button id="btn-open-import" class="btn-primary" type="button">
-                                <i data-lucide="file-up" style="width: 14px; height: 14px;"></i> Bulk Import
-                            </button>
+                            <div class="filter-item">
+                                <select id="filter-school-year" class="form-input filter-select" aria-label="Filter by School Year">
+                                    <option value="">All School Years</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-item">
+                                <select id="filter-semester" class="form-input filter-select" aria-label="Filter by Semester">
+                                    <option value="">All Semesters</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-item">
+                                <select id="filter-batch" class="form-input filter-select" aria-label="Filter by Batch">
+                                    <option value="">All Batches</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- TABLE PANEL -->
-                <div class="data-panel table-panel" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+                    <!-- TABLE AREA (Attached directly below controls) -->
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>

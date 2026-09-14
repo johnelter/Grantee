@@ -105,7 +105,7 @@
 
             <div class="content-wrapper">
                 <!-- 3 Top Stat Cards (With Shimmer Skeleton Support & Interactive Modals) -->
-                <div class="stats-grid mb-24">
+                <div class="stats-grid">
                     <div class="stat-card is-clickable is-loading" id="stat-card-total" role="button" tabindex="0" title="Click to view Total Educational Assistance directory and breakdown" onclick="openStatsModal('All')">
                         <div class="stat-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
@@ -151,36 +151,81 @@
 
                 <!-- Main Data Panel -->
                 <div class="data-panel">
-                    <div class="table-controls mb-20">
-                        <div class="search-filter-group">
+                    <div class="table-controls">
+                        <!-- Top Toolbar: Search Input on Left, Action Buttons on Right -->
+                        <div class="table-controls-top">
                             <div class="search-box">
                                 <i data-lucide="search"></i>
                                 <input type="text" id="search-input" placeholder="Search educational assistance...">
                             </div>
-                            <div class="filters">
-                                <select id="filter-status" class="filter-select">
+                            <div class="actions">
+                                <div class="export-dropdown-wrapper">
+                                    <button type="button" id="export-btn" class="btn-outline export-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Export Options">
+                                        <i data-lucide="download"></i>
+                                        <span>Export</span>
+                                        <i data-lucide="chevron-down" class="export-chevron"></i>
+                                    </button>
+                                    <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
+                                        <button type="button" class="export-option-btn" id="export-csv-btn" role="menuitem">
+                                            <div class="export-option-icon icon-csv">
+                                                <i data-lucide="file-spreadsheet"></i>
+                                            </div>
+                                            <div class="export-option-text">
+                                                <strong>Export as CSV</strong>
+                                                <small>Spreadsheet / Excel format</small>
+                                            </div>
+                                        </button>
+                                        <div class="export-dropdown-divider"></div>
+                                        <button type="button" class="export-option-btn" id="export-pdf-btn" role="menuitem">
+                                            <div class="export-option-icon icon-pdf">
+                                                <i data-lucide="file-text"></i>
+                                            </div>
+                                            <div class="export-option-text">
+                                                <strong>Export as PDF</strong>
+                                                <small>Formatted document / Print</small>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <a href="create-scholarship.html" class="btn-primary">
+                                    <i data-lucide="plus"></i>
+                                    <span>Add Educational Assistance</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Filter Toolbar: Clean Grid for Filter & Sort Dropdowns -->
+                        <div class="table-controls-filters filters">
+                            <div class="filter-item">
+                                <select id="filter-status" class="filter-select" aria-label="Filter by Status">
                                     <option value="">All Status</option>
                                     <option value="Active">Active</option>
                                     <option value="Upcoming">Upcoming</option>
                                     <option value="Closed">Closed</option>
                                     <option value="Draft">Draft</option>
                                 </select>
+                            </div>
 
-                                <select id="filter-type" class="filter-select">
+                            <div class="filter-item">
+                                <select id="filter-type" class="filter-select" aria-label="Filter by Category">
                                     <option value="">All Categories</option>
                                     <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
                                     <option value="Ched Educational Assistance">Ched Educational Assistance</option>
                                     <option value="Private Educational Assistance">Private Educational Assistance</option>
                                     <option value="Government Educational Assistance">Government Educational Assistance</option>
                                 </select>
+                            </div>
 
-                                <select id="filter-scholarship-type" class="filter-select">
+                            <div class="filter-item">
+                                <select id="filter-scholarship-type" class="filter-select" aria-label="Filter by Type">
                                     <option value="">All Types</option>
                                     <option value="Merit-Based">Merit-Based</option>
                                     <option value="Need-Based">Need-Based</option>
                                 </select>
+                            </div>
 
-                                <select id="sort-by" class="filter-select">
+                            <div class="filter-item">
+                                <select id="sort-by" class="filter-select" aria-label="Sort Order">
                                     <option value="">Sort By (Active First)</option>
                                     <option value="start_asc">Opening Date (Oldest First)</option>
                                     <option value="start_desc">Opening Date (Newest First)</option>
@@ -188,40 +233,6 @@
                                     <option value="end_desc">Deadline (Closing Latest)</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="actions">
-                            <div class="export-dropdown-wrapper">
-                                <button type="button" id="export-btn" class="btn-outline export-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Export Options">
-                                    <i data-lucide="download"></i>
-                                    <span>Export</span>
-                                    <i data-lucide="chevron-down" class="export-chevron"></i>
-                                </button>
-                                <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
-                                    <button type="button" class="export-option-btn" id="export-csv-btn" role="menuitem">
-                                        <div class="export-option-icon icon-csv">
-                                            <i data-lucide="file-spreadsheet"></i>
-                                        </div>
-                                        <div class="export-option-text">
-                                            <strong>Export as CSV</strong>
-                                            <small>Spreadsheet / Excel format</small>
-                                        </div>
-                                    </button>
-                                    <div class="export-dropdown-divider"></div>
-                                    <button type="button" class="export-option-btn" id="export-pdf-btn" role="menuitem">
-                                        <div class="export-option-icon icon-pdf">
-                                            <i data-lucide="file-text"></i>
-                                        </div>
-                                        <div class="export-option-text">
-                                            <strong>Export as PDF</strong>
-                                            <small>Formatted document / Print</small>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-                            <a href="create-scholarship.html" class="btn-primary">
-                                <i data-lucide="plus"></i>
-                                <span>Add Educational Assistance</span>
-                            </a>
                         </div>
                     </div>
 

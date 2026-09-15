@@ -348,9 +348,28 @@ a {
     user-select: none;
 }
 
+.header-titles.is-loading #admin-school-display {
+    color: transparent !important;
+    background: var(--skeleton-bg) !important;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    width: fit-content;
+    min-width: 200px;
+    max-width: 260px;
+    min-height: 16px;
+    margin-top: 6px;
+    user-select: none;
+}
+
+.header-titles.is-loading #admin-school-display * {
+    visibility: hidden !important;
+}
+
 .header-titles.is-loading h1::after,
 .header-titles.is-loading .welcome-text::after,
-.header-titles.is-loading p:not(#admin-school-display)::after {
+.header-titles.is-loading p:not(#admin-school-display)::after,
+.header-titles.is-loading #admin-school-display::after {
     content: '';
     position: absolute;
     top: 0;

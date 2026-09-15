@@ -13,7 +13,7 @@ function hydrateAdminProfile(root = document) {
             if (roleEl && profile.role) roleEl.innerText = profile.role;
             if (avatarEl && profile.avatar_url) avatarEl.src = profile.avatar_url;
             if (schoolEl && profile.school_name) {
-                schoolEl.innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${profile.school_name}</strong></span>`;
+                schoolEl.innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>${profile.school_name}</span>`;
             }
         }
     } catch (e) {

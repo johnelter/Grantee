@@ -36,10 +36,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (h1) h1.innerText = "Edit Educational Assistance";
         const welcomeText = document.querySelector('.header-titles .welcome-text');
         if (welcomeText) welcomeText.innerText = "Update educational assistance details, application form, requirements, and eligibility rules.";
-        
+
         const draftBtn = document.getElementById('save-draft-btn');
         if (draftBtn) draftBtn.innerHTML = '<i data-lucide="file-pen-line" style="width: 16px; height: 16px;"></i> Update Draft';
-        
+
         const publishBtn = document.getElementById('publish-btn');
         if (publishBtn) publishBtn.innerHTML = '<i data-lucide="send" style="width: 16px; height: 16px;"></i> Update & Publish';
     }
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profile.avatar_url && document.getElementById('header-avatar')) document.getElementById('header-avatar').src = profile.avatar_url;
 
             if (document.getElementById('admin-school-display')) {
-                document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>Assigned to: <strong>${schoolName}</strong></span>`;
+                document.getElementById('admin-school-display').innerHTML = `<i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i> <span>${schoolName}</span>`;
                 if (typeof lucide !== 'undefined' && lucide.createIcons) {
                     lucide.createIcons();
                 }
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (dateRangePicker) {
-            try { dateRangePicker.destroy(); } catch (e) {}
+            try { dateRangePicker.destroy(); } catch (e) { }
         }
 
         dateRangePicker = flatpickr(inputEl, {
@@ -348,8 +348,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const all = document.querySelectorAll('.eligibility-year-checkbox');
         const checked = document.querySelectorAll('.eligibility-year-checkbox:checked');
         const isAllSelected = all.length > 0 && all.length === checked.length;
-        toggleAllYearsBtn.innerHTML = isAllSelected 
-            ? '<i data-lucide="x" style="width:14px;height:14px;"></i> Deselect All' 
+        toggleAllYearsBtn.innerHTML = isAllSelected
+            ? '<i data-lucide="x" style="width:14px;height:14px;"></i> Deselect All'
             : '<i data-lucide="check-check" style="width:14px;height:14px;"></i> Select All';
         toggleAllYearsBtn.classList.toggle('active-all', isAllSelected);
         if (window.lucide) lucide.createIcons();
@@ -360,8 +360,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const all = document.querySelectorAll('.eligibility-program-checkbox');
         const checked = document.querySelectorAll('.eligibility-program-checkbox:checked');
         const isAllSelected = all.length > 0 && all.length === checked.length;
-        toggleAllProgramsBtn.innerHTML = isAllSelected 
-            ? '<i data-lucide="x" style="width:14px;height:14px;"></i> Deselect All' 
+        toggleAllProgramsBtn.innerHTML = isAllSelected
+            ? '<i data-lucide="x" style="width:14px;height:14px;"></i> Deselect All'
             : '<i data-lucide="check-check" style="width:14px;height:14px;"></i> Select All';
         toggleAllProgramsBtn.classList.toggle('active-all', isAllSelected);
         if (window.lucide) lucide.createIcons();
@@ -682,20 +682,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td style="text-align: center;">
                     <div style="display:flex; justify-content:center;">
                         ${doc.isDefault
-                            ? `<label class="toggle-switch" title="Include this default document?">
+                    ? `<label class="toggle-switch" title="Include this default document?">
                                     <input type="checkbox" onchange="updateDoc(${index}, 'isIncluded', this.checked)" ${doc.isIncluded ? 'checked' : ''}>
                                     <span class="slider" style="background-color: ${doc.isIncluded ? 'var(--forest-shade)' : 'var(--border-color)'};"></span>
                                </label>`
-                            : `<span class="table-status-badge table-status-default">Required</span>`
-                        }
+                    : `<span class="table-status-badge table-status-default">Required</span>`
+                }
                     </div>
                 </td>
                 <td style="text-align: center;">
                     <div style="display:flex; justify-content:center;">
                         ${doc.isDefault
-                            ? `<span class="table-status-badge table-status-default" title="System default requirement"><i data-lucide="lock" style="width:12px;height:12px;"></i> System</span>`
-                            : `<button type="button" onclick="removeDoc(${index})" class="btn-icon-table" style="color:var(--danger-color);" title="Remove Custom Requirement"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>`
-                        }
+                    ? `<span class="table-status-badge table-status-default" title="System default requirement"><i data-lucide="lock" style="width:12px;height:12px;"></i> System</span>`
+                    : `<button type="button" onclick="removeDoc(${index})" class="btn-icon-table" style="color:var(--danger-color);" title="Remove Custom Requirement"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>`
+                }
                     </div>
                 </td>
             `;
@@ -842,8 +842,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const rowId = row.dataset.rowId;
             let options = [];
 
-            const detailsRow = row.nextElementSibling && row.nextElementSibling.classList.contains('form-field-details-row') 
-                ? row.nextElementSibling 
+            const detailsRow = row.nextElementSibling && row.nextElementSibling.classList.contains('form-field-details-row')
+                ? row.nextElementSibling
                 : document.querySelector(`.form-field-details-row[data-row-id="${rowId}"]`);
 
             if (type === 'Dropdown' || type === 'Selection') {
@@ -854,8 +854,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            const allowMultiple = (type === 'Selection' && detailsRow) 
-                ? detailsRow.querySelector('.field-multiple')?.checked || false 
+            const allowMultiple = (type === 'Selection' && detailsRow)
+                ? detailsRow.querySelector('.field-multiple')?.checked || false
                 : false;
 
             formFields.push({
@@ -1022,15 +1022,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="font-size:12px; color: var(--text-muted); margin-bottom:15px;">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
                     
                     ${(() => {
-                        const fmt = (val, rule) => {
-                            if (!val || typeof val !== 'string') return val;
-                            if (rule === 'UPPERCASE') return val.toUpperCase();
-                            if (rule === 'lowercase') return val.toLowerCase();
-                            if (rule === 'Capitalize Each Word') return val.replace(/\b\w/g, l => l.toUpperCase());
-                            return val;
-                        };
-                        const af = data.auto_collected_formats || {};
-                        return `
+                    const fmt = (val, rule) => {
+                        if (!val || typeof val !== 'string') return val;
+                        if (rule === 'UPPERCASE') return val.toUpperCase();
+                        if (rule === 'lowercase') return val.toLowerCase();
+                        if (rule === 'Capitalize Each Word') return val.replace(/\b\w/g, l => l.toUpperCase());
+                        return val;
+                    };
+                    const af = data.auto_collected_formats || {};
+                    return `
                     <div class="preview-field-grid">
                         <div class="preview-input-group"><label>Student ID Number</label><input type="text" class="preview-input" value="202302709" readonly></div>
                         <div class="preview-input-group"><label>Email Address</label><input type="text" class="preview-input" value="${fmt('student@gmail.com', af['Email Address'] || af['Email'])}" readonly></div>
@@ -1041,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="preview-input-group"><label>Program</label><input type="text" class="preview-input" value="${fmt('BS Information Technology', af['Program'])}" readonly></div>
                         <div class="preview-input-group"><label>Year Level</label><input type="text" class="preview-input" value="${fmt('4th year', af['Year Level'])}" readonly></div>
                     </div>`;
-                    })()}
+                })()}
 
                     <div class="preview-section-title">2. Questionnaire</div>
                     ${data.form_fields.length === 0 ? '<p style="font-size:13px; color: var(--text-muted);">No custom questions added.</p>' : ''}
@@ -1049,33 +1049,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="preview-input-group" style="margin-bottom:15px;">
                             <label>${f.label} ${f.required ? '<span class="text-red">*</span>' : ''}</label>
                             ${['Dropdown', 'Selection'].includes(f.type)
-                    ? `<select class="preview-input preview-input-active"><option>Select option...</option>${f.options.map(o => `<option>${o}</option>`).join('')}</select>`
-                    : `<input type="text" class="preview-input preview-input-active" placeholder="Enter your answer...">`
-                }
+                        ? `<select class="preview-input preview-input-active"><option>Select option...</option>${f.options.map(o => `<option>${o}</option>`).join('')}</select>`
+                        : `<input type="text" class="preview-input preview-input-active" placeholder="Enter your answer...">`
+                    }
                         </div>
                     `).join('')}
 
                     <div class="preview-section-title">3. Document Uploads</div>
                     ${(() => {
-                        const hasOcr = data.document_configurations.some(d => d.ocr_enabled);
-                        if (!hasOcr) return '';
-                        return `
+                    const hasOcr = data.document_configurations.some(d => d.ocr_enabled);
+                    if (!hasOcr) return '';
+                    return `
                         <div class="preview-ai-banner">
                             <i data-lucide="bot" style="width: 22px; height: 22px; flex-shrink: 0; color: var(--river-blue);"></i>
                             <div>
                                 <strong>AI Verification Active:</strong> Please ensure your documents are clear and legible. Our AI system will scan the contents to verify authenticity, signatures, and ensure your grades meet the minimum eligibility rules for this educational assistance.
                             </div>
                         </div>`;
-                    })()}
+                })()}
 
                     ${data.document_configurations.length === 0 ? '<p style="font-size:13px; color: var(--text-muted);">No documents required.</p>' : ''}
                     ${data.document_configurations.map(d => {
-                        const hasDesc = d.description && d.description.trim() !== '';
-                        const ocrBadge = d.ocr_enabled
-                            ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Validation Active</span>`
-                            : `<span class="preview-ocr-badge inactive"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> Standard Upload</span>`;
-                        
-                        return `
+                    const hasDesc = d.description && d.description.trim() !== '';
+                    const ocrBadge = d.ocr_enabled
+                        ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Validation Active</span>`
+                        : `<span class="preview-ocr-badge inactive"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> Standard Upload</span>`;
+
+                    return `
                         <div class="preview-doc-box">
                             <div class="preview-doc-header">
                                 <label style="font-size:13.5px; font-weight:700; color: var(--text-main); display:inline-flex; align-items:center; gap:6px; margin:0;">
@@ -1100,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                         </div>
                         `;
-                    }).join('')}
+                }).join('')}
 
                     <button type="button" class="preview-submit-btn">Submit Application</button>
                 </div>
@@ -1145,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (document.getElementById('sch_description_editor')) document.getElementById('sch_description_editor').innerHTML = sch.description || '';
             if (document.getElementById('sch_batch')) document.getElementById('sch_batch').value = sch.batch || '';
             if (document.getElementById('sch_semester')) document.getElementById('sch_semester').value = sch.semester || '';
-            
+
             // School year dropdown load
             if (sch.school_year) {
                 populateSchoolYearDropdown(sch.school_year);
@@ -1317,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isEditMode) {
                 const { error } = await window.supabaseClient.from('scholarships').update(payload).eq('id', scholarshipId);
                 if (error) throw error;
-                
+
                 try {
                     await window.supabaseClient.from('audit_logs').insert([{
                         admin_id: adminId,
@@ -1331,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 const { error } = await window.supabaseClient.from('scholarships').insert([payload]);
                 if (error) throw error;
-                
+
                 try {
                     await window.supabaseClient.from('audit_logs').insert([{
                         admin_id: adminId,
@@ -1349,7 +1349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 icon: 'success',
                 confirmButtonColor: '#1F3D2E'
             });
-            
+
             window.location.href = 'admin-scholarships.html';
 
         } catch (error) {

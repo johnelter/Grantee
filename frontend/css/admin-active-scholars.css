@@ -945,14 +945,16 @@ body.dark-theme .filter-select {
 /* =========================================================
    6. TABLE & BENEFICIARY ROWS
 ========================================================= */
-.table-panel {
+.table-panel,
+.data-panel {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     overflow: hidden;
     width: 100%;
     min-width: 0;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .table-responsive {

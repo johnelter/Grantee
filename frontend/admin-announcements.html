@@ -8,9 +8,10 @@
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
 
     <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- SweetAlert2 for Modals -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Lucide Icons -->
@@ -23,7 +24,7 @@
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/admin-announcements.css?v=4">
 
-        <!-- Immediate Theme Application to Avoid Flash -->
+    <!-- Immediate Theme Application to Avoid Flash -->
     <script>
         (function () {
             try {
@@ -48,40 +49,99 @@
 
 <body>
     <div class="app-layout">
-                <!-- STATIC EMBEDDED SIDEBAR -->
+        <!-- STATIC EMBEDDED SIDEBAR -->
         <div id="sidebar-container">
             <aside class="sidebar" id="app-sidebar">
                 <div class="sidebar-brand">
                     <img src="assets/grantee_logo.png" alt="Grantee Logo" class="logo-icon" style="border-radius: 8px;">
                     <div>
                         <h2>Grantee</h2>
-                        <span class="sub-brand">Smart Management</span>
+                        <span class="sub-brand">Educational Assistance Management</span>
                     </div>
                 </div>
                 <nav class="sidebar-menu">
                     <a href="admin-dashboard.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-home" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg></span> Dashboard
+                        <span class="menu-icon"><svg class="lucide lucide-home" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                                <path
+                                    d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            </svg></span> Dashboard
                     </a>
                     <a href="admin-scholarships.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-graduation-cap" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" /><path d="M22 10v6" /><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" /></svg></span> Educational Assistance
+                        <span class="menu-icon"><svg class="lucide lucide-graduation-cap"
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path
+                                    d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+                                <path d="M22 10v6" />
+                                <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
+                            </svg></span> Educational Assistance
                     </a>
                     <a href="admin-applications.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-file-text" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg></span> Applications
+                        <span class="menu-icon"><svg class="lucide lucide-file-text" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+                                <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+                                <path d="M10 9H8" />
+                                <path d="M16 13H8" />
+                                <path d="M16 17H8" />
+                            </svg></span> Applications
                     </a>
                     <a href="admin-active-scholars.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-award" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" /><circle cx="12" cy="8" r="6" /></svg></span> Active Beneficiaries
+                        <span class="menu-icon"><svg class="lucide lucide-award" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                                <circle cx="12" cy="8" r="6" />
+                            </svg></span> Active Beneficiaries
                     </a>
                     <a href="admin-policies.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-clipboard-list" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg></span> Assistance Policies
+                        <span class="menu-icon"><svg class="lucide lucide-clipboard-list"
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                                <path d="M12 11h4" />
+                                <path d="M12 16h4" />
+                                <path d="M8 11h.01" />
+                                <path d="M8 16h.01" />
+                            </svg></span> Assistance Policies
                     </a>
                     <a href="admin-students.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-users" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><path d="M16 3.128a4 4 0 0 1 0 7.744" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><circle cx="9" cy="7" r="4" /></svg></span> Enrolled Masterlist
+                        <span class="menu-icon"><svg class="lucide lucide-users" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <circle cx="9" cy="7" r="4" />
+                            </svg></span> Enrolled Masterlist
                     </a>
                     <a href="admin-announcements.html" class="menu-item active">
-                        <span class="menu-icon"><svg class="lucide lucide-megaphone" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" /><path d="M8 6v8" /></svg></span> Announcements
+                        <span class="menu-icon"><svg class="lucide lucide-megaphone" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+                                <path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" />
+                                <path d="M8 6v8" />
+                            </svg></span> Announcements
                     </a>
                     <a href="admin-profile-settings.html" class="menu-item">
-                        <span class="menu-icon"><svg class="lucide lucide-settings" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></svg></span> Profile Settings
+                        <span class="menu-icon"><svg class="lucide lucide-settings" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg></span> Profile Settings
                     </a>
                 </nav>
             </aside>
@@ -97,8 +157,9 @@
                         <h1 class="page-title">Manage Announcements</h1>
                         <p class="welcome-text">Create, manage, and publish announcements for students.</p>
                         <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
-                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
-                            <span>Loading assigned school...</span>
+                            <i data-lucide="school"
+                                style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                            <span>Loading school...</span>
                         </p>
                     </div>
                 </div>
@@ -106,7 +167,8 @@
                 <!-- Actions Section -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
@@ -121,19 +183,25 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
+                                style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Profile Settings</a>
                             <div class="dropdown-divider"></div>
                             <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger">
-                                <i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout
+                                <i data-lucide="log-out"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Logout
                             </a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
@@ -146,7 +214,8 @@
                         <h2 class="section-title">Announcement Feed</h2>
                         <p class="section-subtitle">Broadcast updates, schedules, and reminders</p>
                     </div>
-                    <button class="btn-primary" id="btn-trigger-post" onclick="window.openCreateModal ? window.openCreateModal() : null">
+                    <button class="btn-primary" id="btn-trigger-post"
+                        onclick="window.openCreateModal ? window.openCreateModal() : null">
                         <i data-lucide="plus"></i> <span>Create Announcement</span>
                     </button>
                 </div>
@@ -155,7 +224,8 @@
                 <div class="filter-bar">
                     <div class="search-box">
                         <i data-lucide="search"></i>
-                        <input type="text" id="search-input" class="filter-input" placeholder="Search announcements by title or content...">
+                        <input type="text" id="search-input" class="filter-input"
+                            placeholder="Search announcements by title or content...">
                     </div>
                     <select id="filter-category" class="filter-input">
                         <option value="all">All Categories</option>
@@ -329,7 +399,8 @@
                                     <h4 class="exact-card-title">Announcement Details</h4>
                                 </div>
                                 <div class="form-group mb-4">
-                                    <label class="exact-label">Announcement Title <span class="text-danger">*</span></label>
+                                    <label class="exact-label">Announcement Title <span
+                                            class="text-danger">*</span></label>
                                     <input type="text" id="ann-title" class="exact-input" required
                                         placeholder="e.g. Schedule of Payout for Educational Assistance Beneficiaries">
                                 </div>
@@ -344,7 +415,8 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label class="exact-label">Target Audience <span class="text-danger">*</span></label>
+                                        <label class="exact-label">Target Audience <span
+                                                class="text-danger">*</span></label>
                                         <select id="ann-audience" class="exact-input" required>
                                             <option value="all_enrolled_students">All Enrolled Students</option>
                                             <optgroup label="Specific Educational Assistance Applicants">
@@ -353,7 +425,8 @@
                                                 <option value="app_academic">Applicants of: Academic</option>
                                                 <option value="app_deans_lister">Applicants of: Deans Lister</option>
                                                 <option value="app_locked_in">Applicants of: Locked-in</option>
-                                                <option value="app_tes">Applicants of: Tertiary Education Subsidy (TES)</option>
+                                                <option value="app_tes">Applicants of: Tertiary Education Subsidy (TES)
+                                                </option>
                                                 <option value="app_jurani">Applicants of: Jurani Catarata</option>
                                                 <option value="app_tequillo">Applicants of: Tequillo</option>
                                                 <option value="app_underwood">Applicants of: Underwood</option>
@@ -381,7 +454,8 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label class="exact-label">Expiration Date <span class="text-muted font-normal">(Optional)</span></label>
+                                        <label class="exact-label">Expiration Date <span
+                                                class="text-muted font-normal">(Optional)</span></label>
                                         <input type="date" id="ann-expires-at" class="exact-input">
                                         <p class="exact-helper">Post will auto-archive after this date.</p>
                                     </div>
@@ -397,11 +471,13 @@
                             <div class="exact-card">
                                 <div class="exact-card-header">
                                     <i data-lucide="align-left"></i>
-                                    <h4 class="exact-card-title">Announcement Content <span class="text-danger">*</span></h4>
+                                    <h4 class="exact-card-title">Announcement Content <span class="text-danger">*</span>
+                                    </h4>
                                 </div>
                                 <div class="rte-wrapper">
                                     <div class="rte-toolbar">
-                                        <button type="button" class="rte-btn" data-command="formatBlock" data-value="H3" title="Heading">
+                                        <button type="button" class="rte-btn" data-command="formatBlock" data-value="H3"
+                                            title="Heading">
                                             <i data-lucide="heading"></i>
                                         </button>
                                         <button type="button" class="rte-btn" data-command="bold" title="Bold">
@@ -410,32 +486,40 @@
                                         <button type="button" class="rte-btn" data-command="italic" title="Italic">
                                             <i data-lucide="italic"></i>
                                         </button>
-                                        <button type="button" class="rte-btn" data-command="underline" title="Underline">
+                                        <button type="button" class="rte-btn" data-command="underline"
+                                            title="Underline">
                                             <i data-lucide="underline"></i>
                                         </button>
                                         <div class="rte-divider"></div>
-                                        <button type="button" class="rte-btn" data-command="insertUnorderedList" title="Bullet List">
+                                        <button type="button" class="rte-btn" data-command="insertUnorderedList"
+                                            title="Bullet List">
                                             <i data-lucide="list"></i>
                                         </button>
-                                        <button type="button" class="rte-btn" data-command="insertOrderedList" title="Numbered List">
+                                        <button type="button" class="rte-btn" data-command="insertOrderedList"
+                                            title="Numbered List">
                                             <i data-lucide="list-ordered"></i>
                                         </button>
                                         <div class="rte-divider"></div>
-                                        <button type="button" class="rte-btn" data-command="justifyLeft" title="Align Left">
+                                        <button type="button" class="rte-btn" data-command="justifyLeft"
+                                            title="Align Left">
                                             <i data-lucide="align-left"></i>
                                         </button>
-                                        <button type="button" class="rte-btn" data-command="justifyCenter" title="Align Center">
+                                        <button type="button" class="rte-btn" data-command="justifyCenter"
+                                            title="Align Center">
                                             <i data-lucide="align-center"></i>
                                         </button>
-                                        <button type="button" class="rte-btn" data-command="justifyRight" title="Align Right">
+                                        <button type="button" class="rte-btn" data-command="justifyRight"
+                                            title="Align Right">
                                             <i data-lucide="align-right"></i>
                                         </button>
                                         <div class="rte-divider"></div>
-                                        <button type="button" class="rte-btn" data-command="createLink" title="Insert Link">
+                                        <button type="button" class="rte-btn" data-command="createLink"
+                                            title="Insert Link">
                                             <i data-lucide="link"></i>
                                         </button>
                                     </div>
-                                    <div id="ann-content" contenteditable="true" class="rte-content" placeholder="Write full details of the announcement here..."></div>
+                                    <div id="ann-content" contenteditable="true" class="rte-content"
+                                        placeholder="Write full details of the announcement here..."></div>
                                 </div>
                             </div>
 
@@ -460,7 +544,8 @@
                                             <span>Click to upload images</span>
                                             <p>PNG, JPG, GIF up to 5MB</p>
                                         </label>
-                                        <input type="file" id="ann-image-upload" class="hidden-file-input" accept="image/*" multiple>
+                                        <input type="file" id="ann-image-upload" class="hidden-file-input"
+                                            accept="image/*" multiple>
                                         <div id="new-image-preview-container" class="uploaded-media-grid"></div>
                                     </div>
 
@@ -471,7 +556,8 @@
                                             <span>Click to attach files</span>
                                             <p>PDF, DOC, XLS up to 10MB</p>
                                         </label>
-                                        <input type="file" id="ann-file-upload" class="hidden-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple>
+                                        <input type="file" id="ann-file-upload" class="hidden-file-input"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx" multiple>
                                         <div id="new-file-preview-container" class="new-files-column"></div>
                                     </div>
                                 </div>
@@ -511,21 +597,26 @@
                                         </span>
                                         <span class="preview-status-badge" id="preview-status">PUBLISHED</span>
                                     </div>
-                                    <h4 id="preview-title" class="preview-post-title">Announcement Title Will Appear Here</h4>
-                                    <p id="preview-excerpt" class="preview-post-excerpt">Start writing content to see a live preview...</p>
+                                    <h4 id="preview-title" class="preview-post-title">Announcement Title Will Appear
+                                        Here</h4>
+                                    <p id="preview-excerpt" class="preview-post-excerpt">Start writing content to see a
+                                        live preview...</p>
 
                                     <div id="preview-image-grid" class="preview-media-wrapper"></div>
 
                                     <div class="preview-footer-row">
                                         <div class="preview-audience-tag">
-                                            <i data-lucide="users"></i> <span id="preview-audience">All Enrolled Students</span>
+                                            <i data-lucide="users"></i> <span id="preview-audience">All Enrolled
+                                                Students</span>
                                         </div>
                                         <div class="preview-comment-tag">
-                                            <i data-lucide="message-square"></i> <span id="preview-comment-icon">Comments On</span>
+                                            <i data-lucide="message-square"></i> <span
+                                                id="preview-comment-icon">Comments On</span>
                                         </div>
                                     </div>
                                 </div>
-                                <p class="preview-helper-text">This preview demonstrates the exact card students will see in their feed.</p>
+                                <p class="preview-helper-text">This preview demonstrates the exact card students will
+                                    see in their feed.</p>
                             </div>
                         </div>
 
@@ -533,7 +624,8 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" id="btn-cancel-ann" class="btn-outline-action" onclick="document.getElementById('announcement-modal').style.display='none'">
+                    <button type="button" id="btn-cancel-ann" class="btn-outline-action"
+                        onclick="document.getElementById('announcement-modal').style.display='none'">
                         Cancel
                     </button>
                     <button type="submit" id="btn-save-announcement" class="btn-primary">

@@ -190,11 +190,17 @@
                 if (document.getElementById('admin-school-display')) {
                     document.getElementById('admin-school-display').innerHTML = `
                         <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
-                        <span>Assigned to: <strong>${schoolName}</strong></span>
+                        <span>${schoolName}</span>
                     `;
                     if (typeof lucide !== 'undefined' && lucide.createIcons) {
                         lucide.createIcons();
                     }
+                }
+
+                // Remove loading skeleton from header
+                const headerTitlesBox = document.getElementById('header-titles-box');
+                if (headerTitlesBox) {
+                    headerTitlesBox.classList.remove('is-loading');
                 }
 
                 sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
@@ -209,6 +215,10 @@
             }
         } catch (error) {
             console.error("Error loading admin profile:", error);
+            const headerTitlesBox = document.getElementById('header-titles-box');
+            if (headerTitlesBox) {
+                headerTitlesBox.classList.remove('is-loading');
+            }
             Swal.fire('Error', 'Failed to load profile data.', 'error');
         }
     }

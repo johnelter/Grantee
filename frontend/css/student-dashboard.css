@@ -251,7 +251,8 @@ body.dark-theme {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
@@ -265,7 +266,12 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text-heading);
   margin: 0;
   letter-spacing: -0.015em;
@@ -822,6 +828,7 @@ svg.lucide,
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -977,10 +984,21 @@ svg.lucide,
 }
 
 /* Category Specific Accent Borders */
-.stat-card:nth-child(1)::before { background: var(--stat-submitted-color); }
-.stat-card:nth-child(2)::before { background: var(--palette-sand-beige); }
-.stat-card:nth-child(3)::before { background: var(--stat-approved-color); }
-.stat-card:nth-child(4)::before { background: var(--stat-rejected-color); }
+.stat-card:nth-child(1)::before {
+  background: var(--stat-submitted-color);
+}
+
+.stat-card:nth-child(2)::before {
+  background: var(--palette-sand-beige);
+}
+
+.stat-card:nth-child(3)::before {
+  background: var(--stat-approved-color);
+}
+
+.stat-card:nth-child(4)::before {
+  background: var(--stat-rejected-color);
+}
 
 .stat-icon {
   width: 44px;
@@ -1067,10 +1085,21 @@ svg.lucide,
   transform: translateX(4px);
 }
 
-.link-submitted { color: var(--stat-submitted-color); }
-.link-review { color: var(--stat-review-color); }
-.link-approved { color: var(--stat-approved-color); }
-.link-rejected { color: var(--stat-rejected-color); }
+.link-submitted {
+  color: var(--stat-submitted-color);
+}
+
+.link-review {
+  color: var(--stat-review-color);
+}
+
+.link-approved {
+  color: var(--stat-approved-color);
+}
+
+.link-rejected {
+  color: var(--stat-rejected-color);
+}
 
 .link-submitted:hover,
 .link-review:hover,
@@ -1761,8 +1790,13 @@ svg.lucide,
 }
 
 @keyframes globalModalOverlayFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes globalModalFadeIn {
@@ -1770,6 +1804,7 @@ svg.lucide,
     opacity: 0;
     transform: scale(0.92) translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -2127,8 +2162,13 @@ svg.lucide,
 }
 
 @keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modalSlideUp {
@@ -2136,6 +2176,7 @@ svg.lucide,
     opacity: 0;
     transform: translateY(16px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -2382,6 +2423,7 @@ svg.lucide,
 }
 
 @media (max-width: 600px) {
+
   /* Recommended for You Stacking on Mobile for Full-Width Button */
   .rec-list-item {
     flex-direction: column;
@@ -2590,6 +2632,7 @@ svg.lucide,
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -2628,12 +2671,10 @@ svg.lucide,
   right: 0;
   bottom: 0;
   transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.6) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0) 100%);
   animation: dashboardSkeletonShimmer 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
@@ -2646,12 +2687,10 @@ svg.lucide,
 [data-theme="dark"] .header-titles.is-loading h1::after,
 [data-theme="dark"] .header-titles.is-loading p::after,
 [data-theme="dark"] .header-titles.is-loading .student-school-text::after {
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0) 100%);
 }
 
 /* Header Skeleton */

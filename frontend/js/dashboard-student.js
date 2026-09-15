@@ -40,15 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Failed to sync backend metrics:", err);
     }
 
-    // 5. Light/Dark Mode Switcher Control
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            const htmlTag = document.documentElement;
-            const currentTheme = htmlTag.getAttribute('data-theme');
-            htmlTag.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
-        });
-    }
+    // 5. Handled globally by student-sidebar-loader.js
 
     // 6. Handle Safe Logout Routine
     const logoutBtn = document.getElementById('logout-btn');

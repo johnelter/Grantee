@@ -287,13 +287,14 @@
 .header-titles.is-loading::after {
   content: "";
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.65) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.65) 50%,
+      rgba(255, 255, 255, 0) 100%);
   animation: headerSkeletonShimmer 1.1s infinite;
 }
 
@@ -685,6 +686,7 @@
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1091,8 +1093,13 @@
 }
 
 @keyframes globalModalOverlayFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes globalModalFadeIn {
@@ -1100,6 +1107,7 @@
     opacity: 0;
     transform: scale(0.92) translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -1108,6 +1116,7 @@
 
 /* --- Perfect Mobile Phone Responsiveness --- */
 @media (max-width: 480px) {
+
   #logout-modal .global-modal-content,
   .global-modal-content {
     padding: 24px 20px;
@@ -1129,3 +1138,5 @@
   }
 }
 
+}
+}

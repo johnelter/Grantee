@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
 
     <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Sweet Alerts -->
@@ -25,6 +26,7 @@
 
     <!-- Global & Page CSS -->
     <link rel="stylesheet" href="css/admin-global.css">
+    <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/create-scholarship.css">
 
     <style>
@@ -38,20 +40,21 @@
     <script>
         (function () {
             try {
-                var cached = sessionStorage.getItem('grantee_admin_profile');
-                if (cached) {
-                    var profile = JSON.parse(cached);
-                    if (profile && profile.id) {
-                        var userTheme = localStorage.getItem('grantee_admin_theme_' + profile.id);
-                        if (userTheme) {
-                            document.documentElement.setAttribute('data-theme', userTheme);
-                            return;
+                var theme = localStorage.getItem('grantee_admin_theme');
+                if (!theme) {
+                    var cached = sessionStorage.getItem('grantee_admin_profile');
+                    if (cached) {
+                        var profile = JSON.parse(cached);
+                        if (profile && profile.id) {
+                            theme = localStorage.getItem('grantee_admin_theme_' + profile.id);
                         }
                     }
                 }
-            } catch(e) {}
-            var theme = localStorage.getItem('grantee_admin_theme') || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
+                if (!theme) theme = localStorage.getItem('grantee_theme') || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
         })();
     </script>
 </head>
@@ -59,9 +62,104 @@
 <body>
     <div class="app-layout">
 
-        <!-- DYNAMIC SIDEBAR & MOBILE OVERLAY INJECTION POINT -->
-        <div id="sidebar-overlay" class="sidebar-overlay"></div>
-        <div id="sidebar-container"></div>
+        <!-- STATIC EMBEDDED SIDEBAR -->
+        <div id="sidebar-container">
+            <aside class="sidebar" id="app-sidebar">
+                <div class="sidebar-brand">
+                    <img src="assets/grantee_logo.png" alt="Grantee Logo" class="logo-icon" style="border-radius: 8px;">
+                    <div>
+                        <h2>Grantee</h2>
+                        <span class="sub-brand">Smart Management</span>
+                    </div>
+                </div>
+                <nav class="sidebar-menu">
+                    <a href="admin-dashboard.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-home" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                                <path
+                                    d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            </svg></span> Dashboard
+                    </a>
+                    <a href="admin-scholarships.html" class="menu-item active">
+                        <span class="menu-icon"><svg class="lucide lucide-graduation-cap"
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path
+                                    d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+                                <path d="M22 10v6" />
+                                <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
+                            </svg></span> Educational Assistance
+                    </a>
+                    <a href="admin-applications.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-file-text" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+                                <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+                                <path d="M10 9H8" />
+                                <path d="M16 13H8" />
+                                <path d="M16 17H8" />
+                            </svg></span> Applications
+                    </a>
+                    <a href="admin-active-scholars.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-award" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                                <circle cx="12" cy="8" r="6" />
+                            </svg></span> Active Beneficiaries
+                    </a>
+                    <a href="admin-policies.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-clipboard-list"
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                                <path d="M12 11h4" />
+                                <path d="M12 16h4" />
+                                <path d="M8 11h.01" />
+                                <path d="M8 16h.01" />
+                            </svg></span> Assistance Policies
+                    </a>
+                    <a href="admin-students.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-users" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <circle cx="9" cy="7" r="4" />
+                            </svg></span> Enrolled Masterlist
+                    </a>
+                    <a href="admin-announcements.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-megaphone" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+                                <path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" />
+                                <path d="M8 6v8" />
+                            </svg></span> Announcements
+                    </a>
+                    <a href="admin-profile-settings.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-settings" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg></span> Profile Settings
+                    </a>
+                </nav>
+            </aside>
+            <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        </div>
 
         <main class="main-content">
 
@@ -71,14 +169,18 @@
                 <div class="header-titles-wrapper">
                     <div class="header-titles is-loading" id="header-titles-box">
                         <div class="breadcrumbs">
-                            <a href="admin-dashboard.html">Dashboard</a> &gt;
+                            <!-- <a href="admin-dashboard.html">Dashboard</a> &gt; -->
                             <a href="admin-scholarships.html">Educational Assistance</a> &gt;
                             <span>Create Program</span>
                         </div>
-                        <h1>Create Educational Assistance <i data-lucide="graduation-cap" style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i></h1>
-                        <p class="welcome-text">Set up educational assistance details, application form, requirements, and eligibility rules.</p>
+                        <h1>Create Educational Assistance <i data-lucide="graduation-cap"
+                                style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i>
+                        </h1>
+                        <p class="welcome-text">Set up educational assistance details, application form, requirements,
+                            and eligibility rules.</p>
                         <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
-                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                            <i data-lucide="school"
+                                style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
                     </div>
@@ -87,7 +189,8 @@
                 <!-- Actions & Mobile Menu -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
@@ -101,17 +204,24 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
+                                style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    data-lucide="log-out"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
@@ -134,10 +244,13 @@
                             <div class="input-group">
                                 <label>Category <span class="text-red">*</span></label>
                                 <select id="sch_category" class="form-input">
-                                    <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
+                                    <option value="Institution-Funded Educational Assistance">Institution-Funded
+                                        Educational Assistance</option>
                                     <option value="Ched Educational Assistance">Ched Educational Assistance</option>
-                                    <option value="Private Educational Assistance">Private Educational Assistance</option>
-                                    <option value="Government Educational Assistance">Government Educational Assistance</option>
+                                    <option value="Private Educational Assistance">Private Educational Assistance
+                                    </option>
+                                    <option value="Government Educational Assistance">Government Educational Assistance
+                                    </option>
                                 </select>
                             </div>
 
@@ -150,7 +263,8 @@
                             </div>
 
                             <!-- ACADEMIC TERM FIELDS -->
-                            <div class="full-width" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 4px; margin-bottom: 4px;">
+                            <div class="full-width"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 4px; margin-bottom: 4px;">
                                 <div class="input-group">
                                     <label>Batch / Cohort</label>
                                     <input type="text" id="sch_batch" class="form-input" placeholder="e.g. Batch 1">
@@ -176,9 +290,13 @@
                                 <label>Available Slots <span class="text-red">*</span></label>
                                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                                     <input type="checkbox" id="dynamicSlots" checked style="cursor:pointer;">
-                                    <label for="dynamicSlots" style="margin:0; font-size:13px; font-weight:normal; cursor:pointer;">Dynamic / Unlimited Slots (Based on passed applicants)</label>
+                                    <label for="dynamicSlots"
+                                        style="margin:0; font-size:13px; font-weight:normal; cursor:pointer;">Dynamic /
+                                        Unlimited Slots (Based on passed applicants)</label>
                                 </div>
-                                <input type="number" id="fixedSlots" class="form-input" placeholder="Enter fixed slot number (e.g. 50)" min="1" step="1" style="display:none; max-width: 320px;">
+                                <input type="number" id="fixedSlots" class="form-input"
+                                    placeholder="Enter fixed slot number (e.g. 50)" min="1" step="1"
+                                    style="display:none; max-width: 320px;">
                             </div>
 
                             <!-- VISUAL RTE TOOLBAR -->
@@ -186,29 +304,42 @@
                                 <label>Description <span class="text-red">*</span></label>
                                 <div class="rte-container">
                                     <div class="rte-toolbar">
-                                        <button type="button" data-cmd="bold" title="Bold"><i data-lucide="bold" style="width: 15px; height: 15px;"></i></button>
-                                        <button type="button" data-cmd="italic" title="Italic"><i data-lucide="italic" style="width: 15px; height: 15px;"></i></button>
-                                        <button type="button" data-cmd="underline" title="Underline"><i data-lucide="underline" style="width: 15px; height: 15px;"></i></button>
+                                        <button type="button" data-cmd="bold" title="Bold"><i data-lucide="bold"
+                                                style="width: 15px; height: 15px;"></i></button>
+                                        <button type="button" data-cmd="italic" title="Italic"><i data-lucide="italic"
+                                                style="width: 15px; height: 15px;"></i></button>
+                                        <button type="button" data-cmd="underline" title="Underline"><i
+                                                data-lucide="underline" style="width: 15px; height: 15px;"></i></button>
                                         <div class="rte-divider"></div>
-                                        <button type="button" data-cmd="insertUnorderedList" title="Bulleted List"><i data-lucide="list" style="width: 15px; height: 15px;"></i></button>
-                                        <button type="button" data-cmd="insertOrderedList" title="Numbered List"><i data-lucide="list-ordered" style="width: 15px; height: 15px;"></i></button>
+                                        <button type="button" data-cmd="insertUnorderedList" title="Bulleted List"><i
+                                                data-lucide="list" style="width: 15px; height: 15px;"></i></button>
+                                        <button type="button" data-cmd="insertOrderedList" title="Numbered List"><i
+                                                data-lucide="list-ordered"
+                                                style="width: 15px; height: 15px;"></i></button>
                                     </div>
                                     <!-- Visual Editor Area -->
-                                    <div id="sch_description_editor" class="form-input rte-textarea" contenteditable="true">An educational assistance program that recognizes students with outstanding academic performance.</div>
+                                    <div id="sch_description_editor" class="form-input rte-textarea"
+                                        contenteditable="true">An educational assistance program that recognizes
+                                        students with outstanding academic performance.</div>
                                     <!-- Hidden input to store actual data -->
-                                    <input type="hidden" id="sch_description" value="An educational assistance program that recognizes students with outstanding academic performance.">
+                                    <input type="hidden" id="sch_description"
+                                        value="An educational assistance program that recognizes students with outstanding academic performance.">
                                 </div>
                             </div>
 
                             <div class="input-group full-width">
                                 <label>Application Period <span class="text-red">*</span></label>
                                 <div class="date-range-picker-wrapper">
-                                    <i data-lucide="calendar" class="date-range-icon" style="width: 16px; height: 16px;"></i>
-                                    <input type="text" id="sch_date_range" class="form-input" placeholder="Select application period (Start Date to End Date)" readonly required>
+                                    <i data-lucide="calendar" class="date-range-icon"
+                                        style="width: 16px; height: 16px;"></i>
+                                    <input type="text" id="sch_date_range" class="form-input"
+                                        placeholder="Select application period (Start Date to End Date)" readonly
+                                        required>
                                     <input type="hidden" id="sch_start" required>
                                     <input type="hidden" id="sch_end" required>
                                 </div>
-                                <span class="hint-text">Click to select start date and deadline in a single calendar view.</span>
+                                <span class="hint-text">Click to select start date and deadline in a single calendar
+                                    view.</span>
                             </div>
                         </div>
                     </div>
@@ -223,38 +354,51 @@
                                 <div class="rule-row" style="margin-bottom:12px;">
                                     <strong>Academic Requirements</strong>
                                 </div>
-                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+                                <div
+                                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
                                     <div>
                                         <label>Minimum High School Average</label>
-                                        <input type="number" id="minHsAverage" class="form-input grade-input" placeholder="e.g. 85 (0 - 100)" min="0" max="100" step="0.01">
+                                        <input type="number" id="minHsAverage" class="form-input grade-input"
+                                            placeholder="e.g. 85 (0 - 100)" min="0" max="100" step="0.01">
                                         <span class="hint-text">Scale: 0 - 100 (Max: 100)</span>
                                     </div>
                                     <div>
                                         <label>Minimum College GWA</label>
-                                        <input type="number" step="0.01" id="minCollegeGwa" class="form-input grade-input" placeholder="e.g. 2.0 (1.0 - 5.0)" min="0" max="5.0">
+                                        <input type="number" step="0.01" id="minCollegeGwa"
+                                            class="form-input grade-input" placeholder="e.g. 2.0 (1.0 - 5.0)" min="0"
+                                            max="5.0">
                                         <span class="hint-text">Scale: 1.0 (Highest) - 5.0 (Lowest)</span>
                                     </div>
                                 </div>
-                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top: 16px;">
+                                <div
+                                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top: 16px;">
                                     <div>
                                         <label>Minimum Subject Rating (High School)</label>
-                                        <input type="number" id="minHsSubject" class="form-input grade-input" placeholder="e.g. 80 (No subject below 80)" min="0" max="100" step="0.01">
+                                        <input type="number" id="minHsSubject" class="form-input grade-input"
+                                            placeholder="e.g. 80 (No subject below 80)" min="0" max="100" step="0.01">
                                         <span class="hint-text">Scale: 0 - 100 (Max: 100)</span>
                                     </div>
                                     <div>
                                         <label>Minimum Subject Rating (College)</label>
-                                        <input type="number" step="0.01" id="minCollegeSubject" class="form-input grade-input" placeholder="e.g. 2.5 (No subject below 2.5)" min="0" max="5.0">
+                                        <input type="number" step="0.01" id="minCollegeSubject"
+                                            class="form-input grade-input" placeholder="e.g. 2.5 (No subject below 2.5)"
+                                            min="0" max="5.0">
                                         <span class="hint-text">Scale: 1.0 (Highest) - 5.0 (Lowest)</span>
                                     </div>
                                 </div>
-                                <span class="hint-text" style="color: var(--text-muted); font-weight: 500; margin-top: 10px;">Note: For College GWA and Ratings, 1.0 is the highest. Lower numbers indicate stricter grade requirements.</span>
+                                <span class="hint-text"
+                                    style="color: var(--text-muted); font-weight: 500; margin-top: 10px;">Note: For
+                                    College GWA and Ratings, 1.0 is the highest. Lower numbers indicate stricter grade
+                                    requirements.</span>
                             </div>
 
                             <!-- Eligible Years -->
                             <div class="input-group">
-                                <div class="rule-row" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div class="rule-row"
+                                    style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
                                     <strong>Eligible Year Levels</strong>
-                                    <button type="button" class="select-all-btn" id="toggle-all-years" title="Toggle select all year levels">
+                                    <button type="button" class="select-all-btn" id="toggle-all-years"
+                                        title="Toggle select all year levels">
                                         <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Select All
                                     </button>
                                 </div>
@@ -266,15 +410,20 @@
 
                             <!-- Eligible Programs -->
                             <div class="input-group">
-                                <div class="rule-row" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div class="rule-row"
+                                    style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
                                     <strong>Eligible Programs</strong>
-                                    <button type="button" class="select-all-btn" id="toggle-all-programs" title="Toggle select all programs">
+                                    <button type="button" class="select-all-btn" id="toggle-all-programs"
+                                        title="Toggle select all programs">
                                         <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Select All
                                     </button>
                                 </div>
                                 <div class="programs-search-box" style="margin-bottom: 8px; position: relative;">
-                                    <i data-lucide="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
-                                    <input type="text" id="search-programs-input" placeholder="Search programs..." class="form-input" style="padding-left: 34px; font-size: 13px; padding-top: 8px; padding-bottom: 8px;">
+                                    <i data-lucide="search"
+                                        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
+                                    <input type="text" id="search-programs-input" placeholder="Search programs..."
+                                        class="form-input"
+                                        style="padding-left: 34px; font-size: 13px; padding-top: 8px; padding-bottom: 8px;">
                                 </div>
                                 <div class="checkbox-group-container scrollable-programs-list" id="programs-container">
                                     <!-- Dynamic Program Checkbox Items -->
@@ -287,27 +436,36 @@
 
                     <!-- 3. APPLICATION FORM BUILDER -->
                     <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
                             <div>
-                                <h3 class="card-title" style="margin-bottom:4px;"><span class="step-badge">3</span> Application Form Builder</h3>
-                                <p class="hint-text">Create custom form fields for the educational assistance application.</p>
+                                <h3 class="card-title" style="margin-bottom:4px;"><span class="step-badge">3</span>
+                                    Application Form Builder</h3>
+                                <p class="hint-text">Create custom form fields for the educational assistance
+                                    application.</p>
                             </div>
                         </div>
 
                         <!-- AUTO-COLLECTED FIELDS BANNER -->
                         <div class="auto-profile-banner">
-                            <strong><i data-lucide="lock" style="width: 15px; height: 15px;"></i> Auto-Collected Profile Information</strong>
-                            Students do NOT need to fill these out manually. The system automatically attaches the following verified data from their profile:<br>
-                            <em>Student ID Number, Full Name, Email Address, Gender, Address, Program, and Year Level.</em>
+                            <strong><i data-lucide="lock" style="width: 15px; height: 15px;"></i> Auto-Collected Profile
+                                Information</strong>
+                            Students do NOT need to fill these out manually. The system automatically attaches the
+                            following verified data from their profile:<br>
+                            <em>Student ID Number, Full Name, Email Address, Gender, Address, Program, and Year
+                                Level.</em>
                         </div>
 
-                        <h4 style="font-size: 13.5px; margin-bottom: 10px; color: var(--text-heading); font-weight: 700;">Set Data Formatting Rules</h4>
+                        <h4
+                            style="font-size: 13.5px; margin-bottom: 10px; color: var(--text-heading); font-weight: 700;">
+                            Set Data Formatting Rules</h4>
                         <div id="auto-fields-container" style="margin-bottom: 26px;">
                             <!-- JS Injects Formatting rules here -->
                         </div>
 
                         <div style="margin-bottom:12px;">
-                            <h4 style="font-size: 13.5px; color: var(--text-heading); font-weight: 700; margin: 0;">Custom Questions</h4>
+                            <h4 style="font-size: 13.5px; color: var(--text-heading); font-weight: 700; margin: 0;">
+                                Custom Questions</h4>
                         </div>
                         <div class="builder-table-wrapper">
                             <table class="expandable-builder-table" id="form-builder-table">
@@ -336,8 +494,10 @@
                     <!-- 4. DOCUMENTARY REQUIREMENTS -->
                     <div class="card">
                         <div style="margin-bottom:16px;">
-                            <h3 class="card-title" style="margin-bottom:4px;"><span class="step-badge">4</span> Documentary Requirements & OCR Validation</h3>
-                            <p class="hint-text">Specify documents and enable AI OCR scanning to automatically extract and verify grades and authenticity.</p>
+                            <h3 class="card-title" style="margin-bottom:4px;"><span class="step-badge">4</span>
+                                Documentary Requirements & OCR Validation</h3>
+                            <p class="hint-text">Specify documents and enable AI OCR scanning to automatically extract
+                                and verify grades and authenticity.</p>
                         </div>
 
                         <div class="builder-table-wrapper">
@@ -365,8 +525,10 @@
                     </div>
 
                     <!-- BOTTOM ACTION BUTTONS -->
-                    <div class="form-bottom-actions" style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 30px; margin-bottom: 50px;">
-                        <button type="button" class="btn-outline" onclick="window.location.href='admin-scholarships.html'">Cancel</button>
+                    <div class="form-bottom-actions"
+                        style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 30px; margin-bottom: 50px;">
+                        <button type="button" class="btn-outline"
+                            onclick="window.location.href='admin-scholarships.html'">Cancel</button>
                         <button type="button" id="preview-btn" class="btn-preview">
                             <i data-lucide="eye" style="width: 16px; height: 16px;"></i> Preview Form
                         </button>
@@ -394,7 +556,9 @@
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i data-lucide="power" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Logout
+                    <i data-lucide="power"
+                        style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i>
+                    Logout
                 </button>
             </div>
         </div>

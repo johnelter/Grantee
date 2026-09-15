@@ -889,12 +889,38 @@ body {
   filter: brightness(0.9);
 }
 
-.fb-layout-1 { grid-template-columns: 1fr; max-height: 420px; }
-.fb-layout-2 { grid-template-columns: 1fr 1fr; height: 300px; }
-.fb-layout-3 { grid-template-columns: 1.5fr 1fr; grid-template-rows: 1fr 1fr; height: 340px; }
-.fb-layout-3 .span-top { grid-row: 1 / 3; height: 100%; }
-.fb-layout-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 340px; }
-.fb-layout-5 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 340px; }
+.fb-layout-1 {
+  grid-template-columns: 1fr;
+  max-height: 420px;
+}
+
+.fb-layout-2 {
+  grid-template-columns: 1fr 1fr;
+  height: 300px;
+}
+
+.fb-layout-3 {
+  grid-template-columns: 1.5fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  height: 340px;
+}
+
+.fb-layout-3 .span-top {
+  grid-row: 1 / 3;
+  height: 100%;
+}
+
+.fb-layout-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  height: 340px;
+}
+
+.fb-layout-5 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  height: 340px;
+}
 
 .more-images-container {
   position: relative;
@@ -905,7 +931,10 @@ body {
 .more-images-container::after {
   content: attr(data-more);
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(2px);
   color: #FFFFFF;
@@ -961,8 +990,13 @@ body {
    SKELETON SHIMMER LOADING SYSTEM
 ========================================================= */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .skeleton-box,
@@ -985,7 +1019,10 @@ body {
 .skeleton-image-box::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--skeleton-shimmer);
   animation: shimmer 1.5s infinite;
 }
@@ -1063,7 +1100,10 @@ body {
 .header-titles.is-loading .header-subtitle::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--skeleton-shimmer);
   animation: shimmer 1.5s infinite;
 }
@@ -1081,7 +1121,10 @@ body {
 .stat-value.is-loading::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--skeleton-shimmer);
   animation: shimmer 1.5s infinite;
 }
@@ -1592,7 +1635,9 @@ body {
 }
 
 @keyframes spinnerRotate {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .comments-loading-state {
@@ -1623,8 +1668,10 @@ body {
 ========================================================= */
 .media-viewer-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -1715,8 +1762,13 @@ body {
   transform: translateY(-50%) scale(1.1);
 }
 
-.btn-prev { left: -60px; }
-.btn-next { right: -60px; }
+.btn-prev {
+  left: -60px;
+}
+
+.btn-next {
+  right: -60px;
+}
 
 .media-counter {
   position: absolute;
@@ -1735,47 +1787,82 @@ body {
    ANIMATIONS & RESPONSIVE
 ========================================================= */
 @keyframes modalOverlayFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modalContentPop {
-  from { opacity: 0; transform: scale(0.94) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes dropdownFadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 900px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .btn-prev { left: 10px; }
-  .btn-next { right: 10px; }
+
+  .btn-prev {
+    left: 10px;
+  }
+
+  .btn-next {
+    right: 10px;
+  }
 }
 
 @media (max-width: 768px) {
   .top-header {
     padding: 0 16px;
   }
+
   .dashboard-scroll-area {
     padding: 20px 16px 60px 16px;
   }
+
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
   .hamburger-btn {
     display: flex;
   }
+
   .header-subtitle {
     display: none;
   }
-  .btn-prev { left: 5px; }
-  .btn-next { right: 5px; }
+
+  .btn-prev {
+    left: 5px;
+  }
+
+  .btn-next {
+    right: 5px;
+  }
 }
 
 /* =========================================================
@@ -1936,10 +2023,21 @@ body {
   border-bottom-left-radius: 10px;
 }
 
-.toast-success .toast-left-bar { background-color: #22c55e; }
-.toast-error .toast-left-bar   { background-color: #ef4444; }
-.toast-info .toast-left-bar    { background-color: #3b82f6; }
-.toast-warning .toast-left-bar { background-color: #f59e0b; }
+.toast-success .toast-left-bar {
+  background-color: #22c55e;
+}
+
+.toast-error .toast-left-bar {
+  background-color: #ef4444;
+}
+
+.toast-info .toast-left-bar {
+  background-color: #3b82f6;
+}
+
+.toast-warning .toast-left-bar {
+  background-color: #f59e0b;
+}
 
 .toast-icon-wrapper {
   width: 36px;
@@ -1958,10 +2056,21 @@ body {
   height: 18px;
 }
 
-.toast-success .toast-icon-wrapper { background-color: #22c55e; }
-.toast-error .toast-icon-wrapper   { background-color: #ef4444; }
-.toast-info .toast-icon-wrapper    { background-color: #3b82f6; }
-.toast-warning .toast-icon-wrapper { background-color: #f59e0b; }
+.toast-success .toast-icon-wrapper {
+  background-color: #22c55e;
+}
+
+.toast-error .toast-icon-wrapper {
+  background-color: #ef4444;
+}
+
+.toast-info .toast-icon-wrapper {
+  background-color: #3b82f6;
+}
+
+.toast-warning .toast-icon-wrapper {
+  background-color: #f59e0b;
+}
 
 .toast-details {
   flex: 1;

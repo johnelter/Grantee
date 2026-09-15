@@ -9,27 +9,29 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="css/student-theme.css">
-    <link rel="stylesheet" href="css/apply-scholarships.css?v=2">
+    <link rel="stylesheet" href="css/apply-scholarships.css?v=4">
     <link rel="stylesheet" href="css/student-sidebar.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <!-- Immediate Theme Application to Avoid Flash -->
     <script>
         (function () {
             try {
-                var cached = sessionStorage.getItem('grantee_student_profile');
-                if (cached) {
-                    var profile = JSON.parse(cached);
-                    if (profile && profile.id) {
-                        var userTheme = localStorage.getItem('grantee_student_theme_' + profile.id);
-                        if (userTheme) {
-                            document.documentElement.setAttribute('data-theme', userTheme);
-                            return;
+                var theme = localStorage.getItem('grantee_student_theme');
+                if (!theme) {
+                    var cached = sessionStorage.getItem('grantee_student_profile');
+                    if (cached) {
+                        var profile = JSON.parse(cached);
+                        if (profile && profile.id) {
+                            theme = localStorage.getItem('grantee_student_theme_' + profile.id);
                         }
                     }
                 }
-            } catch(e) {}
-            var theme = localStorage.getItem('grantee_student_theme') || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
+                if (!theme) theme = localStorage.getItem('grantee_theme') || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
         })();
     </script>
 </head>
@@ -37,8 +39,36 @@
 <body class="bg-main text-main">
     <div class="app-layout">
 
-        <!-- DYNAMIC SIDEBAR INJECTION POINT -->
-        <div id="sidebar-container"></div>
+        <!-- STATIC EMBEDDED SIDEBAR -->
+        <div id="sidebar-container">
+            <aside class="sidebar" id="app-sidebar">
+                <div class="sidebar-brand">
+                    <img src="assets/grantee_logo.png" alt="Grantee Logo" class="logo-icon" style="width: 32px; height: 32px; object-fit: contain; border-radius: 8px;">
+                    <div>
+                        <h2>Grantee</h2>
+                        <span class="sub-brand">Smart Management</span>
+                    </div>
+                </div>
+                <nav class="sidebar-menu">
+                    <a href="student-dashboard.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-layout-dashboard" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg></span> Dashboard
+                    </a>
+                    <a href="student-scholarships.html" class="menu-item active">
+                        <span class="menu-icon"><svg class="lucide lucide-graduation-cap" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" /><path d="M22 10v6" /><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" /></svg></span> Available Programs
+                    </a>
+                    <a href="student-applications.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-file-text" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg></span> My Applications
+                    </a>
+                    <a href="student-announcements.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-megaphone" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" /><path d="M8 6v8" /></svg></span> Announcements
+                    </a>
+                    <a href="profile-settings.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-user" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></span> Profile Settings
+                    </a>
+                </nav>
+            </aside>
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        </div>
 
         <main class="main-content">
 
@@ -47,7 +77,8 @@
                 <!-- Left Side: Titles & Back Button -->
                 <div class="header-left">
                     <div class="header-titles is-loading" id="header-titles-box">
-                        <a href="student-scholarships.html" class="back-btn"><i data-lucide="arrow-left"></i> Back to Programs</a>
+                        <a href="student-scholarships.html" class="back-btn"><i data-lucide="arrow-left"></i> Back to
+                            Programs</a>
                         <h1 id="header-page-title">Application Form</h1>
                         <p class="header-subtitle">Please review your details and complete the required fields.</p>
                     </div>
@@ -56,13 +87,15 @@
                 <!-- Right Side: Notifications, Profile Dropdown, & Mobile Menu -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
                     <!-- Notifications -->
                     <div class="notification-wrapper">
-                        <button class="btn-notification" id="notification-bell" type="button" aria-label="Notifications">
+                        <button class="btn-notification" id="notification-bell" type="button"
+                            aria-label="Notifications">
                             <i data-lucide="bell"></i>
                             <span class="badge" id="notification-badge" style="display:none;">0</span>
                         </button>
@@ -89,12 +122,14 @@
                         <div class="profile-dropdown-menu" id="profile-menu">
                             <a href="profile-settings.html"><i data-lucide="user"></i> Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    data-lucide="log-out"></i> Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu"></i>
                     </button>
                 </div>
@@ -122,35 +157,52 @@
 
                             <div class="preview-split">
                                 <div>
-                                    <div class="skeleton-line" style="width: 220px; height: 18px; margin-bottom: 12px;"></div>
-                                    <div class="skeleton-line" style="width: 95%; height: 14px; margin-bottom: 8px;"></div>
-                                    <div class="skeleton-line" style="width: 90%; height: 14px; margin-bottom: 8px;"></div>
-                                    <div class="skeleton-line" style="width: 75%; height: 14px; margin-bottom: 24px;"></div>
+                                    <div class="skeleton-line" style="width: 220px; height: 18px; margin-bottom: 12px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 95%; height: 14px; margin-bottom: 8px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 90%; height: 14px; margin-bottom: 8px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 75%; height: 14px; margin-bottom: 24px;">
+                                    </div>
 
-                                    <div class="skeleton-line" style="width: 190px; height: 18px; margin-bottom: 14px;"></div>
-                                    <div class="skeleton-line" style="width: 85%; height: 14px; margin-bottom: 8px;"></div>
-                                    <div class="skeleton-line" style="width: 80%; height: 14px; margin-bottom: 8px;"></div>
+                                    <div class="skeleton-line" style="width: 190px; height: 18px; margin-bottom: 14px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 85%; height: 14px; margin-bottom: 8px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 80%; height: 14px; margin-bottom: 8px;">
+                                    </div>
                                 </div>
 
                                 <div class="preview-info-box">
-                                    <div class="skeleton-line" style="width: 100px; height: 12px; margin-bottom: 6px;"></div>
-                                    <div class="skeleton-line" style="width: 130px; height: 18px; margin-bottom: 16px;"></div>
-                                    <div class="skeleton-line" style="width: 90px; height: 12px; margin-bottom: 6px;"></div>
-                                    <div class="skeleton-line" style="width: 110px; height: 18px; margin-bottom: 16px;"></div>
-                                    <div class="skeleton-line" style="width: 80px; height: 12px; margin-bottom: 6px;"></div>
-                                    <div class="skeleton-line" style="width: 100px; height: 18px; margin-bottom: 16px;"></div>
-                                    <div class="skeleton-line" style="width: 90px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-line" style="width: 100px; height: 12px; margin-bottom: 6px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 130px; height: 18px; margin-bottom: 16px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 90px; height: 12px; margin-bottom: 6px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 110px; height: 18px; margin-bottom: 16px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 80px; height: 12px; margin-bottom: 6px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 100px; height: 18px; margin-bottom: 16px;">
+                                    </div>
+                                    <div class="skeleton-line" style="width: 90px; height: 12px; margin-bottom: 6px;">
+                                    </div>
                                     <div class="skeleton-line" style="width: 70px; height: 18px;"></div>
                                 </div>
                             </div>
 
-                            <div style="margin: 30px 0 25px 0; border-top: 1px solid var(--border-color); padding-top: 25px;">
-                                <div class="skeleton-line" style="width: 200px; height: 24px; margin: 0 auto 10px;"></div>
+                            <div
+                                style="margin: 30px 0 25px 0; border-top: 1px solid var(--border-color); padding-top: 25px;">
+                                <div class="skeleton-line" style="width: 200px; height: 24px; margin: 0 auto 10px;">
+                                </div>
                                 <div class="skeleton-line" style="width: 260px; height: 14px; margin: 0 auto;"></div>
                             </div>
 
                             <div class="form-section">
-                                <div class="skeleton-line" style="width: 160px; height: 20px; margin-bottom: 16px;"></div>
+                                <div class="skeleton-line" style="width: 160px; height: 20px; margin-bottom: 16px;">
+                                </div>
                                 <div class="preview-field-grid">
                                     <div class="skeleton-input-box" style="height: 55px;"></div>
                                     <div class="skeleton-input-box" style="height: 55px;"></div>
@@ -161,7 +213,8 @@
                             </div>
 
                             <div class="form-section">
-                                <div class="skeleton-line" style="width: 150px; height: 20px; margin-bottom: 16px;"></div>
+                                <div class="skeleton-line" style="width: 150px; height: 20px; margin-bottom: 16px;">
+                                </div>
                                 <div class="skeleton-input-box" style="height: 90px; margin-bottom: 16px;"></div>
                                 <div class="skeleton-input-box" style="height: 90px;"></div>
                             </div>
@@ -172,8 +225,11 @@
                     <div id="application-content" class="application-form-container" style="display: none;">
 
                         <div class="preview-mockup-header">
-                            <span><i data-lucide="graduation-cap" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px;"></i> Educational Assistance Application Form</span>
-                            <span class="hide-on-mobile" style="font-size:12px; opacity:0.9;">Please review your details carefully before submitting.</span>
+                            <span><i data-lucide="graduation-cap"
+                                    style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                                Educational Assistance Application Form</span>
+                            <span class="hide-on-mobile" style="font-size:12px; opacity:0.9;">Please review your details
+                                carefully before submitting.</span>
                         </div>
 
                         <div class="preview-mockup-body">
@@ -187,10 +243,14 @@
 
                             <div class="preview-split">
                                 <div>
-                                    <h4 style="font-size:16px; font-weight:700; margin-bottom:10px; color: var(--text-heading);">About this Educational Assistance</h4>
+                                    <h4
+                                        style="font-size:16px; font-weight:700; margin-bottom:10px; color: var(--text-heading);">
+                                        About this Educational Assistance</h4>
                                     <div class="preview-description" id="sch-description">Loading description...</div>
 
-                                    <h4 style="font-size:16px; font-weight:700; margin-bottom:10px; color: var(--text-heading);">Eligibility Requirements</h4>
+                                    <h4
+                                        style="font-size:16px; font-weight:700; margin-bottom:10px; color: var(--text-heading);">
+                                        Eligibility Requirements</h4>
                                     <ul class="preview-eligibility-list" id="sch-eligibility">
                                         <!-- Populated by JS -->
                                     </ul>
@@ -217,11 +277,17 @@
                                 </div>
                             </div>
 
-                            <div style="text-align: center; margin: 30px 0 25px 0; border-top: 1px solid var(--border-color); padding-top: 25px;">
-                                <h2 style="font-size: 22px; font-weight: 800; color: var(--text-heading); margin-bottom: 5px;">Application Form</h2>
-                                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 4px;">Complete the required fields below.</p>
-                                <p style="color: var(--text-muted); font-size: 12px; font-style: italic; max-width: 600px; margin: 0 auto;">
-                                    Note: The profile information and responses will automatically be converted according to institutional formatting requirements.
+                            <div
+                                style="text-align: center; margin: 30px 0 25px 0; border-top: 1px solid var(--border-color); padding-top: 25px;">
+                                <h2
+                                    style="font-size: 22px; font-weight: 800; color: var(--text-heading); margin-bottom: 5px;">
+                                    Application Form</h2>
+                                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 4px;">Complete the
+                                    required fields below.</p>
+                                <p
+                                    style="color: var(--text-muted); font-size: 12px; font-style: italic; max-width: 600px; margin: 0 auto;">
+                                    Note: The profile information and responses will automatically be converted
+                                    according to institutional formatting requirements.
                                 </p>
                             </div>
 
@@ -229,44 +295,55 @@
 
                                 <div class="form-section">
                                     <div class="preview-section-title">1. Applicant Profile</div>
-                                    <p style="font-size:12px; color: var(--text-muted); margin-bottom:15px;">This information is permanently tied to your account. To edit, go to Profile Settings.</p>
+                                    <p style="font-size:12px; color: var(--text-muted); margin-bottom:15px;">This
+                                        information is permanently tied to your account. To edit, go to Profile
+                                        Settings.</p>
 
                                     <div class="preview-field-grid">
                                         <div class="preview-input-group">
                                             <label>Student ID Number</label>
-                                            <input type="text" id="prof-id" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-id" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group">
                                             <label>Email Address</label>
-                                            <input type="email" id="prof-email" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="email" id="prof-email" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group full-width">
                                             <label>Full Name</label>
-                                            <input type="text" id="prof-fullname" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-fullname" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group">
                                             <label>Date of Birth</label>
-                                            <input type="text" id="prof-dob" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-dob" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group">
                                             <label>Gender</label>
-                                            <input type="text" id="prof-gender" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-gender" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group full-width">
                                             <label>Contact Number</label>
-                                            <input type="text" id="prof-contact" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-contact" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group full-width">
                                             <label>Address</label>
-                                            <input type="text" id="prof-address" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-address" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group">
                                             <label>Program</label>
-                                            <input type="text" id="prof-program" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-program" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                         <div class="preview-input-group">
                                             <label>Year Level</label>
-                                            <input type="text" id="prof-year" class="preview-input" readonly placeholder="[Auto-filled]">
+                                            <input type="text" id="prof-year" class="preview-input" readonly
+                                                placeholder="[Auto-filled]">
                                         </div>
                                     </div>
                                 </div>
@@ -281,29 +358,32 @@
                                 <div class="form-section">
                                     <div class="preview-section-title">3. Document Uploads</div>
                                     <div class="preview-ai-banner" id="ai-verification-banner">
-                                        <i data-lucide="bot" style="width: 22px; height: 22px; flex-shrink: 0; color: var(--palette-river-blue);"></i>
+                                        <i data-lucide="bot"
+                                            style="width: 22px; height: 22px; flex-shrink: 0; color: var(--palette-river-blue);"></i>
                                         <div>
                                             <strong>AI Verification Active:</strong> Please ensure your documents are
-                                            clear and legible. Our AI system will scan the contents to verify authenticity,
+                                            clear and legible. Our AI system will scan the contents to verify
+                                            authenticity,
                                             signatures, and ensure your grades meet the minimum eligibility rules.
                                         </div>
                                     </div>
                                     <div id="ocr-documents-container" class="documents-container">
-                                        <p class="no-docs-message" style="font-size: 13.5px; color: var(--text-muted); padding: 14px 18px; background: var(--bg-card-secondary); border: 1px solid var(--border-color); border-radius: 8px; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; font-weight: 500;">
-                                            <i data-lucide="file-check-2" style="width: 18px; height: 18px; color: var(--palette-moss-green, #6B7F4E); flex-shrink: 0;"></i>
+                                        <p class="no-docs-message"
+                                            style="font-size: 13.5px; color: var(--text-muted); padding: 14px 18px; background: var(--bg-card-secondary); border: 1px solid var(--border-color); border-radius: 8px; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+                                            <i data-lucide="file-check-2"
+                                                style="width: 18px; height: 18px; color: var(--palette-moss-green, #6B7F4E); flex-shrink: 0;"></i>
                                             <span>No documents required.</span>
                                         </p>
                                     </div>
                                 </div>
 
-                                <button type="submit" id="btn-submit-app" class="preview-submit-btn btn-submit-interactive" disabled>Submit Application</button>
+                                <button type="submit" id="btn-submit-app"
+                                    class="preview-submit-btn btn-submit-interactive" disabled>Submit
+                                    Application</button>
                             </form>
 
                         </div>
                     </div>
-
-                    <!-- Spacer to guarantee scrollable area at the bottom -->
-                    <div style="height: 120px; width: 100%; flex-shrink: 0;"></div>
                 </div>
             </div>
         </main>

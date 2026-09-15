@@ -21,27 +21,27 @@
 [data-theme="light"] {
   /* Nature Brand Tokens (Exact Match with student-dashboard.css) */
   --forest-shade: #1F3D2E;
-  --moss-green:   #6B7F4E;
-  --fern-green:   #588157;
-  --sage-mist:    #A2B5A0;
-  --light-sage:   #A3B18A;
-  --sand-beige:   #DCC8A3;
-  --linen-sand:   #DAD7CD;
-  --river-blue:   #4C6A73;
-  --earth-brown:  #5A4A3A;
-  --forest-pine:  #3A5A40;
-  --hunter-dark:  #344E41;
+  --moss-green: #6B7F4E;
+  --fern-green: #588157;
+  --sage-mist: #A2B5A0;
+  --light-sage: #A3B18A;
+  --sand-beige: #DCC8A3;
+  --linen-sand: #DAD7CD;
+  --river-blue: #4C6A73;
+  --earth-brown: #5A4A3A;
+  --forest-pine: #3A5A40;
+  --hunter-dark: #344E41;
 
   /* Aliases for compatibility */
   --palette-forest-shade: #1F3D2E;
-  --palette-moss-green:   #6B7F4E;
-  --palette-fern-green:   #588157;
-  --palette-sage-mist:    #A2B5A0;
-  --palette-light-sage:   #A3B18A;
-  --palette-sand-beige:   #DCC8A3;
-  --palette-linen-sand:   #DAD7CD;
-  --palette-river-blue:   #4C6A73;
-  --palette-earth-brown:  #5A4A3A;
+  --palette-moss-green: #6B7F4E;
+  --palette-fern-green: #588157;
+  --palette-sage-mist: #A2B5A0;
+  --palette-light-sage: #A3B18A;
+  --palette-sand-beige: #DCC8A3;
+  --palette-linen-sand: #DAD7CD;
+  --palette-river-blue: #4C6A73;
+  --palette-earth-brown: #5A4A3A;
 
   /* Surfaces & Layout */
   --bg-main: #F4F6F2;
@@ -138,25 +138,25 @@
 body.dark-theme {
   /* Nature Brand Tokens (Dark Mode Adjusted) */
   --forest-shade: #1F3D2E;
-  --moss-green:   #819B61;
-  --fern-green:   #6D9E6C;
-  --sage-mist:    #A2B5A0;
-  --light-sage:   #A3B18A;
-  --sand-beige:   #DCC8A3;
-  --linen-sand:   #DAD7CD;
-  --river-blue:   #6A909C;
-  --earth-brown:  #8C7561;
+  --moss-green: #819B61;
+  --fern-green: #6D9E6C;
+  --sage-mist: #A2B5A0;
+  --light-sage: #A3B18A;
+  --sand-beige: #DCC8A3;
+  --linen-sand: #DAD7CD;
+  --river-blue: #6A909C;
+  --earth-brown: #8C7561;
 
   /* Aliases for compatibility */
   --palette-forest-shade: #1F3D2E;
-  --palette-moss-green:   #819B61;
-  --palette-fern-green:   #6D9E6C;
-  --palette-sage-mist:    #A2B5A0;
-  --palette-light-sage:   #A3B18A;
-  --palette-sand-beige:   #DCC8A3;
-  --palette-linen-sand:   #DAD7CD;
-  --palette-river-blue:   #6A909C;
-  --palette-earth-brown:  #8C7561;
+  --palette-moss-green: #819B61;
+  --palette-fern-green: #6D9E6C;
+  --palette-sage-mist: #A2B5A0;
+  --palette-light-sage: #A3B18A;
+  --palette-sand-beige: #DCC8A3;
+  --palette-linen-sand: #DAD7CD;
+  --palette-river-blue: #6A909C;
+  --palette-earth-brown: #8C7561;
 
   /* Surfaces & Backgrounds */
   --bg-main: #101B14;
@@ -257,11 +257,11 @@ html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
   transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              fill 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    fill 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transition-delay: 0s !important;
 }
 
@@ -449,23 +449,28 @@ i[data-lucide] {
 
 /* --- Header Skeleton Loading State --- */
 .header-titles.is-loading h1 {
+  width: 320px;
+  max-width: 100%;
+  height: 28px;
   color: transparent !important;
-  background: var(--border-color);
+  background: var(--skeleton-bg, var(--border-color));
   border-radius: 6px;
   position: relative;
   overflow: hidden;
-  max-width: 340px;
   user-select: none;
+  margin-bottom: 6px;
 }
 
 .header-titles.is-loading p,
 .header-titles.is-loading .header-subtitle {
+  width: 440px;
+  max-width: 100%;
+  height: 18px;
   color: transparent !important;
-  background: var(--border-color);
+  background: var(--skeleton-bg, var(--border-color));
   border-radius: 4px;
   position: relative;
   overflow: hidden;
-  max-width: 440px;
   user-select: none;
 }
 
@@ -481,9 +486,24 @@ i[data-lucide] {
   transform: translateX(-100%);
   background-image: linear-gradient(90deg,
       rgba(255, 255, 255, 0) 0,
-      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0.45) 50%,
       rgba(255, 255, 255, 0) 100%);
   animation: headerSkeletonShimmer 1.1s infinite;
+}
+
+[data-theme="dark"] .header-titles.is-loading h1,
+[data-theme="dark"] .header-titles.is-loading p,
+[data-theme="dark"] .header-titles.is-loading .header-subtitle {
+  background: var(--skeleton-bg, #1F3628) !important;
+}
+
+[data-theme="dark"] .header-titles.is-loading h1::after,
+[data-theme="dark"] .header-titles.is-loading p::after,
+[data-theme="dark"] .header-titles.is-loading .header-subtitle::after {
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0) 100%) !important;
 }
 
 @keyframes headerSkeletonShimmer {
@@ -882,6 +902,7 @@ i[data-lucide] {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1084,9 +1105,9 @@ i[data-lucide] {
   position: relative;
   box-shadow: var(--card-shadow);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease,
-              background-color 0.3s ease;
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    background-color 0.3s ease;
   overflow: hidden;
   min-width: 0;
   min-height: 220px;
@@ -1401,6 +1422,7 @@ body.dark-theme .card-icon {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -1750,6 +1772,7 @@ body.dark-theme .promo-btn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -1760,6 +1783,7 @@ body.dark-theme .promo-btn {
     opacity: 0;
     transform: scale(0.94) translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);

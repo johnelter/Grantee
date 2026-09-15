@@ -24,6 +24,8 @@ function hydrateAdminProfile(root = document) {
 // --- ADMIN THEME ENGINE (Default: Light Mode, Persistent per user/browser) ---
 function getAdminStoredTheme() {
     try {
+        const theme = localStorage.getItem('grantee_admin_theme');
+        if (theme) return theme;
         const cached = sessionStorage.getItem('grantee_admin_profile');
         if (cached) {
             const profile = JSON.parse(cached);
@@ -32,8 +34,10 @@ function getAdminStoredTheme() {
                 if (userTheme) return userTheme;
             }
         }
+        const globalTheme = localStorage.getItem('grantee_theme');
+        if (globalTheme) return globalTheme;
     } catch (e) {}
-    return localStorage.getItem('grantee_admin_theme') || 'light';
+    return 'light';
 }
 
 function applyAdminTheme(theme) {
@@ -43,9 +47,10 @@ function applyAdminTheme(theme) {
         document.body.classList.toggle('dark-theme', theme === 'dark');
         document.body.classList.toggle('light-theme', theme !== 'dark');
     }
-    localStorage.setItem('grantee_admin_theme', theme);
-
     try {
+        localStorage.setItem('grantee_admin_theme', theme);
+        localStorage.setItem('grantee_theme', theme);
+
         const cached = sessionStorage.getItem('grantee_admin_profile');
         if (cached) {
             const profile = JSON.parse(cached);
@@ -106,14 +111,12 @@ async function fetchAndCacheAdminProfile() {
 
             sessionStorage.setItem('grantee_admin_profile', JSON.stringify(profileData));
             
-            // Ensure user-scoped theme is initialized with current active theme if not present
-            const currentActiveTheme = localStorage.getItem('grantee_admin_theme') || document.documentElement.getAttribute('data-theme') || 'light';
-            if (!localStorage.getItem(`grantee_admin_theme_${user.id}`)) {
-                localStorage.setItem(`grantee_admin_theme_${user.id}`, currentActiveTheme);
-            }
+            // Ensure user-scoped theme is synchronized with current active theme
+            const currentActiveTheme = getAdminStoredTheme();
+            localStorage.setItem(`grantee_admin_theme_${user.id}`, currentActiveTheme);
 
             hydrateAdminProfile(document);
-            applyAdminTheme(getAdminStoredTheme());
+            applyAdminTheme(currentActiveTheme);
             if (typeof lucide !== 'undefined' && lucide.createIcons) {
                 lucide.createIcons();
             }
@@ -128,12 +131,20 @@ async function loadAdminSidebar() {
     const sidebarContainer = document.getElementById('sidebar-container');
     if (!sidebarContainer) return;
 
+    highlightActiveSidebarMenu();
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
+
+    if (sidebarContainer.querySelector('#app-sidebar')) {
+        return; // Sidebar is embedded statically in HTML, zero reload!
+    }
+
     const path = window.location.pathname;
     const isAdminPage = path.includes('admin') || path.includes('create-scholarship');
     const sidebarFile = isAdminPage ? 'components/admin-sidebar.html' : 'components/student-sidebar.html';
     const cacheKey = isAdminPage ? 'grantee_cached_admin_sidebar' : 'grantee_cached_student_sidebar';
 
-    // Instant synchronous hydration if cached (0ms delay)
     const cachedHtml = sessionStorage.getItem(cacheKey);
     if (cachedHtml && !sidebarContainer.querySelector('#app-sidebar')) {
         sidebarContainer.innerHTML = cachedHtml;
@@ -148,7 +159,7 @@ async function loadAdminSidebar() {
         if (response.ok) {
             const html = await response.text();
             sessionStorage.setItem(cacheKey, html);
-            if (!cachedHtml || sidebarContainer.innerHTML !== html) {
+            if (!sidebarContainer.querySelector('#app-sidebar')) {
                 sidebarContainer.innerHTML = html;
                 highlightActiveSidebarMenu();
                 if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -517,294 +528,52 @@ function initGlobalLogoutLogic() {
 })();
 
 // ==========================================
-// ZERO-FLASH SPA ROUTING ENGINE (ADMIN)
+// HIGH-PERFORMANCE INSTANT NAVIGATION PREFETCHER (ADMIN)
 // ==========================================
-
-// Preload all admin stylesheets in background so transitions are 100% instantaneous
-function preloadAdminStylesheets() {
-    const adminStyles = [
-        'css/admin-global.css',
-        'css/sidebar.css',
-        'css/admin-dashboard.css',
-        'css/admin-scholarships.css',
-        'css/admin-applications.css',
-        'css/admin-active-scholars.css',
-        'css/admin-policies.css',
-        'css/admin-students.css',
-        'css/admin-announcements.css',
-        'css/admin-profile-settings.css',
-        'css/create-scholarship.css'
-    ];
-    setTimeout(() => {
-        adminStyles.forEach(stylePath => {
-            const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(l => l.getAttribute('href') && l.getAttribute('href').includes(stylePath));
-            if (!exists) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = stylePath;
-                document.head.appendChild(link);
-            }
-        });
-    }, 150);
-}
-preloadAdminStylesheets();
-
-// Cache for fetched HTML to make repeated navigations zero-latency
-const adminPageCache = new Map();
-let isNavigating = false;
-
-async function navigateToAdminPage(targetUrl, pushState = true) {
-    if (isNavigating) return;
-
-    const currentUrl = window.location.href;
-    const currentPath = window.location.pathname.split('/').pop() || 'admin-dashboard.html';
-    const targetPath = new URL(targetUrl, window.location.href).pathname.split('/').pop() || 'admin-dashboard.html';
-
-    // If navigating to the exact same page without query params change, do nothing
-    if (currentUrl === targetUrl) return;
-
-    isNavigating = true;
-
-    // 1. Immediately update active sidebar link with zero delay
-    const sidebarContainer = document.getElementById('sidebar-container');
-    if (sidebarContainer) {
-        sidebarContainer.querySelectorAll('a.menu-item').forEach(link => {
-            const linkHref = link.getAttribute('href');
-            if (!linkHref) return;
-            const linkBase = linkHref.split('?')[0].split('#')[0];
-            if (linkBase === targetPath || 
-                (linkBase.includes('admin-scholarships') && (targetPath.includes('create-scholarship') || targetPath.includes('view-scholarship')))) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
-        });
+function initAdminPagePrefetcher() {
+    const prefetchedUrls = new Set();
+    function prefetchPage(url) {
+        if (!url || prefetchedUrls.has(url)) return;
+        prefetchedUrls.add(url);
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = url;
+        document.head.appendChild(link);
     }
 
-    // 2. Close mobile drawer if open
-    const sidebar = document.getElementById('app-sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    if (sidebar) sidebar.classList.remove('active', 'show');
-    if (sidebarOverlay) sidebarOverlay.classList.remove('active', 'show');
-    if (sidebarContainer) sidebarContainer.classList.remove('active', 'show');
-
-    // 3. Smooth main-content micro-transition
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-        mainContent.style.transition = 'opacity 0.12s ease';
-        mainContent.style.opacity = '0.88';
-    }
-
-    try {
-        let html = adminPageCache.get(targetUrl);
-        if (!html) {
-            const response = await fetch(targetUrl);
-            if (!response.ok) throw new Error('Page fetch failed: ' + response.status);
-            html = await response.text();
-            adminPageCache.set(targetUrl, html);
+    // Prefetch on hover or touch for instant ~0ms navigation
+    document.addEventListener('mouseover', (e) => {
+        const a = e.target.closest('a');
+        if (a && a.href && a.origin === window.location.origin) {
+            prefetchPage(a.href);
         }
+    }, { passive: true });
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const newMain = doc.querySelector('.main-content');
-
-        if (!newMain || !mainContent) {
-            window.location.href = targetUrl;
-            return;
+    document.addEventListener('touchstart', (e) => {
+        const a = e.target.closest('a');
+        if (a && a.href && a.origin === window.location.origin) {
+            prefetchPage(a.href);
         }
+    }, { passive: true });
 
-        // 4. Ensure all incoming stylesheets are in <head> and loaded BEFORE swapping content
-        const incomingStyles = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
-        const stylePromises = [];
-        incomingStyles.forEach(link => {
-            const href = link.getAttribute('href');
-            if (!href) return;
-            const fullHref = new URL(href, targetUrl).href;
-            const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(l => l.href === fullHref);
-            if (!exists) {
-                const newLink = document.createElement('link');
-                newLink.rel = 'stylesheet';
-                newLink.href = href;
-                const p = new Promise(resolve => {
-                    newLink.onload = resolve;
-                    newLink.onerror = resolve;
-                });
-                stylePromises.push(p);
-                document.head.appendChild(newLink);
-            }
+    // Idle prefetch of common admin destinations
+    if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(() => {
+            [
+                'admin-dashboard.html',
+                'admin-scholarships.html',
+                'admin-applications.html',
+                'admin-active-scholars.html',
+                'admin-policies.html',
+                'admin-students.html',
+                'admin-announcements.html',
+                'admin-profile-settings.html',
+                'create-scholarship.html'
+            ].forEach(p => prefetchPage(p));
         });
-
-        if (stylePromises.length > 0) {
-            await Promise.race([
-                Promise.all(stylePromises),
-                new Promise(r => setTimeout(r, 200))
-            ]);
-        }
-
-        // 5. Ensure any external CDN libraries are loaded (SheetJS, jsPDF, Flatpickr, QRCode, etc.)
-        const incomingLibScripts = Array.from(doc.querySelectorAll('script[src]')).filter(s => {
-            const src = s.getAttribute('src') || '';
-            return src.startsWith('http') || src.includes('cdn') || src.includes('cdnjs') || src.includes('unpkg');
-        });
-
-        for (const lib of incomingLibScripts) {
-            const src = lib.getAttribute('src');
-            const exists = Array.from(document.querySelectorAll('script')).some(s => s.src === src);
-            if (!exists) {
-                await new Promise(resolve => {
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.onload = resolve;
-                    script.onerror = resolve;
-                    document.head.appendChild(script);
-                });
-            }
-        }
-
-        // 6. Preserve existing header profile details into newMain before swapping to prevent flicker
-        const curName = document.getElementById('header-name')?.innerText;
-        const curRole = document.getElementById('header-role')?.innerText;
-        const curAvatar = document.getElementById('header-avatar')?.src;
-        const curSchoolHtml = document.getElementById('admin-school-display')?.innerHTML;
-
-        if (curName && curName !== 'Loading...' && newMain.querySelector('#header-name')) {
-            newMain.querySelector('#header-name').innerText = curName;
-        }
-        if (curRole && newMain.querySelector('#header-role')) {
-            newMain.querySelector('#header-role').innerText = curRole;
-        }
-        if (curAvatar && newMain.querySelector('#header-avatar')) {
-            newMain.querySelector('#header-avatar').src = curAvatar;
-        }
-        if (curSchoolHtml && newMain.querySelector('#admin-school-display')) {
-            newMain.querySelector('#admin-school-display').innerHTML = curSchoolHtml;
-        }
-
-        // Hydrate from sessionStorage cache
-        hydrateAdminProfile(newMain);
-
-        // 7. Swap main content HTML and class list
-        mainContent.innerHTML = newMain.innerHTML;
-        mainContent.className = newMain.className;
-
-        // 8. Sync Modals (Keep #logout-modal, replace page-specific modals)
-        document.querySelectorAll('.modal-overlay, .global-modal-overlay').forEach(m => {
-            if (m.id !== 'logout-modal') m.remove();
-        });
-        doc.querySelectorAll('.modal-overlay, .global-modal-overlay').forEach(m => {
-            if (m.id !== 'logout-modal') {
-                document.body.appendChild(m.cloneNode(true));
-            }
-        });
-
-        // 9. Sync Bulk Action Bar if present
-        const oldActionBar = document.getElementById('bulk-action-bar');
-        if (oldActionBar) oldActionBar.remove();
-        const newActionBar = doc.getElementById('bulk-action-bar');
-        if (newActionBar) {
-            document.body.appendChild(newActionBar.cloneNode(true));
-        }
-
-        // 10. Clean up orphaned flatpickr calendars
-        document.querySelectorAll('.flatpickr-calendar:not(.open):not(.inline), select.flatpickr-monthDropdown-months, .flatpickr-wrapper').forEach(el => el.remove());
-
-        // 11. Update document title & history state
-        document.title = doc.title;
-        if (pushState) {
-            window.history.pushState({ url: targetUrl }, '', targetUrl);
-        }
-
-        // Scroll mainContent and window to top
-        mainContent.scrollTop = 0;
-        window.scrollTo(0, 0);
-
-        // 12. Re-initialize Admin Notifications
-        if (typeof window.initAdminNotifications === 'function') {
-            window.initAdminNotifications();
-        }
-
-        // 13. Re-initialize Lucide Icons
-        if (typeof lucide !== 'undefined' && lucide.createIcons) {
-            lucide.createIcons();
-        }
-
-        // 14. Apply theme
-        applyAdminTheme(getAdminStoredTheme());
-
-        // 15. Execute page-specific controller scripts
-        const pageScripts = Array.from(doc.querySelectorAll('script')).filter(s => {
-            const src = s.getAttribute('src') || '';
-            if (src) {
-                return !src.includes('sidebar-loader') &&
-                       !src.includes('supabase-config') &&
-                       !src.includes('components/') &&
-                       !src.startsWith('http') &&
-                       !src.includes('cdn');
-            }
-            return s.innerHTML.trim().length > 0 && !s.innerHTML.includes('grantee_admin_theme');
-        });
-
-        for (const script of pageScripts) {
-            if (script.src) {
-                const scriptBaseName = script.src.split('/').pop().split('?')[0];
-                document.querySelectorAll(`script[src*="${scriptBaseName}"]`).forEach(el => el.remove());
-                
-                const newScript = document.createElement('script');
-                newScript.src = script.src + (script.src.includes('?') ? '&' : '?') + '_t=' + Date.now();
-                document.body.appendChild(newScript);
-            } else if (script.innerHTML.trim()) {
-                const newScript = document.createElement('script');
-                newScript.innerHTML = script.innerHTML;
-                document.body.appendChild(newScript);
-            }
-        }
-
-        // Smooth fade in
-        requestAnimationFrame(() => {
-            if (mainContent) {
-                mainContent.style.opacity = '1';
-            }
-        });
-
-    } catch (err) {
-        console.error('SPA Navigation error, falling back to full navigation:', err);
-        window.location.href = targetUrl;
-    } finally {
-        isNavigating = false;
     }
 }
-window.navigateToAdminPage = navigateToAdminPage;
-
-// --- UNIFIED LINK INTERCEPTOR FOR SEAMLESS SPA NAVIGATION ---
-document.addEventListener('click', (e) => {
-    // Don't intercept if modified click (Ctrl, Shift, Meta, Alt, or right-click)
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-
-    const link = e.target.closest('a');
-    if (!link || !link.href) return;
-
-    const href = link.getAttribute('href');
-    if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
-    if (link.hasAttribute('download') || link.getAttribute('target') === '_blank') return;
-
-    const targetUrl = link.href;
-    const origin = window.location.origin;
-    if (!targetUrl.startsWith(origin)) return;
-
-    const targetPath = new URL(targetUrl).pathname.split('/').pop();
-    const isAdminTarget = targetPath.includes('admin') || targetPath.includes('create-scholarship') || targetPath.includes('view-scholarship');
-
-    // If it's an admin page link, navigate seamlessly via SPA
-    if (isAdminTarget) {
-        e.preventDefault();
-        navigateToAdminPage(targetUrl, true);
-    }
-});
-
-// Handle browser back and forward buttons
-window.addEventListener('popstate', (e) => {
-    navigateToAdminPage(window.location.href, false);
-});
+initAdminPagePrefetcher();
 
 // --- SIDEBAR NAVIGATION INITIALIZER ---
 function initSidebarNavigation() {

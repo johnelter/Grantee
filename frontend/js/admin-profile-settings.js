@@ -89,10 +89,16 @@
                 const phInput = document.getElementById('prof-phone');
                 if (phInput) phInput.value = profile.contact_number || '';
 
-                // Populate Display Elements
+                // Populate Display Elements & Locked Fields
                 const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Admin User';
                 const schoolName = (profile.schools && profile.schools.name) ? profile.schools.name : (profile.school_name || "No School Assigned");
                 const roleDisplay = profile.role === 'admin' ? 'Coordinator' : (profile.role || 'Coordinator');
+
+                const profSchool = document.getElementById('prof-school');
+                if (profSchool) profSchool.value = schoolName;
+
+                const profRole = document.getElementById('prof-role');
+                if (profRole) profRole.value = roleDisplay;
 
                 const headerName = document.getElementById('header-name');
                 if (headerName) headerName.innerText = fullName;
@@ -122,6 +128,9 @@
                 const settingsAvatarPreview = document.getElementById('settings-avatar-preview');
                 if (settingsAvatarPreview) settingsAvatarPreview.src = avatarUrl;
 
+                const modalAvatarImg = document.getElementById('modal-avatar-img');
+                if (modalAvatarImg) modalAvatarImg.src = avatarUrl;
+
                 // Sync sessionStorage cache
                 sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
                     name: fullName,
@@ -146,6 +155,15 @@
                     title: 'Error',
                     text: 'Failed to load profile details: ' + (err.message || 'Unknown error')
                 });
+            }
+        } finally {
+            // Hide skeleton and smoothly reveal actual settings content
+            const skeletonEl = document.getElementById('settings-skeleton-state');
+            const loadedEl = document.getElementById('settings-loaded-content');
+            if (skeletonEl) skeletonEl.style.display = 'none';
+            if (loadedEl) {
+                loadedEl.style.display = 'grid';
+                loadedEl.classList.add('fade-in-content');
             }
         }
     }
@@ -686,6 +704,10 @@
             reader.onload = (re) => {
                 const preview = document.getElementById('settings-avatar-preview');
                 if (preview) preview.src = re.target.result;
+                const headerAv = document.getElementById('header-avatar');
+                if (headerAv) headerAv.src = re.target.result;
+                const modalAv = document.getElementById('modal-avatar-img');
+                if (modalAv) modalAv.src = re.target.result;
             };
             reader.readAsDataURL(file);
 
@@ -737,6 +759,76 @@
             }
         });
     }
+
+    // ==========================================
+    // 8. AVATAR PREVIEW LIGHTBOX MODAL
+    // ==========================================
+    const avatarClickableWrapper = document.getElementById('avatar-clickable-wrapper') || document.getElementById('settings-avatar-preview');
+    const avatarPreviewModal = document.getElementById('avatar-preview-modal');
+    const closeAvatarModalBtn = document.getElementById('close-avatar-modal');
+    const modalAvatarImg = document.getElementById('modal-avatar-img');
+    const modalPreviewName = document.getElementById('modal-preview-name');
+    const modalPreviewRole = document.getElementById('modal-preview-role');
+    const modalDownloadBtn = document.getElementById('modal-download-photo-btn');
+    const modalChangePhotoBtn = document.getElementById('modal-change-photo-btn');
+
+    function openAvatarPreview() {
+        const previewEl = document.getElementById('settings-avatar-preview');
+        const avatarSrc = previewEl ? previewEl.src : 'assets/admin-avatar.png';
+        const adminName = document.getElementById('display-full-name')?.innerText || 'Admin Profile Photo';
+        const adminRole = document.getElementById('display-role')?.innerText || 'Scholarship Coordinator';
+
+        if (modalAvatarImg) modalAvatarImg.src = avatarSrc;
+        if (modalPreviewName) modalPreviewName.innerText = adminName;
+        if (modalPreviewRole) modalPreviewRole.innerText = adminRole;
+        if (modalDownloadBtn) modalDownloadBtn.href = avatarSrc;
+
+        if (avatarPreviewModal) {
+            avatarPreviewModal.style.display = 'flex';
+        }
+    }
+
+    function closeAvatarPreview() {
+        if (avatarPreviewModal) {
+            avatarPreviewModal.style.display = 'none';
+        }
+    }
+
+    if (avatarClickableWrapper) {
+        avatarClickableWrapper.addEventListener('click', (e) => {
+            // Do not open modal if user specifically clicked the camera upload button or file input
+            if (e.target.closest('.avatar-upload-btn') || e.target.id === 'avatar-upload') {
+                return;
+            }
+            openAvatarPreview();
+        });
+    }
+
+    if (closeAvatarModalBtn) {
+        closeAvatarModalBtn.addEventListener('click', closeAvatarPreview);
+    }
+
+    if (avatarPreviewModal) {
+        avatarPreviewModal.addEventListener('click', (e) => {
+            if (e.target === avatarPreviewModal) {
+                closeAvatarPreview();
+            }
+        });
+    }
+
+    if (modalChangePhotoBtn) {
+        modalChangePhotoBtn.addEventListener('click', () => {
+            closeAvatarPreview();
+            const fileInput = document.getElementById('avatar-upload');
+            if (fileInput) fileInput.click();
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && avatarPreviewModal && avatarPreviewModal.style.display === 'flex') {
+            closeAvatarPreview();
+        }
+    });
 
     // Initial load
     await loadProfile();

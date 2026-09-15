@@ -196,7 +196,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (profile.avatar_url) {
                     if (headerAvatarImg) headerAvatarImg.src = profile.avatar_url;
                     if (profileAvatarImg) profileAvatarImg.src = profile.avatar_url;
+                    const modalAvatarImg = document.getElementById('modal-avatar-img');
+                    if (modalAvatarImg) modalAvatarImg.src = profile.avatar_url;
+                    const modalDownloadBtn = document.getElementById('modal-download-photo-btn');
+                    if (modalDownloadBtn) modalDownloadBtn.href = profile.avatar_url;
                 }
+                if (document.getElementById('modal-preview-name')) document.getElementById('modal-preview-name').innerText = fullName;
+                if (document.getElementById('modal-preview-program')) document.getElementById('modal-preview-program').innerText = progName;
             }
 
             // --- Locked Personal Information ---
@@ -300,6 +306,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (err) {
             console.error("Error loading profile:", err);
         } finally {
+            // Remove skeleton loading from top header
+            const headerTitlesBox = document.getElementById('header-titles-box');
+            const profileDropdownToggle = document.getElementById('profile-dropdown-toggle');
+            if (headerTitlesBox) headerTitlesBox.classList.remove('is-loading');
+            if (profileDropdownToggle) profileDropdownToggle.classList.remove('is-loading');
+
             // Smoothly remove skeleton and reveal loaded content
             const skeletonState = document.getElementById('profile-skeleton-state');
             const loadedContent = document.getElementById('profile-loaded-content');
@@ -701,36 +713,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
-    // 5. PROFILE PHOTO PREVIEW & UPLOAD
+    // 5. AVATAR PREVIEW LIGHTBOX MODAL & UPLOAD
     // ==========================================
+    const avatarClickableWrapper = document.getElementById('avatar-clickable-wrapper') || profileAvatarImg;
+    const avatarPreviewModal = document.getElementById('avatar-preview-modal');
+    const closeAvatarModalBtn = document.getElementById('close-avatar-modal');
+    const modalAvatarImg = document.getElementById('modal-avatar-img');
+    const modalPreviewName = document.getElementById('modal-preview-name');
+    const modalPreviewProgram = document.getElementById('modal-preview-program');
+    const modalDownloadBtn = document.getElementById('modal-download-photo-btn');
+    const modalChangePhotoBtn = document.getElementById('modal-change-photo-btn');
     const btnChangePhoto = document.getElementById('change-photo-btn');
     const avatarUploadInput = document.getElementById('avatar-upload');
 
-    // 5.1 Profile Avatar Popup
-    if (profileAvatarImg) {
-        profileAvatarImg.addEventListener('click', () => {
-            Swal.fire({
-                imageUrl: profileAvatarImg.src,
-                imageAlt: 'Profile Avatar',
-                showConfirmButton: false,
-                showCloseButton: true,
-                width: 'auto',
-                padding: '0',
-                background: 'transparent',
-                backdrop: 'rgba(0,0,0,0.8)',
-                customClass: {
-                    popup: 'swal-avatar-popup',
-                    image: 'swal-avatar-img'
-                }
-            });
+    function openAvatarPreview() {
+        const avatarSrc = profileAvatarImg ? profileAvatarImg.src : 'assets/default-avatar.png';
+        const studentName = document.getElementById('header-name')?.innerText || 'Student Profile Photo';
+        const studentProg = document.getElementById('header-program')?.innerText || 'Program';
+
+        if (modalAvatarImg) modalAvatarImg.src = avatarSrc;
+        if (modalPreviewName) modalPreviewName.innerText = studentName;
+        if (modalPreviewProgram) modalPreviewProgram.innerText = studentProg;
+        if (modalDownloadBtn) modalDownloadBtn.href = avatarSrc;
+
+        if (avatarPreviewModal) {
+            avatarPreviewModal.style.display = 'flex';
+        }
+    }
+
+    function closeAvatarPreview() {
+        if (avatarPreviewModal) {
+            avatarPreviewModal.style.display = 'none';
+        }
+    }
+
+    if (avatarClickableWrapper) {
+        avatarClickableWrapper.addEventListener('click', (e) => {
+            // Do not open preview modal if user specifically clicked the camera upload button or file input
+            if (e.target.closest('#change-photo-btn') || e.target.id === 'avatar-upload') {
+                return;
+            }
+            openAvatarPreview();
         });
     }
 
+    if (closeAvatarModalBtn) {
+        closeAvatarModalBtn.addEventListener('click', closeAvatarPreview);
+    }
+
+    if (avatarPreviewModal) {
+        avatarPreviewModal.addEventListener('click', (e) => {
+            if (e.target === avatarPreviewModal) {
+                closeAvatarPreview();
+            }
+        });
+    }
+
+    if (modalChangePhotoBtn) {
+        modalChangePhotoBtn.addEventListener('click', () => {
+            closeAvatarPreview();
+            if (avatarUploadInput) avatarUploadInput.click();
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && avatarPreviewModal && avatarPreviewModal.style.display === 'flex') {
+            closeAvatarPreview();
+        }
+    });
+
     if (btnChangePhoto && avatarUploadInput) {
-        btnChangePhoto.addEventListener('click', () => {
+        btnChangePhoto.addEventListener('click', (e) => {
+            e.stopPropagation();
             avatarUploadInput.click();
         });
+    }
 
+    if (avatarUploadInput) {
         avatarUploadInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -764,9 +823,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .update({ avatar_url: cacheBustedUrl })
                     .eq('id', userId);
 
-                // Update the images on the current screen
+                // Update the images on the current screen and modal
                 if (profileAvatarImg) profileAvatarImg.src = cacheBustedUrl;
                 if (headerAvatarImg) headerAvatarImg.src = cacheBustedUrl;
+                if (modalAvatarImg) modalAvatarImg.src = cacheBustedUrl;
+                if (modalDownloadBtn) modalDownloadBtn.href = cacheBustedUrl;
 
                 // Update session storage
                 try {

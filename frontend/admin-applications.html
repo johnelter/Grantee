@@ -40,7 +40,7 @@
                         }
                     }
                 }
-            } catch(e) {}
+            } catch (e) { }
             var theme = localStorage.getItem('grantee_admin_theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
@@ -62,8 +62,10 @@
                     <div class="header-titles">
                         <h1>Applicant Evaluation</h1>
                         <p class="welcome-text">Evaluate and select grantees for educational assistance programs.</p>
-                        <p id="admin-school-display" class="text-sm font-medium flex items-center gap-1.5" style="color: var(--moss-green); margin-top: 4px;">
-                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                        <p id="admin-school-display" class="text-sm font-medium flex items-center gap-1.5"
+                            style="color: var(--moss-green); margin-top: 4px;">
+                            <i data-lucide="school"
+                                style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
                     </div>
@@ -72,7 +74,8 @@
                 <!-- Actions Section -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
@@ -85,17 +88,24 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
+                                style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    data-lucide="log-out"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
@@ -154,13 +164,13 @@
 
                 <!-- VIEW 2: APPLICANTS LIST -->
                 <div id="view-applicants-list" style="display: none;">
-                    <div class="back-nav mb-24">
+                    <div class="back-nav">
                         <button class="btn-text" onclick="showGrid()">
                             <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Programs
                         </button>
                     </div>
 
-                    <div class="section-header mt-20" style="flex-wrap: wrap; gap: 15px;">
+                    <div class="section-header" style="flex-wrap: wrap; gap: 15px;">
                         <div>
                             <h2 class="title-with-badge">
                                 <span id="active-sch-title">Program Title</span>
@@ -172,13 +182,16 @@
                         </div>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                             <div class="export-dropdown-wrapper">
-                                <button type="button" id="export-dropdown-toggle" class="btn-outline export-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Export Options">
+                                <button type="button" id="export-dropdown-toggle" class="btn-outline export-toggle-btn"
+                                    aria-haspopup="true" aria-expanded="false" title="Export Options">
                                     <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                                     <span>Export</span>
-                                    <i data-lucide="chevron-down" class="export-chevron" style="width: 14px; height: 14px; margin-left: 2px;"></i>
+                                    <i data-lucide="chevron-down" class="export-chevron"
+                                        style="width: 14px; height: 14px; margin-left: 2px;"></i>
                                 </button>
                                 <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
-                                    <button type="button" class="export-option-btn" onclick="exportAllApplicants('csv')" role="menuitem">
+                                    <button type="button" class="export-option-btn" onclick="exportAllApplicants('csv')"
+                                        role="menuitem">
                                         <div class="export-option-icon icon-csv">
                                             <i data-lucide="file-spreadsheet"></i>
                                         </div>
@@ -187,7 +200,8 @@
                                             <small>All applicants with Evaluation Status</small>
                                         </div>
                                     </button>
-                                    <button type="button" class="export-option-btn" onclick="exportAllApplicants('pdf')" role="menuitem">
+                                    <button type="button" class="export-option-btn" onclick="exportAllApplicants('pdf')"
+                                        role="menuitem">
                                         <div class="export-option-icon icon-pdf">
                                             <i data-lucide="file-text"></i>
                                         </div>
@@ -197,8 +211,10 @@
                                         </div>
                                     </button>
                                     <div class="export-dropdown-divider"></div>
-                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Pending')" role="menuitem">
-                                        <div class="export-option-icon" style="background: var(--metric-pending-bg); color: var(--metric-pending-color); border: 1px solid var(--metric-pending-border);">
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Pending')"
+                                        role="menuitem">
+                                        <div class="export-option-icon"
+                                            style="background: var(--metric-pending-bg); color: var(--metric-pending-color); border: 1px solid var(--metric-pending-border);">
                                             <i data-lucide="clock"></i>
                                         </div>
                                         <div class="export-option-text">
@@ -206,8 +222,10 @@
                                             <small>Applications awaiting evaluation</small>
                                         </div>
                                     </button>
-                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Approved')" role="menuitem">
-                                        <div class="export-option-icon" style="background: var(--metric-approved-bg); color: var(--metric-approved-color); border: 1px solid var(--metric-approved-border);">
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Approved')"
+                                        role="menuitem">
+                                        <div class="export-option-icon"
+                                            style="background: var(--metric-approved-bg); color: var(--metric-approved-color); border: 1px solid var(--metric-approved-border);">
                                             <i data-lucide="check-circle-2"></i>
                                         </div>
                                         <div class="export-option-text">
@@ -215,8 +233,10 @@
                                             <small>Approved and selected scholars</small>
                                         </div>
                                     </button>
-                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Rejected')" role="menuitem">
-                                        <div class="export-option-icon" style="background: var(--metric-rejected-bg); color: var(--danger-color); border: 1px solid var(--metric-rejected-border);">
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Rejected')"
+                                        role="menuitem">
+                                        <div class="export-option-icon"
+                                            style="background: var(--metric-rejected-bg); color: var(--danger-color); border: 1px solid var(--metric-rejected-border);">
                                             <i data-lucide="x-circle"></i>
                                         </div>
                                         <div class="export-option-text">
@@ -250,17 +270,21 @@
                     <!-- Applicants Table List Panel -->
                     <div class="table-panel" id="table-view-container">
                         <div class="table-controls">
-                            <div class="count-pill" id="table-count-label">Total Pending: 0</div>
-
-                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <div class="table-controls-left">
                                 <div class="search-box">
-                                    <i data-lucide="search" style="width: 15px; height: 15px;"></i>
-                                    <input type="text" id="search-applicant" placeholder="Search applicant by name, ID, or email..." onkeyup="filterTable()">
+                                    <i data-lucide="search"></i>
+                                    <input type="text" id="search-applicant"
+                                        placeholder="Search applicant by name, ID, or email..." onkeyup="filterTable()">
                                 </div>
-                                <select id="sort-date-select" class="filter-select" onchange="filterTable()">
-                                    <option value="desc">▼ Sort: Newest First</option>
-                                    <option value="asc">▲ Sort: Oldest First</option>
-                                </select>
+                                <div class="sort-select-wrapper">
+                                    <select id="sort-date-select" class="filter-select" onchange="filterTable()" aria-label="Sort applicants by date">
+                                        <option value="asc" selected>▲ Sort: Oldest First</option>
+                                        <option value="desc">▼ Sort: Newest First</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-controls-right">
+                                <div class="count-pill" id="table-count-label">Total Pending: 0</div>
                             </div>
                         </div>
 
@@ -309,14 +333,16 @@
                     </div>
                     <div>
                         <h3 id="modal-applicant-name" class="modal-title">Applicant Responses</h3>
-                        <p id="modal-applicant-meta" class="modal-subtitle">Review submitted answers and attached requirements</p>
+                        <p id="modal-applicant-meta" class="modal-subtitle">Review submitted answers and attached
+                            requirements</p>
                     </div>
                 </div>
                 <div class="modal-header-actions">
                     <span id="modal-status-badge" class="badge-status badge-pending">
                         <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending
                     </span>
-                    <button type="button" class="modal-close-btn" id="modal-close-btn" onclick="closeApplicantModal()" aria-label="Close modal" title="Close">
+                    <button type="button" class="modal-close-btn" id="modal-close-btn" onclick="closeApplicantModal()"
+                        aria-label="Close modal" title="Close">
                         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>

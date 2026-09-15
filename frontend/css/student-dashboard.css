@@ -1530,8 +1530,9 @@ svg.lucide,
   min-width: 0;
 }
 
-/* Action Buttons (Apply / Complete Profile / Disabled) */
-.btn-apply {
+/* Action Buttons (Apply / Complete Profile / Category Limit / Disabled) */
+.btn-apply,
+.btn-action {
   background: var(--primary-color);
   color: var(--primary-text);
   border: none;
@@ -1545,49 +1546,74 @@ svg.lucide,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   box-shadow: 0 2px 8px rgba(31, 61, 46, 0.2);
+  flex-shrink: 0;
 }
 
-.btn-apply:hover {
+.btn-apply svg,
+.btn-action svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.btn-apply:hover:not(.btn-disabled),
+.btn-action:hover:not(.btn-disabled) {
   background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(31, 61, 46, 0.3);
 }
 
-.btn-apply.btn-warning {
+.btn-apply:hover:not(.btn-disabled) svg,
+.btn-action:hover:not(.btn-disabled) svg {
+  transform: translateX(2px);
+}
+
+.btn-apply.btn-primary,
+.btn-action.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--primary-text);
+}
+
+.btn-apply.btn-warning,
+.btn-action.btn-warning {
   background-color: var(--palette-sand-beige);
   color: #3D2E18;
   border: 1px solid #C7AF84;
   box-shadow: 0 2px 8px rgba(220, 200, 163, 0.25);
 }
 
-.btn-apply.btn-warning:hover {
+.btn-apply.btn-warning:hover,
+.btn-action.btn-warning:hover {
   background-color: #CFB88E;
   transform: translateY(-1px);
 }
 
-[data-theme="dark"] .btn-apply.btn-warning {
+[data-theme="dark"] .btn-apply.btn-warning,
+[data-theme="dark"] .btn-action.btn-warning {
   background-color: rgba(220, 200, 163, 0.2);
   color: var(--palette-sand-beige);
   border: 1px solid rgba(220, 200, 163, 0.4);
 }
 
-[data-theme="dark"] .btn-apply.btn-warning:hover {
+[data-theme="dark"] .btn-apply.btn-warning:hover,
+[data-theme="dark"] .btn-action.btn-warning:hover {
   background-color: rgba(220, 200, 163, 0.3);
 }
 
 .btn-disabled {
   background: var(--border-color) !important;
   color: var(--text-muted) !important;
-  cursor: not-allowed !important;
-  opacity: 0.65;
+  cursor: pointer !important;
+  opacity: 0.75;
   box-shadow: none !important;
   transform: none !important;
 }
 
 [data-theme="dark"] .btn-disabled {
   background: #1C3026 !important;
-  color: #627A6D !important;
+  color: #8CA094 !important;
   border: 1px solid #263D31 !important;
 }
 
@@ -2373,7 +2399,8 @@ svg.lucide,
     align-items: stretch;
   }
 
-  .rec-list-item .btn-apply {
+  .rec-list-item .btn-apply,
+  .rec-list-item .btn-action {
     width: 100%;
     text-align: center;
     padding: 10px 14px;

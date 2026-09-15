@@ -362,6 +362,13 @@
         }
 
         activeTabStatus = targetTab;
+        const sortSelect = document.getElementById('sort-date-select');
+        if (sortSelect) {
+            if (targetTab === 'Pending') {
+                sortSelect.value = 'asc';
+            }
+        }
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
             const onclickAttr = btn.getAttribute('onclick') || '';
@@ -447,7 +454,7 @@
                 .from('applications')
                 .select('*, profiles ( first_name, middle_name, last_name, id_number, email, contact_number, date_of_birth, gender, address, program, year_level, avatar_url ), scholarships (title)')
                 .eq('scholarship_id', activeScholarshipData.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: true });
 
             if (error) {
                 console.error("Supabase load applications error:", error);
@@ -479,6 +486,11 @@
 
     window.switchTab = (status) => {
         activeTabStatus = status;
+
+        const sortSelect = document.getElementById('sort-date-select');
+        if (sortSelect && status === 'Pending') {
+            sortSelect.value = 'asc';
+        }
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -517,7 +529,7 @@
         const searchInput = document.getElementById('search-applicant');
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const sortSelect = document.getElementById('sort-date-select');
-        const sortOrder = sortSelect ? sortSelect.value : 'desc';
+        const sortOrder = sortSelect ? sortSelect.value : (activeTabStatus === 'Pending' ? 'asc' : 'desc');
         const tbody = document.getElementById('applicants-tbody');
         if (!tbody) return;
 

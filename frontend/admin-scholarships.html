@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
 
     <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- SweetAlert2 -->
@@ -42,7 +43,7 @@
                         }
                     }
                 }
-            } catch(e) {}
+            } catch (e) { }
             var theme = localStorage.getItem('grantee_admin_theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
@@ -62,10 +63,12 @@
                 <!-- Titles Section with Skeleton Loading Support -->
                 <div class="header-titles-wrapper">
                     <div class="header-titles is-loading" id="header-titles-box">
-                        <h1>Educational Assistance <i data-lucide="graduation-cap" style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i></h1>
-                        <p class="welcome-text">Manage and monitor all educational assistance programs offered by your school.</p>
+                        <h1>Educational Assistance</h1>
+                        <p class="welcome-text">Manage and monitor all educational assistance programs offered by your
+                            school.</p>
                         <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
-                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                            <i data-lucide="school"
+                                style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
                             <span>Loading assigned school...</span>
                         </p>
                     </div>
@@ -74,7 +77,8 @@
                 <!-- Actions Section -->
                 <div class="header-actions">
                     <!-- Theme Toggle -->
-                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme"
+                        title="Toggle Theme">
                         <i data-lucide="moon"></i>
                     </button>
 
@@ -87,17 +91,24 @@
                             <strong id="header-name">Loading...</strong>
                             <span id="header-role">Coordinator</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
+                                style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
-                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
+                            <a href="admin-profile-settings.html"><i data-lucide="user"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout</a>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                                    data-lucide="log-out"
+                                    style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
+                                Logout</a>
                         </div>
                     </div>
 
                     <!-- HAMBURGER BUTTON (Mobile Only) -->
-                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle"
+                        aria-label="Toggle navigation menu">
                         <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
@@ -106,7 +117,9 @@
             <div class="content-wrapper">
                 <!-- 3 Top Stat Cards (With Shimmer Skeleton Support & Interactive Modals) -->
                 <div class="stats-grid">
-                    <div class="stat-card is-clickable is-loading" id="stat-card-total" role="button" tabindex="0" title="Click to view Total Educational Assistance directory and breakdown" onclick="openStatsModal('All')">
+                    <div class="stat-card is-clickable is-loading" id="stat-card-total" role="button" tabindex="0"
+                        title="Click to view Total Educational Assistance directory and breakdown"
+                        onclick="openStatsModal('All')">
                         <div class="stat-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -120,7 +133,8 @@
                         </div>
                     </div>
 
-                    <div class="stat-card is-clickable is-loading" id="stat-card-active" role="button" tabindex="0" title="Click to view Active Programs breakdown" onclick="openStatsModal('Active')">
+                    <div class="stat-card is-clickable is-loading" id="stat-card-active" role="button" tabindex="0"
+                        title="Click to view Active Programs breakdown" onclick="openStatsModal('Active')">
                         <div class="stat-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -134,7 +148,8 @@
                         </div>
                     </div>
 
-                    <div class="stat-card is-clickable is-loading" id="stat-card-closed" role="button" tabindex="0" title="Click to view Closed Programs breakdown" onclick="openStatsModal('Closed')">
+                    <div class="stat-card is-clickable is-loading" id="stat-card-closed" role="button" tabindex="0"
+                        title="Click to view Closed Programs breakdown" onclick="openStatsModal('Closed')">
                         <div class="stat-card-hover-arrow" title="View details">
                             <i data-lucide="arrow-up-right"></i>
                         </div>
@@ -149,8 +164,8 @@
                     </div>
                 </div>
 
-                <!-- Main Data Panel -->
-                <div class="data-panel">
+                <!-- Main Table Panel -->
+                <div class="table-panel">
                     <div class="table-controls">
                         <!-- Top Toolbar: Search Input on Left, Action Buttons on Right -->
                         <div class="table-controls-top">
@@ -160,13 +175,15 @@
                             </div>
                             <div class="actions">
                                 <div class="export-dropdown-wrapper">
-                                    <button type="button" id="export-btn" class="btn-outline export-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Export Options">
+                                    <button type="button" id="export-btn" class="btn-outline export-toggle-btn"
+                                        aria-haspopup="true" aria-expanded="false" title="Export Options">
                                         <i data-lucide="download"></i>
                                         <span>Export</span>
                                         <i data-lucide="chevron-down" class="export-chevron"></i>
                                     </button>
                                     <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
-                                        <button type="button" class="export-option-btn" id="export-csv-btn" role="menuitem">
+                                        <button type="button" class="export-option-btn" id="export-csv-btn"
+                                            role="menuitem">
                                             <div class="export-option-icon icon-csv">
                                                 <i data-lucide="file-spreadsheet"></i>
                                             </div>
@@ -176,7 +193,8 @@
                                             </div>
                                         </button>
                                         <div class="export-dropdown-divider"></div>
-                                        <button type="button" class="export-option-btn" id="export-pdf-btn" role="menuitem">
+                                        <button type="button" class="export-option-btn" id="export-pdf-btn"
+                                            role="menuitem">
                                             <div class="export-option-icon icon-pdf">
                                                 <i data-lucide="file-text"></i>
                                             </div>
@@ -209,10 +227,13 @@
                             <div class="filter-item">
                                 <select id="filter-type" class="filter-select" aria-label="Filter by Category">
                                     <option value="">All Categories</option>
-                                    <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
+                                    <option value="Institution-Funded Educational Assistance">Institution-Funded
+                                        Educational Assistance</option>
                                     <option value="Ched Educational Assistance">Ched Educational Assistance</option>
-                                    <option value="Private Educational Assistance">Private Educational Assistance</option>
-                                    <option value="Government Educational Assistance">Government Educational Assistance</option>
+                                    <option value="Private Educational Assistance">Private Educational Assistance
+                                    </option>
+                                    <option value="Government Educational Assistance">Government Educational Assistance
+                                    </option>
                                 </select>
                             </div>
 
@@ -237,142 +258,215 @@
                     </div>
 
                     <!-- Responsive Table with Skeleton Placeholder -->
-                    <div class="table-responsive">
-                        <table class="data-table">
+                    <div class="table-responsive sch-table-responsive">
+                        <table class="data-table sch-data-table" id="scholarships-main-table">
+                            <colgroup>
+                                <col style="width: 320px;">
+                                <col style="width: 140px;">
+                                <col style="width: 130px;">
+                                <col style="width: 130px;">
+                                <col style="width: 115px;">
+                                <col style="width: 150px;">
+                                <col style="width: 115px;">
+                            </colgroup>
                             <thead>
                                 <tr>
-                                    <th>EDUCATIONAL ASSISTANCE NAME</th>
-                                    <th>CATEGORY</th>
-                                    <th>TYPE</th>
-                                    <th>OPENING DATE</th>
-                                    <th>DEADLINE</th>
-                                    <th>STATUS</th>
-                                    <th style="text-align: center;">APPLICATIONS</th>
-                                    <th style="text-align: center;">ACTIONS</th>
+                                    <th class="sch-col-program th-sch-program">Educational Assistance Program</th>
+                                    <th class="sch-col-type th-sch-type" style="text-align: center;">Type</th>
+                                    <th class="sch-col-opening th-sch-opening">Opening Date</th>
+                                    <th class="sch-col-deadline th-sch-deadline">Deadline</th>
+                                    <th class="sch-col-status th-sch-status" style="text-align: center;">Status</th>
+                                    <th class="sch-col-apps th-sch-apps" style="text-align: center;">Applications</th>
+                                    <th class="sch-col-actions th-sch-actions" style="text-align: center;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="scholarships-tbody">
                                 <!-- Skeleton Shimmer Rows (5 Rows) -->
                                 <tr>
-                                    <td>
-                                        <div class="scholarship-name-cell">
+                                    <td class="sch-col-program">
+                                        <div class="sch-name-cell scholarship-name-cell">
                                             <div class="skeleton-table-icon skeleton-box"></div>
-                                            <div>
-                                                <div class="skeleton-table-title skeleton-line" style="width: 180px;"></div>
+                                            <div class="sch-info-col scholarship-info-col">
+                                                <div class="skeleton-table-title skeleton-line" style="width: 200px;">
+                                                </div>
+                                                <div class="skeleton-table-badge skeleton-pill"
+                                                    style="width: 125px; height: 20px; margin-top: 4px;"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><div class="skeleton-table-badge skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td style="text-align: center;">
-                                        <div class="skeleton-table-apps skeleton-line"></div>
-                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    <td class="sch-col-type" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
                                     </td>
-                                    <td>
-                                        <div class="skeleton-btn-group">
+                                    <td class="sch-col-opening">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-deadline">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-status" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
+                                    </td>
+                                    <td class="sch-col-apps" style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;">
+                                        </div>
+                                        <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                                    </td>
+                                    <td class="sch-col-actions" style="text-align: center;">
+                                        <div class="skeleton-btn-group" style="justify-content: center;">
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
-                                        <div class="scholarship-name-cell">
+                                    <td class="sch-col-program">
+                                        <div class="sch-name-cell scholarship-name-cell">
                                             <div class="skeleton-table-icon skeleton-box"></div>
-                                            <div>
-                                                <div class="skeleton-table-title skeleton-line" style="width: 220px;"></div>
+                                            <div class="sch-info-col scholarship-info-col">
+                                                <div class="skeleton-table-title skeleton-line" style="width: 230px;">
+                                                </div>
+                                                <div class="skeleton-table-badge skeleton-pill"
+                                                    style="width: 135px; height: 20px; margin-top: 4px;"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><div class="skeleton-table-badge skeleton-pill" style="width: 130px;"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td style="text-align: center;">
-                                        <div class="skeleton-table-apps skeleton-line"></div>
-                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    <td class="sch-col-type" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
                                     </td>
-                                    <td>
-                                        <div class="skeleton-btn-group">
+                                    <td class="sch-col-opening">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-deadline">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-status" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
+                                    </td>
+                                    <td class="sch-col-apps" style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;">
+                                        </div>
+                                        <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                                    </td>
+                                    <td class="sch-col-actions" style="text-align: center;">
+                                        <div class="skeleton-btn-group" style="justify-content: center;">
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
-                                        <div class="scholarship-name-cell">
+                                    <td class="sch-col-program">
+                                        <div class="sch-name-cell scholarship-name-cell">
                                             <div class="skeleton-table-icon skeleton-box"></div>
-                                            <div>
-                                                <div class="skeleton-table-title skeleton-line" style="width: 160px;"></div>
+                                            <div class="sch-info-col scholarship-info-col">
+                                                <div class="skeleton-table-title skeleton-line" style="width: 170px;">
+                                                </div>
+                                                <div class="skeleton-table-badge skeleton-pill"
+                                                    style="width: 110px; height: 20px; margin-top: 4px;"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><div class="skeleton-table-badge skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td style="text-align: center;">
-                                        <div class="skeleton-table-apps skeleton-line"></div>
-                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    <td class="sch-col-type" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
                                     </td>
-                                    <td>
-                                        <div class="skeleton-btn-group">
+                                    <td class="sch-col-opening">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-deadline">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-status" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
+                                    </td>
+                                    <td class="sch-col-apps" style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;">
+                                        </div>
+                                        <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                                    </td>
+                                    <td class="sch-col-actions" style="text-align: center;">
+                                        <div class="skeleton-btn-group" style="justify-content: center;">
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
-                                        <div class="scholarship-name-cell">
+                                    <td class="sch-col-program">
+                                        <div class="sch-name-cell scholarship-name-cell">
                                             <div class="skeleton-table-icon skeleton-box"></div>
-                                            <div>
-                                                <div class="skeleton-table-title skeleton-line" style="width: 190px;"></div>
+                                            <div class="sch-info-col scholarship-info-col">
+                                                <div class="skeleton-table-title skeleton-line" style="width: 210px;">
+                                                </div>
+                                                <div class="skeleton-table-badge skeleton-pill"
+                                                    style="width: 130px; height: 20px; margin-top: 4px;"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><div class="skeleton-table-badge skeleton-pill" style="width: 120px;"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td style="text-align: center;">
-                                        <div class="skeleton-table-apps skeleton-line"></div>
-                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    <td class="sch-col-type" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
                                     </td>
-                                    <td>
-                                        <div class="skeleton-btn-group">
+                                    <td class="sch-col-opening">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-deadline">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-status" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
+                                    </td>
+                                    <td class="sch-col-apps" style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;">
+                                        </div>
+                                        <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                                    </td>
+                                    <td class="sch-col-actions" style="text-align: center;">
+                                        <div class="skeleton-btn-group" style="justify-content: center;">
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
-                                        <div class="scholarship-name-cell">
+                                    <td class="sch-col-program">
+                                        <div class="sch-name-cell scholarship-name-cell">
                                             <div class="skeleton-table-icon skeleton-box"></div>
-                                            <div>
-                                                <div class="skeleton-table-title skeleton-line" style="width: 170px;"></div>
+                                            <div class="sch-info-col scholarship-info-col">
+                                                <div class="skeleton-table-title skeleton-line" style="width: 190px;">
+                                                </div>
+                                                <div class="skeleton-table-badge skeleton-pill"
+                                                    style="width: 120px; height: 20px; margin-top: 4px;"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><div class="skeleton-table-badge skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-date skeleton-line"></div></td>
-                                    <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                                    <td style="text-align: center;">
-                                        <div class="skeleton-table-apps skeleton-line"></div>
-                                        <div class="skeleton-table-slots skeleton-line"></div>
+                                    <td class="sch-col-type" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
                                     </td>
-                                    <td>
-                                        <div class="skeleton-btn-group">
+                                    <td class="sch-col-opening">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-deadline">
+                                        <div class="skeleton-table-date skeleton-line"></div>
+                                    </td>
+                                    <td class="sch-col-status" style="text-align: center;">
+                                        <div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;">
+                                        </div>
+                                    </td>
+                                    <td class="sch-col-apps" style="text-align: center;">
+                                        <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;">
+                                        </div>
+                                        <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                                    </td>
+                                    <td class="sch-col-actions" style="text-align: center;">
+                                        <div class="skeleton-btn-group" style="justify-content: center;">
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                             <div class="skeleton-table-btn skeleton-box"></div>
                                         </div>
@@ -383,7 +477,7 @@
                     </div>
 
                     <!-- Pagination -->
-                    <div class="pagination-container mt-20">
+                    <div class="pagination-container">
                         <span id="entries-info" class="text-sm text-muted">Loading entries...</span>
                         <div class="pagination" id="pagination-controls">
                             <button disabled aria-label="Previous Page"><i data-lucide="chevron-left"></i></button>
@@ -409,10 +503,12 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="applicants-modal-title" id="modal-stat-title">Total Educational Assistance Directory</h3>
+                            <h3 class="applicants-modal-title" id="modal-stat-title">Total Educational Assistance
+                                Directory</h3>
                             <span id="modal-stat-badge" class="audit-module-badge">Directory Breakdown</span>
                         </div>
-                        <p class="applicants-modal-subtitle" id="modal-stat-subtitle">Detailed record of educational assistance programs, allocated slots, and status</p>
+                        <p class="applicants-modal-subtitle" id="modal-stat-subtitle">Detailed record of educational
+                            assistance programs, allocated slots, and status</p>
                     </div>
                 </div>
                 <button class="modal-close-icon-btn" onclick="closeStatsModal()" title="Close modal">
@@ -435,10 +531,14 @@
                         placeholder="Search educational assistance by name, category, type, or term...">
                 </div>
                 <div class="modal-status-tabs" id="modal-stat-tabs">
-                    <button class="modal-status-tab active" data-status="All">All (<span id="modal-tab-all-count">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Active">Active (<span id="modal-tab-active-count">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Upcoming">Upcoming (<span id="modal-tab-upcoming-count">0</span>)</button>
-                    <button class="modal-status-tab" data-status="Closed">Closed (<span id="modal-tab-closed-count">0</span>)</button>
+                    <button class="modal-status-tab active" data-status="All">All (<span
+                            id="modal-tab-all-count">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Active">Active (<span
+                            id="modal-tab-active-count">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Upcoming">Upcoming (<span
+                            id="modal-tab-upcoming-count">0</span>)</button>
+                    <button class="modal-status-tab" data-status="Closed">Closed (<span
+                            id="modal-tab-closed-count">0</span>)</button>
                 </div>
             </div>
 
@@ -468,7 +568,8 @@
             <!-- Modal Footer -->
             <div class="applicants-modal-footer">
                 <div class="applicants-modal-stats-summary">
-                    <span>Showing <strong id="modal-stat-showing-count">0</strong> of <strong id="modal-stat-total-count">0</strong> programs</span>
+                    <span>Showing <strong id="modal-stat-showing-count">0</strong> of <strong
+                            id="modal-stat-total-count">0</strong> programs</span>
                 </div>
                 <div class="applicants-modal-footer-actions">
                     <button class="modal-btn-secondary-action" onclick="closeStatsModal()">Close</button>
@@ -491,7 +592,9 @@
             <div class="global-modal-actions">
                 <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
                 <button id="modal-confirm" class="global-btn-confirm">
-                    <i data-lucide="power" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i> Logout
+                    <i data-lucide="power"
+                        style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i>
+                    Logout
                 </button>
             </div>
         </div>

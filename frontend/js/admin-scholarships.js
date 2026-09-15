@@ -26,125 +26,125 @@
         if (!tbody) return;
         tbody.innerHTML = `
             <tr>
-                <td>
-                    <div class="scholarship-name-cell">
+                <td class="sch-col-program">
+                    <div class="sch-name-cell scholarship-name-cell">
                         <div class="skeleton-table-icon skeleton-box"></div>
-                        <div>
-                            <div class="skeleton-table-title skeleton-line" style="width: 180px;"></div>
+                        <div class="sch-info-col scholarship-info-col">
+                            <div class="skeleton-table-title skeleton-line" style="width: 200px;"></div>
+                            <div class="skeleton-table-badge skeleton-pill" style="width: 125px; height: 20px; margin-top: 4px;"></div>
                         </div>
                     </div>
                 </td>
-                <td><div class="skeleton-table-badge skeleton-pill"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td style="text-align: center;">
-                    <div class="skeleton-table-apps skeleton-line"></div>
-                    <div class="skeleton-table-slots skeleton-line"></div>
+                <td class="sch-col-type" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-opening"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-deadline"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-status" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-apps" style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;"></div>
+                    <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
                 </td>
-                <td>
-                    <div class="skeleton-btn-group">
+                <td class="sch-col-actions" style="text-align: center;">
+                    <div class="skeleton-btn-group" style="justify-content: center;">
                         <div class="skeleton-table-btn skeleton-box"></div>
                         <div class="skeleton-table-btn skeleton-box"></div>
                     </div>
                 </td>
             </tr>
             <tr>
-                <td>
-                    <div class="scholarship-name-cell">
+                <td class="sch-col-program">
+                    <div class="sch-name-cell scholarship-name-cell">
                         <div class="skeleton-table-icon skeleton-box"></div>
-                        <div>
-                            <div class="skeleton-table-title skeleton-line" style="width: 220px;"></div>
+                        <div class="sch-info-col scholarship-info-col">
+                            <div class="skeleton-table-title skeleton-line" style="width: 230px;"></div>
+                            <div class="skeleton-table-badge skeleton-pill" style="width: 135px; height: 20px; margin-top: 4px;"></div>
                         </div>
                     </div>
                 </td>
-                <td><div class="skeleton-table-badge skeleton-pill" style="width: 130px;"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td style="text-align: center;">
-                    <div class="skeleton-table-apps skeleton-line"></div>
-                    <div class="skeleton-table-slots skeleton-line"></div>
+                <td class="sch-col-type" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-opening"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-deadline"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-status" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-apps" style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;"></div>
+                    <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
                 </td>
-                <td>
-                    <div class="skeleton-btn-group">
+                <td class="sch-col-actions" style="text-align: center;">
+                    <div class="skeleton-btn-group" style="justify-content: center;">
                         <div class="skeleton-table-btn skeleton-box"></div>
                         <div class="skeleton-table-btn skeleton-box"></div>
                     </div>
                 </td>
             </tr>
             <tr>
-                <td>
-                    <div class="scholarship-name-cell">
+                <td class="sch-col-program">
+                    <div class="sch-name-cell scholarship-name-cell">
                         <div class="skeleton-table-icon skeleton-box"></div>
-                        <div>
-                            <div class="skeleton-table-title skeleton-line" style="width: 160px;"></div>
-                        </div>
-                    </div>
-                </td>
-                <td><div class="skeleton-table-badge skeleton-pill"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td style="text-align: center;">
-                    <div class="skeleton-table-apps skeleton-line"></div>
-                    <div class="skeleton-table-slots skeleton-line"></div>
-                </td>
-                <td>
-                    <div class="skeleton-btn-group">
-                        <div class="skeleton-table-btn skeleton-box"></div>
-                        <div class="skeleton-table-btn skeleton-box"></div>
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <div class="scholarship-name-cell">
-                        <div class="skeleton-table-icon skeleton-box"></div>
-                        <div>
-                            <div class="skeleton-table-title skeleton-line" style="width: 190px;"></div>
-                        </div>
-                    </div>
-                </td>
-                <td><div class="skeleton-table-badge skeleton-pill" style="width: 120px;"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td style="text-align: center;">
-                    <div class="skeleton-table-apps skeleton-line"></div>
-                    <div class="skeleton-table-slots skeleton-line"></div>
-                </td>
-                <td>
-                    <div class="skeleton-btn-group">
-                        <div class="skeleton-table-btn skeleton-box"></div>
-                        <div class="skeleton-table-btn skeleton-box"></div>
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <div class="scholarship-name-cell">
-                        <div class="skeleton-table-icon skeleton-box"></div>
-                        <div>
+                        <div class="sch-info-col scholarship-info-col">
                             <div class="skeleton-table-title skeleton-line" style="width: 170px;"></div>
+                            <div class="skeleton-table-badge skeleton-pill" style="width: 110px; height: 20px; margin-top: 4px;"></div>
                         </div>
                     </div>
                 </td>
-                <td><div class="skeleton-table-badge skeleton-pill"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-date skeleton-line"></div></td>
-                <td><div class="skeleton-table-badge-sm skeleton-pill"></div></td>
-                <td style="text-align: center;">
-                    <div class="skeleton-table-apps skeleton-line"></div>
-                    <div class="skeleton-table-slots skeleton-line"></div>
+                <td class="sch-col-type" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-opening"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-deadline"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-status" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-apps" style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;"></div>
+                    <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
                 </td>
-                <td>
-                    <div class="skeleton-btn-group">
+                <td class="sch-col-actions" style="text-align: center;">
+                    <div class="skeleton-btn-group" style="justify-content: center;">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="sch-col-program">
+                    <div class="sch-name-cell scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div class="sch-info-col scholarship-info-col">
+                            <div class="skeleton-table-title skeleton-line" style="width: 210px;"></div>
+                            <div class="skeleton-table-badge skeleton-pill" style="width: 130px; height: 20px; margin-top: 4px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="sch-col-type" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-opening"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-deadline"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-status" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-apps" style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;"></div>
+                    <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                </td>
+                <td class="sch-col-actions" style="text-align: center;">
+                    <div class="skeleton-btn-group" style="justify-content: center;">
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                        <div class="skeleton-table-btn skeleton-box"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="sch-col-program">
+                    <div class="sch-name-cell scholarship-name-cell">
+                        <div class="skeleton-table-icon skeleton-box"></div>
+                        <div class="sch-info-col scholarship-info-col">
+                            <div class="skeleton-table-title skeleton-line" style="width: 190px;"></div>
+                            <div class="skeleton-table-badge skeleton-pill" style="width: 120px; height: 20px; margin-top: 4px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="sch-col-type" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-opening"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-deadline"><div class="skeleton-table-date skeleton-line"></div></td>
+                <td class="sch-col-status" style="text-align: center;"><div class="skeleton-table-badge-sm skeleton-pill" style="margin: 0 auto;"></div></td>
+                <td class="sch-col-apps" style="text-align: center;">
+                    <div class="skeleton-table-apps skeleton-line" style="margin: 0 auto 4px auto;"></div>
+                    <div class="skeleton-table-slots skeleton-line" style="margin: 0 auto;"></div>
+                </td>
+                <td class="sch-col-actions" style="text-align: center;">
+                    <div class="skeleton-btn-group" style="justify-content: center;">
                         <div class="skeleton-table-btn skeleton-box"></div>
                         <div class="skeleton-table-btn skeleton-box"></div>
                     </div>
@@ -337,7 +337,7 @@
     const loadScholarships = async () => {
         try {
             if (!currentAdminSchoolId) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 40px; color: var(--danger-color);">Account error: No school assigned to this admin.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--danger-color);">Account error: No school assigned to this admin.</td></tr>`;
                 removeStatSkeletons();
                 return;
             }
@@ -380,7 +380,7 @@
 
         } catch (error) {
             console.error('Error fetching data:', error);
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 40px; color: var(--danger-color);">Failed to load data from database.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--danger-color);">Failed to load data from database.</td></tr>`;
             removeStatSkeletons();
             Swal.fire({
                 title: 'Error',
@@ -430,7 +430,7 @@
         }
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="padding:48px 20px; text-align:center; color:var(--text-muted); font-size: 14px;">No matching educational assistance programs found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="padding:48px 20px; text-align:center; color:var(--text-muted); font-size: 14px;">No matching educational assistance programs found.</td></tr>`;
             return;
         }
 
@@ -451,26 +451,28 @@
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>
-                    <div class="scholarship-name-cell">
+                <td class="sch-col-program">
+                    <div class="sch-name-cell scholarship-name-cell">
                         <div class="icon-box">
                             <i data-lucide="graduation-cap"></i>
                         </div>
-                        <div>
-                            <strong>${escapeHtml(sch.title || 'Untitled Program')}</strong>
+                        <div class="sch-info-col scholarship-info-col">
+                            <strong class="sch-title scholarship-title">${escapeHtml(sch.title || 'Untitled Program')}</strong>
+                            <div class="sch-cat-wrap scholarship-cat-badge-wrap">
+                                ${getTypeBadge(sch.category)}
+                            </div>
                         </div>
                     </div>
                 </td>
-                <td>${getTypeBadge(sch.category)}</td>
-                <td>${getScholarshipTypeBadge(sch.scholarship_type)}</td>
-                <td>${formatDate(sch.start_date)}</td>
-                <td>${formatDate(sch.end_date)}</td>
-                <td>${getStatusHTML(sch.dynamic_status)}</td>
-                <td style="text-align:center;">
-                    <div style="font-weight:700; color:var(--text-heading); font-size:13px;">${appCount} ${appLabel}</div>
+                <td class="sch-col-type" style="text-align: center;">${getScholarshipTypeBadge(sch.scholarship_type)}</td>
+                <td class="sch-col-opening">${formatDate(sch.start_date)}</td>
+                <td class="sch-col-deadline">${formatDate(sch.end_date)}</td>
+                <td class="sch-col-status" style="text-align: center;">${getStatusHTML(sch.dynamic_status)}</td>
+                <td class="sch-col-apps" style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--text-heading); font-size: 13px;">${appCount} ${appLabel}</div>
                     ${slotsDisplay}
                 </td>
-                <td>
+                <td class="sch-col-actions" style="text-align: center;">
                     <div class="action-buttons-group">
                         ${sch.dynamic_status === 'Draft' || sch.status === 'Draft' ? `<button class="table-action-btn action-edit" data-id="${sch.id}" title="Edit Program"><i data-lucide="pencil"></i></button>` : ''}
                         <button class="table-action-btn action-view" data-id="${sch.id}" title="Preview Program"><i data-lucide="eye"></i></button>
@@ -500,8 +502,8 @@
         const sortBy = sortByInput ? sortByInput.value : '';
 
         filteredScholarships = allScholarships.filter(sch => {
-            const matchesSearch = !searchTerm || 
-                (sch.title || '').toLowerCase().includes(searchTerm) || 
+            const matchesSearch = !searchTerm ||
+                (sch.title || '').toLowerCase().includes(searchTerm) ||
                 (sch.description || '').toLowerCase().includes(searchTerm);
             const matchesStatus = statusFilter === '' || sch.dynamic_status === statusFilter;
             const matchesCategory = categoryFilter === '' || sch.category === categoryFilter;
@@ -575,8 +577,8 @@
             return text;
         };
 
-        const autoFmt = (typeof sch.auto_collected_formats === 'string') 
-            ? (() => { try { return JSON.parse(sch.auto_collected_formats); } catch(e) { return {}; } })()
+        const autoFmt = (typeof sch.auto_collected_formats === 'string')
+            ? (() => { try { return JSON.parse(sch.auto_collected_formats); } catch (e) { return {}; } })()
             : (sch.auto_collected_formats || {});
 
         const formFields = safeParse(sch.form_fields);
@@ -612,10 +614,10 @@
                             ${sch.min_college_subject_grade ? `<li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Must have NO individual College subject grade lower than <b>${sch.min_college_subject_grade}</b>.</span></li>` : ''}
                             <li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Open to Year Levels: <b>${eligibilityYears.length > 0 ? eligibilityYears.join(', ') : 'Any'}</b>.</span></li>
                             <li class="preview-eligibility-item"><i data-lucide="check" style="color: var(--moss-green); width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Open to Programs: <b>${(() => {
-                                const ep = safeParse(sch.eligibility_programs);
-                                if (!ep || ep.length === 0) return 'Any';
-                                return `${ep.length} Programs selected`;
-                            })()}</b>.</span></li>
+                const ep = safeParse(sch.eligibility_programs);
+                if (!ep || ep.length === 0) return 'Any';
+                return `${ep.length} Programs selected`;
+            })()}</b>.</span></li>
                         </ul>
                     </div>
                     
@@ -668,40 +670,40 @@
                         <div class="preview-input-group" style="margin-bottom:12px; ${['Textarea', 'Text'].includes(f.type) ? 'grid-column: 1 / -1;' : ''}">
                             <label>${escapeHtml(f.label)} ${f.required ? '<span class="text-red">*</span>' : ''}</label>
                             ${['Dropdown'].includes(f.type)
-                                ? `<select class="preview-input preview-input-active" disabled><option>Select option...</option>${(f.options || []).map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>`
-                                : (f.type === 'Selection'
-                                    ? `<div style="padding-top:6px; display:flex; flex-direction:column; gap:8px;">${(f.options || []).map(opt => `<label class="radio-checkbox-label" style="font-size:13px; color:var(--text-main); display:inline-flex; align-items:center; gap:6px;"><input type="${f.allow_multiple ? 'checkbox' : 'radio'}" disabled> ${escapeHtml(opt)}</label>`).join('')}</div>`
-                                    : `<input type="text" class="preview-input preview-input-active" placeholder="${f.type === 'Date' ? 'Select Date (YYYY-MM-DD)' : 'Enter your answer...'}" disabled>`
-                                )
-                            }
+                    ? `<select class="preview-input preview-input-active" disabled><option>Select option...</option>${(f.options || []).map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>`
+                    : (f.type === 'Selection'
+                        ? `<div style="padding-top:6px; display:flex; flex-direction:column; gap:8px;">${(f.options || []).map(opt => `<label class="radio-checkbox-label" style="font-size:13px; color:var(--text-main); display:inline-flex; align-items:center; gap:6px;"><input type="${f.allow_multiple ? 'checkbox' : 'radio'}" disabled> ${escapeHtml(opt)}</label>`).join('')}</div>`
+                        : `<input type="text" class="preview-input preview-input-active" placeholder="${f.type === 'Date' ? 'Select Date (YYYY-MM-DD)' : 'Enter your answer...'}" disabled>`
+                    )
+                }
                         </div>
                     `).join('')}
                 </div>
 
                 <div class="preview-section-title">3. Document Uploads</div>
                 ${(() => {
-                    const hasOcr = docConfigs.some(d => d.ocr_enabled !== false);
-                    if (!hasOcr) return '';
-                    return `
+                const hasOcr = docConfigs.some(d => d.ocr_enabled !== false);
+                if (!hasOcr) return '';
+                return `
                     <div class="preview-ai-banner">
                         <i data-lucide="bot" style="width: 22px; height: 22px; flex-shrink: 0; color: var(--river-blue);"></i>
                         <div>
                             <strong>AI Verification Active:</strong> Please ensure your documents are clear and legible. Our AI system will scan the contents to verify authenticity, signatures, and ensure your grades meet the minimum eligibility rules for this educational assistance.
                         </div>
                     </div>`;
-                })()}
+            })()}
 
                 ${docConfigs.length === 0 ? '<p style="font-size:13px; color: var(--text-muted);">No documents required.</p>' : ''}
                 
                 <div>
                     ${docConfigs.map(d => {
-                        const hasDesc = d.description && d.description.trim() !== '';
-                        const isOcr = d.ocr_enabled !== false;
-                        const ocrBadge = isOcr
-                            ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Active</span>`
-                            : `<span class="preview-ocr-badge inactive"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> Standard Upload</span>`;
+                const hasDesc = d.description && d.description.trim() !== '';
+                const isOcr = d.ocr_enabled !== false;
+                const ocrBadge = isOcr
+                    ? `<span class="preview-ocr-badge active"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI OCR Active</span>`
+                    : `<span class="preview-ocr-badge inactive"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> Standard Upload</span>`;
 
-                        return `
+                return `
                         <div class="preview-doc-box">
                             <div class="preview-doc-header">
                                 <label style="font-size:13.5px; font-weight:700; color: var(--text-heading); display:inline-flex; align-items:center; gap:6px; margin:0;">
@@ -726,7 +728,7 @@
                             </div>
                         </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
 
                 <button type="button" class="preview-submit-btn">Submit Application</button>
@@ -816,7 +818,7 @@
 
     const toggleExportDropdown = (forceClose = false) => {
         if (!exportDropdownMenu || !exportBtn || !exportDropdownWrapper) return;
-        
+
         const isCurrentlyOpen = exportDropdownMenu.classList.contains('show');
         if (forceClose || isCurrentlyOpen) {
             exportDropdownMenu.classList.remove('show');

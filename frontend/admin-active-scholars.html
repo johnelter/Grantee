@@ -78,9 +78,7 @@
                             <a href="admin-dashboard.html">Dashboard</a> &gt;
                             <span>Active Beneficiaries</span>
                         </div> -->
-                        <h1>Active Beneficiaries <i data-lucide="award"
-                                style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin-left: 6px; color: var(--moss-green); stroke-width: 2.2;"></i>
-                        </h1>
+                        <h1>Active Beneficiaries</h1>
                         <p class="welcome-text">Manage and monitor students who currently hold active educational
                             assistance.</p>
                         <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5"
@@ -136,15 +134,15 @@
             <div class="content-wrapper">
                 <!-- STATS ROW -->
                 <div class="stats-grid">
-                    <div class="data-panel stat-card-active">
-                        <div>
-                            <div class="stat-card-label">Total Active Beneficiaries</div>
+                    <div class="stat-card-active">
+                        <div class="stat-card-info">
+                            <div class="stat-card-label">TOTAL ACTIVE<br>ENROLLED</div>
                             <div id="stat-total" class="stat-card-value">
                                 <div class="skeleton-stat-num"></div>
                             </div>
                         </div>
                         <div class="stat-card-icon-badge">
-                            <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+                            <i data-lucide="users"></i>
                         </div>
                     </div>
                 </div>
@@ -194,19 +192,22 @@
                         <!-- Filter Toolbar: Clean Grid for Filter Dropdowns -->
                         <div class="table-controls-filters filter-group">
                             <div class="filter-item">
-                                <select id="filter-scholarship" class="form-input filter-select" aria-label="Filter by Program">
+                                <select id="filter-scholarship" class="form-input filter-select"
+                                    aria-label="Filter by Program">
                                     <option value="">All Programs</option>
                                 </select>
                             </div>
 
                             <div class="filter-item">
-                                <select id="filter-school-year" class="form-input filter-select" aria-label="Filter by School Year">
+                                <select id="filter-school-year" class="form-input filter-select"
+                                    aria-label="Filter by School Year">
                                     <option value="">All School Years</option>
                                 </select>
                             </div>
 
                             <div class="filter-item">
-                                <select id="filter-semester" class="form-input filter-select" aria-label="Filter by Semester">
+                                <select id="filter-semester" class="form-input filter-select"
+                                    aria-label="Filter by Semester">
                                     <option value="">All Semesters</option>
                                 </select>
                             </div>

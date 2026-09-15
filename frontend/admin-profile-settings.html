@@ -95,21 +95,126 @@
             </header>
 
             <div class="content-wrapper">
-                <div class="settings-grid">
+                
+                <!-- SKELETON LOADING STATE (Visible while loading profile) -->
+                <div id="settings-skeleton-state" class="settings-grid">
+                    
+                    <!-- Left Sidebar Skeleton -->
+                    <div class="settings-sidebar">
+                        <div class="data-panel text-center skeleton-card">
+                            <div class="avatar-skeleton-wrapper">
+                                <div class="skeleton-avatar-circle"></div>
+                            </div>
+                            <div class="skeleton-line skeleton-title-shimmer" style="width: 140px; height: 18px; margin: 12px auto 6px auto;"></div>
+                            <div class="skeleton-line skeleton-desc-shimmer" style="width: 110px; height: 14px; margin: 0 auto 6px auto;"></div>
+                            <div class="skeleton-line skeleton-desc-shimmer" style="width: 170px; height: 13px; margin: 0 auto;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right Forms Skeleton -->
+                    <div class="settings-forms">
+                        
+                        <!-- Personal Info Skeleton -->
+                        <div class="data-panel skeleton-card">
+                            <div class="panel-header">
+                                <div class="skeleton-line skeleton-title-shimmer" style="width: 160px; height: 18px; margin-bottom: 6px;"></div>
+                                <div class="skeleton-line skeleton-desc-shimmer" style="width: 280px; height: 12px;"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 80px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 90px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 80px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 100px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 110px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 100px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                            </div>
+                            <div class="form-row single-column">
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 140px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <div class="skeleton-button" style="width: 120px; height: 36px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Change Password Skeleton -->
+                        <div class="data-panel skeleton-card">
+                            <div class="panel-header">
+                                <div class="skeleton-line skeleton-title-shimmer" style="width: 140px; height: 18px; margin-bottom: 6px;"></div>
+                                <div class="skeleton-line skeleton-desc-shimmer" style="width: 250px; height: 12px;"></div>
+                            </div>
+                            <div class="input-group mb-14">
+                                <div class="skeleton-line" style="width: 120px; height: 12px; margin-bottom: 6px;"></div>
+                                <div class="skeleton-input-box"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 100px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                                <div class="input-group">
+                                    <div class="skeleton-line" style="width: 140px; height: 12px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-input-box"></div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <div class="skeleton-button" style="width: 135px; height: 36px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- 2FA Skeleton -->
+                        <div class="data-panel skeleton-card">
+                            <div class="panel-header">
+                                <div class="skeleton-line skeleton-title-shimmer" style="width: 180px; height: 18px; margin-bottom: 6px;"></div>
+                                <div class="skeleton-line skeleton-desc-shimmer" style="width: 320px; height: 12px;"></div>
+                            </div>
+                            <div class="skeleton-button" style="width: 240px; height: 38px;"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ACTUAL LOADED SETTINGS CONTENT (Initially Hidden, Smooth Fade-In) -->
+                <div id="settings-loaded-content" class="settings-grid" style="display: none;">
                     
                     <!-- Left Sidebar (Avatar) -->
                     <div class="settings-sidebar">
                         <div class="data-panel text-center">
-                            <div class="avatar-wrapper">
+                            <div class="avatar-wrapper" id="avatar-clickable-wrapper" title="Click to view picture preview">
                                 <img id="settings-avatar-preview" src="assets/admin-avatar.png" alt="Avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22><tspan dominant-baseline=%22middle%22 text-anchor=%22middle%22>U</tspan></text></svg>'">
-                                <label for="avatar-upload" class="avatar-upload-btn" title="Change Avatar">
+                                <span class="avatar-preview-hint"><i class="fa-solid fa-magnifying-glass"></i> View</span>
+                                <label for="avatar-upload" class="avatar-upload-btn" title="Change Avatar" onclick="event.stopPropagation();">
                                     <i class="fa-solid fa-camera"></i>
                                 </label>
                                 <input type="file" id="avatar-upload" accept="image/png, image/jpeg" style="display: none;">
                             </div>
-                            <h3 id="display-full-name" style="margin-top: 15px; color: var(--text-main);">Admin Name</h3>
-                            <p id="display-role" style="color: var(--primary-color); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Scholarship Coordinator</p>
-                            <p id="display-school" style="color: var(--text-muted); font-size: 13px;">School Name Loading...</p>
+                            <h3 id="display-full-name" class="profile-name-text">Admin Name</h3>
+                            <p id="display-role" class="profile-role-badge">Scholarship Coordinator</p>
+                            <p id="display-school" class="profile-school-text">School Name Loading...</p>
                             
                             <div class="upload-status" id="upload-status"></div>
                         </div>
@@ -118,93 +223,152 @@
                     <!-- Right Forms -->
                     <div class="settings-forms">
                         
-                        <!-- Personal Info -->
-                        <div class="data-panel mb-20">
-                            <h3 class="panel-title">Personal Information</h3>
+                        <!-- Personal & Account Information -->
+                        <div class="data-panel">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Personal Information</h3>
+                                <p class="panel-subtitle">Update your personal contact details. Non-modifiable system assignments are secured and locked.</p>
+                            </div>
                             <form id="profile-form">
                                 <div class="form-row">
                                     <div class="input-group">
-                                        <label>First Name <span class="text-red">*</span></label>
-                                        <input type="text" id="prof-firstname" class="form-input" required>
+                                        <label for="prof-firstname">First Name <span class="text-red">*</span></label>
+                                        <input type="text" id="prof-firstname" class="form-input" required placeholder="Enter first name">
                                     </div>
                                     <div class="input-group">
-                                        <label>Middle Name</label>
+                                        <label for="prof-middlename">Middle Name</label>
                                         <input type="text" id="prof-middlename" class="form-input" placeholder="(Optional)">
                                     </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="input-group">
-                                        <label>Last Name <span class="text-red">*</span></label>
-                                        <input type="text" id="prof-lastname" class="form-input" required>
+                                        <label for="prof-lastname">Last Name <span class="text-red">*</span></label>
+                                        <input type="text" id="prof-lastname" class="form-input" required placeholder="Enter last name">
                                     </div>
                                     <div class="input-group">
-                                        <label>Contact Number</label>
+                                        <label for="prof-phone">Contact Number</label>
                                         <input type="tel" id="prof-phone" class="form-input" placeholder="e.g. 09123456789">
                                     </div>
                                 </div>
+
                                 <div class="form-row">
-                                    <div class="input-group" style="grid-column: 1 / -1;">
-                                        <label>Email Address</label>
-                                        <input type="email" id="prof-email" class="form-input" readonly disabled style="background: #f8fafc; color: #64748b; cursor: not-allowed;">
-                                        <span class="hint-text">Your login email address associated with this admin account.</span>
+                                    <div class="input-group">
+                                        <label for="prof-email">Email Address <span class="badge-locked-label">(Locked)</span></label>
+                                        <div class="input-with-lock">
+                                            <input type="email" id="prof-email" class="form-input locked-input" readonly disabled tabindex="-1" placeholder="admin@domain.com">
+                                            <span class="input-lock-badge"><i data-lucide="lock"></i> Locked</span>
+                                        </div>
+                                        <span class="hint-text">Official login email associated with this admin account.</span>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="prof-role">Account Role <span class="badge-locked-label">(Locked)</span></label>
+                                        <div class="input-with-lock">
+                                            <input type="text" id="prof-role" class="form-input locked-input" readonly disabled tabindex="-1" value="Coordinator">
+                                            <span class="input-lock-badge"><i data-lucide="shield-check"></i> System</span>
+                                        </div>
+                                        <span class="hint-text">Administrative privilege level assigned by Super Admin.</span>
                                     </div>
                                 </div>
-                                <div class="form-actions mt-20">
-                                    <button type="submit" class="btn-primary" id="btn-save-profile">Save Changes</button>
+
+                                <div class="form-row single-column">
+                                    <div class="input-group">
+                                        <label for="prof-school">Assigned School / Institution <span class="badge-locked-label">(Locked)</span></label>
+                                        <div class="input-with-lock">
+                                            <input type="text" id="prof-school" class="form-input locked-input" readonly disabled tabindex="-1" value="Loading...">
+                                            <span class="input-lock-badge"><i data-lucide="school"></i> Assigned</span>
+                                        </div>
+                                        <span class="hint-text">School assigned to your coordinator profile.</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary" id="btn-save-profile">
+                                        <i data-lucide="check" style="width: 15px; height: 15px;"></i> Save Changes
+                                    </button>
                                 </div>
                             </form>
                         </div>
 
                         <!-- Change Password -->
-                        <div class="data-panel mb-20">
-                            <h3 class="panel-title">Change Password</h3>
+                        <div class="data-panel">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Change Password</h3>
+                                <p class="panel-subtitle">Ensure your account uses a strong password to maintain system security.</p>
+                            </div>
                             <form id="password-form">
-                                <div class="input-group mb-15">
+                                <div class="input-group mb-14">
                                     <div class="label-header">
-                                        <label>Current Password <span class="text-red">*</span></label>
+                                        <label for="current-password">Current Password <span class="text-red">*</span></label>
                                         <a href="#" id="forgot-password-link">Forgot current password?</a>
                                     </div>
-                                    <input type="password" id="current-password" class="form-input" required placeholder="Enter your existing password">
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="current-password" class="form-input" required placeholder="Enter your existing password">
+                                        <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('current-password', this)" aria-label="Toggle password visibility">
+                                            <i class="fa-regular fa-eye"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="input-group">
-                                        <label>New Password <span class="text-red">*</span></label>
-                                        <input type="password" id="new-password" class="form-input" minlength="8" required placeholder="Min 8 characters">
+                                        <label for="new-password">New Password <span class="text-red">*</span></label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" id="new-password" class="form-input" minlength="8" required placeholder="Min 8 characters">
+                                            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('new-password', this)" aria-label="Toggle password visibility">
+                                                <i class="fa-regular fa-eye"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="input-group">
-                                        <label>Confirm New Password <span class="text-red">*</span></label>
-                                        <input type="password" id="confirm-password" class="form-input" minlength="8" required placeholder="Retype password">
+                                        <label for="confirm-password">Confirm New Password <span class="text-red">*</span></label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" id="confirm-password" class="form-input" minlength="8" required placeholder="Retype password">
+                                            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('confirm-password', this)" aria-label="Toggle password visibility">
+                                                <i class="fa-regular fa-eye"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="form-actions mt-20">
-                                    <button type="submit" class="btn-primary" id="btn-change-password">Update Password</button>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary" id="btn-change-password">
+                                        <i data-lucide="key-round" style="width: 15px; height: 15px;"></i> Update Password
+                                    </button>
                                 </div>
                             </form>
                         </div>
 
                         <!-- 2FA Setup -->
                         <div class="data-panel">
-                            <h3 class="panel-title">Two-Factor Authentication (2FA)</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Protect your admin account with an additional layer of security using an authenticator app (e.g. Google Authenticator, Authy).</p>
+                            <div class="panel-header">
+                                <h3 class="panel-title">Two-Factor Authentication (2FA)</h3>
+                                <p class="panel-subtitle">Protect your admin account with an additional layer of security using an authenticator app (e.g. Google Authenticator, Authy).</p>
+                            </div>
 
                             <div id="unregistered-2fa-section" style="display: none;">
-                                <button id="enable-2fa-btn" class="btn-primary" type="button"><i class="fa-solid fa-lock"></i> Set Up Two-Factor Authentication</button>
+                                <button id="enable-2fa-btn" class="btn-primary" type="button">
+                                    <i class="fa-solid fa-shield-halved"></i> Set Up Two-Factor Authentication
+                                </button>
                             </div>
 
-                            <div id="active-2fa-section" style="display: none; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; margin-bottom: 15px;">
-                                <p style="color: #166534; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-shield-halved"></i> 2FA is currently Enabled</p>
-                                <button id="disable-2fa-btn" class="btn-outline" type="button" style="border-color: #ef4444; color: #ef4444; width: 100%;">Turn Off 2FA</button>
+                            <div id="active-2fa-section" class="active-2fa-box" style="display: none;">
+                                <div class="active-2fa-status">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    <div>
+                                        <strong>2FA is currently Active</strong>
+                                        <p>Your account requires a 6-digit TOTP code during sign-in.</p>
+                                    </div>
+                                </div>
+                                <button id="disable-2fa-btn" class="btn-outline btn-danger-outline" type="button">Turn Off 2FA</button>
                             </div>
 
-                            <div id="setup-2fa-section" style="display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                                <p style="font-size: 13px; color: #475569; margin-bottom: 10px;"><strong>1. Scan this QR code with your Authenticator App:</strong></p>
+                            <div id="setup-2fa-section" class="setup-2fa-box" style="display: none;">
+                                <p class="setup-step-title"><strong>1. Scan this QR code with your Authenticator App:</strong></p>
                                 
-                                <div id="qr-code-container" style="background: #fff; padding: 10px; display: inline-block; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; text-align: center;"></div>
+                                <div id="qr-code-container" class="qr-code-card"></div>
                                 
-                                <p style="font-size: 13px; color: #475569; margin-bottom: 10px;"><strong>2. Enter the 6-digit code from your app to verify:</strong></p>
-                                <div style="display: flex; gap: 10px;">
-                                    <input type="text" id="verify-2fa-input" maxlength="6" placeholder="000000" style="flex: 1; padding: 8px; text-align: center; letter-spacing: 5px; font-size: 16px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                    <button id="confirm-2fa-btn" type="button" class="btn-primary" style="padding: 8px 16px;">Confirm</button>
+                                <p class="setup-step-title"><strong>2. Enter the 6-digit code from your app to verify:</strong></p>
+                                <div class="verify-2fa-row">
+                                    <input type="text" id="verify-2fa-input" class="form-input verify-2fa-input" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+                                    <button id="confirm-2fa-btn" type="button" class="btn-primary">Confirm & Enable</button>
                                 </div>
                             </div>
                         </div>
@@ -215,25 +379,53 @@
         </main>
     </div>
 
+    <!-- AVATAR IMAGE PREVIEW MODAL -->
+    <div id="avatar-preview-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Avatar Preview">
+        <div class="avatar-modal-card">
+            <div class="avatar-modal-header">
+                <div class="avatar-modal-info">
+                    <h3 id="modal-preview-name" class="avatar-modal-title">Admin Profile Photo</h3>
+                    <span id="modal-preview-role" class="avatar-modal-subtitle">Scholarship Coordinator</span>
+                </div>
+                <button type="button" class="avatar-modal-close-btn" id="close-avatar-modal" aria-label="Close Preview">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="avatar-modal-body">
+                <div class="avatar-large-container">
+                    <img id="modal-avatar-img" src="assets/admin-avatar.png" alt="Profile Picture Preview" class="avatar-large-preview" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2250%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%2364748b%22><tspan dominant-baseline=%22middle%22 text-anchor=%22middle%22>U</tspan></text></svg>'">
+                </div>
+            </div>
+            <div class="avatar-modal-footer">
+                <button type="button" class="btn-outline" id="modal-change-photo-btn">
+                    <i class="fa-solid fa-camera"></i> Change Photo
+                </button>
+                <a id="modal-download-photo-btn" href="assets/admin-avatar.png" target="_blank" rel="noopener noreferrer" class="btn-primary">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> View Full Image
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- OTP Reset Modal -->
     <div id="otp-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content-sm" style="width: 400px; text-align: left; padding: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin:0; font-size: 18px; color: var(--text-main); font-weight: 700;">Reset via OTP</h3>
-                <button type="button" style="background:transparent; border:none; font-size:24px; cursor:pointer; color: var(--text-muted);" onclick="document.getElementById('otp-modal').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+        <div class="modal-content-sm">
+            <div class="modal-header-row">
+                <h3 class="modal-title-text">Reset via OTP</h3>
+                <button type="button" class="modal-close-btn" onclick="document.getElementById('otp-modal').style.display='none'" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">A 6-digit OTP has been sent to your email. Please enter it below along with your new password.</p>
+            <p class="modal-desc-text">A 6-digit OTP has been sent to your email. Please enter it below along with your new password.</p>
             
             <form id="otp-reset-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; font-size:13px; font-weight:600; color:#475569; margin-bottom:8px;">6-Digit OTP <span class="text-red">*</span></label>
-                    <input type="text" id="otp-code" class="form-input" required placeholder="Enter OTP" maxlength="6" style="letter-spacing: 2px; font-weight: bold; text-align: center;">
+                <div class="input-group mb-14">
+                    <label>6-Digit OTP <span class="text-red">*</span></label>
+                    <input type="text" id="otp-code" class="form-input text-center font-bold" required placeholder="Enter OTP" maxlength="6" style="letter-spacing: 2px;">
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; font-size:13px; font-weight:600; color:#475569; margin-bottom:8px;">New Password <span class="text-red">*</span></label>
+                <div class="input-group mb-14">
+                    <label>New Password <span class="text-red">*</span></label>
                     <input type="password" id="otp-new-password" class="form-input" minlength="8" required placeholder="Enter new password">
                 </div>
-                <div style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+                <div class="modal-footer-actions">
                     <button type="button" class="btn-outline" onclick="document.getElementById('otp-modal').style.display='none'">Cancel</button>
                     <button type="submit" class="btn-primary" id="btn-verify-otp">Verify & Reset</button>
                 </div>

@@ -592,10 +592,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${docsHTML}
                         </div>
                     </div>
-
-                    <div class="modal-footer-custom">
-                        <button type="button" class="btn-modal-close" onclick="document.getElementById('app-details-modal').remove()">Close View</button>
-                    </div>
                 </div>
             </div>
         `;

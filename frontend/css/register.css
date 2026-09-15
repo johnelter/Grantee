@@ -123,7 +123,7 @@ body.dark-theme {
    ========================================================================== */
 .register-page-bg {
     background-color: var(--bg-main);
-    background-image:
+    background-image: 
         radial-gradient(circle at 12% 18%, rgba(162, 181, 160, 0.25) 0%, transparent 42%),
         radial-gradient(circle at 88% 82%, rgba(220, 200, 163, 0.25) 0%, transparent 44%),
         radial-gradient(circle at 50% 50%, rgba(88, 129, 87, 0.08) 0%, transparent 60%);
@@ -277,11 +277,6 @@ body.dark-theme {
 .logo-area {
     text-align: center;
     margin-bottom: 26px;
-}
-
-.brand-logo-container img {
-    width: 34px;
-    height: 34px;
 }
 
 .icon-circle {
@@ -575,7 +570,6 @@ body.dark-theme {
         opacity: 0;
         transform: translateY(-8px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -740,21 +734,9 @@ body.dark-theme {
 
 /* Shake Animation on re-trigger */
 @keyframes alertShake {
-
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    20%,
-    60% {
-        transform: translateX(-4px);
-    }
-
-    40%,
-    80% {
-        transform: translateX(4px);
-    }
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
 }
 
 .inline-alert.shake {
@@ -970,26 +952,26 @@ body.dark-theme {
 
 .toast-success .toast-left-bar,
 .toast.toast-success::before,
-.custom-ui-toast.toast-success .toast-left-bar {
-    background-color: #22c55e;
+.custom-ui-toast.toast-success .toast-left-bar { 
+    background-color: #22c55e; 
 }
 
 .toast-error .toast-left-bar,
 .toast.toast-error::before,
-.custom-ui-toast.toast-error .toast-left-bar {
-    background-color: #ef4444;
+.custom-ui-toast.toast-error .toast-left-bar { 
+    background-color: #ef4444; 
 }
 
 .toast-info .toast-left-bar,
 .toast.toast-info::before,
-.custom-ui-toast.toast-info .toast-left-bar {
-    background-color: #3b82f6;
+.custom-ui-toast.toast-info .toast-left-bar { 
+    background-color: #3b82f6; 
 }
 
 .toast-warning .toast-left-bar,
 .toast.toast-warning::before,
-.custom-ui-toast.toast-warning .toast-left-bar {
-    background-color: #f59e0b;
+.custom-ui-toast.toast-warning .toast-left-bar { 
+    background-color: #f59e0b; 
 }
 
 /* Circular Filled Icon Badge */
@@ -1013,26 +995,26 @@ body.dark-theme {
 
 .toast-success .toast-icon,
 .toast-success .toast-icon-wrapper,
-.custom-ui-toast.toast-success .toast-icon-wrapper {
-    background-color: #22c55e;
+.custom-ui-toast.toast-success .toast-icon-wrapper { 
+    background-color: #22c55e; 
 }
 
 .toast-error .toast-icon,
 .toast-error .toast-icon-wrapper,
-.custom-ui-toast.toast-error .toast-icon-wrapper {
-    background-color: #ef4444;
+.custom-ui-toast.toast-error .toast-icon-wrapper { 
+    background-color: #ef4444; 
 }
 
 .toast-info .toast-icon,
 .toast-info .toast-icon-wrapper,
-.custom-ui-toast.toast-info .toast-icon-wrapper {
-    background-color: #3b82f6;
+.custom-ui-toast.toast-info .toast-icon-wrapper { 
+    background-color: #3b82f6; 
 }
 
 .toast-warning .toast-icon,
 .toast-warning .toast-icon-wrapper,
-.custom-ui-toast.toast-warning .toast-icon-wrapper {
-    background-color: #f59e0b;
+.custom-ui-toast.toast-warning .toast-icon-wrapper { 
+    background-color: #f59e0b; 
 }
 
 /* Text Content Details */
@@ -1113,7 +1095,6 @@ body.dark-theme {
 
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
-
     .toast-container,
     #custom-toast-container {
         top: 16px;

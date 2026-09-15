@@ -401,10 +401,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${docsHTML}
                         </div>
                     </div>
-
-                    <div class="modal-footer-custom">
-                        <button type="button" class="btn-modal-close" onclick="document.getElementById('app-details-modal')?.remove()">Close View</button>
-                    </div>
                 </div>
             </div>
         `;
@@ -1381,9 +1377,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 ${ann.content || '<p style="color:var(--text-muted);">No content.</p>'}
                             </div>
                             ${imagesHTML}
-                        </div>
-                        <div class="modal-footer-custom" style="display: flex; justify-content: flex-end; align-items: center; padding: 18px 28px; border-top: 1px solid var(--border-color); background: var(--card-bg);">
-                            <button type="button" class="btn-modal-close" onclick="document.getElementById('ann-details-modal')?.remove()">Close</button>
                         </div>
                     </div>
                 </div>

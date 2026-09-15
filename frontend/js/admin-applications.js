@@ -1004,19 +1004,16 @@
                     <button type="button" class="btn-approve" onclick="confirmUpdateStatus('${app.id}', 'Approved', 'Approve')">
                         <i data-lucide="check" style="width: 14px; height: 14px;"></i> Approve
                     </button>
-                    <button type="button" class="btn-outline" onclick="closeApplicantModal()"><i data-lucide="x" style="width: 14px; height: 14px;"></i> Close</button>
                 `;
             } else if (normalizedStatus === 'approved') {
                 footerBtnsHtml = `
                     <span class="badge-status badge-approved"><i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Approved</span>
-                    <button type="button" class="btn-outline" onclick="closeApplicantModal()"><i data-lucide="x" style="width: 14px; height: 14px;"></i> Close</button>
                 `;
             } else {
                 footerBtnsHtml = `
                     <button type="button" class="btn-remove" onclick="deleteApplication('${app.id}')">
                         <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Delete Application
                     </button>
-                    <button type="button" class="btn-outline" onclick="closeApplicantModal()"><i data-lucide="x" style="width: 14px; height: 14px;"></i> Close</button>
                 `;
             }
             modalActionButtons.innerHTML = footerBtnsHtml;

@@ -83,17 +83,194 @@
     // ==========================================
     // 3. FETCH DATA (Masterlist & Programs)
     // ==========================================
+    function isValidValue(val) {
+        if (val === null || val === undefined) return false;
+        const s = String(val).trim();
+        if (!s) return false;
+        const lower = s.toLowerCase();
+        return lower !== 'n/a' && lower !== 'na' && lower !== 'null' && lower !== 'undefined' && lower !== 'none' && lower !== '-';
+    }
+
+    function findMasterlistStudent(app) {
+        if (!app) return {};
+
+        const profile = app.profiles || {};
+        const candidateIds = [
+            profile.id_number,
+            app.id_number,
+            app.student_id
+        ];
+
+        for (const rawId of candidateIds) {
+            if (!rawId) continue;
+            const strId = String(rawId).trim();
+            if (!strId) continue;
+
+            if (masterlistMap[strId]) return masterlistMap[strId];
+            if (masterlistMap[strId.toLowerCase()]) return masterlistMap[strId.toLowerCase()];
+            const stripped = strId.toLowerCase().replace(/[\s\-_]/g, '');
+            if (masterlistMap[stripped]) return masterlistMap[stripped];
+        }
+
+        // Lookup by email
+        const email = (profile.email || app.email || '').toString().trim().toLowerCase();
+        if (email && masterlistMap[`email:${email}`]) {
+            return masterlistMap[`email:${email}`];
+        }
+
+        // Lookup by name
+        const lname = (profile.last_name || app.last_name || '').toString().trim().toLowerCase();
+        const fname = (profile.first_name || app.first_name || '').toString().trim().toLowerCase();
+        if (lname && fname && masterlistMap[`name:${lname}|${fname}`]) {
+            return masterlistMap[`name:${lname}|${fname}`];
+        }
+
+        return {};
+    }
+
+    function resolveProgramAndYear(masterInfo, profile, app) {
+        masterInfo = masterInfo || {};
+        profile = profile || {};
+        app = app || {};
+
+        let program = 'N/A';
+        if (isValidValue(masterInfo.program)) {
+            program = String(masterInfo.program).trim();
+        } else if (isValidValue(masterInfo.course)) {
+            program = String(masterInfo.course).trim();
+        } else if (isValidValue(profile.program)) {
+            program = String(profile.program).trim();
+        } else if (isValidValue(profile.course)) {
+            program = String(profile.course).trim();
+        } else if (isValidValue(app.program)) {
+            program = String(app.program).trim();
+        } else if (isValidValue(app.course)) {
+            program = String(app.course).trim();
+        }
+
+        let yearLevel = 'N/A';
+        if (isValidValue(masterInfo.year_level)) {
+            yearLevel = String(masterInfo.year_level).trim();
+        } else if (isValidValue(masterInfo.year)) {
+            yearLevel = String(masterInfo.year).trim();
+        } else if (isValidValue(profile.year_level)) {
+            yearLevel = String(profile.year_level).trim();
+        } else if (isValidValue(profile.year)) {
+            yearLevel = String(profile.year).trim();
+        } else if (isValidValue(app.year_level)) {
+            yearLevel = String(app.year_level).trim();
+        } else if (isValidValue(app.year)) {
+            yearLevel = String(app.year).trim();
+        }
+
+        return { program, yearLevel };
+    }
+
+    function resolveStudentDisplayId(app, masterInfo) {
+        const profile = app.profiles || {};
+        masterInfo = masterInfo || {};
+
+        if (isValidValue(profile.id_number)) return String(profile.id_number).trim();
+        if (isValidValue(masterInfo.id_number)) return String(masterInfo.id_number).trim();
+        if (isValidValue(app.id_number)) return String(app.id_number).trim();
+        if (isValidValue(app.student_id)) return String(app.student_id).trim();
+        return 'N/A';
+    }
+
+    function resolveStudentFullName(app, masterInfo) {
+        const profile = app.profiles || {};
+        masterInfo = masterInfo || {};
+
+        const fname = profile.first_name || masterInfo.first_name || app.first_name || '';
+        const lname = profile.last_name || masterInfo.last_name || app.last_name || '';
+        const mnameRaw = profile.middle_name || masterInfo.middle_name || app.middle_name || '';
+        const mname = mnameRaw ? ` ${mnameRaw.trim().charAt(0)}.` : '';
+
+        if (fname || lname) {
+            return `${lname.trim()}${lname && fname ? ', ' : ''}${fname.trim()}${mname}`.trim();
+        }
+        return profile.email || masterInfo.email || app.email || 'Student Record';
+    }
+
     async function fetchMasterlistData() {
         try {
-            const { data } = await window.supabaseClient
-                .from('enrolled_masterlist')
-                .select('id_number, program, year_level, first_name, last_name');
+            masterlistMap = {};
+            const PAGE_SIZE = 1000;
+            let from = 0;
+            let hasMore = true;
+            let allMasterlist = [];
 
-            if (data) {
-                data.forEach(student => {
-                    masterlistMap[student.id_number] = student;
-                });
+            if (currentAdminSchoolId) {
+                while (hasMore) {
+                    const { data, error } = await window.supabaseClient
+                        .from('enrolled_masterlist')
+                        .select('*')
+                        .eq('school_id', currentAdminSchoolId)
+                        .range(from, from + PAGE_SIZE - 1);
+
+                    if (error) {
+                        console.warn("Error querying masterlist for school:", error);
+                        break;
+                    }
+
+                    if (data && data.length > 0) {
+                        allMasterlist = allMasterlist.concat(data);
+                        from += PAGE_SIZE;
+                        hasMore = data.length === PAGE_SIZE;
+                    } else {
+                        hasMore = false;
+                    }
+                }
             }
+
+            // Fallback / General fetch: If no records found with school filter, fetch all enrolled masterlist
+            if (allMasterlist.length === 0) {
+                from = 0;
+                hasMore = true;
+                while (hasMore) {
+                    const { data, error } = await window.supabaseClient
+                        .from('enrolled_masterlist')
+                        .select('*')
+                        .range(from, from + PAGE_SIZE - 1);
+
+                    if (error) {
+                        console.warn("Error querying enrolled_masterlist:", error);
+                        break;
+                    }
+
+                    if (data && data.length > 0) {
+                        allMasterlist = allMasterlist.concat(data);
+                        from += PAGE_SIZE;
+                        hasMore = data.length === PAGE_SIZE;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+            }
+
+            allMasterlist.forEach(student => {
+                if (!student) return;
+                const rawId = student.id_number ? String(student.id_number) : '';
+                const cleanId = rawId.trim();
+                const lowerId = cleanId.toLowerCase();
+                const strippedId = lowerId.replace(/[\s\-_]/g, '');
+
+                if (rawId) masterlistMap[rawId] = student;
+                if (cleanId) masterlistMap[cleanId] = student;
+                if (lowerId) masterlistMap[lowerId] = student;
+                if (strippedId) masterlistMap[strippedId] = student;
+
+                if (student.email) {
+                    const cleanEmail = String(student.email).trim().toLowerCase();
+                    if (cleanEmail) masterlistMap[`email:${cleanEmail}`] = student;
+                }
+
+                const lname = (student.last_name || '').toString().trim().toLowerCase();
+                const fname = (student.first_name || '').toString().trim().toLowerCase();
+                if (lname && fname) {
+                    masterlistMap[`name:${lname}|${fname}`] = student;
+                }
+            });
         } catch (err) { console.error("Error fetching masterlist:", err); }
     }
 
@@ -172,20 +349,64 @@
             if (schError) throw schError;
             const schIds = schData ? schData.map(s => s.id) : [];
 
-            const { data: beneficiaries, error: appError } = await window.supabaseClient
-                .from('applications')
-                .select('*, profiles ( first_name, last_name, middle_name, id_number, email, school_id ), scholarships (id, title, category, school_id, batch, semester, school_year, start_date, end_date)')
-                .in('status', ['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved'])
-                .order('created_at', { ascending: false });
+            // Paginate through applications to bypass Supabase 1000 limit
+            const PAGE_SIZE = 1000;
+            let allBeneficiaries = [];
+            let from = 0;
+            let hasMore = true;
 
-            if (appError) throw appError;
+            while (hasMore) {
+                const { data: batch, error: appError } = await window.supabaseClient
+                    .from('applications')
+                    .select('*, profiles ( id, first_name, last_name, middle_name, id_number, email, school_id, program, year_level ), scholarships (id, title, category, school_id, batch, semester, school_year, start_date, end_date)')
+                    .in('status', ['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved'])
+                    .order('created_at', { ascending: false })
+                    .range(from, from + PAGE_SIZE - 1);
 
-            activeBeneficiaries = (beneficiaries || []).filter(app => {
+                if (appError) throw appError;
+
+                if (batch && batch.length > 0) {
+                    allBeneficiaries = allBeneficiaries.concat(batch);
+                    from += PAGE_SIZE;
+                    hasMore = batch.length === PAGE_SIZE;
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            // If any application has missing profile object but student_id exists, fetch missing profiles
+            const missingProfileIds = allBeneficiaries
+                .filter(app => !app.profiles && app.student_id)
+                .map(app => app.student_id);
+
+            if (missingProfileIds.length > 0) {
+                const uniqueMissing = [...new Set(missingProfileIds)];
+                const { data: fetchedProfiles } = await window.supabaseClient
+                    .from('profiles')
+                    .select('id, first_name, last_name, middle_name, id_number, email, school_id, program, year_level')
+                    .in('id', uniqueMissing);
+
+                if (fetchedProfiles && fetchedProfiles.length > 0) {
+                    const pMap = {};
+                    fetchedProfiles.forEach(p => { pMap[p.id] = p; });
+                    allBeneficiaries.forEach(app => {
+                        if (!app.profiles && app.student_id && pMap[app.student_id]) {
+                            app.profiles = pMap[app.student_id];
+                        }
+                    });
+                }
+            }
+
+            activeBeneficiaries = allBeneficiaries.filter(app => {
                 if (app.scholarship_id) {
                     return schIds.includes(app.scholarship_id);
                 }
                 if (currentAdminSchoolId && app.profiles?.school_id) {
                     return app.profiles.school_id === currentAdminSchoolId;
+                }
+                const masterInfo = findMasterlistStudent(app);
+                if (currentAdminSchoolId && masterInfo.school_id) {
+                    return masterInfo.school_id === currentAdminSchoolId;
                 }
                 return true;
             });
@@ -253,16 +474,10 @@
         data.forEach(app => {
             const tr = document.createElement('tr');
 
-            const studentId = app.profiles?.id_number || app.id_number || app.student_id || 'N/A';
-            const masterInfo = masterlistMap[studentId] || {};
-
-            const fname = app.profiles?.first_name || masterInfo.first_name || '';
-            const mname = app.profiles?.middle_name ? ` ${app.profiles.middle_name.charAt(0)}.` : (masterInfo.middle_name ? ` ${masterInfo.middle_name.charAt(0)}.` : '');
-            const lname = app.profiles?.last_name || masterInfo.last_name || '';
-            const fullName = (fname || lname) ? `${lname}, ${fname}${mname}`.trim() : (app.profiles?.email || 'Student Record');
-
-            const program = masterInfo.program || app.profiles?.program || 'N/A';
-            const yearLevel = masterInfo.year_level || app.profiles?.year_level || 'N/A';
+            const masterInfo = findMasterlistStudent(app);
+            const studentId = resolveStudentDisplayId(app, masterInfo);
+            const fullName = resolveStudentFullName(app, masterInfo);
+            const { program, yearLevel } = resolveProgramAndYear(masterInfo, app.profiles, app);
 
             const isOutside = !app.scholarship_id;
             const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown Assistance');
@@ -515,15 +730,17 @@
         const sy = document.getElementById('filter-school-year')?.value || '';
 
         const filtered = activeBeneficiaries.filter(app => {
-            const studentId = (app.profiles?.id_number || app.id_number || app.student_id || '').toLowerCase();
-            const masterInfo = masterlistMap[app.profiles?.id_number || app.id_number || app.student_id] || {};
+            const masterInfo = findMasterlistStudent(app);
+            const studentId = resolveStudentDisplayId(app, masterInfo).toLowerCase();
+            const fullName = resolveStudentFullName(app, masterInfo).toLowerCase();
             const fname = (app.profiles?.first_name || masterInfo.first_name || '').toLowerCase();
             const lname = (app.profiles?.last_name || masterInfo.last_name || '').toLowerCase();
-            const fullName = `${lname}, ${fname}`;
-            const email = (app.profiles?.email || '').toLowerCase();
+            const email = (app.profiles?.email || masterInfo.email || '').toLowerCase();
             const schTitle = (app.scholarship_id ? (app.scholarships?.title || '') : (app.outside_assistance_name || 'Outside Assistance')).toLowerCase();
             const categoryVal = (app.category || app.scholarships?.category || '').toLowerCase();
-            const prog = (masterInfo.program || app.profiles?.program || '').toLowerCase();
+            const { program: progVal, yearLevel: yrVal } = resolveProgramAndYear(masterInfo, app.profiles, app);
+            const prog = progVal.toLowerCase();
+            const yr = yrVal.toLowerCase();
 
             const matchSearch = term === '' ||
                 studentId.includes(term) ||
@@ -533,7 +750,8 @@
                 email.includes(term) ||
                 schTitle.includes(term) ||
                 categoryVal.includes(term) ||
-                prog.includes(term);
+                prog.includes(term) ||
+                yr.includes(term);
 
             const matchSch = schId === "" || String(app.scholarship_id) === String(schId);
             const matchBatch = batch === "" || String(app.scholarships?.batch || app.outside_batch || '') === String(batch);
@@ -685,7 +903,10 @@
                             duration: row['Duration (Optional)'] || null
                         };
 
-                        if (!masterlistMap[sidStr]) {
+                        const masterMatch = masterlistMap[sidStr] || masterlistMap[sidStr.toLowerCase()] || masterlistMap[sidStr.toLowerCase().replace(/[\s\-_]/g, '')];
+                        const isEnrolledInSchool = masterMatch && (!currentAdminSchoolId || !masterMatch.school_id || String(masterMatch.school_id) === String(currentAdminSchoolId));
+
+                        if (!isEnrolledInSchool) {
                             unenrolledSkipped.push(record);
                             crosscheckData.push({ ...record, renderStatus: 'unenrolled' });
                             return; 
@@ -717,7 +938,7 @@
                         <div style="display:flex; gap:15px; margin-bottom:15px;">
                             <div style="font-size:13px;"><strong>Ready to Import:</strong> <span style="color:#10b981;">${validRecords.length}</span></div>
                             <div style="font-size:13px;"><strong>Needs Review:</strong> <span style="color:#f59e0b;">${invalidRecords.length}</span></div>
-                            <div style="font-size:13px;"><strong>Failed (Not Enrolled):</strong> <span style="color:#ef4444;">${unenrolledSkipped.length}</span></div>
+                            <div style="font-size:13px;"><strong>Failed (Not in School Masterlist):</strong> <span style="color:#ef4444;">${unenrolledSkipped.length}</span></div>
                         </div>
                 `;
 
@@ -768,8 +989,8 @@
                         statusHtml = `<span id="status-row-${row.invalidIdx}" style="color:#f59e0b; font-weight:bold;">Needs Review</span>`;
                     }
                     else if (row.renderStatus === 'unenrolled') {
-                        finalCatHtml = `<span style="color:var(--text-muted, #94a3b8); font-style:italic;">Cannot Assess</span>`;
-                        statusHtml = `<span style="color:#ef4444; font-weight:bold; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="x" style="width:13px; height:13px;"></i> Failed</span>`;
+                        finalCatHtml = `<span style="color:var(--text-muted, #94a3b8); font-style:italic;">Not In School Masterlist</span>`;
+                        statusHtml = `<span style="color:#ef4444; font-weight:bold; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="x" style="width:13px; height:13px;"></i> Skipped</span>`;
                     }
 
                     html += `
@@ -792,12 +1013,13 @@
                 `;
 
                 if (unenrolledSkipped.length > 0) {
+                    const schoolLabel = currentAdminSchool ? `<strong>${escapeHtml(currentAdminSchool)}</strong>` : 'this specific school';
                     html += `
                         <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.25); border-radius:6px; padding:12px; margin-bottom:15px;">
                             <h5 style="margin:0 0 8px 0; color:#ef4444; display:flex; align-items:center; gap:6px;">
-                                <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i> Failed (Not Enrolled) Details
+                                <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i> Skipped (Not in School Masterlist) Details
                             </h5>
-                            <p style="margin:0 0 8px 0; font-size:12px; color:var(--text-main, #b91c1c);">The following students were found in the CSV but do not exist in the official Enrolled Masterlist. They will be ignored during import.</p>
+                            <p style="margin:0 0 8px 0; font-size:12px; color:var(--text-main, #b91c1c);">The following students were found in the file but do not exist in the official Enrolled Masterlist for ${schoolLabel}. They will be skipped during import.</p>
                             <ul style="margin:0; padding-left:22px; font-size:12px; color:#ef4444; max-height:120px; overflow-y:auto; line-height: 1.6;">
                     `;
                     unenrolledSkipped.forEach(u => {
@@ -900,7 +1122,7 @@
             const validIds = finalRecords.map(s => s.id_number);
             const { data: matchedProfiles, error: profileError } = await window.supabaseClient
                 .from('profiles')
-                .select('id, id_number')
+                .select('id, id_number, school_id')
                 .in('id_number', validIds);
 
             if (profileError) throw profileError;
@@ -939,6 +1161,13 @@
 
                 if (!studentUuid) {
                     throw new Error(`ProfileNotRegistered:${row.id_number}`); 
+                }
+
+                if (currentAdminSchoolId && matchedProfiles) {
+                    const studentProf = matchedProfiles.find(p => p.id === studentUuid);
+                    if (studentProf && studentProf.school_id && String(studentProf.school_id) !== String(currentAdminSchoolId)) {
+                        throw new Error(`ProfileSchoolMismatch:${row.id_number}`);
+                    }
                 }
 
                 const internalProgram = schoolScholarships.find(s => s.title.toLowerCase() === row.assistance_name.toLowerCase());
@@ -1061,6 +1290,9 @@
                     
                     if (errString.includes("ProfileNotRegistered")) {
                         noAccountSkipped++;
+                    } else if (errString.includes("ProfileSchoolMismatch")) {
+                        const sid = errString.split(':')[1] || '';
+                        policyRejections.add(`Student [${sid}] belongs to a different school.`);
                     } else if (errString.includes("PolicyLimitReached") || errString.includes("CategoryLimitReached") || errString.includes("CombinationRuleViolation")) {
                         // Clean up the error message for the display
                         policyRejections.add(errString.replace(/^(Error: )?(PolicyLimitReached:|CategoryLimitReached:|CombinationRuleViolation:)\s*/i, ''));
@@ -1093,7 +1325,7 @@
                 summaryHtml += `<h5 style="margin:0 0 8px 0; color:#991b1b;">Import Warnings & Policy Rejections:</h5>`;
                 
                 if (duplicateCount > 0) summaryHtml += `<p style="color:#b45309; font-size:13px; margin: 0 0 4px 0;"><strong>- Ignored:</strong> ${duplicateCount} records already actively registered in this specific program.</p>`;
-                if (skippedIds.length > 0) summaryHtml += `<p style="color:#ef4444; font-size:13px; margin: 0 0 4px 0;"><strong>- Skipped:</strong> ${skippedIds.length} IDs are missing from the Masterlist.</p>`;
+                if (skippedIds.length > 0) summaryHtml += `<p style="color:#ef4444; font-size:13px; margin: 0 0 4px 0;"><strong>- Skipped:</strong> ${skippedIds.length} ID(s) not found in the ${escapeHtml(currentAdminSchool || 'school')} Enrolled Masterlist.</p>`;
                 if (noAccountSkipped > 0) summaryHtml += `<p style="color:#ef4444; font-size:13px; margin: 0 0 4px 0;"><strong>- Skipped:</strong> ${noAccountSkipped} enrolled IDs have not registered a profile yet.</p>`;
                 
                 if (policyRejections.size > 0) {
@@ -1158,8 +1390,11 @@
                 return;
             }
 
-            if (!masterlistMap[sid]) {
-                Swal.fire("Not Enrolled", "This Student ID is not found in the Enrolled Masterlist.", "error");
+            const masterMatch = masterlistMap[sid] || masterlistMap[sid.toLowerCase()] || masterlistMap[sid.toLowerCase().replace(/[\s\-_]/g, '')];
+            const isEnrolledInSchool = masterMatch && (!currentAdminSchoolId || !masterMatch.school_id || String(masterMatch.school_id) === String(currentAdminSchoolId));
+            if (!isEnrolledInSchool) {
+                const schoolMsg = currentAdminSchool ? ` for ${currentAdminSchool}` : '';
+                Swal.fire("Not Enrolled", `This Student ID is not found in the official Enrolled Masterlist${schoolMsg}.`, "error");
                 return;
             }
 
@@ -1172,8 +1407,11 @@
             btn.disabled = true;
 
             try {
-                const { data: profile } = await window.supabaseClient.from('profiles').select('id').eq('id_number', sid).single();
+                const { data: profile } = await window.supabaseClient.from('profiles').select('id, school_id').eq('id_number', sid).single();
                 if (!profile) throw new Error("Student has not registered an account yet.");
+                if (currentAdminSchoolId && profile.school_id && String(profile.school_id) !== String(currentAdminSchoolId)) {
+                    throw new Error(`This student profile is registered under a different school.`);
+                }
 
                 // FETCH POLICIES & CURRENT ACTIVE PROGRAMS FOR THIS STUDENT
                 let policyConfig = null;
@@ -1300,15 +1538,14 @@
 
     function getExportData() {
         return currentFilteredBeneficiaries.map(app => {
-            const studentId = app.profiles?.id_number || app.id_number || app.student_id || 'N/A';
-            const masterInfo = masterlistMap[studentId] || {};
+            const masterInfo = findMasterlistStudent(app);
+            const studentId = resolveStudentDisplayId(app, masterInfo);
 
             const fname = app.profiles?.first_name || masterInfo.first_name || 'N/A';
             const lname = app.profiles?.last_name || masterInfo.last_name || 'N/A';
             const mname = app.profiles?.middle_name || masterInfo.middle_name || '';
             
-            const program = masterInfo.program || app.profiles?.program || 'N/A';
-            const yearLevel = masterInfo.year_level || app.profiles?.year_level || 'N/A';
+            const { program, yearLevel } = resolveProgramAndYear(masterInfo, app.profiles, app);
             
             const isOutside = !app.scholarship_id;
             const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown');

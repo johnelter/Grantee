@@ -2438,6 +2438,36 @@ body>.flatpickr-monthDropdown-month {
     font-weight: 500;
 }
 
+.modal-approval-card {
+    background: rgba(107, 127, 78, 0.09);
+    border: 1px solid rgba(107, 127, 78, 0.28);
+    border-left: 4px solid var(--moss-green, #6B7F4E);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .modal-approval-card {
+    background: rgba(139, 168, 107, 0.15);
+    border-color: rgba(139, 168, 107, 0.35);
+    border-left-color: #8BA86B;
+}
+
+.modal-remarks-card {
+    background: rgba(100, 116, 139, 0.08);
+    border: 1px solid rgba(100, 116, 139, 0.25);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .modal-remarks-card {
+    background: rgba(100, 116, 139, 0.15);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
 #swal-reject-select:focus,
 #swal-custom-reason:focus,
 #swal-optional-notes:focus {

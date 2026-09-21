@@ -484,11 +484,11 @@
             const categoryValue = app.category || app.scholarships?.category || 'Outside Assistance';
             const catBadge = getCategoryBadge(categoryValue);
 
-            const batch = app.scholarships?.batch || app.outside_batch || '';
-            const semester = app.scholarships?.semester || app.outside_semester || '';
-            const schoolYear = app.scholarships?.school_year || app.outside_sy || '';
+            const batch = app.outside_batch || app.scholarships?.batch || '';
+            const semester = app.outside_semester || app.scholarships?.semester || '';
+            const schoolYear = app.outside_sy || app.scholarships?.school_year || '';
             const duration = app.duration || 'Not Set';
-            const dateRewarded = formatDate(app.created_at);
+            const dateAdded = formatDate(app.created_at);
             
             const termDetails = [];
             if (batch) termDetails.push(`<div><span style="color:var(--text-muted);">Batch:</span> ${escapeHtml(String(batch))}</div>`);
@@ -517,10 +517,15 @@
                     ${catBadge}
                 </td>
                 <td style="font-size:12px; line-height:1.4; color:var(--text-main);">
-                    ${detailsHtml}
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">
+                        <div>${detailsHtml}</div>
+                        <button class="btn-edit-details" onclick="openEditDetailsModal('${app.id}')" title="Edit Assistance Details">
+                            <i data-lucide="pencil" style="width:13px; height:13px;"></i>
+                        </button>
+                    </div>
                 </td>
                 <td style="font-size:12.5px; color:var(--text-muted); font-weight:500; white-space:nowrap;">
-                    ${dateRewarded}
+                    ${dateAdded}
                 </td>
                 <td>
                     <div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
@@ -607,12 +612,28 @@
 
             try {
                 const idsToRevoke = [...selectedIds];
-                const { error } = await window.supabaseClient
-                    .from('applications')
-                    .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator (Bulk Action)' })
-                    .in('id', idsToRevoke);
-
-                if (error) throw error;
+                for (const id of idsToRevoke) {
+                    const targetApp = activeBeneficiaries.find(a => a.id === id);
+                    if (targetApp && targetApp.student_id && targetApp.scholarship_id) {
+                        await window.supabaseClient
+                            .from('applications')
+                            .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator (Bulk Action)' })
+                            .eq('student_id', targetApp.student_id)
+                            .eq('scholarship_id', targetApp.scholarship_id);
+                    } else if (targetApp && targetApp.student_id && targetApp.outside_assistance_name) {
+                        await window.supabaseClient
+                            .from('applications')
+                            .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator (Bulk Action)' })
+                            .eq('student_id', targetApp.student_id)
+                            .is('scholarship_id', null)
+                            .eq('outside_assistance_name', targetApp.outside_assistance_name);
+                    } else {
+                        await window.supabaseClient
+                            .from('applications')
+                            .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator (Bulk Action)' })
+                            .eq('id', id);
+                    }
+                }
 
                 selectedIds.clear();
                 Swal.fire('Revoked!', `${count.toLocaleString()} beneficiar${count !== 1 ? 'ies have' : 'y has'} been revoked.`, 'success');
@@ -685,10 +706,32 @@
         if (result.isConfirmed) {
             try {
                 Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                const { error } = await window.supabaseClient.from('applications').update({ 
-                    status: 'Revoked', 
-                    remarks: 'Assistance Revoked by Administrator' 
-                }).eq('id', appId);
+                
+                const targetApp = activeBeneficiaries.find(a => a.id === appId);
+                
+                // Update target application and any duplicate records for the same student + program
+                let updatePromise;
+                if (targetApp && targetApp.student_id && targetApp.scholarship_id) {
+                    updatePromise = window.supabaseClient
+                        .from('applications')
+                        .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator' })
+                        .eq('student_id', targetApp.student_id)
+                        .eq('scholarship_id', targetApp.scholarship_id);
+                } else if (targetApp && targetApp.student_id && targetApp.outside_assistance_name) {
+                    updatePromise = window.supabaseClient
+                        .from('applications')
+                        .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator' })
+                        .eq('student_id', targetApp.student_id)
+                        .is('scholarship_id', null)
+                        .eq('outside_assistance_name', targetApp.outside_assistance_name);
+                } else {
+                    updatePromise = window.supabaseClient
+                        .from('applications')
+                        .update({ status: 'Revoked', remarks: 'Assistance Revoked by Administrator' })
+                        .eq('id', appId);
+                }
+
+                const { error } = await updatePromise;
                 if (error) throw error;
                 
                 // Notify coordinators of the status change
@@ -778,9 +821,22 @@
     function validateAgainstPolicies(newCategory, activeList, policyData, idNumber) {
         if (!policyData) return true; 
 
+        // Deduplicate activeList by unique program
+        const uniqueActiveList = [];
+        const seenKeys = new Set();
+        for (const item of (activeList || [])) {
+            const key = item.scholarship_id 
+                ? `sch_${item.scholarship_id}` 
+                : (item.outside_assistance_name ? `out_${item.outside_assistance_name.toLowerCase().trim()}` : (item.id || Math.random()));
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                uniqueActiveList.push(item);
+            }
+        }
+
         // 1. GLOBAL LIMIT CHECK
         if (policyData.global_enabled && policyData.global_limit > 0) {
-            if (activeList.length >= policyData.global_limit) {
+            if (uniqueActiveList.length >= policyData.global_limit) {
                 throw new Error(`PolicyLimitReached: Student [${idNumber}] reached global maximum limit of ${policyData.global_limit} active program(s).`);
             }
         }
@@ -792,7 +848,7 @@
                 if (catPolicy.limit === 0) {
                      throw new Error(`CategoryLimitReached: Institution has completely disabled/blocked ${newCategory}.`);
                 }
-                const sameCatCount = activeList.filter(app => app.category === newCategory).length;
+                const sameCatCount = uniqueActiveList.filter(app => (app.category || '').toLowerCase() === newCategory.toLowerCase()).length;
                 if (sameCatCount >= catPolicy.limit) {
                     throw new Error(`CategoryLimitReached: Student [${idNumber}] exceeded maximum limit of ${catPolicy.limit} for ${newCategory}.`);
                 }
@@ -801,11 +857,13 @@
 
         // 3. COMBINATION MATRIX RULES CHECK
         if (policyData.combination_rules) {
-            for (let existing of activeList) {
-                if (existing.category !== newCategory) {
-                    const comboKey = `${newCategory}::${existing.category}`;
-                    if (policyData.combination_rules[comboKey] === false) {
-                        throw new Error(`CombinationRuleViolation: Policy forbids combining [${newCategory}] with their existing [${existing.category}].`);
+            for (let existing of uniqueActiveList) {
+                const existingCat = existing.category || '';
+                if (existingCat && existingCat.toLowerCase() !== newCategory.toLowerCase()) {
+                    const comboKey = `${newCategory}::${existingCat}`;
+                    const comboKeyReverse = `${existingCat}::${newCategory}`;
+                    if (policyData.combination_rules[comboKey] === false || policyData.combination_rules[comboKeyReverse] === false) {
+                        throw new Error(`CombinationRuleViolation: Policy forbids combining [${newCategory}] with their existing [${existingCat}].`);
                     }
                 }
             }
@@ -1143,17 +1201,20 @@
                     .from('applications')
                     .select('id, student_id, scholarship_id, outside_assistance_name, status, category')
                     .in('student_id', studentUuids)
-                    .in('status', ['Grantee', 'Passed', 'Approved']);
+                    .in('status', ['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved']);
 
                 if (error) throw error;
                 currentActiveApps = data || [];
             }
 
-            // Map the active applications exactly to the students UUIDs
+            // Map the active applications exactly to the students UUIDs (deduplicating by unique program)
             const activeUserMap = {};
             currentActiveApps.forEach(app => {
                 if (!activeUserMap[app.student_id]) activeUserMap[app.student_id] = [];
-                activeUserMap[app.student_id].push(app);
+                const key = app.scholarship_id ? `sch_${app.scholarship_id}` : `out_${(app.outside_assistance_name || '').toLowerCase().trim()}`;
+                if (!activeUserMap[app.student_id].some(a => (a.scholarship_id ? `sch_${a.scholarship_id}` : `out_${(a.outside_assistance_name || '').toLowerCase().trim()}`) === key)) {
+                    activeUserMap[app.student_id].push(app);
+                }
             });
 
             const processPromises = finalRecords.map(async row => {
@@ -1187,10 +1248,11 @@
                     if (existingApps && existingApps.length > 0) {
                         const extApp = existingApps[0];
                         
-                        if (['Grantee', 'Passed', 'Approved'].includes(extApp.status)) return 'Duplicate';
+                        if (['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved'].includes(extApp.status)) return 'Duplicate';
                         
-                        // Enforce Admin Policies Before Reactivation
-                        validateAgainstPolicies(finalCategory, studentActiveList, policyConfig, row.id_number);
+                        // Enforce Admin Policies Before Reactivation (excluding this program)
+                        const otherActiveList = studentActiveList.filter(a => a.scholarship_id !== internalProgram.id);
+                        validateAgainstPolicies(finalCategory, otherActiveList, policyConfig, row.id_number);
 
                         const { error: updateError } = await window.supabaseClient.from('applications').update({
                             status: 'Grantee',
@@ -1202,7 +1264,7 @@
                         if (updateError) throw updateError;
                         
                         // Append to memory array to block subsequent rows if they exceed the limit
-                        studentActiveList.push({ category: finalCategory }); 
+                        studentActiveList.push({ category: finalCategory, scholarship_id: internalProgram.id }); 
                         return 'Updated';
                     }
                 } else {
@@ -1217,10 +1279,11 @@
                     if (existingOutside && existingOutside.length > 0) {
                         const extOut = existingOutside[0];
                         
-                        if (['Grantee', 'Passed', 'Approved'].includes(extOut.status)) return 'Duplicate';
+                        if (['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved'].includes(extOut.status)) return 'Duplicate';
 
-                        // Enforce Admin Policies Before Reactivation
-                        validateAgainstPolicies(finalCategory, studentActiveList, policyConfig, row.id_number);
+                        // Enforce Admin Policies Before Reactivation (excluding this outside program)
+                        const otherActiveList = studentActiveList.filter(a => (a.outside_assistance_name || '').toLowerCase().trim() !== row.assistance_name.toLowerCase().trim());
+                        validateAgainstPolicies(finalCategory, otherActiveList, policyConfig, row.id_number);
 
                         const { error: updateOutError } = await window.supabaseClient.from('applications').update({
                             status: 'Grantee',
@@ -1233,13 +1296,18 @@
                         }).eq('id', extOut.id);
 
                         if (updateOutError) throw updateOutError;
-                        studentActiveList.push({ category: finalCategory }); 
+                        studentActiveList.push({ category: finalCategory, outside_assistance_name: row.assistance_name }); 
                         return 'Updated';
                     }
                 }
 
                 // 2. Enforce Admin Policies Before New Insertion
-                validateAgainstPolicies(finalCategory, studentActiveList, policyConfig, row.id_number);
+                const otherActiveList = studentActiveList.filter(a => {
+                    if (internalProgram && a.scholarship_id) return a.scholarship_id !== internalProgram.id;
+                    if (!internalProgram && a.outside_assistance_name) return (a.outside_assistance_name || '').toLowerCase().trim() !== row.assistance_name.toLowerCase().trim();
+                    return true;
+                });
+                validateAgainstPolicies(finalCategory, otherActiveList, policyConfig, row.id_number);
 
                 // 3. Proceed to Insert
                 if (internalProgram) {
@@ -1324,7 +1392,7 @@
                 summaryHtml += `<div style="background:#fef2f2; border:1px solid #fca5a5; padding:10px; border-radius:6px; max-height:200px; overflow-y:auto;">`;
                 summaryHtml += `<h5 style="margin:0 0 8px 0; color:#991b1b;">Import Warnings & Policy Rejections:</h5>`;
                 
-                if (duplicateCount > 0) summaryHtml += `<p style="color:#b45309; font-size:13px; margin: 0 0 4px 0;"><strong>- Ignored:</strong> ${duplicateCount} records already actively registered in this specific program.</p>`;
+                if (duplicateCount > 0) summaryHtml += `<p style="color:#b45309; font-size:13px; margin: 0 0 4px 0;"><strong>- Double Entry / Skipped:</strong> ${duplicateCount} record(s) already actively registered in this specific program.</p>`;
                 if (skippedIds.length > 0) summaryHtml += `<p style="color:#ef4444; font-size:13px; margin: 0 0 4px 0;"><strong>- Skipped:</strong> ${skippedIds.length} ID(s) not found in the ${escapeHtml(currentAdminSchool || 'school')} Enrolled Masterlist.</p>`;
                 if (noAccountSkipped > 0) summaryHtml += `<p style="color:#ef4444; font-size:13px; margin: 0 0 4px 0;"><strong>- Skipped:</strong> ${noAccountSkipped} enrolled IDs have not registered a profile yet.</p>`;
                 
@@ -1420,43 +1488,179 @@
 
                 const { data: currentApps } = await window.supabaseClient
                     .from('applications')
-                    .select('id, category')
+                    .select('id, category, scholarship_id, outside_assistance_name, status')
                     .eq('student_id', profile.id)
-                    .in('status', ['Grantee', 'Passed', 'Approved']);
+                    .in('status', ['Grantee', 'Passed', 'Approved', 'grantee', 'passed', 'approved']);
+
+                // Filter out the program currently being added/reactivated so it doesn't count against itself
+                const otherActiveApps = (currentApps || []).filter(a => {
+                    if (schId && a.scholarship_id) {
+                        return a.scholarship_id !== schId;
+                    }
+                    if (!schId && outsideName && a.outside_assistance_name) {
+                        return (a.outside_assistance_name || '').toLowerCase().trim() !== outsideName.toLowerCase().trim();
+                    }
+                    return true;
+                });
+
+                // Deduplicate otherActiveApps by unique program
+                const uniqueOtherActive = [];
+                const seenKeys = new Set();
+                for (const a of otherActiveApps) {
+                    const key = a.scholarship_id ? `sch_${a.scholarship_id}` : `out_${(a.outside_assistance_name || '').toLowerCase().trim()}`;
+                    if (!seenKeys.has(key)) {
+                        seenKeys.add(key);
+                        uniqueOtherActive.push(a);
+                    }
+                }
 
                 // VALIDATE!
-                validateAgainstPolicies(category, currentApps || [], policyConfig, sid);
+                validateAgainstPolicies(category, uniqueOtherActive, policyConfig, sid);
 
-                // INSERT IF VALID
+                // Check if existing record exists for this student + program (e.g. Revoked, Rejected, or duplicate)
+                let existingAppQuery = window.supabaseClient
+                    .from('applications')
+                    .select('id, status')
+                    .eq('student_id', profile.id);
+
+                if (schId) {
+                    existingAppQuery = existingAppQuery.eq('scholarship_id', schId);
+                } else {
+                    existingAppQuery = existingAppQuery.is('scholarship_id', null).eq('outside_assistance_name', outsideName);
+                }
+
+                const { data: existingRecords } = await existingAppQuery;
+
+                const progName = schId ? (schoolScholarships.find(s => s.id === schId)?.title || 'Educational Assistance') : outsideName;
+                const studentFullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+                const displayName = studentFullName ? `${studentFullName} [${sid}]` : `Student [${sid}]`;
+
+                // Check if student is ALREADY an active beneficiary in this exact program (Double Entry)
+                const alreadyActiveRecord = (existingRecords || []).find(r => 
+                    ['grantee', 'passed', 'approved'].includes((r.status || '').toLowerCase())
+                );
+
+                if (alreadyActiveRecord) {
+                    const confirmUpdate = await Swal.fire({
+                        title: 'Double Entry Detected',
+                        html: `<div style="text-align: left; font-size: 14px; line-height: 1.6;">
+                            <p style="margin-bottom: 8px;"><strong>${escapeHtml(displayName)}</strong> is <strong>already an active beneficiary</strong> for <span style="color: #10b981; font-weight: 600;">${escapeHtml(progName)}</span>.</p>
+                            <p style="color: #64748b; font-size: 13px; margin-bottom: 0;">Would you like to update their current beneficiary record with the new category (<strong>${escapeHtml(category)}</strong>) and duration (<strong>${escapeHtml(duration)}</strong>), or cancel to prevent duplicate entries?</p>
+                        </div>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#64748b',
+                        confirmButtonText: 'Yes, Update Record',
+                        cancelButtonText: 'Cancel (Ignore)'
+                    });
+
+                    if (!confirmUpdate.isConfirmed) {
+                        return;
+                    }
+                }
+
+                const manualSy = document.getElementById('manual-sy')?.value.trim() || null;
+                const manualSem = document.getElementById('manual-semester')?.value.trim() || null;
+                const manualBatch = document.getElementById('manual-batch')?.value.trim() || null;
+
                 const payload = {
                     student_id: profile.id,
                     scholarship_id: schId || null,
                     outside_assistance_name: schId ? null : outsideName,
+                    outside_sy: manualSy,
+                    outside_semester: manualSem,
+                    outside_batch: manualBatch,
                     category: category,
                     duration: duration,
                     status: 'Grantee',
-                    remarks: 'Manually Added by Administrator'
+                    remarks: alreadyActiveRecord ? 'Updated by Administrator' : 'Manually Added by Administrator'
                 };
 
-                const { error } = await window.supabaseClient.from('applications').insert(payload);
-                if (error) throw error;
+                let insertedAppId = null;
+                if (existingRecords && existingRecords.length > 0) {
+                    // Update existing record to reactivate/update instead of creating duplicate rows
+                    const extId = existingRecords[0].id;
+                    const { error: updateErr } = await window.supabaseClient
+                        .from('applications')
+                        .update(payload)
+                        .eq('id', extId);
+                    if (updateErr) throw updateErr;
+                    insertedAppId = extId;
+                } else {
+                    const { data: insertedApp, error: insertErr } = await window.supabaseClient
+                        .from('applications')
+                        .insert(payload)
+                        .select()
+                        .single();
+                    if (insertErr) throw insertErr;
+                    insertedAppId = insertedApp?.id || null;
+                }
 
-                await window.supabaseClient.from('audit_logs').insert([{
-                    admin_id: adminId,
-                    school_id: currentAdminSchoolId,
-                    action: 'Manually Added Beneficiary',
-                    module: 'Active Beneficiaries',
-                    details: JSON.stringify({ details: `Added Student ID ${sid} to assistance program. Category mapped: ${category}`, targetUserId: profile.id })
-                }]);
+                // If this wasn't already active, send new enrollment notifications
+                if (!alreadyActiveRecord) {
+                    // 1. In-App Notification
+                    try {
+                        await window.supabaseClient.from('notifications').insert([{
+                            user_id: profile.id,
+                            title: 'Enrolled as Active Beneficiary',
+                            message: `You have been officially enrolled as an Active Beneficiary for ${progName}.`,
+                            type: 'application',
+                            action_link: insertedAppId ? `student-applications.html?app_id=${insertedAppId}` : 'student-applications.html',
+                            is_read: false
+                        }]);
+                    } catch (notifErr) {
+                        console.error("In-app notification failed:", notifErr);
+                    }
 
-                Swal.fire("Success", "Beneficiary manually added successfully.", "success");
+                    // 2. Dispatch Email / Push notification via backend
+                    try {
+                        fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userIds: [profile.id],
+                                eventType: 'APPLICATION_APPROVED',
+                                subject: `Active Beneficiary: ${progName}`,
+                                message: `You have been officially enrolled as an Active Beneficiary for "${progName}".`,
+                                resourceId: insertedAppId
+                            })
+                        }).catch(e => console.error("Notification dispatch failed:", e));
+                    } catch (dispatchErr) {
+                        console.error("Notification dispatch error:", dispatchErr);
+                    }
+                }
+
+                try {
+                    await window.supabaseClient.from('audit_logs').insert([{
+                        admin_id: adminId,
+                        school_id: currentAdminSchoolId,
+                        action: alreadyActiveRecord ? 'Updated Beneficiary Record' : 'Manually Added Beneficiary',
+                        module: 'Active Beneficiaries',
+                        details: JSON.stringify({ details: `${alreadyActiveRecord ? 'Updated existing' : 'Added'} Student ID ${sid} in assistance program. Category mapped: ${category}`, targetUserId: profile.id })
+                    }]);
+                } catch (auditErr) {
+                    console.error("Audit log failed:", auditErr);
+                }
+
+                if (alreadyActiveRecord) {
+                    Swal.fire("Record Updated", `Beneficiary record for ${escapeHtml(displayName)} has been successfully updated.`, "success");
+                } else {
+                    Swal.fire("Success", "Beneficiary manually added successfully.", "success");
+                }
                 document.getElementById('form-manual-add').reset();
                 document.getElementById('manual-add-modal').style.display = 'none';
                 fetchActiveBeneficiaries();
 
             } catch (err) { 
-                const cleanError = err.message.replace(/^(Error: )?(PolicyLimitReached:|CategoryLimitReached:|CombinationRuleViolation:)\s*/i, '');
-                Swal.fire("Policy Blocked", cleanError, "error");
+                console.error("Manual add beneficiary error:", err);
+                const isPolicyError = /^(Error: )?(PolicyLimitReached:|CategoryLimitReached:|CombinationRuleViolation:)/i.test(err.message || '');
+                if (isPolicyError) {
+                    const cleanError = (err.message || '').replace(/^(Error: )?(PolicyLimitReached:|CategoryLimitReached:|CombinationRuleViolation:)\s*/i, '');
+                    Swal.fire("Policy Blocked", cleanError, "error");
+                } else {
+                    Swal.fire("Error", err.message || "Failed to add beneficiary.", "error");
+                }
             } finally { 
                 btn.innerHTML = 'Add Beneficiary'; btn.disabled = false; 
             }
@@ -1472,15 +1676,145 @@
                 outsideInput.disabled = true;
                 
                 const matchedSch = schoolScholarships.find(s => s.id === e.target.value);
-                if (matchedSch && matchedSch.category) {
-                    const existingOption = Array.from(categorySelect.options).find(opt => opt.value === matchedSch.category);
-                    if (existingOption) { categorySelect.value = matchedSch.category; } 
-                    else { categorySelect.add(new Option(matchedSch.category, matchedSch.category, true, true)); }
-                    categorySelect.disabled = true;
+                if (matchedSch) {
+                    if (matchedSch.category) {
+                        const existingOption = Array.from(categorySelect.options).find(opt => opt.value === matchedSch.category);
+                        if (existingOption) { categorySelect.value = matchedSch.category; } 
+                        else { categorySelect.add(new Option(matchedSch.category, matchedSch.category, true, true)); }
+                        categorySelect.disabled = true;
+                    }
+                    if (document.getElementById('manual-sy')) document.getElementById('manual-sy').value = matchedSch.school_year || '';
+                    if (document.getElementById('manual-semester')) document.getElementById('manual-semester').value = matchedSch.semester || '';
+                    if (document.getElementById('manual-batch')) document.getElementById('manual-batch').value = matchedSch.batch || '';
                 }
             } else {
                 outsideInput.disabled = false;
                 categorySelect.disabled = false;
+                if (document.getElementById('manual-sy')) document.getElementById('manual-sy').value = '';
+                if (document.getElementById('manual-semester')) document.getElementById('manual-semester').value = '';
+                if (document.getElementById('manual-batch')) document.getElementById('manual-batch').value = '';
+            }
+        });
+    }
+
+    // ==========================================
+    // 8. EDIT ASSISTANCE DETAILS MODAL HANDLER
+    // ==========================================
+    window.openEditDetailsModal = (appId) => {
+        const app = activeBeneficiaries.find(a => a.id === appId);
+        if (!app) {
+            Swal.fire("Error", "Beneficiary record not found.", "error");
+            return;
+        }
+
+        const masterInfo = findMasterlistStudent(app);
+        const studentId = resolveStudentDisplayId(app, masterInfo);
+        const fullName = resolveStudentFullName(app, masterInfo);
+        const displayName = fullName ? `${fullName} (${studentId})` : studentId;
+
+        const isOutside = !app.scholarship_id;
+        const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown Assistance');
+
+        if (document.getElementById('edit-app-id')) document.getElementById('edit-app-id').value = app.id;
+        if (document.getElementById('edit-student-display')) document.getElementById('edit-student-display').textContent = displayName;
+        if (document.getElementById('edit-program-display')) document.getElementById('edit-program-display').textContent = schTitle;
+
+        const outsideContainer = document.getElementById('edit-outside-name-container');
+        const outsideInput = document.getElementById('edit-outside-name');
+        if (isOutside) {
+            if (outsideContainer) outsideContainer.style.display = 'block';
+            if (outsideInput) outsideInput.value = app.outside_assistance_name || '';
+        } else {
+            if (outsideContainer) outsideContainer.style.display = 'none';
+        }
+
+        const currentSy = app.outside_sy || app.scholarships?.school_year || '';
+        const currentSem = app.outside_semester || app.scholarships?.semester || '';
+        const currentBatch = app.outside_batch || app.scholarships?.batch || '';
+        const currentDuration = app.duration || 'Not Set';
+        const currentCategory = app.category || app.scholarships?.category || 'Institution-Funded Educational Assistance';
+
+        if (document.getElementById('edit-sy')) document.getElementById('edit-sy').value = currentSy;
+        if (document.getElementById('edit-semester')) document.getElementById('edit-semester').value = currentSem;
+        if (document.getElementById('edit-batch')) document.getElementById('edit-batch').value = currentBatch;
+        if (document.getElementById('edit-duration')) document.getElementById('edit-duration').value = currentDuration;
+        if (document.getElementById('edit-category')) {
+            const catSelect = document.getElementById('edit-category');
+            const matchOpt = Array.from(catSelect.options).find(opt => opt.value === currentCategory);
+            if (matchOpt) {
+                catSelect.value = currentCategory;
+            } else {
+                catSelect.add(new Option(currentCategory, currentCategory, true, true));
+            }
+        }
+
+        const modal = document.getElementById('edit-details-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+    };
+
+    const formEditDetails = document.getElementById('form-edit-details');
+    if (formEditDetails) {
+        formEditDetails.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const appId = document.getElementById('edit-app-id')?.value;
+            if (!appId) return;
+
+            const btn = document.getElementById('btn-submit-edit-details');
+            if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...'; btn.disabled = true; }
+
+            try {
+                const targetApp = activeBeneficiaries.find(a => a.id === appId);
+                const newSy = document.getElementById('edit-sy')?.value.trim() || null;
+                const newSem = document.getElementById('edit-semester')?.value.trim() || null;
+                const newBatch = document.getElementById('edit-batch')?.value.trim() || null;
+                const newDuration = document.getElementById('edit-duration')?.value || 'Not Set';
+                const newCategory = document.getElementById('edit-category')?.value || 'Institution-Funded Educational Assistance';
+                const newOutsideName = document.getElementById('edit-outside-name')?.value.trim() || null;
+
+                const updatePayload = {
+                    outside_sy: newSy,
+                    outside_semester: newSem,
+                    outside_batch: newBatch,
+                    duration: newDuration,
+                    category: newCategory
+                };
+
+                if (targetApp && !targetApp.scholarship_id && newOutsideName) {
+                    updatePayload.outside_assistance_name = newOutsideName;
+                }
+
+                const { error: updateErr } = await window.supabaseClient
+                    .from('applications')
+                    .update(updatePayload)
+                    .eq('id', appId);
+
+                if (updateErr) throw updateErr;
+
+                // Log audit
+                try {
+                    await window.supabaseClient.from('audit_logs').insert([{
+                        admin_id: adminId,
+                        school_id: currentAdminSchoolId,
+                        action: 'Updated Assistance Details',
+                        module: 'Active Beneficiaries',
+                        details: JSON.stringify({ appId, updatePayload, targetUserId: targetApp?.student_id })
+                    }]);
+                } catch (auditErr) {
+                    console.error("Audit log failed:", auditErr);
+                }
+
+                Swal.fire("Saved!", "Assistance details have been successfully updated.", "success");
+                document.getElementById('edit-details-modal').style.display = 'none';
+                fetchActiveBeneficiaries();
+
+            } catch (err) {
+                console.error("Error updating assistance details:", err);
+                Swal.fire("Error", err.message || "Failed to update assistance details.", "error");
+            } finally {
+                if (btn) { btn.innerHTML = 'Save Assistance Details'; btn.disabled = false; }
             }
         });
     }
@@ -1555,7 +1889,7 @@
             const semester = app.scholarships?.semester || app.outside_semester || 'N/A';
             const sy = app.scholarships?.school_year || app.outside_sy || 'N/A';
             const duration = app.duration || 'Not Set';
-            const dateRewarded = app.created_at ? new Date(app.created_at).toLocaleDateString('en-US') : 'Not Set';
+            const dateAdded = app.created_at ? new Date(app.created_at).toLocaleDateString('en-US') : 'Not Set';
 
             return {
                 "Student ID": studentId,
@@ -1570,7 +1904,7 @@
                 "Semester": semester,
                 "School Year": sy,
                 "Duration": duration,
-                "Date Rewarded": dateRewarded
+                "Date Added": dateAdded
             };
         });
     }

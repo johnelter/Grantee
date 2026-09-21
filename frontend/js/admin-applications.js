@@ -768,17 +768,42 @@
             ? `<img src="${app.profiles.avatar_url}" alt="${displayName}" class="modal-profile-avatar" onerror="this.onerror=null; this.outerHTML='<div class=\\'modal-profile-avatar-fallback\\'>${initials}</div>'">`
             : `<div class="modal-profile-avatar-fallback">${initials}</div>`;
 
-        // Rejection Reason Notice (If status is Rejected / Declined / Revoked or remarks present)
+        // Rejection / Decision / Remarks Notice
         let rejectionBannerHtml = '';
-        if (normalizedStatus === 'rejected' || normalizedStatus === 'declined' || normalizedStatus === 'revoked' || (app.remarks && app.remarks.trim())) {
+        if (normalizedStatus === 'rejected' || normalizedStatus === 'declined' || normalizedStatus === 'revoked') {
+            const isRevoked = normalizedStatus === 'revoked';
             rejectionBannerHtml = `
                 <div class="modal-rejection-card" style="margin-bottom: 20px; background: rgba(217, 72, 65, 0.08); border: 1px solid rgba(217, 72, 65, 0.25); border-radius: 12px; padding: 16px 20px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                         <i data-lucide="alert-circle" style="width: 17px; height: 17px; color: var(--danger-color);"></i>
-                        <strong style="color: var(--danger-color); font-size: 14px; font-weight: 700;">Rejection Reason & Evaluation Remarks</strong>
+                        <strong style="color: var(--danger-color); font-size: 14px; font-weight: 700;">${isRevoked ? 'Revocation Reason & Remarks' : 'Rejection Reason & Evaluation Remarks'}</strong>
                     </div>
                     <p style="margin: 0; font-size: 13.5px; color: var(--text-main); line-height: 1.5; font-weight: 500;">
-                        ${app.remarks || 'Application was not approved during evaluation.'}
+                        ${app.remarks || (isRevoked ? 'Beneficiary status was revoked by the institution.' : 'Application was not approved during evaluation.')}
+                    </p>
+                </div>
+            `;
+        } else if ((normalizedStatus === 'approved' || normalizedStatus === 'grantee' || normalizedStatus === 'passed') && app.remarks && app.remarks.trim()) {
+            rejectionBannerHtml = `
+                <div class="modal-approval-card" style="margin-bottom: 20px; background: rgba(107, 127, 78, 0.09); border: 1px solid rgba(107, 127, 78, 0.28); border-left: 4px solid var(--moss-green, #6B7F4E); border-radius: 12px; padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <i data-lucide="check-circle-2" style="width: 17px; height: 17px; color: var(--moss-green, #6B7F4E);"></i>
+                        <strong style="color: var(--moss-green, #6B7F4E); font-size: 14px; font-weight: 700;">Approval Remarks & Evaluation Notes</strong>
+                    </div>
+                    <p style="margin: 0; font-size: 13.5px; color: var(--text-main); line-height: 1.5; font-weight: 500;">
+                        ${app.remarks}
+                    </p>
+                </div>
+            `;
+        } else if (app.remarks && app.remarks.trim()) {
+            rejectionBannerHtml = `
+                <div class="modal-remarks-card" style="margin-bottom: 20px; background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.25); border-radius: 12px; padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <i data-lucide="info" style="width: 17px; height: 17px; color: var(--text-muted);"></i>
+                        <strong style="color: var(--text-heading); font-size: 14px; font-weight: 700;">Evaluation Remarks & Notes</strong>
+                    </div>
+                    <p style="margin: 0; font-size: 13.5px; color: var(--text-main); line-height: 1.5; font-weight: 500;">
+                        ${app.remarks}
                     </p>
                 </div>
             `;

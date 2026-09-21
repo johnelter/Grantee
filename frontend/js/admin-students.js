@@ -536,20 +536,39 @@
 
             try {
                 if (id) {
+                    const existingStudent = allStudents.find(x => String(x.id) === String(id));
+                    const oldIdNumber = existingStudent ? existingStudent.id_number : inputIdNumber;
+
                     const { error } = await window.supabaseClient.from('enrolled_masterlist').update(payload).eq('id', id);
                     if (error) throw error;
 
-                    if (payload.id_number) {
-                        window.supabaseClient.from('profiles').update({
+                    // Sync updated masterlist details directly into the profiles table
+                    const targetIdNumber = oldIdNumber || payload.id_number;
+                    if (targetIdNumber) {
+                        const profileUpdate = {
                             first_name: payload.first_name,
                             last_name: payload.last_name,
                             middle_name: payload.middle_name,
+                            id_number: payload.id_number,
                             program: payload.program,
                             year_level: payload.year_level,
                             gender: payload.gender
-                        }).eq('id_number', payload.id_number).then(({ error: syncErr }) => {
-                            if (syncErr) console.warn("Background sync to profile skipped:", syncErr);
-                        });
+                        };
+                        if (payload.school_id) {
+                            profileUpdate.school_id = payload.school_id;
+                        }
+
+                        try {
+                            const { error: syncErr } = await window.supabaseClient
+                                .from('profiles')
+                                .update(profileUpdate)
+                                .eq('id_number', targetIdNumber);
+                            if (syncErr) {
+                                console.warn("Background sync to profile skipped:", syncErr);
+                            }
+                        } catch (syncExc) {
+                            console.warn("Direct profile sync exception:", syncExc);
+                        }
                     }
                 } else {
                     const { error } = await window.supabaseClient.from('enrolled_masterlist').insert([payload]);

@@ -26,27 +26,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profile) {
                 currentProfile = profile; // Store for application modal
 
-                // Step 2: Use their id_number to find their school in the masterlist
-                const { data: masterlistData, error: masterlistError } = await window.supabaseClient
-                    .from('enrolled_masterlist')
-                    .select('school_id, schools(name)')
-                    .eq('id_number', profile.id_number)
-                    .single();
+                // Step 2: Use their id_number to fetch authoritative masterlist details
+                let masterFirstName = profile.first_name || 'Student';
+                let masterMiddleName = profile.middle_name || '';
+                let masterLastName = profile.last_name || '';
+                let masterProgram = profile.program || profile.course || 'Student Profile';
+                let masterYear = profile.year_level || '';
+                let masterGender = profile.gender || '';
+                let schoolName = 'Unassigned School';
 
-                if (masterlistData && masterlistData.school_id) {
-                    currentProfile.school_id = masterlistData.school_id;
-                }
+                if (profile.id_number) {
+                    const { data: masterlistData, error: masterlistError } = await window.supabaseClient
+                        .from('enrolled_masterlist')
+                        .select('school_id, schools(name), first_name, last_name, middle_name, program, year_level, gender, gwa')
+                        .eq('id_number', profile.id_number)
+                        .maybeSingle();
 
-                if (masterlistError) {
-                    console.warn("Could not find student in masterlist to assign school.");
+                    if (masterlistData) {
+                        if (masterlistData.schools) schoolName = masterlistData.schools.name;
+                        if (masterlistData.school_id) currentProfile.school_id = masterlistData.school_id;
+                        if (masterlistData.first_name) masterFirstName = masterlistData.first_name;
+                        if (masterlistData.last_name) masterLastName = masterlistData.last_name;
+                        if (masterlistData.middle_name !== undefined && masterlistData.middle_name !== null) masterMiddleName = masterlistData.middle_name;
+                        if (masterlistData.program) masterProgram = masterlistData.program;
+                        if (masterlistData.year_level) masterYear = masterlistData.year_level;
+                        if (masterlistData.gender) masterGender = masterlistData.gender;
+                        if (!profile.gwa && masterlistData.gwa) profile.gwa = masterlistData.gwa;
+
+                        // Silent sync to profile table if coordinator updated records
+                        const needsSync = (
+                            (profile.first_name || '') !== (masterFirstName || '') ||
+                            (profile.last_name || '') !== (masterLastName || '') ||
+                            (profile.middle_name || '') !== (masterMiddleName || '') ||
+                            (profile.program || '') !== (masterProgram || '') ||
+                            (profile.year_level || '') !== (masterYear || '') ||
+                            (profile.gender || '') !== (masterGender || '') ||
+                            (masterlistData.school_id && profile.school_id !== masterlistData.school_id)
+                        );
+
+                        if (needsSync) {
+                            const syncData = {
+                                first_name: masterFirstName,
+                                last_name: masterLastName,
+                                middle_name: masterMiddleName,
+                                program: masterProgram,
+                                year_level: masterYear,
+                                gender: masterGender
+                            };
+                            if (masterlistData.school_id) syncData.school_id = masterlistData.school_id;
+                            window.supabaseClient.from('profiles').update(syncData).eq('id', studentId).then();
+                            Object.assign(currentProfile, syncData);
+                        }
+                    } else if (masterlistError) {
+                        console.warn("Could not find student in masterlist to assign school.");
+                    }
                 }
 
                 // Update UI Elements
-                const firstName = profile.first_name || 'Student';
-                const lastName = profile.last_name || '';
-                const schoolName = masterlistData && masterlistData.schools ? masterlistData.schools.name : 'Unassigned School';
+                const firstName = masterFirstName;
+                const lastName = masterLastName;
                 const fullName = `${firstName} ${lastName}`.trim();
-                const progName = profile.program || profile.course || 'Student Profile';
+                const progName = masterProgram;
 
                 sessionStorage.setItem('grantee_student_profile', JSON.stringify({
                     name: fullName,
@@ -96,15 +136,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error) throw error;
 
-            // Filter out applications added by admin (they have null form_responses)
-            const applications = (apps || []).filter(app => app.form_responses !== null);
+            const applications = apps || [];
             applicationsData = applications; // Save globally for details modal
 
             // A. Update Overview Stats & Remove Skeleton Shimmer
             const submittedCount = applications.length;
-            const reviewCount = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
-            const approvedCount = applications.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
-            const rejectedCount = applications.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
+            const reviewCount = applications.filter(a => {
+                const st = (a.status || 'pending').toLowerCase();
+                return st === 'pending' || st === 'under review' || st === 'submitted' || st === 'request revision';
+            }).length;
+            const approvedCount = applications.filter(a => {
+                const st = (a.status || '').toLowerCase();
+                return st === 'approved' || st === 'grantee' || st === 'passed';
+            }).length;
+            const rejectedCount = applications.filter(a => {
+                const st = (a.status || '').toLowerCase();
+                return st === 'rejected' || st === 'declined' || st === 'revoked';
+            }).length;
 
             ['stat-submitted', 'stat-review', 'stat-approved', 'stat-rejected'].forEach(id => {
                 const el = document.getElementById(id);
@@ -116,17 +164,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (document.getElementById('stat-approved')) document.getElementById('stat-approved').innerText = approvedCount;
             if (document.getElementById('stat-rejected')) document.getElementById('stat-rejected').innerText = rejectedCount;
 
-            // B. Render "My Recent Applications" (Limit to 5 for UI cleanliness)
+            // B. Render "My Recent Applications" (Only student-submitted applications; coordinator-added ones are notified via in-app/email alerts)
             const recentList = document.getElementById('recent-applications-list');
             if (!recentList) return;
 
-            if (applications.length === 0) {
+            const studentSubmittedApps = applications.filter(app => app.form_responses !== null);
+
+            if (studentSubmittedApps.length === 0) {
                 recentList.innerHTML = `<div class="list-empty-state">You have not submitted any educational assistance applications yet.</div>`;
                 return;
             }
 
             recentList.innerHTML = '';
-            applications.slice(0, 5).forEach(app => {
+            studentSubmittedApps.slice(0, 5).forEach(app => {
                 const title = app.scholarships?.title || app.outside_assistance_name || 'Unknown Program';
                 const dateStr = new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
@@ -183,9 +233,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         let displayStatus = 'Under Review';
         const statusLower = (app.status || 'pending').toLowerCase();
 
-        if (statusLower === 'approved' || statusLower === 'grantee') {
+        if (statusLower === 'approved' || statusLower === 'grantee' || statusLower === 'passed') {
             badgeClass = 'badge-approved';
-            displayStatus = 'Approved';
+            displayStatus = statusLower === 'grantee' ? 'Active Grantee' : 'Approved';
         } else if (statusLower === 'rejected' || statusLower === 'declined') {
             badgeClass = 'badge-rejected';
             displayStatus = 'Rejected';
@@ -205,25 +255,71 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const modalTitle = app.scholarships?.title || app.outside_assistance_name || 'Educational Assistance Application';
 
-        // Rejection Reason Alert Card (If application was rejected/declined/revoked or remarks present)
-        let rejectionAlertHTML = '';
-        if (statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked' || (app.remarks && app.remarks.trim())) {
-            const finalReasonText = app.remarks && app.remarks.trim()
-                ? app.remarks.trim()
+        // Decision / Status Alert Card
+        let decisionAlertHTML = '';
+        if (statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked') {
+            const isRevoked = statusLower === 'revoked';
+            const defaultMsg = isRevoked
+                ? 'Educational assistance status was revoked by the institution.'
                 : 'Your application was not approved during evaluation. Please contact your scholarship coordinator for more details.';
+            const finalReasonText = app.remarks && app.remarks.trim() ? app.remarks.trim() : defaultMsg;
+            const decisionHeading = isRevoked ? 'Beneficiary Status: Revoked' : 'Application Decision: Rejected';
+            const reasonLabel = isRevoked ? 'Reason for Revocation:' : 'Reason for Rejection:';
 
-            rejectionAlertHTML = `
+            decisionAlertHTML = `
                 <div class="modal-rejection-box" style="margin-bottom: 24px;">
                     <div class="modal-rejection-header">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="x-circle" style="width: 18px; height: 18px; color: var(--danger-color);"></i>
-                            <strong style="color: var(--danger-color); font-size: 14.5px;">Application Decision: ${displayStatus}</strong>
+                            <strong style="color: var(--danger-color); font-size: 14.5px;">${decisionHeading}</strong>
                         </div>
-                        <span class="modal-rejection-tag">Evaluation Outcome</span>
+                        <span class="modal-rejection-tag">${isRevoked ? 'Revoked' : 'Evaluation Outcome'}</span>
                     </div>
                     <div class="modal-rejection-body">
-                        <div class="modal-rejection-label">Reason / Remarks:</div>
+                        <div class="modal-rejection-label">${reasonLabel}</div>
                         <p class="modal-rejection-text">${finalReasonText}</p>
+                    </div>
+                </div>
+            `;
+        } else if (statusLower === 'approved' || statusLower === 'grantee' || statusLower === 'passed') {
+            const isGrantee = statusLower === 'grantee';
+            const decisionHeading = isGrantee ? 'Beneficiary Status: Active Grantee' : 'Application Decision: Approved';
+            const defaultMsg = 'Congratulations! Your educational assistance application has been approved and you are currently an active grantee.';
+            const remarksText = app.remarks && app.remarks.trim() ? app.remarks.trim() : defaultMsg;
+            const remarksLabel = app.remarks && app.remarks.trim() ? 'Coordinator Remarks / Notes:' : 'Status Details:';
+
+            decisionAlertHTML = `
+                <div class="modal-approved-box" style="margin-bottom: 24px;">
+                    <div class="modal-approved-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="check-circle-2" style="width: 18px; height: 18px; color: var(--stat-approved-color);"></i>
+                            <strong style="color: var(--stat-approved-color); font-size: 14.5px;">${decisionHeading}</strong>
+                        </div>
+                        <span class="modal-approved-tag">${isGrantee ? 'Active Beneficiary' : 'Approved'}</span>
+                    </div>
+                    <div class="modal-approved-body">
+                        <div class="modal-approved-label">${remarksLabel}</div>
+                        <p class="modal-approved-text">${remarksText}</p>
+                    </div>
+                </div>
+            `;
+        } else if (statusLower === 'request revision') {
+            const revisionText = app.remarks && app.remarks.trim()
+                ? app.remarks.trim()
+                : 'Please review your application documents and resubmit the requested revisions.';
+
+            decisionAlertHTML = `
+                <div class="modal-revision-box" style="margin-bottom: 24px;">
+                    <div class="modal-revision-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="alert-triangle" style="width: 18px; height: 18px; color: var(--badge-revision-color, #d97706);"></i>
+                            <strong style="color: var(--badge-revision-color, #d97706); font-size: 14.5px;">Application Decision: Revision Required</strong>
+                        </div>
+                        <span class="modal-revision-tag">Action Required</span>
+                    </div>
+                    <div class="modal-revision-body">
+                        <div class="modal-revision-label">Coordinator Revision Instructions:</div>
+                        <p class="modal-revision-text">${revisionText}</p>
                     </div>
                 </div>
             `;
@@ -382,7 +478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
 
                     <div class="modal-body-custom">
-                        ${rejectionAlertHTML}
+                        ${decisionAlertHTML}
 
                         <div style="margin-bottom: 26px;">
                             <h3 class="modal-section-title"><i data-lucide="user"></i> Applicant Profile</h3>
@@ -435,6 +531,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return normalizeCategory(raw);
     };
 
+    const escapeHtml = (str) => {
+        if (!str || typeof str !== 'string') return str || '';
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const calculateDynamicStatus = (sch) => {
         if (sch.status === 'Draft') return 'Draft';
         if (!sch.start_date || !sch.end_date) return sch.status || 'Draft';
@@ -465,21 +571,176 @@ document.addEventListener('DOMContentLoaded', async () => {
         return arr.filter(item => item && item.toLowerCase() !== 'null' && item.toLowerCase() !== 'undefined');
     };
 
-    function validateEligibility(sch, profile, isProfileComplete, allUserApps, policyData) {
-        // 1. Profile Completion Validation
-        if (!isProfileComplete) {
+    // --- ACADEMIC ELIGIBILITY & MATCHING HELPERS ---
+    const checkProgramMatch = (rawEligibleProgs, studentProg) => {
+        const rawProgs = parseArray(rawEligibleProgs);
+        if (!rawProgs || rawProgs.length === 0) return { matches: true, allowedText: 'Open to All' };
+
+        const progOpenKeywords = ['open to all', 'all programs', 'all departments', 'any', 'all', 'all courses', 'all degree programs', 'open to all courses', 'open to all programs', 'open to all departments'];
+        const isProgOpen = rawProgs.some(p => progOpenKeywords.includes(p.toLowerCase().trim()));
+        if (isProgOpen) return { matches: true, allowedText: 'Open to All' };
+
+        const studentProgClean = (studentProg || '').trim();
+        const allowedText = rawProgs.join(', ');
+        if (!studentProgClean) {
             return {
-                text: 'Complete Profile',
-                icon: 'user-check',
-                class: 'btn-warning',
-                action: 'profile',
-                title: 'Profile Incomplete',
-                msg: 'Please complete your personal and academic profile in Profile Settings before applying for educational assistance.'
+                matches: false,
+                reason: 'missing_profile',
+                allowedText: allowedText
             };
         }
 
-        // 2. Duplicate Application Validation for THIS specific scholarship
-        const existingApp = allUserApps.find(a => a.scholarship_id === sch.id);
+        const sLower = studentProgClean.toLowerCase();
+        const words = studentProgClean.split(/[\s\-_/()]+/).filter(w => w.length > 0);
+        const sAcronym = words.map(w => w[0].toLowerCase()).join('');
+
+        const matches = rawProgs.some(rawP => {
+            const pLower = rawP.toLowerCase().trim();
+            if (pLower === sLower) return true;
+            if (pLower.includes(sLower) || sLower.includes(pLower)) return true;
+
+            const pWords = rawP.split(/[\s\-_/()]+/).filter(w => w.length > 0);
+            const pAcronym = pWords.map(w => w[0].toLowerCase()).join('');
+            if (pAcronym.length >= 2 && (pAcronym === sLower || pAcronym === sAcronym)) return true;
+            if (sAcronym.length >= 2 && (sAcronym === pLower || sAcronym === pAcronym)) return true;
+
+            return false;
+        });
+
+        return {
+            matches: matches,
+            reason: matches ? 'matched' : 'mismatch',
+            allowedText: allowedText
+        };
+    };
+
+    const checkYearMatch = (rawEligibleYears, studentYear) => {
+        const rawYears = parseArray(rawEligibleYears);
+        if (!rawYears || rawYears.length === 0) return { matches: true, allowedText: 'Open to All' };
+
+        const yearOpenKeywords = ['open to all', 'all year levels', 'all years', 'any', 'all', 'open to all year levels'];
+        const isYearOpen = rawYears.some(y => yearOpenKeywords.includes(y.toLowerCase().trim()));
+        if (isYearOpen) return { matches: true, allowedText: 'Open to All' };
+
+        const studentYearClean = (studentYear || '').trim();
+        const allowedText = rawYears.join(', ');
+        if (!studentYearClean) {
+            return {
+                matches: false,
+                reason: 'missing_profile',
+                allowedText: allowedText
+            };
+        }
+
+        const canonicalYear = (str) => {
+            const lower = (str || '').toLowerCase().trim();
+            if (lower.includes('1st') || lower.includes('first') || lower.includes('grade 11') || lower.includes('freshman') || lower === '1') return '1';
+            if (lower.includes('2nd') || lower.includes('second') || lower.includes('grade 12') || lower.includes('sophomore') || lower === '2') return '2';
+            if (lower.includes('3rd') || lower.includes('third') || lower.includes('junior') || lower === '3') return '3';
+            if (lower.includes('4th') || lower.includes('fourth') || lower.includes('senior') || lower === '4') return '4';
+            if (lower.includes('5th') || lower.includes('fifth') || lower === '5') return '5';
+            if (lower.includes('graduat')) return 'graduating';
+            return lower;
+        };
+
+        const sCanonical = canonicalYear(studentYearClean);
+
+        const matches = rawYears.some(rawY => {
+            const yLower = rawY.toLowerCase().trim();
+            if (yLower === studentYearClean.toLowerCase()) return true;
+            if (yLower.includes(studentYearClean.toLowerCase()) || studentYearClean.toLowerCase().includes(yLower)) return true;
+
+            const yCanonical = canonicalYear(rawY);
+            if (yCanonical && sCanonical && yCanonical === sCanonical) return true;
+
+            return false;
+        });
+
+        return {
+            matches: matches,
+            reason: matches ? 'matched' : 'mismatch',
+            allowedText: allowedText
+        };
+    };
+
+    const checkGwaMatch = (sch, studentGwa) => {
+        const minGwa = sch.gwa_requirement || sch.min_gwa || sch.min_college_gwa || sch.min_hs_average || sch.eligibility_rules?.gwa?.minimum || sch.eligibility_gwa;
+        if (!minGwa || !studentGwa) return { matches: true, requiredGwa: minGwa };
+
+        const studentGwaNum = parseFloat(studentGwa);
+        const reqGwaNum = parseFloat(minGwa);
+
+        if (isNaN(studentGwaNum) || isNaN(reqGwaNum)) return { matches: true, requiredGwa: minGwa };
+
+        let matches = true;
+        if (reqGwaNum <= 5.0) {
+            // Philippine grading scale: 1.0 is highest, 5.0 is failing. GWA must be <= requirement (e.g. 1.50 <= 1.75)
+            matches = studentGwaNum <= reqGwaNum;
+        } else {
+            // Percentage scale: e.g. 85, 90. GWA must be >= requirement (e.g. 88 >= 85)
+            matches = studentGwaNum >= reqGwaNum;
+        }
+
+        return {
+            matches: matches,
+            requiredGwa: minGwa,
+            studentGwa: studentGwa
+        };
+    };
+
+    const checkGenderMatch = (rawEligibleGender, studentGender) => {
+        if (!rawEligibleGender) return { matches: true };
+        const gLower = rawEligibleGender.toLowerCase().trim();
+        if (!gLower || gLower === 'all' || gLower === 'any' || gLower === 'open to all' || gLower === 'both' || gLower === 'null') return { matches: true };
+
+        const sLower = (studentGender || '').toLowerCase().trim();
+        if (!sLower) return { matches: true };
+
+        const matches = (gLower === sLower || gLower.includes(sLower) || sLower.includes(gLower));
+        return {
+            matches: matches,
+            requiredGender: rawEligibleGender
+        };
+    };
+
+    function validateEligibility(sch, profile, isProfileComplete, allUserApps, policyData) {
+        // 1. Availability / Dates Check
+        if (sch.display_status === 'Upcoming') {
+            return {
+                text: 'Opening Soon',
+                icon: 'clock',
+                class: 'btn-disabled',
+                action: 'restricted',
+                title: 'Applications Not Yet Open',
+                msg: 'Applications for this educational assistance program have not opened yet. Please check back when the application period starts.'
+            };
+        }
+        if (sch.display_status === 'Closed') {
+            return {
+                text: 'Closed',
+                icon: 'lock',
+                class: 'btn-disabled',
+                action: 'restricted',
+                title: 'Application Closed',
+                msg: 'Applications for this educational assistance program are currently closed because the application deadline has passed.'
+            };
+        }
+
+        // 2. Slots Capacity Check
+        const hasUnlimitedSlots = sch.slots === 'Open';
+        if (!hasUnlimitedSlots && sch.available_slots === 0) {
+            return {
+                text: 'Slots Full',
+                icon: 'lock',
+                class: 'btn-disabled',
+                action: 'restricted',
+                title: 'Slots Full',
+                msg: 'This educational assistance has reached its maximum beneficiary capacity and no slots remain available.'
+            };
+        }
+
+        // 3. Duplicate / Existing Application for this scholarship
+        const existingApp = (allUserApps || []).find(a => a.scholarship_id === sch.id);
         if (existingApp) {
             const stat = existingApp.status;
             if (stat === 'Draft') {
@@ -502,53 +763,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
         }
 
-        // 3. Availability Validation (Dates & Status)
-        if (sch.display_status === 'Upcoming') {
-            return {
-                text: 'Opening Soon',
-                icon: 'clock',
-                class: 'btn-disabled',
-                action: 'restricted',
-                title: 'Applications Not Yet Open',
-                msg: 'Applications for this educational assistance program have not opened yet. Please check back when the application period starts.'
-            };
-        }
-        if (sch.display_status === 'Closed') {
-            return {
-                text: 'Closed',
-                icon: 'lock',
-                class: 'btn-disabled',
-                action: 'restricted',
-                title: 'Application Closed',
-                msg: 'Applications for this educational assistance program are currently closed because the application deadline has passed.'
-            };
-        }
-
-        // 4. Availability Validation (Slots)
-        const hasUnlimitedSlots = sch.slots === 'Open';
-        if (!hasUnlimitedSlots && sch.available_slots === 0) {
-            return {
-                text: 'Slots Full',
-                icon: 'lock',
-                class: 'btn-disabled',
-                action: 'restricted',
-                title: 'Slots Full',
-                msg: 'This educational assistance has reached its maximum beneficiary capacity and no slots remain available.'
-            };
-        }
-
         // Categorize existing student applications
-        const activeGrants = allUserApps.filter(a =>
+        const activeGrants = (allUserApps || []).filter(a =>
             ['Approved', 'Grantee'].includes(a.status)
         );
-        const pendingApps = allUserApps.filter(a =>
+        const pendingApps = (allUserApps || []).filter(a =>
             ['Submitted', 'Under Review', 'Pending', 'Revision', 'Evaluating', 'For Interview'].includes(a.status)
         );
         const allActiveAndPending = [...activeGrants, ...pendingApps];
-
         const targetCat = normalizeCategory(sch.category);
 
-        // 5. "No Other Scholarships" Exclusivity Rule
+        // 4. "No Other Scholarships" Exclusivity Rule
         const hasNoOtherScholarshipsRule = Boolean(
             sch.no_other_scholarships === true ||
             sch.no_other_scholarship === true ||
@@ -585,17 +810,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // 6. Institutional Assistance Policies Validation (school_policies)
-        // A. Category Quota Limits: Already has a scholarship on this category
-        const appsInSameCategory = allActiveAndPending.filter(a => {
-            const appCat = getAppCategory(a);
-            return appCat === targetCat;
-        });
-
+        // 5. Institutional Assistance Policies Validation (school_policies)
         const isPolicyGloballyEnabled = policyData ? (policyData.global_enabled ?? true) : true;
-
         if (isPolicyGloballyEnabled) {
-            // Check specific category limits from policies or default institutional rules
+            // A. Category Quota Limits
+            const appsInSameCategory = allActiveAndPending.filter(a => {
+                const appCat = getAppCategory(a);
+                return appCat === targetCat;
+            });
+
             const catLimits = policyData?.category_limits || {};
             const catPolicy = catLimits[targetCat];
 
@@ -625,7 +848,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
             } else {
-                // Default policy: Institution-Funded & CHED categories allow maximum 1 grant per student
                 if (targetCat.includes('Institution') || targetCat.includes('Ched')) {
                     if (appsInSameCategory.length >= 1) {
                         const existingTitle = appsInSameCategory[0].scholarships?.title || appsInSameCategory[0].outside_assistance_name || 'an existing scholarship';
@@ -678,15 +900,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // 7. STRICT Program Eligibility Validation
-        const rawProgs = parseArray(sch.eligibility_programs);
-        const eligibleProgs = rawProgs.map(p => p.toLowerCase().trim());
-        const studentProgLower = (profile?.program || profile?.course || '').toLowerCase().trim();
-        const progOpenKeywords = ['open to all', 'all programs', 'all departments', 'any', 'all'];
-        const isProgOpen = eligibleProgs.length === 0 || eligibleProgs.some(p => progOpenKeywords.includes(p));
-
-        if (!isProgOpen) {
-            if (!studentProgLower) {
+        // 6. Strict Academic Information Alignment:
+        // A. Academic Program / Course
+        const studentProgram = profile?.program || profile?.course || '';
+        const progMatch = checkProgramMatch(sch.eligibility_programs, studentProgram);
+        if (!progMatch.matches) {
+            if (progMatch.reason === 'missing_profile') {
                 return {
                     text: 'Not Eligible (Program)',
                     icon: 'lock',
@@ -696,29 +915,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     msg: 'Please update your academic program in Profile Settings to verify your eligibility for this program.'
                 };
             }
-            const matchesProg = eligibleProgs.some(p => p === studentProgLower || p.includes(studentProgLower) || studentProgLower.includes(p));
-            if (!matchesProg) {
-                const allowedProgsText = rawProgs.join(', ');
-                return {
-                    text: 'Not Eligible (Program)',
-                    icon: 'lock',
-                    class: 'btn-disabled',
-                    action: 'restricted',
-                    title: 'Program Requirement Not Met',
-                    msg: `Your profile indicates you are enrolled in <b>${profile?.program || profile?.course}</b>.<br><br>This educational assistance is strictly limited to students in the following program(s):<br><i>${allowedProgsText}</i>`
-                };
-            }
+            return {
+                text: 'Not Eligible (Program)',
+                icon: 'lock',
+                class: 'btn-disabled',
+                action: 'restricted',
+                title: 'Program Requirement Not Met',
+                msg: `Your profile indicates you are enrolled in <b>${escapeHtml(studentProgram)}</b>.<br><br>This educational assistance is strictly limited to students in the following program(s):<br><i>${escapeHtml(progMatch.allowedText)}</i>`
+            };
         }
 
-        // 8. STRICT Year Level Eligibility Validation
-        const rawYears = parseArray(sch.eligibility_years);
-        const eligibleYears = rawYears.map(y => y.toLowerCase().trim());
-        const studentYearLower = (profile?.year_level || '').toLowerCase().trim();
-        const yearOpenKeywords = ['open to all', 'all year levels', 'all years', 'any', 'all'];
-        const isYearOpen = eligibleYears.length === 0 || eligibleYears.some(y => yearOpenKeywords.includes(y));
-
-        if (!isYearOpen) {
-            if (!studentYearLower) {
+        // B. Academic Year Level
+        const studentYear = profile?.year_level || '';
+        const yearMatch = checkYearMatch(sch.eligibility_years, studentYear);
+        if (!yearMatch.matches) {
+            if (yearMatch.reason === 'missing_profile') {
                 return {
                     text: 'Not Eligible (Year)',
                     icon: 'lock',
@@ -728,51 +939,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                     msg: 'Please update your year level in Profile Settings to verify your eligibility for this program.'
                 };
             }
-            const matchesYear = eligibleYears.some(y => y === studentYearLower || y.includes(studentYearLower) || studentYearLower.includes(y));
-            if (!matchesYear) {
-                const allowedYearsText = rawYears.join(', ');
-                return {
-                    text: 'Not Eligible (Year)',
-                    icon: 'lock',
-                    class: 'btn-disabled',
-                    action: 'restricted',
-                    title: 'Year Level Requirement Not Met',
-                    msg: `Your profile indicates you are a <b>${profile?.year_level}</b> student.<br><br>This educational assistance is strictly limited to the following year level(s):<br><i>${allowedYearsText}</i>`
-                };
-            }
+            return {
+                text: 'Not Eligible (Year)',
+                icon: 'lock',
+                class: 'btn-disabled',
+                action: 'restricted',
+                title: 'Year Level Requirement Not Met',
+                msg: `Your profile indicates you are a <b>${escapeHtml(studentYear)}</b> student.<br><br>This educational assistance is strictly limited to the following year level(s):<br><i>${escapeHtml(yearMatch.allowedText)}</i>`
+            };
         }
 
-        // 9. STRICT GWA Eligibility Validation
-        const minGwa = sch.gwa_requirement || sch.min_gwa || sch.min_college_gwa || sch.min_hs_average || sch.eligibility_rules?.gwa?.minimum || sch.eligibility_gwa;
-        if (minGwa && profile?.gwa) {
-            const studentGwaNum = parseFloat(profile.gwa);
-            const reqGwaNum = parseFloat(minGwa);
-            if (!isNaN(studentGwaNum) && !isNaN(reqGwaNum)) {
-                if (reqGwaNum <= 5.0) {
-                    if (studentGwaNum > reqGwaNum) {
-                        return {
-                            text: 'Not Eligible (GWA)',
-                            icon: 'lock',
-                            class: 'btn-disabled',
-                            action: 'restricted',
-                            title: 'Academic Grade Requirement Not Met',
-                            msg: `Your profile indicates a GWA of <b>${profile.gwa}</b>.<br><br>This educational assistance requires a minimum GWA of <b>${minGwa}</b> or better.`
-                        };
-                    }
-                } else if (studentGwaNum < reqGwaNum) {
-                    return {
-                        text: 'Not Eligible (GWA)',
-                        icon: 'lock',
-                        class: 'btn-disabled',
-                        action: 'restricted',
-                        title: 'Academic Grade Requirement Not Met',
-                        msg: `Your profile indicates a GWA of <b>${profile.gwa}</b>.<br><br>This educational assistance requires a minimum average of <b>${minGwa}</b>.`
-                    };
-                }
-            }
+        // C. Gender Requirement
+        const studentGender = profile?.gender || '';
+        const genderMatch = checkGenderMatch(sch.eligibility_gender || sch.gender, studentGender);
+        if (!genderMatch.matches) {
+            return {
+                text: 'Not Eligible (Gender)',
+                icon: 'lock',
+                class: 'btn-disabled',
+                action: 'restricted',
+                title: 'Gender Requirement Not Met',
+                msg: `This educational assistance is restricted to <b>${escapeHtml(genderMatch.requiredGender)}</b> applicants.`
+            };
         }
 
-        // 10. Successful Validation -> Eligible!
+        // 7. Profile Completion Check
+        if (!isProfileComplete) {
+            return {
+                text: 'Complete Profile',
+                icon: 'user-check',
+                class: 'btn-warning',
+                action: 'profile',
+                title: 'Profile Incomplete',
+                msg: 'Please complete your personal and academic profile in Profile Settings before applying for educational assistance.'
+            };
+        }
+
+        // 8. Fully Eligible & Ready to Apply!
         return {
             text: 'Apply Now',
             icon: 'arrow-right',
@@ -829,13 +1032,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profile && profile.id_number) {
                 const { data: masterlistData } = await window.supabaseClient
                     .from('enrolled_masterlist')
-                    .select('school_id, year_level, program')
+                    .select('school_id, year_level, program, gender, gwa')
                     .eq('id_number', profile.id_number)
                     .maybeSingle();
                 if (masterlistData) {
                     if (!studentSchoolId && masterlistData.school_id) studentSchoolId = masterlistData.school_id;
                     if (!profile.year_level && masterlistData.year_level) profile.year_level = masterlistData.year_level;
                     if (!profile.program && masterlistData.program) profile.program = masterlistData.program;
+                    if (!profile.gender && masterlistData.gender) profile.gender = masterlistData.gender;
+                    if (!profile.gwa && masterlistData.gwa) profile.gwa = masterlistData.gwa;
                 }
             }
 
@@ -884,6 +1089,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!rawScholarships || rawScholarships.length === 0) {
                 recList.innerHTML = `<div class="list-empty-state">No active educational assistance available at the moment.</div>`;
+                const countEl = document.getElementById('recommended-scholarships-count');
+                if (countEl) countEl.innerText = '0';
                 return;
             }
 
@@ -893,70 +1100,73 @@ document.addEventListener('DOMContentLoaded', async () => {
                 display_status: calculateDynamicStatus(sch)
             }));
 
-            // Determine if Profile is Complete
-            const requiredProfileFields = ['first_name', 'middle_name', 'last_name', 'email', 'id_number', 'date_of_birth', 'gender', 'contact_number', 'address'];
+            // Determine if Profile is Complete (Middle name is optional as some students don't have one)
+            const requiredProfileFields = ['first_name', 'last_name', 'email', 'id_number', 'date_of_birth', 'gender', 'contact_number', 'address'];
             const isProfileComplete = profile && requiredProfileFields.every(field => profile[field] && profile[field].toString().trim() !== '');
 
-            // STRICT FILTER FOR RECOMMENDED FOR YOU:
-            // Do not recommend educational assistance if the student's year level is not eligible (or if scholarship is closed)
-            const yearEligibleScholarships = scholarshipsWithStatus.filter(sch => {
-                // 1. Year level eligibility validation
-                const rawYears = parseArray(sch.eligibility_years);
-                const eligibleYears = rawYears.map(y => y.toLowerCase().trim());
-                const studentYearLower = (profile?.year_level || '').toLowerCase().trim();
-                const yearOpenKeywords = ['open to all', 'all year levels', 'all years', 'any', 'all'];
-                const isYearOpen = eligibleYears.length === 0 || eligibleYears.some(y => yearOpenKeywords.includes(y));
+            // STRICT FILTER FOR "RECOMMENDED FOR YOU":
+            // 1. Must be Active
+            // 2. Must strictly meet GWA requirement (do not put on Recommended for You if grade requirement is not met)
+            // 3. Must strictly match degree program, year level, gender, and school
+            // 4. Must be okay to apply (action !== 'restricted' — no already applied, no quota limits reached, no exclusivity violations)
+            const eligibleRecommendations = scholarshipsWithStatus.filter(sch => {
+                // Must be Active
+                if (sch.display_status !== 'Active') return false;
 
-                if (!isYearOpen) {
-                    if (!studentYearLower) return false;
-                    const matchesYear = eligibleYears.some(y => y === studentYearLower || y.includes(studentYearLower) || studentYearLower.includes(y));
-                    if (!matchesYear) return false;
-                }
+                // Academic Grade Requirement check: Do not recommend if current GWA does not meet requirement
+                const studentGwa = profile?.gwa || profile?.general_weighted_average;
+                const gwaMatch = checkGwaMatch(sch, studentGwa);
+                if (!gwaMatch.matches) return false;
 
-                // 2. Do not recommend closed programs
-                if (sch.display_status === 'Closed') return false;
+                // Validate eligibility against student's academic profile & policies
+                const btnState = validateEligibility(sch, profile, isProfileComplete, allUserApps, policyData);
+
+                // Exclude any non-actionable or restricted scholarship
+                if (btnState.action === 'restricted') return false;
 
                 return true;
             });
 
-            if (yearEligibleScholarships.length === 0) {
-                recList.innerHTML = `<div class="list-empty-state">No educational assistance currently matches your year level.</div>`;
+            // Populate Section Header Count
+            const countEl = document.getElementById('recommended-scholarships-count');
+            if (countEl) countEl.innerText = eligibleRecommendations.length.toString();
+
+            if (eligibleRecommendations.length === 0) {
+                recList.innerHTML = `<div class="list-empty-state">No educational assistance currently matches your academic profile at this time.</div>`;
                 return;
             }
 
-            // Sort eligible scholarships using exact priority matching student-scholarships.html
-            yearEligibleScholarships.sort((a, b) => {
+            // Sort Recommended:
+            // 1st: "Apply Now" (highest priority)
+            // 2nd: "Continue Application"
+            // 3rd: "Complete Profile"
+            eligibleRecommendations.sort((a, b) => {
                 const prioA = getScholarshipPriority(a, profile, isProfileComplete, allUserApps, policyData);
                 const prioB = getScholarshipPriority(b, profile, isProfileComplete, allUserApps, policyData);
                 if (prioA !== prioB) return prioA - prioB;
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
 
-            // Take Top 2 Recommendations to display
-            const recommendedToShow = yearEligibleScholarships.slice(0, 2);
-
             recList.innerHTML = '';
-
-            recommendedToShow.forEach((sch) => {
-                const deadline = sch.end_date ? new Date(sch.end_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'No Deadline';
-                const cleanDesc = sch.description ? sch.description.replace(/<[^>]*>?/gm, '').substring(0, 70) + '...' : 'Open for applications.';
-                const minGwaDisplay = sch.min_college_gwa ? sch.min_college_gwa : 'N/A';
-
+            eligibleRecommendations.forEach(sch => {
+                const deadline = sch.end_date ? new Date(sch.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No Deadline';
+                const departmentMeta = sch.department ? `<p class="item-meta">${escapeHtml(sch.department)}</p>` : '';
                 const btnState = validateEligibility(sch, profile, isProfileComplete, allUserApps, policyData);
 
                 recList.innerHTML += `
                     <div class="list-item rec-list-item">
                         <div class="rec-main-info">
-                            <div class="item-icon icon-sch-rec"><i data-lucide="graduation-cap"></i></div>
+                            <div class="item-icon icon-sch-rec">
+                                <i data-lucide="graduation-cap"></i>
+                            </div>
                             <div class="item-details">
-                                <h4>${sch.title}</h4>
-                                <p>${cleanDesc}</p>
-                                <p class="meta-gwa">Min College GWA: <strong>${minGwaDisplay}</strong></p>
+                                <h4 class="item-title">${escapeHtml(sch.title)}</h4>
+                                ${departmentMeta}
                                 <p class="meta-deadline">Deadline: ${deadline}</p>
                             </div>
                         </div>
                         <div class="item-meta">
-                            <button class="btn-action ${btnState.class}" data-action="${btnState.action}" data-id="${sch.id}" data-title="${btnState.title || ''}" data-msg="${btnState.msg || ''}">
+                            <button class="btn-action ${btnState.class}" data-action="${btnState.action}" data-id="${sch.id}" data-title="${escapeHtml(btnState.title || '')}" data-msg="${escapeHtml(btnState.msg || '')}">
                                 ${btnState.text}
                                 <i data-lucide="${btnState.icon}"></i>
                             </button>
@@ -988,37 +1198,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             const title = btn.getAttribute('data-title') || 'Application Restricted';
 
             if (action === 'restricted') {
-                Swal.fire({
-                    title: title,
-                    html: msg,
-                    icon: 'info',
-                    confirmButtonText: 'Understood',
-                    confirmButtonColor: 'var(--primary-color, #1F3D2E)'
-                });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: title,
+                        html: msg,
+                        icon: 'info',
+                        confirmButtonText: 'Understood',
+                        confirmButtonColor: 'var(--primary-color, #1F3D2E)'
+                    });
+                } else {
+                    alert(title + "\n\n" + msg);
+                }
             } else if (action === 'profile') {
-                Swal.fire({
-                    title: 'Profile Incomplete',
-                    html: msg,
-                    icon: 'info',
-                    showCancelButton: true,
-                    confirmButtonText: 'Complete Profile',
-                    cancelButtonText: 'Cancel',
-                    confirmButtonColor: 'var(--primary-color, #1F3D2E)'
-                }).then((res) => {
-                    if (res.isConfirmed) window.location.href = 'profile-settings.html';
-                });
+                // Directly direct the student to profile-settings.html without unnecessary modal
+                window.location.href = 'profile-settings.html';
             } else if (action === 'view') {
-                Swal.fire({
-                    title: 'Application Exists',
-                    html: msg,
-                    icon: 'info',
-                    showCancelButton: true,
-                    confirmButtonText: 'View Applications',
-                    cancelButtonText: 'Close',
-                    confirmButtonColor: 'var(--primary-color, #1F3D2E)'
-                }).then((res) => {
-                    if (res.isConfirmed) window.location.href = 'student-applications.html';
-                });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Application Exists',
+                        html: msg,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'View Applications',
+                        cancelButtonText: 'Close',
+                        confirmButtonColor: 'var(--primary-color, #1F3D2E)'
+                    }).then((res) => {
+                        if (res.isConfirmed) window.location.href = 'student-applications.html';
+                    });
+                } else {
+                    window.location.href = 'student-applications.html';
+                }
             } else if (action === 'apply') {
                 window.location.href = `apply-scholarships.html?id=${id}`;
             }

@@ -84,8 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (fetchError) throw fetchError;
 
-            // Filter out applications added by admin without form responses if needed
-            applicationsData = (apps || []).filter(app => app.form_responses !== null);
+            applicationsData = apps || [];
 
             // Remove header loading state
             const headerBox = document.getElementById('header-titles-box');
@@ -105,9 +104,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         filteredApps = applicationsData.filter(app => {
                             const statusLower = (app.status || 'pending').toLowerCase();
                             if (filterValue === 'under_review') {
-                                return statusLower === 'pending' || statusLower === 'under review';
+                                return statusLower === 'pending' || statusLower === 'under review' || statusLower === 'submitted';
                             } else if (filterValue === 'approved') {
-                                return statusLower === 'approved' || statusLower === 'grantee';
+                                return statusLower === 'approved' || statusLower === 'grantee' || statusLower === 'passed';
                             } else if (filterValue === 'rejected') {
                                 return statusLower === 'rejected' || statusLower === 'declined';
                             } else if (filterValue === 'revoked') {
@@ -177,9 +176,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const updateMetrics = (apps) => {
         const total = apps.length;
-        const review = apps.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
-        const approved = apps.filter(a => a.status === 'Approved' || a.status === 'Grantee').length;
-        const rejected = apps.filter(a => a.status === 'Rejected' || a.status === 'Declined' || a.status === 'Revoked').length;
+        const review = apps.filter(a => {
+            const st = (a.status || 'pending').toLowerCase();
+            return st === 'pending' || st === 'under review' || st === 'submitted' || st === 'request revision';
+        }).length;
+        const approved = apps.filter(a => {
+            const st = (a.status || '').toLowerCase();
+            return st === 'approved' || st === 'grantee' || st === 'passed';
+        }).length;
+        const rejected = apps.filter(a => {
+            const st = (a.status || '').toLowerCase();
+            return st === 'rejected' || st === 'declined' || st === 'revoked';
+        }).length;
 
         const totalEl = document.getElementById('count-total');
         const reviewEl = document.getElementById('count-review');
@@ -236,11 +244,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const statusLower = (app.status || 'pending').toLowerCase();
 
-            if (statusLower === 'approved' || statusLower === 'grantee') {
+            if (statusLower === 'approved' || statusLower === 'grantee' || statusLower === 'passed') {
                 badgeClass = 'badge-approved';
                 progress = 100;
                 barColor = 'var(--stat-approved-color)';
-                displayStatus = 'Approved';
+                displayStatus = statusLower === 'grantee' ? 'Active Grantee' : 'Approved';
             } else if (statusLower === 'revoked') {
                 badgeClass = 'badge-rejected';
                 progress = 100;
@@ -251,6 +259,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 progress = 100;
                 barColor = 'var(--stat-rejected-color)';
                 displayStatus = 'Rejected';
+            } else if (statusLower === 'request revision') {
+                badgeClass = 'badge-revision';
+                progress = 60;
+                barColor = 'var(--badge-revision-color, #d97706)';
+                displayStatus = 'Revision Required';
             } else {
                 badgeClass = 'badge-review';
                 progress = 50;
@@ -383,38 +396,90 @@ document.addEventListener('DOMContentLoaded', async () => {
         let displayStatus = 'Under Review';
         const statusLower = (app.status || 'pending').toLowerCase();
 
-        if (statusLower === 'approved' || statusLower === 'grantee') {
+        if (statusLower === 'approved' || statusLower === 'grantee' || statusLower === 'passed') {
             badgeClass = 'badge-approved';
-            displayStatus = 'Approved';
+            displayStatus = statusLower === 'grantee' ? 'Active Grantee' : 'Approved';
         } else if (statusLower === 'rejected' || statusLower === 'declined') {
             badgeClass = 'badge-rejected';
             displayStatus = 'Rejected';
         } else if (statusLower === 'revoked') {
             badgeClass = 'badge-rejected';
             displayStatus = 'Revoked';
+        } else if (statusLower === 'request revision') {
+            badgeClass = 'badge-revision';
+            displayStatus = 'Revision Required';
+        } else {
+            badgeClass = 'badge-review';
+            displayStatus = 'Under Review';
         }
 
         const modalTitle = app.scholarships?.title || app.outside_assistance_name || 'Educational Assistance Application';
 
-        // Rejection Reason Alert Card (If application was rejected or remarks present)
-        let rejectionAlertHTML = '';
-        if (statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked' || (app.remarks && app.remarks.trim())) {
-            const finalReasonText = app.remarks && app.remarks.trim()
-                ? app.remarks.trim()
+        // Decision / Status Alert Card
+        let decisionAlertHTML = '';
+        if (statusLower === 'rejected' || statusLower === 'declined' || statusLower === 'revoked') {
+            const isRevoked = statusLower === 'revoked';
+            const defaultMsg = isRevoked
+                ? 'Educational assistance status was revoked by the institution.'
                 : 'Your application was not approved during evaluation. Please contact your scholarship coordinator for more details.';
+            const finalReasonText = app.remarks && app.remarks.trim() ? app.remarks.trim() : defaultMsg;
+            const decisionHeading = isRevoked ? 'Beneficiary Status: Revoked' : 'Application Decision: Rejected';
+            const reasonLabel = isRevoked ? 'Reason for Revocation:' : 'Reason for Rejection:';
 
-            rejectionAlertHTML = `
+            decisionAlertHTML = `
                 <div class="modal-rejection-box" style="margin-bottom: 24px;">
                     <div class="modal-rejection-header">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="x-circle" style="width: 18px; height: 18px; color: var(--danger-color);"></i>
-                            <strong style="color: var(--danger-color); font-size: 14.5px;">Application Decision: Rejected</strong>
+                            <strong style="color: var(--danger-color); font-size: 14.5px;">${decisionHeading}</strong>
                         </div>
-                        <span class="modal-rejection-tag">Evaluation Outcome</span>
+                        <span class="modal-rejection-tag">${isRevoked ? 'Revoked' : 'Evaluation Outcome'}</span>
                     </div>
                     <div class="modal-rejection-body">
-                        <div class="modal-rejection-label">Reason for Rejection:</div>
+                        <div class="modal-rejection-label">${reasonLabel}</div>
                         <p class="modal-rejection-text">${finalReasonText}</p>
+                    </div>
+                </div>
+            `;
+        } else if (statusLower === 'approved' || statusLower === 'grantee' || statusLower === 'passed') {
+            const isGrantee = statusLower === 'grantee';
+            const decisionHeading = isGrantee ? 'Beneficiary Status: Active Grantee' : 'Application Decision: Approved';
+            const defaultMsg = 'Congratulations! Your educational assistance application has been approved and you are currently an active grantee.';
+            const remarksText = app.remarks && app.remarks.trim() ? app.remarks.trim() : defaultMsg;
+            const remarksLabel = app.remarks && app.remarks.trim() ? 'Coordinator Remarks / Notes:' : 'Status Details:';
+
+            decisionAlertHTML = `
+                <div class="modal-approved-box" style="margin-bottom: 24px;">
+                    <div class="modal-approved-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="check-circle-2" style="width: 18px; height: 18px; color: var(--stat-approved-color);"></i>
+                            <strong style="color: var(--stat-approved-color); font-size: 14.5px;">${decisionHeading}</strong>
+                        </div>
+                        <span class="modal-approved-tag">${isGrantee ? 'Active Beneficiary' : 'Approved'}</span>
+                    </div>
+                    <div class="modal-approved-body">
+                        <div class="modal-approved-label">${remarksLabel}</div>
+                        <p class="modal-approved-text">${remarksText}</p>
+                    </div>
+                </div>
+            `;
+        } else if (statusLower === 'request revision') {
+            const revisionText = app.remarks && app.remarks.trim()
+                ? app.remarks.trim()
+                : 'Please review your application documents and resubmit the requested revisions.';
+
+            decisionAlertHTML = `
+                <div class="modal-revision-box" style="margin-bottom: 24px;">
+                    <div class="modal-revision-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="alert-triangle" style="width: 18px; height: 18px; color: var(--badge-revision-color, #d97706);"></i>
+                            <strong style="color: var(--badge-revision-color, #d97706); font-size: 14.5px;">Application Decision: Revision Required</strong>
+                        </div>
+                        <span class="modal-revision-tag">Action Required</span>
+                    </div>
+                    <div class="modal-revision-body">
+                        <div class="modal-revision-label">Coordinator Revision Instructions:</div>
+                        <p class="modal-revision-text">${revisionText}</p>
                     </div>
                 </div>
             `;
@@ -573,7 +638,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
 
                     <div class="modal-body-custom">
-                        ${rejectionAlertHTML}
+                        ${decisionAlertHTML}
 
                         <div style="margin-bottom: 26px;">
                             <h3 class="modal-section-title"><i data-lucide="user"></i> Applicant Profile</h3>

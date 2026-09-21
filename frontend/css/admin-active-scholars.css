@@ -1582,3 +1582,26 @@ body>.flatpickr-calendar:not(.open) {
         gap: 8px;
     }
 }
+
+/* Edit Details and Duration Button Styles */
+.btn-edit-details,
+.btn-edit-duration {
+    background: transparent;
+    border: 1px solid var(--border-color, #DFE6DC);
+    border-radius: 6px;
+    padding: 3px 6px;
+    cursor: pointer;
+    color: var(--text-muted, #586F62);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-details:hover,
+.btn-edit-duration:hover {
+    background: var(--accent-light, #F0F4ED);
+    border-color: var(--accent-color, #6B7F4E);
+    color: var(--accent-color, #6B7F4E);
+    transform: translateY(-1px);
+}

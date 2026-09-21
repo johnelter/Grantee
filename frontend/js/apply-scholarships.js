@@ -287,23 +287,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 studentSchoolId = profile.school_id || null;
                 const firstName = profile.first_name || 'Student';
                 const lastName = profile.last_name || '';
-                studentFullName = `${firstName} ${profile.middle_name ? profile.middle_name + ' ' : ''}${lastName}`.trim();
-
-                // Check Masterlist for official academic records
+                // Check Masterlist for official authoritative records
                 let masterProgram = profile.program || profile.course;
+                let masterFirstName = profile.first_name || 'Student';
+                let masterLastName = profile.last_name || '';
+                let masterMiddleName = profile.middle_name || '';
+                let masterYear = profile.year_level || '';
+                let masterGender = profile.gender || '';
+
                 if (profile.id_number) {
                     const { data: masterlistData } = await window.supabaseClient
                         .from('enrolled_masterlist')
-                        .select('program')
+                        .select('first_name, last_name, middle_name, program, year_level, gender')
                         .eq('id_number', profile.id_number)
-                        .single();
+                        .maybeSingle();
 
-                    if (masterlistData && masterlistData.program) {
-                        masterProgram = masterlistData.program;
+                    if (masterlistData) {
+                        if (masterlistData.first_name) masterFirstName = masterlistData.first_name;
+                        if (masterlistData.last_name) masterLastName = masterlistData.last_name;
+                        if (masterlistData.middle_name !== undefined && masterlistData.middle_name !== null) masterMiddleName = masterlistData.middle_name;
+                        if (masterlistData.program) masterProgram = masterlistData.program;
+                        if (masterlistData.year_level) masterYear = masterlistData.year_level;
+                        if (masterlistData.gender) masterGender = masterlistData.gender;
                     }
                 }
 
-                const fullName = `${firstName} ${lastName}`.trim();
+                studentFullName = `${masterFirstName} ${masterMiddleName ? masterMiddleName + ' ' : ''}${masterLastName}`.trim();
+                const fullName = `${masterFirstName} ${masterLastName}`.trim();
                 const progName = masterProgram || 'Student Profile';
 
                 sessionStorage.setItem('grantee_student_profile', JSON.stringify({
@@ -323,10 +333,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Formatted Auto-Collected Profile Information
                 if (document.getElementById('prof-fullname')) document.getElementById('prof-fullname').value = formatText(studentFullName, autoFmt['Full Name']);
-                if (document.getElementById('prof-gender')) document.getElementById('prof-gender').value = formatText(profile.gender || 'N/A', autoFmt['Gender']);
+                if (document.getElementById('prof-gender')) document.getElementById('prof-gender').value = formatText(masterGender || 'N/A', autoFmt['Gender']);
                 if (document.getElementById('prof-address')) document.getElementById('prof-address').value = formatText(profile.address || 'N/A', autoFmt['Address']);
                 if (document.getElementById('prof-program')) document.getElementById('prof-program').value = formatText(masterProgram || 'N/A', autoFmt['Program']);
-                if (document.getElementById('prof-year')) document.getElementById('prof-year').value = formatText(profile.year_level || 'N/A', autoFmt['Year Level']);
+                if (document.getElementById('prof-year')) document.getElementById('prof-year').value = formatText(masterYear || 'N/A', autoFmt['Year Level']);
             }
 
             // C. Render Eligibility Rules

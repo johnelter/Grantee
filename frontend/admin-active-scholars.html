@@ -332,7 +332,7 @@
                                     <th class="th-program">Program & Year</th>
                                     <th class="th-assistance">Educational Assistance</th>
                                     <th class="th-details">Assistance Details</th>
-                                    <th class="th-date">Date Rewarded</th>
+                                    <th class="th-date">Date Added</th>
                                     <th class="th-duration">Duration</th>
                                     <th class="th-actions"></th>
                                 </tr>
@@ -565,6 +565,36 @@
                     <input type="text" id="manual-outside-name" class="form-input" placeholder="e.g. CHED, DOST">
                 </div>
 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label
+                            style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                            School Year (SY)
+                        </label>
+                        <input type="text" id="manual-sy" class="form-input" placeholder="e.g. 2025-2026">
+                    </div>
+                    <div>
+                        <label
+                            style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                            Semester
+                        </label>
+                        <select id="manual-semester" class="form-input">
+                            <option value="">Select Semester</option>
+                            <option value="1st Semester">1st Semester</option>
+                            <option value="2nd Semester">2nd Semester</option>
+                            <option value="Summer">Summer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                        Batch
+                    </label>
+                    <input type="text" id="manual-batch" class="form-input" placeholder="e.g. Batch 1">
+                </div>
+
                 <div style="margin-bottom: 14px;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
@@ -601,6 +631,108 @@
 
                 <button type="submit" id="btn-submit-manual" class="btn-primary" style="width: 100%;">
                     Add Beneficiary
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT ASSISTANCE DETAILS MODAL -->
+    <div id="edit-details-modal" class="global-modal-overlay" style="display: none;">
+        <div class="global-modal-content" style="width: 90%; max-width: 480px; text-align: left; padding: 28px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3
+                    style="margin:0; font-size: 20px; color: var(--text-heading); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="edit-3" style="width: 20px; height: 20px; color: var(--river-blue);"></i> Edit Assistance Details
+                </h3>
+                <button type="button"
+                    style="background:transparent; border:none; cursor:pointer; color: var(--text-muted);"
+                    onclick="document.getElementById('edit-details-modal').style.display='none'">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+
+            <form id="form-edit-details">
+                <input type="hidden" id="edit-app-id">
+
+                <div style="background: var(--input-bg, #F8FAF7); border: 1px solid var(--border-color, #DFE6DC); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
+                    <div style="font-size: 13.5px; font-weight: 700; color: var(--text-heading);" id="edit-student-display">Student Info</div>
+                    <div style="font-size: 12.5px; color: var(--accent-color, #6B7F4E); font-weight: 600; margin-top: 2px;" id="edit-program-display">Program Title</div>
+                </div>
+
+                <div id="edit-outside-name-container" style="margin-bottom: 14px; display: none;">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                        Outside Assistance Name
+                    </label>
+                    <input type="text" id="edit-outside-name" class="form-input" placeholder="e.g. CHED, DOST">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label
+                            style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                            School Year (SY)
+                        </label>
+                        <input type="text" id="edit-sy" class="form-input" placeholder="e.g. 2025-2026">
+                    </div>
+                    <div>
+                        <label
+                            style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                            Semester
+                        </label>
+                        <select id="edit-semester" class="form-input">
+                            <option value="">Select Semester</option>
+                            <option value="1st Semester">1st Semester</option>
+                            <option value="2nd Semester">2nd Semester</option>
+                            <option value="Summer">Summer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label
+                            style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                            Batch
+                        </label>
+                        <input type="text" id="edit-batch" class="form-input" placeholder="e.g. Batch 1">
+                    </div>
+                    <div>
+                        <label
+                            style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                            Assistance Duration
+                        </label>
+                        <select id="edit-duration" class="form-input">
+                            <option value="Not Set">Not Set</option>
+                            <option value="1 Semester">1 Semester</option>
+                            <option value="2 Semesters (1 Year)">2 Semesters (1 Year)</option>
+                            <option value="3 Semesters (1.5 Years)">3 Semesters (1.5 Years)</option>
+                            <option value="4 Semesters (2 Years)">4 Semesters (2 Years)</option>
+                            <option value="5 Semesters (2.5 Years)">5 Semesters (2.5 Years)</option>
+                            <option value="6 Semesters (3 Years)">6 Semesters (3 Years)</option>
+                            <option value="7 Semesters (3.5 Years)">7 Semesters (3.5 Years)</option>
+                            <option value="8 Semesters (4 Years)">8 Semesters (4 Years)</option>
+                            <option value="Until Graduation">Until Graduation</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 22px;">
+                    <label
+                        style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
+                        Educational Assistance Category
+                    </label>
+                    <select id="edit-category" class="form-input">
+                        <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
+                        <option value="Ched Educational Assistance">Ched Educational Assistance</option>
+                        <option value="Private Educational Assistance">Private Educational Assistance</option>
+                        <option value="Government Educational Assistance">Government Educational Assistance</option>
+                        <option value="Outside Assistance">Outside Assistance</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="btn-submit-edit-details" class="btn-primary" style="width: 100%;">
+                    Save Assistance Details
                 </button>
             </form>
         </div>

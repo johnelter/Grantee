@@ -143,45 +143,76 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error) throw error;
 
-            // STEP 2: Fetch School & Masterlist Syncing
+            // STEP 2: Fetch School & Masterlist Syncing (Authoritative Source for Personal & Academic Data)
             let schoolName = 'Unassigned School';
-            let masterGender = profile.gender; // Defaults to what the student saved
-            let masterYear = profile.year_level;
-            let masterProgram = profile.program || profile.course;
+            let masterFirstName = profile.first_name || '';
+            let masterMiddleName = profile.middle_name || '';
+            let masterLastName = profile.last_name || '';
+            let masterIdNumber = profile.id_number || '';
+            let masterGender = profile.gender || '';
+            let masterYear = profile.year_level || '';
+            let masterProgram = profile.program || profile.course || '';
+            let masterSchoolId = profile.school_id || null;
 
             if (profile.id_number) {
                 const { data: masterlistData, error: masterlistError } = await window.supabaseClient
                     .from('enrolled_masterlist')
-                    .select('school_id, schools(name), gender, year_level, program')
+                    .select('id_number, first_name, middle_name, last_name, gender, year_level, program, school_id, schools(name)')
                     .eq('id_number', profile.id_number)
-                    .single();
+                    .maybeSingle();
 
                 if (!masterlistError && masterlistData) {
                     if (masterlistData.schools) schoolName = masterlistData.schools.name;
 
-                    if (!masterGender && masterlistData.gender) {
-                        masterGender = masterlistData.gender;
+                    if (masterlistData.first_name) masterFirstName = masterlistData.first_name;
+                    if (masterlistData.last_name) masterLastName = masterlistData.last_name;
+                    if (masterlistData.middle_name !== undefined && masterlistData.middle_name !== null) {
+                        masterMiddleName = masterlistData.middle_name;
                     }
-
+                    if (masterlistData.id_number) masterIdNumber = masterlistData.id_number;
+                    if (masterlistData.gender) masterGender = masterlistData.gender;
                     if (masterlistData.year_level) masterYear = masterlistData.year_level;
                     if (masterlistData.program) masterProgram = masterlistData.program;
+                    if (masterlistData.school_id) masterSchoolId = masterlistData.school_id;
 
-                    // Auto-correct the profiles table silently for Academic Info ONLY
-                    if (profile.year_level !== masterYear || profile.program !== masterProgram) {
-                        window.supabaseClient.from('profiles').update({
+                    // Auto-sync the profiles table silently with ALL authoritative masterlist data
+                    const needsSync = (
+                        (profile.first_name || '') !== (masterFirstName || '') ||
+                        (profile.last_name || '') !== (masterLastName || '') ||
+                        (profile.middle_name || '') !== (masterMiddleName || '') ||
+                        (profile.id_number || '') !== (masterIdNumber || '') ||
+                        (profile.gender || '') !== (masterGender || '') ||
+                        (profile.year_level || '') !== (masterYear || '') ||
+                        (profile.program || '') !== (masterProgram || '') ||
+                        (masterSchoolId && profile.school_id !== masterSchoolId)
+                    );
+
+                    if (needsSync) {
+                        const syncUpdates = {
+                            first_name: masterFirstName,
+                            last_name: masterLastName,
+                            middle_name: masterMiddleName,
+                            id_number: masterIdNumber,
+                            gender: masterGender,
                             year_level: masterYear,
                             program: masterProgram
-                        }).eq('id', userId).then();
+                        };
+                        if (masterSchoolId) syncUpdates.school_id = masterSchoolId;
+
+                        await window.supabaseClient.from('profiles').update(syncUpdates).eq('id', userId);
+
+                        // Keep local in-memory profile up to date
+                        Object.assign(profile, syncUpdates);
                     }
                 }
             }
 
             // --- Update Header & Avatars ---
             if (profile) {
-                const firstName = profile.first_name || 'Student';
-                const lastName = profile.last_name || '';
+                const firstName = masterFirstName || profile.first_name || 'Student';
+                const lastName = masterLastName || profile.last_name || '';
                 const fullName = `${firstName} ${lastName}`.trim();
-                const progName = masterProgram || 'Student';
+                const progName = masterProgram || profile.program || 'Student';
 
                 sessionStorage.setItem('grantee_student_profile', JSON.stringify({
                     name: fullName,
@@ -206,11 +237,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // --- Locked Personal Information ---
-            if (document.getElementById('first_name')) document.getElementById('first_name').value = profile.first_name || '';
-            if (document.getElementById('middle_name')) document.getElementById('middle_name').value = profile.middle_name || '';
-            if (document.getElementById('last_name')) document.getElementById('last_name').value = profile.last_name || '';
+            if (document.getElementById('first_name')) document.getElementById('first_name').value = masterFirstName;
+            if (document.getElementById('middle_name')) document.getElementById('middle_name').value = masterMiddleName;
+            if (document.getElementById('last_name')) document.getElementById('last_name').value = masterLastName;
             if (document.getElementById('email')) document.getElementById('email').value = profile.email || '';
-            if (document.getElementById('student_id')) document.getElementById('student_id').value = profile.id_number || '';
+            if (document.getElementById('student_id')) document.getElementById('student_id').value = masterIdNumber;
 
             if (profile.created_at && document.getElementById('reg_date')) {
                 const regDate = new Date(profile.created_at);
@@ -219,15 +250,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // --- Locked Academic Information ---
             if (document.getElementById('school')) document.getElementById('school').value = schoolName;
-            if (document.getElementById('program')) document.getElementById('program').value = masterProgram || '';
-            if (document.getElementById('year_level')) document.getElementById('year_level').value = masterYear || '';
+            if (document.getElementById('program')) document.getElementById('program').value = masterProgram;
+            if (document.getElementById('year_level')) document.getElementById('year_level').value = masterYear;
 
             // --- Editable Fields (Personal) ---
             if (document.getElementById('suffix')) document.getElementById('suffix').value = profile.suffix || '';
             if (document.getElementById('dob')) document.getElementById('dob').value = profile.date_of_birth || '';
             if (document.getElementById('contact_number')) document.getElementById('contact_number').value = profile.contact_number || '';
             if (document.getElementById('address')) document.getElementById('address').value = profile.address || '';
-            if (document.getElementById('gender')) document.getElementById('gender').value = masterGender || '';
+            if (document.getElementById('gender')) document.getElementById('gender').value = masterGender;
 
             // --- Editable Fields (Academic) ---
             if (document.getElementById('gwa')) document.getElementById('gwa').value = profile.gwa || '';
@@ -365,6 +396,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const { error } = await window.supabaseClient.from('profiles').update(updates).eq('id', userId);
                     if (error) throw error;
+
+                    // Also sync gender back to enrolled_masterlist if available
+                    const studentIdVal = document.getElementById('student_id')?.value?.trim();
+                    if (updates.gender && studentIdVal) {
+                        try {
+                            await window.supabaseClient
+                                .from('enrolled_masterlist')
+                                .update({ gender: updates.gender })
+                                .eq('id_number', studentIdVal);
+                        } catch (mErr) {
+                            console.warn("Masterlist gender sync note:", mErr);
+                        }
+                    }
 
                     // Immediately update local profile cache
                     try {

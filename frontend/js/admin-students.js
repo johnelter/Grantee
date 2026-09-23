@@ -114,18 +114,19 @@
         }
         if (tbody) {
             const rowTemplates = [
-                { idW: '100px', nameW: '160px', progW: '220px' },
-                { idW: '110px', nameW: '190px', progW: '250px' },
-                { idW: '95px', nameW: '140px', progW: '210px' },
-                { idW: '105px', nameW: '175px', progW: '230px' },
-                { idW: '100px', nameW: '155px', progW: '200px' },
-                { idW: '115px', nameW: '180px', progW: '240px' }
+                { idW: '100px', nameW: '160px', emailW: '160px', progW: '220px' },
+                { idW: '110px', nameW: '190px', emailW: '180px', progW: '250px' },
+                { idW: '95px', nameW: '140px', emailW: '150px', progW: '210px' },
+                { idW: '105px', nameW: '175px', emailW: '170px', progW: '230px' },
+                { idW: '100px', nameW: '155px', emailW: '165px', progW: '200px' },
+                { idW: '115px', nameW: '180px', emailW: '175px', progW: '240px' }
             ];
             tbody.innerHTML = rowTemplates.map(r => `
                 <tr class="skeleton-row">
                     <td style="padding: 15px 18px; vertical-align: middle;"><div class="skeleton-box skeleton-cb"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-id" style="width: ${r.idW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-name" style="width: ${r.nameW};"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-email" style="width: ${r.emailW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-program" style="width: ${r.progW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-year"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-gender"></div></td>
@@ -143,7 +144,7 @@
 
     async function fetchEnrolledStudents() {
         if (!currentAdminSchoolId) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding:40px;">No school assigned to this admin.</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center text-red" style="padding:40px;">No school assigned to this admin.</td></tr>`;
             const headerTitles = document.getElementById('header-titles-box');
             if (headerTitles) headerTitles.classList.remove('is-loading');
             return;
@@ -179,14 +180,14 @@
 
             const students = allFetched;
 
-            // Paginate profiles fetch as well
+            // Paginate profiles fetch as well (include verified login email and profile ID)
             let allProfiles = [];
             let profFrom = 0;
             let profHasMore = true;
             while (profHasMore) {
                 const { data: profPage, error: profError } = await window.supabaseClient
                     .from('profiles')
-                    .select('id_number, gender')
+                    .select('id, id_number, email, gender, role')
                     .not('id_number', 'is', null)
                     .range(profFrom, profFrom + PAGE_SIZE - 1);
                 if (profError) break;
@@ -199,11 +200,19 @@
                 }
             }
 
-            if (allProfiles.length > 0 && students.length > 0) {
+            if (students.length > 0) {
                 students.forEach(s => {
-                    const liveProfile = allProfiles.find(p => p.id_number === s.id_number);
-                    if (liveProfile && liveProfile.gender) {
-                        s.gender = liveProfile.gender;
+                    const sId = (s.id_number || '').toString().trim().toLowerCase();
+                    const liveProfile = allProfiles.find(p => 
+                        p.id_number && p.id_number.toString().trim().toLowerCase() === sId
+                    );
+                    if (liveProfile) {
+                        if (liveProfile.gender) s.gender = liveProfile.gender;
+                        s.email = liveProfile.email || '';
+                        s.profile_id = liveProfile.id || null;
+                    } else {
+                        s.email = '';
+                        s.profile_id = null;
                     }
                 });
             }
@@ -262,7 +271,7 @@
 
         if (!tbody) return;
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
             return;
         }
 
@@ -277,12 +286,33 @@
             const badgeClass = statusText === 'Unenrolled' ? 'badge-status-unenrolled' : 'badge-status-enrolled';
             const badgeIcon = statusText === 'Unenrolled' ? 'alert-circle' : 'check-circle-2';
 
+            let emailCellHtml = '';
+            if (s.email) {
+                emailCellHtml = `
+                    <div class="student-email-cell">
+                        <span class="student-email-text" title="${s.email}">${s.email}</span>
+                        <span class="badge-verified-email" title="Verified Login Email">
+                            <i data-lucide="check-circle-2" style="width: 11px; height: 11px;"></i> Verified
+                        </span>
+                    </div>
+                `;
+            } else {
+                emailCellHtml = `
+                    <div class="student-email-cell">
+                        <span class="badge-unregistered-email" title="Account not yet registered">
+                            <i data-lucide="user-x" style="width: 11px; height: 11px;"></i> Not Registered
+                        </span>
+                    </div>
+                `;
+            }
+
             tr.innerHTML = `
                 <td style="padding: 15px 18px; vertical-align: middle;">
                     <input type="checkbox" class="row-checkbox" data-id="${s.id}" ${selectedIds.has(s.id) ? 'checked' : ''}>
                 </td>
                 <td style="color:var(--text-heading); font-weight:700; vertical-align: middle;">${s.id_number}</td>
                 <td style="vertical-align: middle; font-weight:600;">${fullName}</td>
+                <td style="vertical-align: middle;">${emailCellHtml}</td>
                 <td style="vertical-align: middle; color:var(--text-muted);">${s.program || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.year_level || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.gender || 'N/A'}</td>
@@ -294,7 +324,7 @@
                 </td>
                 <td style="text-align: right; vertical-align: middle; padding-right: 20px;">
                     <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
-                        <button onclick="editStudent('${s.id}')" title="Edit Student" class="btn-table-action btn-table-edit">
+                        <button onclick="editStudent('${s.id}')" title="Edit Student Info" class="btn-table-action btn-table-edit">
                             <i data-lucide="pencil" style="width: 15px; height: 15px;"></i>
                         </button>
                         <button onclick="deleteStudent('${s.id}')" title="Delete Student" class="btn-table-action btn-table-delete">
@@ -416,7 +446,8 @@
         const filtered = allStudents.filter(s => {
             const matchSearch = (s.id_number || '').toLowerCase().includes(term) ||
                 (s.first_name || '').toLowerCase().includes(term) ||
-                (s.last_name || '').toLowerCase().includes(term);
+                (s.last_name || '').toLowerCase().includes(term) ||
+                (s.email || '').toLowerCase().includes(term);
             const matchProg = prog === "" || s.program === prog;
             const matchYear = year === "" || s.year_level === year;
             return matchSearch && matchProg && matchYear;
@@ -428,6 +459,97 @@
     if (document.getElementById('search-input')) document.getElementById('search-input').addEventListener('input', applyFilters);
     if (document.getElementById('filter-program')) document.getElementById('filter-program').addEventListener('change', applyFilters);
     if (document.getElementById('filter-year')) document.getElementById('filter-year').addEventListener('change', applyFilters);
+
+    // ==========================================
+    // 3.5 EMAIL UPDATE SERVICE (Supabase Auth & Profiles Sync)
+    // ==========================================
+    async function updateStudentEmailService(profileId, idNumber, newEmail) {
+        const cleanEmail = (newEmail || '').trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.includes('@')) {
+            throw new Error("A valid email address is required.");
+        }
+
+        // 1. Direct Supabase RPC check/update if created in Supabase
+        if (window.supabaseClient && idNumber) {
+            try {
+                const { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('admin_update_student_email', {
+                    target_id_number: idNumber,
+                    new_email: cleanEmail
+                });
+                if (!rpcErr && rpcRes) {
+                    if (rpcRes.success) {
+                        return { success: true, message: rpcRes.message || "Email updated successfully." };
+                    } else if (rpcRes.error) {
+                        throw new Error(rpcRes.error);
+                    }
+                }
+            } catch (rpcEx) {
+                if (rpcEx.message && (rpcEx.message.includes('already in use') || rpcEx.message.includes('already registered'))) {
+                    throw rpcEx;
+                }
+            }
+        }
+
+        // 2. Local & Cloud backend routes
+        const isLocal = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.protocol === 'file:';
+
+        const candidateUrls = isLocal
+            ? ['http://localhost:3000/api/admin/update-student-email', 'https://grantee-backend-n5f4.onrender.com/api/admin/update-student-email']
+            : ['https://grantee-backend-n5f4.onrender.com/api/admin/update-student-email', 'http://localhost:3000/api/admin/update-student-email'];
+
+        let lastError = null;
+
+        for (const url of candidateUrls) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        profileId: profileId || null,
+                        idNumber: idNumber || null,
+                        newEmail: cleanEmail
+                    })
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok) {
+                    return { success: true, message: data.message || "Email updated successfully." };
+                } else {
+                    lastError = data.error || `Server returned error (${res.status})`;
+                    if (res.status === 400) {
+                        throw new Error(lastError);
+                    }
+                }
+            } catch (fetchErr) {
+                lastError = fetchErr.message;
+                if (fetchErr.message && (fetchErr.message.includes('already registered') || fetchErr.message.includes('already in use'))) {
+                    throw fetchErr;
+                }
+            }
+        }
+
+        // 3. Fallback direct profile update if client has permissions
+        if (profileId || idNumber) {
+            let profQuery = window.supabaseClient.from('profiles').update({ 
+                email: cleanEmail, 
+                updated_at: new Date() 
+            });
+            if (profileId) {
+                profQuery = profQuery.eq('id', profileId);
+            } else {
+                profQuery = profQuery.eq('id_number', idNumber);
+            }
+            const { error: profErr } = await profQuery;
+            if (!profErr) {
+                return { success: true, message: 'Student profile email updated in database.' };
+            }
+        }
+
+        throw new Error(lastError || 'Could not update student email. Please ensure the backend server is running or deployed.');
+    }
 
     // ==========================================
     // 4. ADD / EDIT STUDENT MODAL LOGIC
@@ -442,6 +564,18 @@
             if (studentForm) studentForm.reset();
             document.getElementById('student-db-id').value = '';
             document.getElementById('student-modal-title').innerHTML = `<i data-lucide="user-plus" style="width: 20px; height: 20px; color: var(--moss-green);"></i> Add New Student`;
+
+            // When adding a new student, they have not registered yet so hide the email field
+            const stuEmailGroup = document.getElementById('stu-email-group');
+            if (stuEmailGroup) stuEmailGroup.style.display = 'none';
+
+            const stuEmailInput = document.getElementById('stu-email');
+            if (stuEmailInput) {
+                stuEmailInput.value = '';
+                stuEmailInput.dataset.originalEmail = '';
+                stuEmailInput.dataset.profileId = '';
+                stuEmailInput.disabled = true;
+            }
 
             const statusGroup = document.getElementById('stu-status-group');
             const genderStatusGrid = document.getElementById('stu-gender-status-grid');
@@ -468,6 +602,57 @@
         if (document.getElementById('stu-fname')) document.getElementById('stu-fname').value = s.first_name || '';
         if (document.getElementById('stu-lname')) document.getElementById('stu-lname').value = s.last_name || '';
         if (mnameInput) mnameInput.value = s.middle_name || '';
+
+        const stuEmailGroup = document.getElementById('stu-email-group');
+        const stuEmailInput = document.getElementById('stu-email');
+        const stuEmailBadge = document.getElementById('stu-email-badge');
+        const stuEmailHint = document.getElementById('stu-email-hint');
+
+        if (stuEmailGroup) stuEmailGroup.style.display = 'block';
+
+        if (s.profile_id || s.email) {
+            // Student HAS registered and provided an email -> Coordinator CAN edit it
+            if (stuEmailInput) {
+                stuEmailInput.disabled = false;
+                stuEmailInput.readOnly = false;
+                stuEmailInput.classList.remove('locked-input', 'italic-muted');
+                stuEmailInput.value = s.email || '';
+                stuEmailInput.placeholder = 'e.g. student@gmail.com';
+                stuEmailInput.dataset.originalEmail = s.email || '';
+                stuEmailInput.dataset.profileId = s.profile_id || '';
+            }
+
+            if (stuEmailBadge) {
+                stuEmailBadge.style.display = 'inline-flex';
+                stuEmailBadge.innerHTML = `<i data-lucide="check-circle-2" style="width: 11px; height: 11px;"></i> Verified & Editable`;
+                stuEmailBadge.className = 'badge-verified-email';
+            }
+
+            if (stuEmailHint) {
+                stuEmailHint.innerHTML = `This student has registered. You can edit their email if it is incorrect or no longer active.`;
+            }
+        } else {
+            // Student HAS NOT registered yet -> Locked / cannot put or edit email
+            if (stuEmailInput) {
+                stuEmailInput.disabled = true;
+                stuEmailInput.readOnly = true;
+                stuEmailInput.classList.add('locked-input', 'italic-muted');
+                stuEmailInput.value = '';
+                stuEmailInput.placeholder = 'Not registered yet (Email cannot be set manually)';
+                stuEmailInput.dataset.originalEmail = '';
+                stuEmailInput.dataset.profileId = '';
+            }
+
+            if (stuEmailBadge) {
+                stuEmailBadge.style.display = 'inline-flex';
+                stuEmailBadge.innerHTML = `<i data-lucide="lock" style="width: 11px; height: 11px;"></i> Not Registered (Locked)`;
+                stuEmailBadge.className = 'badge-unregistered-email';
+            }
+
+            if (stuEmailHint) {
+                stuEmailHint.innerHTML = `⚠️ This student has not created or verified an account yet. Email cannot be edited until the student registers.`;
+            }
+        }
 
         if (document.getElementById('stu-program')) document.getElementById('stu-program').value = s.program || '';
         if (document.getElementById('stu-year')) document.getElementById('stu-year').value = s.year_level || '';
@@ -512,6 +697,16 @@
             const isDuplicate = allStudents.some(s => s.id_number.toLowerCase() === inputIdNumber.toLowerCase() && String(s.id) !== String(id));
             if (isDuplicate) {
                 Swal.fire('Duplicate Entry', `A student with the ID Number "${inputIdNumber}" is already in the masterlist!`, 'error');
+                return;
+            }
+
+            const emailInput = document.getElementById('stu-email');
+            const newEmailVal = (emailInput && !emailInput.disabled) ? emailInput.value.trim() : '';
+            const originalEmailVal = emailInput ? (emailInput.dataset.originalEmail || '').trim() : '';
+            const profileIdVal = emailInput ? (emailInput.dataset.profileId || '') : '';
+
+            if (profileIdVal && newEmailVal && (!newEmailVal.includes('@') || !newEmailVal.includes('.'))) {
+                Swal.fire('Invalid Email', 'Please provide a valid email address (e.g. name@gmail.com).', 'warning');
                 return;
             }
 
@@ -568,6 +763,19 @@
                             }
                         } catch (syncExc) {
                             console.warn("Direct profile sync exception:", syncExc);
+                        }
+                    }
+
+                    // Check if email was modified for a registered student and update via service
+                    if (newEmailVal && newEmailVal.toLowerCase() !== originalEmailVal.toLowerCase()) {
+                        try {
+                            await updateStudentEmailService(profileIdVal, targetIdNumber, newEmailVal);
+                        } catch (emailErr) {
+                            console.error("Email update warning:", emailErr);
+                            Swal.fire('Partial Update', `Student details saved, but updating login email returned: ${emailErr.message}`, 'warning');
+                            studentModal.style.display = 'none';
+                            fetchEnrolledStudents();
+                            return;
                         }
                     }
                 } else {

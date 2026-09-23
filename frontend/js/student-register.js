@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const idInput = document.getElementById('reg_id');
     const btnVerifyId = document.getElementById('btn-verify-id');
     const idStatus = document.getElementById('id-status');
+    const btnChangeId = document.getElementById('btn-change-id');
 
     const emailInput = document.getElementById('reg_email');
     const btnSendOtp = document.getElementById('btn-send-otp');
@@ -55,6 +56,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
+    // BACKEND COMMUNICATION HELPER
+    // ==========================================
+    async function fetchBackend(endpoint, body) {
+        const isLocal = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.protocol === 'file:';
+        
+        const candidateUrls = isLocal
+            ? [`http://localhost:3000${endpoint}`, `https://grantee-backend-n5f4.onrender.com${endpoint}`]
+            : [`https://grantee-backend-n5f4.onrender.com${endpoint}`, `http://localhost:3000${endpoint}`];
+
+        let lastErr = null;
+        for (const url of candidateUrls) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                return res;
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        throw lastErr || new Error('Unable to connect to the verification server.');
+    }
+
+    // ==========================================
     // 1. VERIFY STUDENT ID
     // ==========================================
     btnVerifyId.addEventListener('click', async () => {
@@ -70,15 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btnVerifyId.disabled = true;
             btnVerifyId.classList.add('disabled-style');
 
-            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/verify-id', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id_number: idVal })
-            });
+            const response = await fetchBackend('/api/verify-id', { id_number: idVal });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
-            if (!response.ok) throw new Error(data.error);
+            if (!response.ok) throw new Error(data.error || 'Failed to verify ID number.');
 
             // Success! Populate data
             studentData = data;
@@ -88,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             idStatus.className = "status-msg msg-success";
             idInput.disabled = true;
             btnVerifyId.style.display = 'none';
+            if (btnChangeId) btnChangeId.style.display = 'inline-block';
 
             // Fill and show the autofill section
             document.getElementById('reg_first').value = studentData.first_name || '';
@@ -111,6 +137,57 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
+    // 1.5 RESET / CHANGE STUDENT ID
+    // ==========================================
+    function resetIdVerification() {
+        // Unlock ID input
+        idInput.disabled = false;
+        idInput.focus();
+        idInput.select();
+
+        // Restore Verify Button & hide Change ID link
+        btnVerifyId.style.display = 'inline-flex';
+        btnVerifyId.disabled = false;
+        btnVerifyId.innerText = 'Verify';
+        btnVerifyId.classList.remove('disabled-style');
+        if (btnChangeId) btnChangeId.style.display = 'none';
+
+        // Clear ID status & hide autofill details
+        idStatus.innerText = '';
+        idStatus.className = 'status-msg';
+        const autofillSection = document.getElementById('autofill-section');
+        if (autofillSection) autofillSection.style.display = 'none';
+        document.getElementById('reg_first').value = '';
+        document.getElementById('reg_last').value = '';
+        document.getElementById('reg_middle').value = '';
+        document.getElementById('reg_program').value = '';
+
+        // Reset state tracker
+        isIdVerified = false;
+        studentData = null;
+
+        // Reset & lock subsequent email steps
+        resetEmailVerification();
+        emailInput.disabled = true;
+        emailInput.value = '';
+        btnSendOtp.disabled = true;
+        btnSendOtp.classList.add('disabled-style');
+    }
+
+    if (btnChangeId) {
+        btnChangeId.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetIdVerification();
+        });
+    }
+
+    idInput.addEventListener('input', () => {
+        if (isIdVerified) {
+            resetIdVerification();
+        }
+    });
+
+    // ==========================================
     // 2. SEND EMAIL OTP
     // ==========================================
     btnSendOtp.addEventListener('click', async () => {
@@ -122,18 +199,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            btnSendOtp.innerText = "Sending...";
+            btnSendOtp.innerText = "Checking...";
             btnSendOtp.disabled = true;
             btnSendOtp.classList.add('disabled-style');
             emailInput.disabled = true; // Temporarily lock the input while waiting
 
-            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/send-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailVal })
-            });
+            // 1. Direct Supabase RPC check if the function exists
+            if (window.supabaseClient) {
+                try {
+                    const { data: isRegistered, error: rpcErr } = await window.supabaseClient
+                        .rpc('check_email_registered', { check_email: emailVal });
+                    if (!rpcErr && isRegistered === true) {
+                        throw new Error("This email address is already in use by another user. Please use a different email.");
+                    }
+                } catch (rpcEx) {
+                    if (rpcEx && rpcEx.message && rpcEx.message.includes('already in use')) {
+                        throw rpcEx;
+                    }
+                }
+            }
 
-            if (!response.ok) throw new Error('Failed to send OTP');
+            btnSendOtp.innerText = "Sending...";
+
+            const response = await fetchBackend('/api/send-otp', { email: emailVal });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send OTP');
+            }
 
             emailStatus.innerText = "Code sent! Please check your email inbox.";
             emailStatus.className = "status-msg msg-success";
@@ -143,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnChangeEmail) btnChangeEmail.style.display = 'inline-block';
 
         } catch (error) {
-            emailStatus.innerText = "❌ Error sending code.";
+            emailStatus.innerText = "❌ " + (error.message || 'Error sending code.');
             emailStatus.className = "status-msg msg-error";
             btnSendOtp.innerText = "Verify";
             btnSendOtp.disabled = false;
@@ -155,25 +249,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 2.5 RESET EMAIL (Change Email Button)
     // ==========================================
+    function resetEmailVerification() {
+        // Unlock the email input and reset the send button
+        emailInput.disabled = false;
+        emailInput.focus();
+        emailInput.select();
+
+        btnSendOtp.style.display = 'inline-flex';
+        btnSendOtp.disabled = false;
+        btnSendOtp.classList.remove('disabled-style');
+        btnSendOtp.innerText = "Verify";
+
+        // Hide the OTP section and the change button
+        otpSection.style.display = 'none';
+        if (btnChangeEmail) btnChangeEmail.style.display = 'none';
+
+        // Clear the status text and old OTP inputs
+        emailStatus.innerText = "";
+        emailStatus.className = "status-msg";
+        otpInput.value = "";
+
+        // Reset state
+        isEmailVerified = false;
+
+        // Reset & lock password & registration submit
+        passInput.disabled = true;
+        passInput.value = '';
+        passConfirmInput.disabled = true;
+        passConfirmInput.value = '';
+        btnRegister.disabled = true;
+        btnRegister.classList.add('disabled-style');
+    }
+
     if (btnChangeEmail) {
         btnChangeEmail.addEventListener('click', (e) => {
             e.preventDefault();
-
-            // Unlock the email input and reset the send button
-            emailInput.disabled = false;
-            btnSendOtp.disabled = false;
-            btnSendOtp.classList.remove('disabled-style');
-            btnSendOtp.innerText = "Verify";
-
-            // Hide the OTP section and the change button
-            otpSection.style.display = 'none';
-            btnChangeEmail.style.display = 'none';
-
-            // Clear the status text and old OTP inputs
-            emailStatus.innerText = "";
-            otpInput.value = "";
+            resetEmailVerification();
         });
     }
+
+    emailInput.addEventListener('input', () => {
+        if (isEmailVerified) {
+            resetEmailVerification();
+        }
+    });
 
     // ==========================================
     // 3. CONFIRM OTP
@@ -182,21 +301,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const code = otpInput.value.trim();
         const emailVal = emailInput.value.trim();
 
-        try {
-            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailVal, code: code })
+        if (!code) {
+            Swal.fire({
+                title: 'OTP Required',
+                text: 'Please enter the 6-digit verification code sent to your email.',
+                icon: 'warning',
+                confirmButtonColor: '#10b981'
             });
+            return;
+        }
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+        try {
+            btnConfirmOtp.innerText = 'Verifying...';
+            btnConfirmOtp.disabled = true;
+
+            const response = await fetchBackend('/api/verify-otp', { email: emailVal, code: code });
+
+            const data = await response.json().catch(() => ({}));
+            btnConfirmOtp.innerText = 'Confirm';
+            btnConfirmOtp.disabled = false;
+
+            if (!response.ok) throw new Error(data.error || 'Invalid or expired verification code.');
 
             // Success!
             isEmailVerified = true;
             otpSection.style.display = 'none';
             btnSendOtp.style.display = 'none';
-            if (btnChangeEmail) btnChangeEmail.style.display = 'none';
+            if (btnChangeEmail) btnChangeEmail.style.display = 'inline-block';
 
             emailStatus.innerText = "✓ Email verified securely.";
             emailStatus.className = "status-msg msg-success";
@@ -209,6 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btnRegister.classList.remove('disabled-style');
 
         } catch (error) {
+            btnConfirmOtp.innerText = 'Confirm';
+            btnConfirmOtp.disabled = false;
             Swal.fire({
                 title: 'Verification Failed',
                 text: error.message,

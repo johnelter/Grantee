@@ -254,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (document.getElementById('year_level')) document.getElementById('year_level').value = masterYear;
 
             // --- Editable Fields (Personal) ---
-            if (document.getElementById('suffix')) document.getElementById('suffix').value = profile.suffix || '';
             if (document.getElementById('dob')) document.getElementById('dob').value = profile.date_of_birth || '';
             if (document.getElementById('contact_number')) document.getElementById('contact_number').value = profile.contact_number || '';
             if (document.getElementById('address')) document.getElementById('address').value = profile.address || '';
@@ -386,7 +385,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 try {
                     const updates = {
-                        suffix: document.getElementById('suffix')?.value.trim() || null,
                         gender: document.getElementById('gender')?.value || null,
                         date_of_birth: document.getElementById('dob')?.value || null,
                         contact_number: document.getElementById('contact_number')?.value.trim() || null,

@@ -758,6 +758,73 @@ body.dark-theme select.form-input {
     letter-spacing: 0.02em;
 }
 
+.badge-verified-email {
+    background: var(--badge-enrolled-bg);
+    color: var(--badge-enrolled-color);
+    border: 1px solid var(--badge-enrolled-border);
+    padding: 2.5px 8px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3.5px;
+    letter-spacing: 0.02em;
+}
+
+.badge-unregistered-email {
+    background: var(--card-bg-secondary);
+    color: var(--text-muted);
+    border: 1px dashed var(--border-dark);
+    padding: 2.5px 8px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.student-email-cell {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.student-email-text {
+    font-weight: 600;
+    color: var(--text-heading);
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.locked-input,
+.locked-input:disabled,
+.locked-input[readonly] {
+    background: var(--card-bg-secondary) !important;
+    border-color: var(--border-dark) !important;
+    color: var(--text-muted) !important;
+    cursor: not-allowed !important;
+    opacity: 0.85;
+    user-select: none;
+}
+
+.locked-input:focus {
+    border-color: var(--border-dark) !important;
+    box-shadow: none !important;
+}
+
+.italic-muted::placeholder {
+    font-style: italic;
+    color: var(--text-muted) !important;
+    opacity: 0.75;
+}
+
+.skeleton-w-email {
+    width: 170px;
+}
+
 /* Action Buttons inside Table Rows */
 .btn-table-action {
     display: inline-flex;

@@ -263,6 +263,7 @@
                                     </th>
                                     <th>ID Number</th>
                                     <th>Full Name</th>
+                                    <th>Email Address</th>
                                     <th>Program</th>
                                     <th>Year Level</th>
                                     <th>Gender</th>
@@ -280,6 +281,9 @@
                                     </td>
                                     <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-name"></div>
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        <div class="skeleton-line skeleton-w-email"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-program"></div>
@@ -311,6 +315,9 @@
                                         <div class="skeleton-line skeleton-w-name" style="width: 190px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
+                                        <div class="skeleton-line skeleton-w-email" style="width: 180px;"></div>
+                                    </td>
+                                    <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-program" style="width: 250px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
@@ -338,6 +345,9 @@
                                     </td>
                                     <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-name" style="width: 140px;"></div>
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        <div class="skeleton-line skeleton-w-email" style="width: 160px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-program" style="width: 210px;"></div>
@@ -369,6 +379,9 @@
                                         <div class="skeleton-line skeleton-w-name" style="width: 175px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
+                                        <div class="skeleton-line skeleton-w-email" style="width: 175px;"></div>
+                                    </td>
+                                    <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-program" style="width: 230px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
@@ -398,6 +411,9 @@
                                         <div class="skeleton-line skeleton-w-name" style="width: 155px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
+                                        <div class="skeleton-line skeleton-w-email" style="width: 150px;"></div>
+                                    </td>
+                                    <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-program" style="width: 200px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
@@ -425,6 +441,9 @@
                                     </td>
                                     <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-name" style="width: 180px;"></div>
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        <div class="skeleton-line skeleton-w-email" style="width: 190px;"></div>
                                     </td>
                                     <td style="vertical-align: middle;">
                                         <div class="skeleton-line skeleton-w-program" style="width: 240px;"></div>
@@ -495,6 +514,20 @@
                         <label>Last Name / Surname <span style="color:var(--danger-color);">*</span></label>
                         <input type="text" id="stu-lname" class="form-input" required style="width: 100%;">
                     </div>
+                </div>
+
+                <div class="input-group" id="stu-email-group" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin: 0;">Verified Login Email</label>
+                        <span id="stu-email-badge" class="badge-verified-email" style="display: none;">
+                            <i data-lucide="check-circle-2" style="width: 11px; height: 11px;"></i> Account Linked
+                        </span>
+                    </div>
+                    <input type="email" id="stu-email" class="form-input" placeholder="e.g. student@gmail.com"
+                        style="width: 100%;">
+                    <small id="stu-email-hint" style="display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                        Coordinators can edit this if the student's email is incorrect or inactive.
+                    </small>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 16px;">

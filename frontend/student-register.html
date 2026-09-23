@@ -45,8 +45,8 @@
                 <form id="register-form">
                     <div class="input-group">
                         <div class="label-row">
-                            <label>Student ID Number</label>
-                            <span class="badge-required">REQUIRED</span>
+                            <label>Student ID Number <span style="color: var(--danger-red, #D94841);">*</span></label>
+                            <a href="#" id="btn-change-id" class="badge-change" style="display: none;">Change ID</a>
                         </div>
                         <div class="verify-flex">
                             <input type="text" id="reg_id" placeholder="Ex. 2021-00123" required>
@@ -89,7 +89,7 @@
 
                     <div class="input-group">
                         <div class="label-row">
-                            <label>Email Address</label>
+                            <label>Email Address <span style="color: var(--danger-red, #D94841);">*</span></label>
                             <a href="#" id="btn-change-email" class="badge-change" style="display: none;">Change
                                 Email</a>
                         </div>
@@ -102,7 +102,7 @@
                     </div>
 
                     <div id="otp-section" class="input-group mt-20" style="display: none;">
-                        <label>Enter 6-Digit OTP Code</label>
+                        <label>Enter 6-Digit OTP Code <span style="color: var(--danger-red, #D94841);">*</span></label>
                         <div class="verify-flex">
                             <input type="text" id="reg_otp" class="otp-input" placeholder="XXXXXX" maxlength="6">
                             <button type="button" id="btn-confirm-otp" class="btn-primary btn-verify">Confirm</button>
@@ -112,7 +112,7 @@
                     <hr class="divider">
 
                     <div class="input-group">
-                        <label>Password</label>
+                        <label>Password <span style="color: var(--danger-red, #D94841);">*</span></label>
                         <div style="position: relative; display: flex; align-items: center;">
                             <input type="password" id="reg_pass" placeholder="Create a strong password" disabled
                                 required style="width: 100%; padding-right: 40px;">
@@ -123,7 +123,7 @@
                     </div>
 
                     <div class="input-group mt-20">
-                        <label>Confirm Password</label>
+                        <label>Confirm Password <span style="color: var(--danger-red, #D94841);">*</span></label>
                         <div style="position: relative; display: flex; align-items: center;">
                             <input type="password" id="reg_pass_confirm" placeholder="Repeat password" disabled required
                                 style="width: 100%; padding-right: 40px;">

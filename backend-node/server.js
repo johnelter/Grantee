@@ -449,8 +449,32 @@ app.post('/api/send-otp', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+        // 1. Check if email is already in use by another user in profiles
+        const { data: existingProfile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('id, email, id_number')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+
+        if (profileErr) {
+            console.error('Error checking profile email conflict:', profileErr);
+        }
+
+        if (existingProfile) {
+            return res.status(400).json({
+                error: 'This email address is already in use by another user. Please use a different email.'
+            });
+        }
+    } catch (checkErr) {
+        console.error('Email duplicate check error:', checkErr);
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    otpDatabase[email] = code;
+    otpDatabase[cleanEmail] = code;
+    otpDatabase[email] = code; // also keep original casing just in case
 
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; background-color: #f8fafc; border-radius: 10px;">
@@ -488,8 +512,10 @@ app.post('/api/send-otp', async (req, res) => {
 // ============================================================================
 app.post('/api/verify-otp', (req, res) => {
     const { email, code } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
 
-    if (otpDatabase[email] && otpDatabase[email] === code) {
+    if ((otpDatabase[cleanEmail] && otpDatabase[cleanEmail] === code) || (otpDatabase[email] && otpDatabase[email] === code)) {
+        delete otpDatabase[cleanEmail];
         delete otpDatabase[email];
         res.status(200).json({ message: 'Email verified successfully!' });
     } else {
@@ -597,6 +623,96 @@ app.post('/api/update-notification-preferences', async (req, res) => {
 // 11. ADMIN: ANNOUNCEMENTS CONTROLLER ROUTE (NEW)
 // ============================================================================
 app.post('/api/announcements', createAnnouncement);
+
+// ============================================================================
+// 12. ADMIN: UPDATE STUDENT EMAIL (Supabase Auth & Profiles Sync)
+// ============================================================================
+app.post('/api/admin/update-student-email', async (req, res) => {
+    const { profileId, idNumber, newEmail } = req.body;
+    
+    if (!newEmail || !newEmail.includes('@')) {
+        return res.status(400).json({ error: 'A valid email address is required.' });
+    }
+
+    const cleanEmail = newEmail.trim().toLowerCase();
+
+    try {
+        // 1. Check if email is already assigned to another profile
+        let conflictQuery = supabase
+            .from('profiles')
+            .select('id, email, id_number')
+            .eq('email', cleanEmail);
+
+        if (profileId) {
+            conflictQuery = conflictQuery.neq('id', profileId);
+        } else if (idNumber) {
+            conflictQuery = conflictQuery.neq('id_number', idNumber);
+        }
+
+        const { data: conflicts, error: conflictErr } = await conflictQuery;
+        if (conflictErr) throw conflictErr;
+
+        if (conflicts && conflicts.length > 0) {
+            return res.status(400).json({
+                error: `The email "${cleanEmail}" is already registered to another user (Student ID: ${conflicts[0].id_number || 'N/A'}).`
+            });
+        }
+
+        let targetUserId = profileId;
+
+        // If profileId wasn't passed, find it by idNumber
+        if (!targetUserId && idNumber) {
+            const { data: targetProf, error: findErr } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id_number', idNumber)
+                .maybeSingle();
+
+            if (findErr) throw findErr;
+            if (targetProf) {
+                targetUserId = targetProf.id;
+            }
+        }
+
+        if (targetUserId) {
+            // Update Supabase Auth user record (updates login email & confirms it)
+            const { error: authErr } = await supabase.auth.admin.updateUserById(targetUserId, {
+                email: cleanEmail,
+                email_confirm: true
+            });
+
+            if (authErr) {
+                console.error("Supabase Admin Auth update error:", authErr);
+                return res.status(500).json({ error: `Auth Error: ${authErr.message}` });
+            }
+
+            // Update profiles table
+            const { error: profErr } = await supabase
+                .from('profiles')
+                .update({ 
+                    email: cleanEmail,
+                    updated_at: new Date()
+                })
+                .eq('id', targetUserId);
+
+            if (profErr) throw profErr;
+
+            return res.status(200).json({
+                success: true,
+                message: `Student login email updated to "${cleanEmail}". The student can now use this email to log in immediately.`
+            });
+        } else {
+            // No profile created yet for this student
+            return res.status(200).json({
+                success: true,
+                message: `No active account is linked to this student yet. When the student registers, they will use their email.`
+            });
+        }
+    } catch (err) {
+        console.error("Error updating student email:", err);
+        res.status(500).json({ error: err.message || "Failed to update student email." });
+    }
+});
 
 
 // ============================================================================

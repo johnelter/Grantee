@@ -706,7 +706,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class="chat-header-info">
                         <strong class="chat-header-name">Gia <span style="font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px;">AI Helper</span></strong>
-                        <span class="chat-header-subtitle">Your scholarship companion</span>
+                        <span class="chat-header-subtitle">Your educational assistance companion</span>
                     </div>
                 </div>
                 <div class="header-actions-box">
@@ -721,7 +721,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
 
             <div class="chat-input-area">
-                <input type="text" id="ai-chat-input" placeholder="Ask Gia anything about scholarships..." autocomplete="off">
+                <input type="text" id="ai-chat-input" placeholder="Ask Gia anything about educational assistance..." autocomplete="off">
                 <button class="send-btn" id="ai-chat-send-btn" aria-label="Send message" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
@@ -755,15 +755,23 @@ document.addEventListener("DOMContentLoaded", () => {
     // Default friendly welcoming message
     const defaultWelcome = {
         role: 'bot',
-        content: "Hi! 👋 I'm **Gia**, your friendly scholarship companion! How can I help you today? Feel free to ask about open scholarships, requirements, deadlines, or your application status! ✨",
+        content: "Hi! 👋 I'm **Gia**, your friendly educational assistance companion! How can I help you today? Feel free to ask about open educational assistance programs, requirements, deadlines, or your application status! ✨",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         showChips: true
     };
 
     // Chat History in Session Storage
     let chatHistory = JSON.parse(sessionStorage.getItem('ai_chat_history')) || [defaultWelcome];
-    if (chatHistory.length > 0 && chatHistory[0].role === 'bot' && chatHistory[0].content && chatHistory[0].content.includes('Rantee')) {
-        chatHistory[0].content = chatHistory[0].content.replace(/Rantee/g, 'Gia');
+    if (chatHistory.length > 0 && chatHistory[0].role === 'bot' && chatHistory[0].content) {
+        if (chatHistory[0].content.includes('Rantee')) {
+            chatHistory[0].content = chatHistory[0].content.replace(/Rantee/g, 'Gia');
+        }
+        if (chatHistory[0].content.includes('scholarship')) {
+            chatHistory[0].content = chatHistory[0].content
+                .replace(/scholarship companion/gi, 'educational assistance companion')
+                .replace(/open scholarships/gi, 'open educational assistance programs')
+                .replace(/scholarship/gi, 'educational assistance');
+        }
         sessionStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
     }
 
@@ -787,9 +795,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (msg.role === 'bot') {
                 const chipsHtml = (idx === 0 || msg.showChips) ? `
                     <div class="gia-chips-container">
-                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What scholarships or educational assistance are open right now?')">🎓 Open Scholarships</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What educational assistance programs are open right now?')">🎓 Open Educational Assistance</button>
                         <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What is my current application status?')">📋 My Application Status</button>
-                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What documents do I need to prepare for scholarship applications?')">📄 Required Documents</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What documents do I need to prepare for educational assistance applications?')">📄 Required Documents</button>
                         <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('Are there any new announcements or deadlines I should know?')">📢 Latest Announcements</button>
                     </div>
                 ` : '';
@@ -1137,29 +1145,56 @@ document.addEventListener("DOMContentLoaded", () => {
                     content: m.content
                 }));
 
-            const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/student/ai-chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    studentId: studentId || 'guest_student',
-                    messages: backendMessages
-                })
-            });
+            const isLocal = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1' || 
+                            window.location.protocol === 'file:';
+
+            const candidateUrls = isLocal
+                ? ['http://localhost:3000/api/student/ai-chat', 'https://grantee-backend-n5f4.onrender.com/api/student/ai-chat']
+                : ['https://grantee-backend-n5f4.onrender.com/api/student/ai-chat', 'http://localhost:3000/api/student/ai-chat'];
+
+            let response = null;
+            let lastErr = null;
+
+            for (const endpointUrl of candidateUrls) {
+                try {
+                    const res = await fetch(endpointUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            studentId: studentId || 'guest_student',
+                            messages: backendMessages
+                        })
+                    });
+                    if (res.ok) {
+                        response = res;
+                        break;
+                    }
+                } catch (fetchErr) {
+                    lastErr = fetchErr;
+                }
+            }
 
             const typingEl = document.getElementById(typingId);
             if (typingEl) typingEl.remove();
 
-            if (response.ok) {
+            if (response && response.ok) {
                 const data = await response.json();
+                let botReply = data.reply || "I'm here to help! Let me know if you have any questions.";
+                botReply = botReply
+                    .replace(/\bScholarships\b/g, 'Educational Assistance Programs')
+                    .replace(/\bscholarships\b/g, 'educational assistance programs')
+                    .replace(/\bScholarship\b/g, 'Educational Assistance')
+                    .replace(/\bscholarship\b/g, 'educational assistance');
                 chatHistory.push({
                     role: 'bot',
-                    content: data.reply || "I'm here to help! Let me know if you have any questions.",
+                    content: botReply,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
             } else {
                 chatHistory.push({
                     role: 'bot',
-                    content: "I'm having a little trouble connecting to the scholarship office server right now. Please try asking again in a moment!",
+                    content: "I'm having a little trouble connecting to the educational assistance office server right now. Please try asking again in a moment!",
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
             }

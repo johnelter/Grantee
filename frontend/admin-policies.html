@@ -218,6 +218,14 @@
                     </button>
                 </div>
             </header>
+            <script>
+                (function () {
+                    var h = document.querySelector('.top-header');
+                    if (h && h.offsetHeight > 0) {
+                        document.documentElement.style.setProperty('--top-header-height', h.offsetHeight + 'px');
+                    }
+                })();
+            </script>
 
             <div class="content-wrapper">
                 <!-- TOP BAR ACTION -->
@@ -233,7 +241,7 @@
                 </div>
 
                 <!-- INFO BANNER -->
-                <div class="info-banner mb-24">
+                <div class="info-banner mb-16">
                     <div class="info-banner-header">
                         <i data-lucide="info" class="info-banner-icon"></i>
                         <strong>About Educational Assistance Policies</strong>

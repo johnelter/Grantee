@@ -1276,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Failed to load educational assistance data:", err);
-            Swal.fire("Error", "Error loading details: " + err.message, "error");
+            showUIToast("error", "Error", "Error loading details: " + err.message);
         }
     };
 
@@ -1289,12 +1289,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const payload = gatherScholarshipData(status);
 
             if (!payload.title || !payload.start_date) {
-                Swal.fire('Missing Information', 'Please provide an Educational Assistance Name and Application Start Date.', 'warning');
+                showUIToast('warning', 'Warning', 'Please provide an Educational Assistance Name and Application Start Date.');
                 return;
             }
 
             if (!payload.school_id) {
-                Swal.fire('Account Error', 'Cannot save: Your admin account is not linked to a school.', 'error');
+                showUIToast('error', 'Error', 'Cannot save: Your admin account is not linked to a school.');
                 return;
             }
 
@@ -1343,18 +1343,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (e) { console.warn("Audit logging failed:", e); }
             }
 
-            await Swal.fire({
-                title: 'Success!',
-                text: isEditMode ? 'Educational Assistance successfully updated!' : `Educational Assistance successfully saved as ${status}!`,
-                icon: 'success',
-                confirmButtonColor: '#1F3D2E'
-            });
+            showUIToast(
+                'success',
+                'Success',
+                isEditMode ? 'Educational Assistance successfully updated!' : `Educational Assistance successfully saved as ${status}!`
+            );
 
-            window.location.href = 'admin-scholarships.html';
+            setTimeout(() => {
+                window.location.href = 'admin-scholarships.html';
+            }, 1400);
 
         } catch (error) {
             console.error('Error saving:', error);
-            Swal.fire('Save Failed', error.message, 'error');
+            showUIToast('error', 'Error', error.message || 'Error has occurred while saving changes.');
         } finally {
             if (isEditMode) {
                 btnElement.innerHTML = status === 'Active' ? '<i data-lucide="send" style="width: 16px; height: 16px;"></i> Update & Publish' : '<i data-lucide="file-pen-line" style="width: 16px; height: 16px;"></i> Update Draft';
@@ -1368,6 +1369,101 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (publishBtn) publishBtn.addEventListener('click', () => saveScholarship('Active', publishBtn));
     if (draftBtn) draftBtn.addEventListener('click', () => saveScholarship('Draft', draftBtn));
+
+    // ==========================================
+    // TOAST UI DESIGN NOTIFICATION SYSTEM
+    // ==========================================
+    function showUIToast(type = 'success', title = '', message = '') {
+        if (typeof window.showUIToast === 'function' && window.showUIToast !== showUIToast) {
+            window.showUIToast(type, title, message);
+            return;
+        }
+
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+            if (!message) message = 'Your changes are saved successfully';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+            if (!message) message = 'Error has occurred while saving changes.';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+            if (!message) message = 'New settings available on your account.';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+            if (!message) message = 'Please check your inputs.';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        const autoDismissTimer = setTimeout(dismissToast, 3500);
+
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    }
+
+    window.showUIToast = showUIToast;
 
     // Initialize all Lucide icons on page ready
     if (window.lucide) {

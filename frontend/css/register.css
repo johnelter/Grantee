@@ -272,6 +272,78 @@ body.dark-theme {
 }
 
 /* ==========================================================================
+   TOP-LEFT PAGE BACK BUTTON
+   ========================================================================== */
+.page-top-back-btn,
+.back-home-btn {
+    position: absolute;
+    top: 24px;
+    left: 28px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-main);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 14px rgba(31, 61, 46, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-top-back-btn i,
+.page-top-back-btn svg,
+.back-home-btn i,
+.back-home-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.2;
+    transition: transform 0.2s ease;
+}
+
+.page-top-back-btn:hover,
+.back-home-btn:hover {
+    color: var(--forest-shade);
+    background-color: var(--moss-tint);
+    border-color: var(--moss-green);
+    box-shadow: 0 6px 18px rgba(31, 61, 46, 0.12);
+    transform: translateX(-3px);
+    text-decoration: none;
+}
+
+.page-top-back-btn:hover i,
+.page-top-back-btn:hover svg,
+.back-home-btn:hover i,
+.back-home-btn:hover svg {
+    transform: translateX(-2px);
+}
+
+.page-top-back-btn:active,
+.back-home-btn:active {
+    transform: translateX(-1px) scale(0.98);
+}
+
+@media (max-width: 991px) {
+    .page-top-back-btn,
+    .back-home-btn {
+        top: 16px;
+        left: 16px;
+        padding: 7px 13px;
+        font-size: 13px;
+    }
+
+    .split-left {
+        padding-top: 60px;
+    }
+}
+
+/* ==========================================================================
    HEADER / LOGO AREA
    ========================================================================== */
 .logo-area {

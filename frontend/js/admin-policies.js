@@ -320,16 +320,11 @@
 
             if (error) throw error;
 
-            Swal.fire({
-                title: 'Saved!',
-                text: 'Your assistance policies have been successfully updated.',
-                icon: 'success',
-                confirmButtonColor: '#1F3D2E'
-            });
+            showUIToast('success', 'Success', 'Your changes are saved successfully');
 
         } catch (err) {
             console.error("Save Error:", err);
-            Swal.fire('Error', 'Failed to save policies. Please ensure your database table is updated with JSONB columns.', 'error');
+            showUIToast('error', 'Error', 'Error has occurred while saving changes.');
         } finally {
             if (btnSave) {
                 btnSave.innerHTML = '<i data-lucide="save" style="width: 16px; height: 16px;"></i> <span>Save All Changes</span>';
@@ -337,6 +332,99 @@
                 if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
             }
         }
+    }
+
+    // ==========================================
+    // TOAST UI DESIGN NOTIFICATION SYSTEM
+    // ==========================================
+    function showUIToast(type = 'success', title = '', message = '') {
+        if (typeof window.showUIToast === 'function' && window.showUIToast !== showUIToast) {
+            window.showUIToast(type, title, message);
+            return;
+        }
+
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+            if (!message) message = 'Your changes are saved successfully';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+            if (!message) message = 'Error has occurred while saving changes.';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+            if (!message) message = 'New settings available on your account.';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+            if (!message) message = 'Please check your inputs.';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        const autoDismissTimer = setTimeout(dismissToast, 3500);
+
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
     }
 
     // Ensure the form prevents default submit behavior and forwards to our save handler.
@@ -354,6 +442,25 @@
             await savePolicies();
         });
     }
+
+    // Dynamic Header Offset for Sticky Actions Bar
+    function syncHeaderHeight() {
+        const header = document.querySelector('.top-header');
+        if (header) {
+            const height = header.offsetHeight;
+            if (height > 0) {
+                document.documentElement.style.setProperty('--top-header-height', `${height}px`);
+            }
+        }
+    }
+
+    window.addEventListener('resize', syncHeaderHeight);
+    window.addEventListener('load', syncHeaderHeight);
+    const headerElem = document.querySelector('.top-header');
+    if (headerElem && window.ResizeObserver) {
+        new ResizeObserver(syncHeaderHeight).observe(headerElem);
+    }
+    syncHeaderHeight();
 
     init();
 })();

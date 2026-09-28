@@ -2686,3 +2686,175 @@ body.dark-theme .filter-select {
         padding: 12px 16px;
     }
 }
+
+/* =========================================================
+   TOAST UI DESIGN (TOP-CENTER EXACT SPEC)
+========================================================= */
+#custom-toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+    width: auto;
+    max-width: 92vw;
+}
+
+.custom-ui-toast {
+    position: relative;
+    background: #FFFFFF;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    padding: 16px 42px 16px 18px;
+    min-width: 340px;
+    max-width: 480px;
+    width: 100%;
+    box-sizing: border-box;
+    pointer-events: auto;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-25px) scale(0.95);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-ui-toast.toast-show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.custom-ui-toast.toast-hide {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Left Accent Bar */
+.custom-ui-toast .toast-left-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 6px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.custom-ui-toast.toast-success .toast-left-bar { background-color: #22c55e; }
+.custom-ui-toast.toast-error .toast-left-bar   { background-color: #ef4444; }
+.custom-ui-toast.toast-info .toast-left-bar    { background-color: #3b82f6; }
+.custom-ui-toast.toast-warning .toast-left-bar { background-color: #f59e0b; }
+
+/* Circular Icon Badge */
+.custom-ui-toast .toast-icon-wrapper {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 14px;
+    margin-left: 2px;
+    flex-shrink: 0;
+    color: #FFFFFF;
+}
+
+.custom-ui-toast .toast-icon-wrapper svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+}
+
+.custom-ui-toast.toast-success .toast-icon-wrapper { background-color: #22c55e; }
+.custom-ui-toast.toast-error .toast-icon-wrapper   { background-color: #ef4444; }
+.custom-ui-toast.toast-info .toast-icon-wrapper    { background-color: #3b82f6; }
+.custom-ui-toast.toast-warning .toast-icon-wrapper { background-color: #f59e0b; }
+
+/* Content Text */
+.custom-ui-toast .toast-details {
+    flex: 1;
+    text-align: left;
+    min-width: 0;
+}
+
+.custom-ui-toast .toast-title {
+    margin: 0 0 2px 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+}
+
+.custom-ui-toast .toast-message {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* Close Button */
+.custom-ui-toast .toast-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 19px;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, transform 0.15s ease;
+    border-radius: 4px;
+}
+
+.custom-ui-toast .toast-close-btn:hover {
+    color: #334155;
+    transform: scale(1.1);
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .custom-ui-toast {
+    background: #16271D;
+    border-color: #243E2F;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .custom-ui-toast .toast-title {
+    color: #F4F6F2;
+}
+
+[data-theme="dark"] .custom-ui-toast .toast-message {
+    color: #A2B5A0;
+}
+
+[data-theme="dark"] .custom-ui-toast .toast-close-btn:hover {
+    color: #F4F6F2;
+}
+
+@media (max-width: 600px) {
+    #custom-toast-container {
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 32px);
+        max-width: 440px;
+        align-items: center;
+    }
+
+    .custom-ui-toast {
+        min-width: 0;
+        width: 100%;
+    }
+}

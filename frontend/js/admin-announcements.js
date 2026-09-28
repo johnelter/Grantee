@@ -421,13 +421,13 @@
                             <span>Options</span>
                         </button>
                         <div class="post-options-menu" id="${menuId}">
-                            <button type="button" class="btn-edit-ann" onclick="window.editAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="edit-3"></i> Edit Announcement</button>
-                            <button type="button" class="btn-pin-ann" onclick="window.togglePin('${ann.id}', ${ann.is_pinned === true})" data-id="${ann.id}" data-pinned="${ann.is_pinned}"><i data-lucide="pin"></i> ${ann.is_pinned ? 'Unpin from Top' : 'Pin to Top'}</button>
-                            <button type="button" class="btn-comments-ann" onclick="window.toggleCommentsStatus('${ann.id}', ${ann.allow_comments !== false})" data-id="${ann.id}" data-state="${ann.allow_comments}"><i data-lucide="${ann.allow_comments !== false ? 'lock' : 'unlock'}"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
-                            <button type="button" class="btn-duplicate-ann" onclick="window.duplicateAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="copy"></i> Duplicate</button>
-                            ${ann.status === 'Archived' ? `<button type="button" class="btn-unarchive-ann" onclick="window.unarchiveAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="archive-restore"></i> Unarchive</button>` : `<button type="button" class="btn-archive-ann" onclick="window.archiveAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="archive"></i> Archive</button>`}
+                            <button type="button" class="btn-edit-ann" data-id="${ann.id}"><i data-lucide="edit-3"></i> Edit Announcement</button>
+                            <button type="button" class="btn-pin-ann" data-id="${ann.id}" data-pinned="${ann.is_pinned === true}"><i data-lucide="pin"></i> ${ann.is_pinned ? 'Unpin from Top' : 'Pin to Top'}</button>
+                            <button type="button" class="btn-comments-ann" data-id="${ann.id}" data-state="${ann.allow_comments !== false}"><i data-lucide="${ann.allow_comments !== false ? 'lock' : 'unlock'}"></i> ${ann.allow_comments !== false ? 'Close Comments' : 'Open Comments'}</button>
+                            <button type="button" class="btn-duplicate-ann" data-id="${ann.id}"><i data-lucide="copy"></i> Duplicate</button>
+                            ${ann.status === 'Archived' ? `<button type="button" class="btn-unarchive-ann" data-id="${ann.id}"><i data-lucide="archive-restore"></i> Unarchive</button>` : `<button type="button" class="btn-archive-ann" data-id="${ann.id}"><i data-lucide="archive"></i> Archive</button>`}
                             <div class="options-menu-divider"></div>
-                            <button type="button" class="btn-delete-ann" onclick="window.deleteAnnouncement('${ann.id}')" data-id="${ann.id}"><i data-lucide="trash-2"></i> Delete</button>
+                            <button type="button" class="btn-delete-ann" data-id="${ann.id}"><i data-lucide="trash-2"></i> Delete</button>
                         </div>
                     </div>
                 </div>
@@ -932,9 +932,11 @@
         if (ann.scheduled_at) {
             const dt = new Date(ann.scheduled_at);
             dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
-            document.getElementById('ann-scheduled-at').value = dt.toISOString().slice(0, 16);
+            const schedEl = document.getElementById('ann-scheduled-at');
+            if (schedEl) schedEl.value = dt.toISOString().slice(0, 16);
         }
-        if (ann.expires_at) document.getElementById('ann-expires-at').value = ann.expires_at.split('T')[0];
+        const expEl = document.getElementById('ann-expires-at');
+        if (expEl) expEl.value = ann.expires_at ? ann.expires_at.split('T')[0] : '';
 
         toggleScheduleDate();
         updateLivePreview();
@@ -966,8 +968,10 @@
         document.getElementById('new-image-preview-container').innerHTML = '';
         document.getElementById('new-file-preview-container').innerHTML = '';
 
-        document.getElementById('ann-scheduled-at').value = '';
-        document.getElementById('ann-expires-at').value = '';
+        const schedEl = document.getElementById('ann-scheduled-at');
+        if (schedEl) schedEl.value = '';
+        const expElDup = document.getElementById('ann-expires-at');
+        if (expElDup) expElDup.value = '';
 
         toggleScheduleDate();
         updateLivePreview();
@@ -1019,6 +1023,8 @@
                 }
             }
 
+            const expInput = document.getElementById('ann-expires-at');
+            const schedInput = document.getElementById('ann-scheduled-at');
             const payload = {
                 school_id: currentAdminSchoolId,
                 author_id: adminId,
@@ -1030,8 +1036,8 @@
                 allow_comments: document.getElementById('ann-allow-comments').checked,
                 image_urls: finalImageUrls,
                 attachments: finalAttachments,
-                scheduled_at: status === 'Scheduled' ? new Date(document.getElementById('ann-scheduled-at').value).toISOString() : null,
-                expires_at: document.getElementById('ann-expires-at').value ? new Date(document.getElementById('ann-expires-at').value).toISOString() : null,
+                scheduled_at: status === 'Scheduled' && schedInput?.value ? new Date(schedInput.value).toISOString() : null,
+                expires_at: expInput?.value ? new Date(expInput.value).toISOString() : null,
                 updated_at: new Date().toISOString()
             };
 

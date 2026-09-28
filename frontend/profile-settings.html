@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Settings - Grantee</title>
-    <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
+    <link rel="icon" type="image/png" href="assets/grantee_logo.png">
+    <link rel="shortcut icon" type="image/png" href="assets/grantee_logo.png">
+    <link rel="apple-touch-icon" href="assets/grantee_logo.png">
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -484,7 +486,10 @@
                             </div>
                             <form id="password-form" class="grid-form">
                                 <div class="input-group full-width password-input-wrap">
-                                    <label>Current Password <span class="text-red">*</span></label>
+                                    <div class="label-header">
+                                        <label for="current-password">Current Password <span class="text-red">*</span></label>
+                                        <a href="#" id="forgot-password-link" class="forgot-password-link">Forgot current password?</a>
+                                    </div>
                                     <div class="password-input-box">
                                         <input type="password" id="current-password" class="form-input" required
                                             placeholder="Enter current password">

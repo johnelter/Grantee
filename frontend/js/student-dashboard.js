@@ -13,13 +13,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 2. FETCH PROFILE & SCHOOL FROM MASTERLIST ---
     async function loadProfile() {
+        const headerTitlesBox = document.getElementById('header-titles-box');
+        const headerTitles = document.querySelector('.header-titles');
         try {
-            // Step 1: Get the student's basic profile
+            // Step 1: Get the student's basic profile with school relation
             const { data: profile, error: profileError } = await window.supabaseClient
                 .from('profiles')
-                .select('*')
+                .select('*, schools(name)')
                 .eq('id', studentId)
-                .single();
+                .maybeSingle();
 
             if (profileError) throw profileError;
 
@@ -34,6 +36,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let masterYear = profile.year_level || '';
                 let masterGender = profile.gender || '';
                 let schoolName = 'Unassigned School';
+                let resolvedSchoolId = profile.school_id || null;
+
+                // Check direct joined school from profile first
+                if (profile.schools) {
+                    if (Array.isArray(profile.schools) && profile.schools.length > 0) {
+                        schoolName = profile.schools[0].name || schoolName;
+                    } else if (profile.schools.name) {
+                        schoolName = profile.schools.name;
+                    }
+                }
 
                 if (profile.id_number) {
                     const { data: masterlistData, error: masterlistError } = await window.supabaseClient
@@ -43,8 +55,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .maybeSingle();
 
                     if (masterlistData) {
-                        if (masterlistData.schools) schoolName = masterlistData.schools.name;
-                        if (masterlistData.school_id) currentProfile.school_id = masterlistData.school_id;
+                        if (masterlistData.schools) {
+                            if (Array.isArray(masterlistData.schools) && masterlistData.schools.length > 0) {
+                                schoolName = masterlistData.schools[0].name || schoolName;
+                            } else if (masterlistData.schools.name) {
+                                schoolName = masterlistData.schools.name;
+                            }
+                        }
+                        if (masterlistData.school_id) {
+                            resolvedSchoolId = masterlistData.school_id;
+                            currentProfile.school_id = masterlistData.school_id;
+                        }
                         if (masterlistData.first_name) masterFirstName = masterlistData.first_name;
                         if (masterlistData.last_name) masterLastName = masterlistData.last_name;
                         if (masterlistData.middle_name !== undefined && masterlistData.middle_name !== null) masterMiddleName = masterlistData.middle_name;
@@ -82,6 +103,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
+                // Fallback: Query schools table directly if schoolName is still unresolved but school_id is known
+                if ((!schoolName || schoolName === 'Unassigned School') && resolvedSchoolId) {
+                    try {
+                        const { data: sRecord } = await window.supabaseClient
+                            .from('schools')
+                            .select('name')
+                            .eq('id', resolvedSchoolId)
+                            .maybeSingle();
+                        if (sRecord && sRecord.name) {
+                            schoolName = sRecord.name;
+                        }
+                    } catch (sErr) {
+                        console.warn("Could not fetch school name directly:", sErr);
+                    }
+                }
+
                 // Update UI Elements
                 const firstName = masterFirstName;
                 const lastName = masterLastName;
@@ -109,19 +146,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
-
-                // Remove skeleton loading from header titles
-                const headerTitlesBox = document.getElementById('header-titles-box');
-                if (headerTitlesBox) headerTitlesBox.classList.remove('is-loading');
-                const headerTitles = document.querySelector('.header-titles');
-                if (headerTitles) headerTitles.classList.remove('is-loading');
-
-                if (window.lucide) { window.lucide.createIcons(); }
             }
         } catch (error) {
             console.error("Error loading profile and masterlist data:", error);
-            const headerTitlesBox = document.getElementById('header-titles-box');
+        } finally {
+            // Remove skeleton loading from header titles
             if (headerTitlesBox) headerTitlesBox.classList.remove('is-loading');
+            if (headerTitles) headerTitles.classList.remove('is-loading');
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
         }
     }
 
@@ -1316,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .from('profiles')
                     .select('*')
                     .eq('id', studentId)
-                    .single();
+                    .maybeSingle();
                 profile = p;
                 currentProfile = p;
             }
@@ -1328,7 +1362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .from('enrolled_masterlist')
                     .select('school_id')
                     .eq('id_number', profile.id_number)
-                    .single();
+                    .maybeSingle();
                 if (masterlistData && masterlistData.school_id) {
                     schoolId = masterlistData.school_id;
                     if (profile) profile.school_id = schoolId;

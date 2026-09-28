@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!idVal) {
             idStatus.innerText = "Please enter an ID number.";
             idStatus.className = "status-msg msg-error";
+            showCustomToast('warning', 'ID Required', 'Please enter your Student ID number.');
             return;
         }
 
@@ -127,12 +128,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSendOtp.disabled = false;
             btnSendOtp.classList.remove('disabled-style');
 
+            showCustomToast('success', 'Identity Confirmed', 'Student record verified successfully.');
+
         } catch (error) {
             idStatus.innerText = "❌ " + error.message;
             idStatus.className = "status-msg msg-error";
             btnVerifyId.innerText = "Verify";
             btnVerifyId.disabled = false;
             btnVerifyId.classList.remove('disabled-style');
+            showCustomToast('error', 'Verification Failed', error.message || 'Failed to verify ID number.');
         }
     });
 
@@ -195,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!emailVal || !emailVal.includes('@')) {
             emailStatus.innerText = "Please enter a valid email address.";
             emailStatus.className = "status-msg msg-error";
+            showCustomToast('warning', 'Invalid Email', 'Please enter a valid email address.');
             return;
         }
 
@@ -236,6 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
             otpSection.style.display = 'block';
             if (btnChangeEmail) btnChangeEmail.style.display = 'inline-block';
 
+            showCustomToast('info', 'Code Sent', 'Please check your email inbox for the 6-digit OTP code.');
+
         } catch (error) {
             emailStatus.innerText = "❌ " + (error.message || 'Error sending code.');
             emailStatus.className = "status-msg msg-error";
@@ -243,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSendOtp.disabled = false;
             btnSendOtp.classList.remove('disabled-style');
             emailInput.disabled = false;
+            showCustomToast('error', 'Error Sending Code', error.message || 'Error sending code.');
         }
     });
 
@@ -302,12 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const emailVal = emailInput.value.trim();
 
         if (!code) {
-            Swal.fire({
-                title: 'OTP Required',
-                text: 'Please enter the 6-digit verification code sent to your email.',
-                icon: 'warning',
-                confirmButtonColor: '#10b981'
-            });
+            showCustomToast('warning', 'OTP Required', 'Please enter the 6-digit verification code sent to your email.');
             return;
         }
 
@@ -339,15 +342,12 @@ document.addEventListener('DOMContentLoaded', () => {
             btnRegister.disabled = false;
             btnRegister.classList.remove('disabled-style');
 
+            showCustomToast('success', 'Email Verified', 'Your email address has been verified successfully.');
+
         } catch (error) {
             btnConfirmOtp.innerText = 'Confirm';
             btnConfirmOtp.disabled = false;
-            Swal.fire({
-                title: 'Verification Failed',
-                text: error.message,
-                icon: 'error',
-                confirmButtonColor: '#10b981'
-            });
+            showCustomToast('error', 'Verification Failed', error.message || 'Invalid or expired verification code.');
         }
     });
 
@@ -425,6 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (profileError) throw profileError;
 
+            showCustomToast('success', 'Registration Successful', 'Your account has been created successfully!');
+
             Swal.fire({
                 title: 'Success!',
                 text: 'Registration Successful! You can now log in.',
@@ -445,45 +447,106 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Custom Toast UI Function
-function showCustomToast(type, title, message) {
-    let container = document.querySelector('.toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
+// ==========================================
+// CUSTOM UI TOAST SYSTEM (TOP CENTER - EXACT MATCH)
+// ==========================================
+function showCustomToast(type = 'info', title = '', message = '', duration = 4000) {
+    return new Promise((resolve) => {
+        // If only 2 arguments are provided (type, message)
+        if (arguments.length === 2) {
+            message = title;
+            title = '';
+        }
 
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    let iconClass = '';
-    if (type === 'success') iconClass = 'fa-solid fa-circle-check';
-    else if (type === 'error') iconClass = 'fa-solid fa-circle-xmark';
-    else if (type === 'warning') iconClass = 'fa-solid fa-circle-exclamation';
-    else if (type === 'info') iconClass = 'fa-solid fa-circle-info';
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.querySelector('.toast-container');
+        }
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
 
-    toast.innerHTML = `
-        <i class="${iconClass} toast-icon"></i>
-        <div class="toast-content">
-            <span class="toast-title">${title}</span>
-            <span class="toast-message">${message}</span>
-        </div>
-        <i class="fa-solid fa-xmark toast-close"></i>
-    `;
-    
-    container.appendChild(toast);
+        type = (type || 'info').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
 
-    setTimeout(() => toast.classList.add('active'), 10);
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            if (!title) title = 'Success';
+        } else if (type === 'error') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+            if (!title) title = 'Error';
+        } else if (type === 'info') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+            if (!title) title = 'Info';
+        } else if (type === 'warning') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+            if (!title) title = 'Warning';
+        }
 
-    const closeBtn = toast.querySelector('.toast-close');
-    let timer = setTimeout(removeToast, 4000);
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper toast-icon">
+                ${iconSvg}
+            </div>
+            <div class="toast-details toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn toast-close" aria-label="Close notification">&times;</button>
+        `;
 
-    closeBtn.addEventListener('click', removeToast);
+        container.appendChild(toast);
 
-    function removeToast() {
-        clearTimeout(timer);
-        toast.classList.remove('active');
-        setTimeout(() => toast.remove(), 500);
-    }
+        // Trigger entrance animation smoothly
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+                toast.classList.add('active');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show', 'active');
+            toast.classList.add('toast-hide', 'exit');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+                resolve();
+            }, 300);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn') || toast.querySelector('.toast-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        let autoDismissTimer = setTimeout(dismissToast, duration);
+
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                autoDismissTimer = setTimeout(dismissToast, 1800);
+            }
+        });
+    });
 }
+
+// Global aliases for convenience
+window.showCustomToast = showCustomToast;
+window.showUIToast = showCustomToast;
+window.showToast = showCustomToast;

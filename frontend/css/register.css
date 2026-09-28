@@ -885,18 +885,21 @@ body.dark-theme {
 }
 
 /* ==========================================================================
-   CUSTOM TOAST UI DESIGN SYSTEM (MATCHING PICTURE 2 SPECIFICATION)
+   CUSTOM TOAST UI DESIGN SYSTEM (TOP CENTER - EXACT MATCH TO UI DESIGN)
    ========================================================================== */
 .toast-container,
 #custom-toast-container {
     position: fixed;
     top: 24px;
-    right: 24px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 12px;
     z-index: 100010;
     pointer-events: none;
+    width: auto;
     max-width: calc(100vw - 32px);
 }
 
@@ -909,16 +912,16 @@ body.dark-theme {
     border: 1px solid rgba(0, 0, 0, 0.06);
     display: flex;
     align-items: center;
-    padding: 16px 42px 16px 18px;
-    min-width: 320px;
-    max-width: 440px;
+    padding: 14px 42px 14px 16px;
+    min-width: 340px;
+    max-width: 460px;
     width: 100%;
     box-sizing: border-box;
     pointer-events: auto;
     overflow: hidden;
     opacity: 0;
-    transform: translateX(110%);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(-25px) scale(0.95);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -926,15 +929,15 @@ body.dark-theme {
 .toast.toast-show,
 .custom-ui-toast.toast-show {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
 }
 
 .toast.exit,
 .toast.toast-hide,
 .custom-ui-toast.toast-hide {
     opacity: 0;
-    transform: translateX(110%);
-    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-20px) scale(0.92);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Left Accent Pill Bar */
@@ -953,37 +956,38 @@ body.dark-theme {
 .toast-success .toast-left-bar,
 .toast.toast-success::before,
 .custom-ui-toast.toast-success .toast-left-bar { 
-    background-color: #22c55e; 
+    background-color: #47D764; 
 }
 
 .toast-error .toast-left-bar,
 .toast.toast-error::before,
 .custom-ui-toast.toast-error .toast-left-bar { 
-    background-color: #ef4444; 
+    background-color: #ff355b; 
 }
 
 .toast-info .toast-left-bar,
 .toast.toast-info::before,
 .custom-ui-toast.toast-info .toast-left-bar { 
-    background-color: #3b82f6; 
+    background-color: #2F80ED; 
 }
 
 .toast-warning .toast-left-bar,
 .toast.toast-warning::before,
 .custom-ui-toast.toast-warning .toast-left-bar { 
-    background-color: #f59e0b; 
+    background-color: #FFC021; 
 }
 
 /* Circular Filled Icon Badge */
 .toast-icon,
 .toast-icon-wrapper {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-right: 14px;
+    margin-left: 4px;
     flex-shrink: 0;
     color: #FFFFFF;
 }
@@ -991,30 +995,32 @@ body.dark-theme {
 .toast-icon svg,
 .toast-icon-wrapper svg {
     display: block;
+    width: 18px;
+    height: 18px;
 }
 
 .toast-success .toast-icon,
 .toast-success .toast-icon-wrapper,
 .custom-ui-toast.toast-success .toast-icon-wrapper { 
-    background-color: #22c55e; 
+    background-color: #47D764; 
 }
 
 .toast-error .toast-icon,
 .toast-error .toast-icon-wrapper,
 .custom-ui-toast.toast-error .toast-icon-wrapper { 
-    background-color: #ef4444; 
+    background-color: #ff355b; 
 }
 
 .toast-info .toast-icon,
 .toast-info .toast-icon-wrapper,
 .custom-ui-toast.toast-info .toast-icon-wrapper { 
-    background-color: #3b82f6; 
+    background-color: #2F80ED; 
 }
 
 .toast-warning .toast-icon,
 .toast-warning .toast-icon-wrapper,
 .custom-ui-toast.toast-warning .toast-icon-wrapper { 
-    background-color: #f59e0b; 
+    background-color: #FFC021; 
 }
 
 /* Text Content Details */
@@ -1027,15 +1033,15 @@ body.dark-theme {
 
 .toast-title {
     margin: 0 0 2px 0;
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 700;
     color: #1e293b;
-    line-height: 1.3;
+    line-height: 1.25;
 }
 
 .toast-message {
     margin: 0;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #64748b;
     line-height: 1.4;
     word-break: break-word;
@@ -1045,25 +1051,27 @@ body.dark-theme {
 .toast-close,
 .toast-close-btn {
     position: absolute;
-    top: 10px;
-    right: 12px;
+    top: 8px;
+    right: 10px;
     background: transparent;
     border: none;
+    font-size: 18px;
     line-height: 1;
     color: #94a3b8;
     cursor: pointer;
-    padding: 6px;
+    padding: 4px 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
-    transition: color 0.15s ease, background-color 0.15s ease;
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
 .toast-close:hover,
 .toast-close-btn:hover {
     color: #334155;
     background-color: rgba(0, 0, 0, 0.04);
+    transform: scale(1.1);
 }
 
 /* Dark Mode Support */
@@ -1098,7 +1106,6 @@ body.dark-theme {
     .toast-container,
     #custom-toast-container {
         top: 16px;
-        right: auto;
         left: 50%;
         transform: translateX(-50%);
         width: calc(100% - 32px);
@@ -1110,18 +1117,6 @@ body.dark-theme {
     .custom-ui-toast {
         width: 100%;
         min-width: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-
-    .toast.active,
-    .toast.toast-show,
-    .custom-ui-toast.toast-show {
-        transform: translateY(0) scale(1);
-    }
-
-    .toast.exit,
-    .toast.toast-hide,
-    .custom-ui-toast.toast-hide {
-        transform: translateY(-20px) scale(0.95);
+        padding: 12px 36px 12px 14px;
     }
 }

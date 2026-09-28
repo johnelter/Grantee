@@ -574,6 +574,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================
+    // 3.1 FORGOT CURRENT PASSWORD (EMAIL RESET)
+    // ==========================================
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            if (!userEmail) {
+                showUIToast('error', 'Error', 'No registered email found for this account.');
+                return;
+            }
+
+            if (typeof Swal !== 'undefined') {
+                const result = await Swal.fire({
+                    title: 'Reset Password via Email?',
+                    text: `A secure password reset link will be sent to your registered email (${userEmail}). Proceed?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: 'Yes, Send Reset Link',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (!result.isConfirmed) return;
+
+                Swal.fire({
+                    title: 'Sending...',
+                    text: 'Please wait while we send your reset instructions.',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+            }
+
+            try {
+                let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+                const redirectToUrl = window.location.origin + basePath + 'reset-password.html';
+
+                const { error } = await window.supabaseClient.auth.resetPasswordForEmail(userEmail, {
+                    redirectTo: redirectToUrl
+                });
+
+                if (error) throw error;
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.close();
+                }
+
+                showUIToast(
+                    'success',
+                    'Reset Link Sent',
+                    `Password reset instructions have been sent to ${userEmail}. Please check your inbox or spam folder.`,
+                    5000
+                );
+            } catch (err) {
+                console.error("Forgot password request error:", err);
+                if (typeof Swal !== 'undefined') {
+                    Swal.close();
+                }
+                showUIToast('error', 'Reset Failed', err.message || 'Failed to send password reset email.');
+            }
+        });
+    }
+
+    // ==========================================
     // 4. TWO-FACTOR AUTHENTICATION (2FA) SETUP
     // ==========================================
     if (start2faBtn) {

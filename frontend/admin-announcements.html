@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Announcements - Grantee Admin</title>
-    <link rel="icon" type="image/x-icon" href="assets/grantee_logo.png">
+    <link rel="icon" type="image/png" href="assets/grantee_logo.png">
+    <link rel="shortcut icon" type="image/png" href="assets/grantee_logo.png">
+    <link rel="apple-touch-icon" href="assets/grantee_logo.png">
 
     <!-- Fonts and Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -441,24 +443,15 @@
                             <div class="exact-card">
                                 <div class="exact-card-header">
                                     <i data-lucide="clock"></i>
-                                    <h4 class="exact-card-title">Publishing & Expiration</h4>
+                                    <h4 class="exact-card-title">Publishing Status</h4>
                                 </div>
-                                <div class="exact-row">
-                                    <div class="form-group">
-                                        <label class="exact-label">Publish Status</label>
-                                        <select id="ann-status" class="exact-input" required>
-                                            <option value="Published">Publish Immediately</option>
-                                            <option value="Draft">Save as Draft</option>
-                                            <option value="Scheduled">Schedule Post</option>
-                                            <option value="Archived">Archived</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="exact-label">Expiration Date <span
-                                                class="text-muted font-normal">(Optional)</span></label>
-                                        <input type="date" id="ann-expires-at" class="exact-input">
-                                        <p class="exact-helper">Post will auto-archive after this date.</p>
-                                    </div>
+                                <div class="form-group">
+                                    <label class="exact-label">Publish Status</label>
+                                    <select id="ann-status" class="exact-input" required>
+                                        <option value="Published">Publish Immediately</option>
+                                        <option value="Draft">Save as Draft</option>
+                                        <option value="Scheduled">Schedule Post</option>
+                                    </select>
                                 </div>
                                 <div id="schedule-date-container" class="form-group mt-3" style="display: none;">
                                     <label class="exact-label">Schedule Date & Time</label>

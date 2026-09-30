@@ -1914,6 +1914,149 @@ svg.lucide,
   border-radius: 4px;
 }
 
+/* =========================================================
+   ANNOUNCEMENT MODAL CONTENT & DARK MODE TYPOGRAPHY
+========================================================= */
+#ann-details-modal .modal-dialog-custom {
+  max-width: 680px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+[data-theme="dark"] #ann-details-modal .modal-dialog-custom,
+body.dark-theme #ann-details-modal .modal-dialog-custom {
+  background: var(--card-bg, #16271D);
+  border-color: var(--border-color, #243E2F);
+  color: var(--text-main, #EDF3EE);
+}
+
+#ann-details-modal .modal-header-custom {
+  background: var(--card-bg, #ffffff);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] #ann-details-modal .modal-header-custom,
+body.dark-theme #ann-details-modal .modal-header-custom {
+  background: var(--card-bg, #16271D);
+  border-bottom-color: var(--border-color, #243E2F);
+}
+
+#ann-details-modal .modal-header-custom h2 {
+  color: var(--text-heading);
+}
+
+[data-theme="dark"] #ann-details-modal .modal-header-custom h2,
+body.dark-theme #ann-details-modal .modal-header-custom h2 {
+  color: #FFFFFF;
+}
+
+.announcement-modal-body-content {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-main);
+  word-break: break-word;
+}
+
+.announcement-modal-body-content p {
+  color: var(--text-main);
+  margin-top: 0;
+  margin-bottom: 14px;
+  line-height: 1.7;
+  font-size: 14.5px;
+}
+
+.announcement-modal-body-content p:last-child {
+  margin-bottom: 0;
+}
+
+.announcement-modal-body-content span,
+.announcement-modal-body-content div,
+.announcement-modal-body-content li,
+.announcement-modal-body-content blockquote {
+  color: inherit;
+  line-height: 1.7;
+}
+
+.announcement-modal-body-content strong,
+.announcement-modal-body-content b {
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.announcement-modal-body-content h1,
+.announcement-modal-body-content h2,
+.announcement-modal-body-content h3,
+.announcement-modal-body-content h4,
+.announcement-modal-body-content h5,
+.announcement-modal-body-content h6 {
+  color: var(--text-heading);
+  margin-top: 18px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.announcement-modal-body-content a {
+  color: var(--fern-green, #588157);
+  text-decoration: underline;
+}
+
+.announcement-modal-body-content ul,
+.announcement-modal-body-content ol {
+  padding-left: 24px;
+  margin-bottom: 14px;
+  color: var(--text-main);
+}
+
+/* Dark Mode Typography for Announcement Modal */
+[data-theme="dark"] .announcement-modal-body-content,
+body.dark-theme .announcement-modal-body-content {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content p,
+body.dark-theme .announcement-modal-body-content p {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content span,
+[data-theme="dark"] .announcement-modal-body-content div,
+[data-theme="dark"] .announcement-modal-body-content li,
+[data-theme="dark"] .announcement-modal-body-content blockquote,
+body.dark-theme .announcement-modal-body-content span,
+body.dark-theme .announcement-modal-body-content div,
+body.dark-theme .announcement-modal-body-content li,
+body.dark-theme .announcement-modal-body-content blockquote {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content strong,
+[data-theme="dark"] .announcement-modal-body-content b,
+body.dark-theme .announcement-modal-body-content strong,
+body.dark-theme .announcement-modal-body-content b {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content h1,
+[data-theme="dark"] .announcement-modal-body-content h2,
+[data-theme="dark"] .announcement-modal-body-content h3,
+[data-theme="dark"] .announcement-modal-body-content h4,
+[data-theme="dark"] .announcement-modal-body-content h5,
+[data-theme="dark"] .announcement-modal-body-content h6,
+body.dark-theme .announcement-modal-body-content h1,
+body.dark-theme .announcement-modal-body-content h2,
+body.dark-theme .announcement-modal-body-content h3,
+body.dark-theme .announcement-modal-body-content h4,
+body.dark-theme .announcement-modal-body-content h5,
+body.dark-theme .announcement-modal-body-content h6 {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content a,
+body.dark-theme .announcement-modal-body-content a {
+  color: var(--palette-fern-green, #6D9E6C) !important;
+}
+
 .modal-section-title {
   font-size: 15px;
   font-weight: 700;

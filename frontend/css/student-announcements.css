@@ -839,8 +839,57 @@ body {
 .card-text-content {
   font-size: 14px;
   color: var(--text-main);
-  line-height: 1.6;
+  line-height: 1.65;
   word-break: break-word;
+}
+
+.card-text-content p {
+  color: var(--text-main);
+  margin-top: 0;
+  margin-bottom: 12px;
+  line-height: 1.65;
+}
+
+.card-text-content p:last-child {
+  margin-bottom: 0;
+}
+
+.card-text-content span,
+.card-text-content div,
+.card-text-content li,
+.card-text-content blockquote {
+  color: inherit;
+  line-height: 1.65;
+}
+
+.card-text-content strong,
+.card-text-content b {
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.card-text-content h1,
+.card-text-content h2,
+.card-text-content h3,
+.card-text-content h4,
+.card-text-content h5,
+.card-text-content h6 {
+  color: var(--text-heading);
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.card-text-content a {
+  color: var(--fern-green);
+  text-decoration: underline;
+}
+
+.card-text-content ul,
+.card-text-content ol {
+  padding-left: 22px;
+  margin-bottom: 12px;
+  color: var(--text-main);
 }
 
 .card-text-truncated {
@@ -2135,4 +2184,298 @@ body {
 
 [data-theme="dark"] .toast-close-btn:hover {
   color: #F4F6F2;
+}
+
+/* =========================================================
+   DARK MODE OVERRIDES: SOCIAL CARD & ANNOUNCEMENT MODAL
+========================================================= */
+[data-theme="dark"] .social-card,
+body.dark-theme .social-card {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .social-card .author-name-text,
+body.dark-theme .social-card .author-name-text,
+[data-theme="dark"] .social-card .card-title,
+body.dark-theme .social-card .card-title {
+  color: var(--text-heading, #FFFFFF) !important;
+}
+
+[data-theme="dark"] .social-card .post-time-meta,
+body.dark-theme .social-card .post-time-meta {
+  color: var(--text-muted, #A2B5A0) !important;
+}
+
+[data-theme="dark"] .social-card .card-actions,
+body.dark-theme .social-card .card-actions {
+  border-top-color: var(--border-color, #243E2F) !important;
+}
+
+[data-theme="dark"] .social-card .btn-comment-action,
+body.dark-theme .social-card .btn-comment-action {
+  background: var(--bg-card-secondary, #1D3327) !important;
+  border-color: var(--border-color, #243E2F) !important;
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .social-card .btn-comment-action:hover,
+body.dark-theme .social-card .btn-comment-action:hover {
+  background: var(--bg-hover, #1E382A) !important;
+  border-color: var(--border-dark, #2F4D3B) !important;
+}
+
+/* Ensure paragraph & formatted text inside social-card matches perfectly in dark mode */
+[data-theme="dark"] .social-card p,
+body.dark-theme .social-card p,
+[data-theme="dark"] .social-card .card-body,
+body.dark-theme .social-card .card-body,
+[data-theme="dark"] .social-card .card-body p,
+body.dark-theme .social-card .card-body p,
+[data-theme="dark"] .social-card .card-text-content,
+body.dark-theme .social-card .card-text-content,
+[data-theme="dark"] .social-card .card-text-content p,
+body.dark-theme .social-card .card-text-content p,
+[data-theme="dark"] .social-card .card-text-content span,
+body.dark-theme .social-card .card-text-content span,
+[data-theme="dark"] .social-card .card-text-content div,
+body.dark-theme .social-card .card-text-content div,
+[data-theme="dark"] .social-card .card-text-content li,
+body.dark-theme .social-card .card-text-content li,
+[data-theme="dark"] .social-card .card-text-content font,
+body.dark-theme .social-card .card-text-content font,
+[data-theme="dark"] .social-card .card-text-content em,
+body.dark-theme .social-card .card-text-content em,
+[data-theme="dark"] .social-card .card-text-content i,
+body.dark-theme .social-card .card-text-content i,
+[data-theme="dark"] .social-card .card-text-content blockquote,
+body.dark-theme .social-card .card-text-content blockquote {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .social-card .card-text-content strong,
+body.dark-theme .social-card .card-text-content strong,
+[data-theme="dark"] .social-card .card-text-content b,
+body.dark-theme .social-card .card-text-content b,
+[data-theme="dark"] .social-card .card-text-content h1,
+body.dark-theme .social-card .card-text-content h1,
+[data-theme="dark"] .social-card .card-text-content h2,
+body.dark-theme .social-card .card-text-content h2,
+[data-theme="dark"] .social-card .card-text-content h3,
+body.dark-theme .social-card .card-text-content h3,
+[data-theme="dark"] .social-card .card-text-content h4,
+body.dark-theme .social-card .card-text-content h4,
+[data-theme="dark"] .social-card .card-text-content h5,
+body.dark-theme .social-card .card-text-content h5,
+[data-theme="dark"] .social-card .card-text-content h6,
+body.dark-theme .social-card .card-text-content h6 {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .social-card .card-text-content a,
+body.dark-theme .social-card .card-text-content a,
+[data-theme="dark"] .btn-see-more,
+body.dark-theme .btn-see-more {
+  color: var(--fern-green, #6D9E6C) !important;
+}
+
+/* =========================================================
+   ANNOUNCEMENT POST & DISCUSSION MODAL DARK THEME
+========================================================= */
+[data-theme="dark"] .announcement-modal-card,
+body.dark-theme .announcement-modal-card {
+  background: var(--card-bg, #16271D) !important;
+  border-color: var(--border-color, #243E2F) !important;
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .announcement-modal-card .modal-header,
+body.dark-theme .announcement-modal-card .modal-header {
+  background: var(--card-bg-secondary, #1D3327) !important;
+  border-bottom-color: var(--border-color, #243E2F) !important;
+}
+
+[data-theme="dark"] .announcement-modal-card .modal-title,
+body.dark-theme .announcement-modal-card .modal-title {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-modal-card .close-btn,
+body.dark-theme .announcement-modal-card .close-btn {
+  color: var(--text-muted, #A2B5A0) !important;
+}
+
+[data-theme="dark"] .announcement-modal-card .close-btn:hover,
+body.dark-theme .announcement-modal-card .close-btn:hover {
+  background: var(--bg-hover, #1E382A) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-detail-box,
+body.dark-theme .announcement-detail-box {
+  border-bottom-color: var(--border-color, #243E2F) !important;
+  background: var(--card-bg, #16271D) !important;
+}
+
+[data-theme="dark"] .announcement-detail-box .card-title,
+body.dark-theme .announcement-detail-box .card-title,
+[data-theme="dark"] .announcement-detail-box .author-name-text,
+body.dark-theme .announcement-detail-box .author-name-text {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-detail-box .post-time-meta,
+body.dark-theme .announcement-detail-box .post-time-meta {
+  color: var(--text-muted, #A2B5A0) !important;
+}
+
+/* Ensure paragraph & content text inside modal matches dark theme */
+[data-theme="dark"] .announcement-detail-box p,
+body.dark-theme .announcement-detail-box p,
+[data-theme="dark"] .announcement-detail-box .card-text-content,
+body.dark-theme .announcement-detail-box .card-text-content,
+[data-theme="dark"] .announcement-detail-box .card-text-content p,
+body.dark-theme .announcement-detail-box .card-text-content p,
+[data-theme="dark"] .announcement-detail-box .card-text-content span,
+body.dark-theme .announcement-detail-box .card-text-content span,
+[data-theme="dark"] .announcement-detail-box .card-text-content div,
+body.dark-theme .announcement-detail-box .card-text-content div,
+[data-theme="dark"] .announcement-detail-box .card-text-content li,
+body.dark-theme .announcement-detail-box .card-text-content li,
+[data-theme="dark"] .announcement-detail-box .card-text-content font,
+body.dark-theme .announcement-detail-box .card-text-content font,
+[data-theme="dark"] .announcement-detail-box .card-text-content em,
+body.dark-theme .announcement-detail-box .card-text-content em,
+[data-theme="dark"] .announcement-detail-box .card-text-content i,
+body.dark-theme .announcement-detail-box .card-text-content i,
+[data-theme="dark"] .announcement-detail-box .card-text-content blockquote,
+body.dark-theme .announcement-detail-box .card-text-content blockquote,
+[data-theme="dark"] #announcement-detail-view,
+body.dark-theme #announcement-detail-view,
+[data-theme="dark"] #announcement-detail-view p,
+body.dark-theme #announcement-detail-view p {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .announcement-detail-box .card-text-content strong,
+body.dark-theme .announcement-detail-box .card-text-content strong,
+[data-theme="dark"] .announcement-detail-box .card-text-content b,
+body.dark-theme .announcement-detail-box .card-text-content b,
+[data-theme="dark"] .announcement-detail-box .card-text-content h1,
+body.dark-theme .announcement-detail-box .card-text-content h1,
+[data-theme="dark"] .announcement-detail-box .card-text-content h2,
+body.dark-theme .announcement-detail-box .card-text-content h2,
+[data-theme="dark"] .announcement-detail-box .card-text-content h3,
+body.dark-theme .announcement-detail-box .card-text-content h3,
+[data-theme="dark"] .announcement-detail-box .card-text-content h4,
+body.dark-theme .announcement-detail-box .card-text-content h4,
+[data-theme="dark"] .announcement-detail-box .card-text-content h5,
+body.dark-theme .announcement-detail-box .card-text-content h5,
+[data-theme="dark"] .announcement-detail-box .card-text-content h6,
+body.dark-theme .announcement-detail-box .card-text-content h6 {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-detail-box .card-text-content a,
+body.dark-theme .announcement-detail-box .card-text-content a {
+  color: var(--fern-green, #6D9E6C) !important;
+}
+
+/* Discussion Comments & Attachments in Dark Mode */
+[data-theme="dark"] .comments-section,
+body.dark-theme .comments-section {
+  background: var(--bg-main, #101B14) !important;
+}
+
+[data-theme="dark"] .comments-header,
+body.dark-theme .comments-header {
+  background: var(--card-bg, #16271D) !important;
+  border-bottom-color: var(--border-color, #243E2F) !important;
+}
+
+[data-theme="dark"] .comments-header-left,
+body.dark-theme .comments-header-left {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .comments-guideline-pill,
+body.dark-theme .comments-guideline-pill {
+  color: var(--text-muted, #A2B5A0) !important;
+}
+
+[data-theme="dark"] .comment-content-box,
+body.dark-theme .comment-content-box {
+  background: var(--card-bg, #16271D) !important;
+  border-color: var(--border-color, #243E2F) !important;
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .comment-author-name,
+body.dark-theme .comment-author-name {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .comment-time-text,
+body.dark-theme .comment-time-text {
+  color: var(--text-muted, #A2B5A0) !important;
+}
+
+[data-theme="dark"] .comment-text-body,
+body.dark-theme .comment-text-body,
+[data-theme="dark"] .comment-content-box p,
+body.dark-theme .comment-content-box p {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .comment-input-area,
+body.dark-theme .comment-input-area {
+  background: var(--card-bg, #16271D) !important;
+  border-top-color: var(--border-color, #243E2F) !important;
+}
+
+[data-theme="dark"] .comment-input-card,
+body.dark-theme .comment-input-card {
+  background: var(--card-bg-secondary, #1D3327) !important;
+  border-color: var(--border-color, #243E2F) !important;
+}
+
+[data-theme="dark"] .comment-input-card:focus-within,
+body.dark-theme .comment-input-card:focus-within {
+  background: var(--card-bg, #16271D) !important;
+  border-color: var(--border-focus, #6D9E6C) !important;
+}
+
+[data-theme="dark"] .comment-input-card input,
+body.dark-theme .comment-input-card input {
+  color: var(--text-main, #EDF3EE) !important;
+}
+
+[data-theme="dark"] .comment-input-card input::placeholder,
+body.dark-theme .comment-input-card input::placeholder {
+  color: var(--text-muted, #A2B5A0) !important;
+}
+
+[data-theme="dark"] .attachment-box-readonly,
+body.dark-theme .attachment-box-readonly {
+  background: var(--card-bg-secondary, #1D3327) !important;
+  border-color: var(--border-color, #243E2F) !important;
+}
+
+[data-theme="dark"] .attachment-box-readonly:hover,
+body.dark-theme .attachment-box-readonly:hover {
+  background: var(--bg-hover, #1E382A) !important;
+  border-color: var(--border-dark, #2F4D3B) !important;
+}
+
+[data-theme="dark"] .file-name,
+body.dark-theme .file-name,
+[data-theme="dark"] .detail-attachments-title,
+body.dark-theme .detail-attachments-title {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .file-size,
+body.dark-theme .file-size {
+  color: var(--text-muted, #A2B5A0) !important;
 }

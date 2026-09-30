@@ -93,6 +93,7 @@ async function registerStudent(idNumber, email, password) {
             first_name: student.first_name,
             middle_name: student.middle_name && student.middle_name !== 'NULL' ? student.middle_name : '',
             last_name: student.last_name,
+            date_of_birth: student.date_of_birth || null,
             program: student.program,
             year_level: student.year_level,
             gender: student.gender,

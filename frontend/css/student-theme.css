@@ -1111,6 +1111,67 @@ body.dark-theme {
   color: var(--palette-light-sage) !important;
 }
 
+/* --- Announcement Modal Details (Dashboard) --- */
+[data-theme="dark"] .announcement-modal-body-content,
+[data-theme="dark"] .announcement-modal-body-content p,
+[data-theme="dark"] .announcement-modal-body-content span,
+[data-theme="dark"] .announcement-modal-body-content div,
+[data-theme="dark"] .announcement-modal-body-content li,
+[data-theme="dark"] .announcement-modal-body-content blockquote {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content strong,
+[data-theme="dark"] .announcement-modal-body-content b,
+[data-theme="dark"] .announcement-modal-body-content h1,
+[data-theme="dark"] .announcement-modal-body-content h2,
+[data-theme="dark"] .announcement-modal-body-content h3,
+[data-theme="dark"] .announcement-modal-body-content h4,
+[data-theme="dark"] .announcement-modal-body-content h5,
+[data-theme="dark"] .announcement-modal-body-content h6 {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .announcement-modal-body-content a {
+  color: var(--palette-fern-green) !important;
+}
+
+/* --- Social Card & Feed Announcements --- */
+[data-theme="dark"] .social-card p,
+[data-theme="dark"] .social-card .card-body p,
+[data-theme="dark"] .social-card .card-text-content,
+[data-theme="dark"] .social-card .card-text-content p,
+[data-theme="dark"] .social-card .card-text-content span,
+[data-theme="dark"] .social-card .card-text-content div,
+[data-theme="dark"] .social-card .card-text-content li,
+[data-theme="dark"] .social-card .card-text-content font,
+[data-theme="dark"] .social-card .card-text-content em,
+[data-theme="dark"] .social-card .card-text-content i,
+[data-theme="dark"] .social-card .card-text-content blockquote,
+[data-theme="dark"] .announcement-detail-box p,
+[data-theme="dark"] .announcement-detail-box .card-text-content,
+[data-theme="dark"] .announcement-detail-box .card-text-content p,
+[data-theme="dark"] .announcement-detail-box .card-text-content span,
+[data-theme="dark"] .announcement-detail-box .card-text-content div,
+[data-theme="dark"] .announcement-detail-box .card-text-content li,
+[data-theme="dark"] .announcement-detail-box .card-text-content font,
+[data-theme="dark"] .announcement-detail-box .card-text-content em,
+[data-theme="dark"] .announcement-detail-box .card-text-content i,
+[data-theme="dark"] .announcement-detail-box .card-text-content blockquote,
+[data-theme="dark"] #announcement-detail-view p,
+[data-theme="dark"] .comment-text-body,
+[data-theme="dark"] .comment-content-box p {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .social-card .card-title,
+[data-theme="dark"] .social-card .author-name-text,
+[data-theme="dark"] .announcement-detail-box .card-title,
+[data-theme="dark"] .announcement-detail-box .author-name-text,
+[data-theme="dark"] .comment-author-name {
+  color: #FFFFFF !important;
+}
+
 [data-theme="dark"] .icon-submitted {
   background: var(--stat-submitted-bg) !important;
   color: var(--stat-submitted-color) !important;

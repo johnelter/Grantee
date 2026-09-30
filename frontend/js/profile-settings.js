@@ -153,11 +153,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             let masterYear = profile.year_level || '';
             let masterProgram = profile.program || profile.course || '';
             let masterSchoolId = profile.school_id || null;
+            let masterDob = profile.date_of_birth || '';
 
             if (profile.id_number) {
                 const { data: masterlistData, error: masterlistError } = await window.supabaseClient
                     .from('enrolled_masterlist')
-                    .select('id_number, first_name, middle_name, last_name, gender, year_level, program, school_id, schools(name)')
+                    .select('id_number, first_name, middle_name, last_name, gender, year_level, program, date_of_birth, school_id, schools(name)')
                     .eq('id_number', profile.id_number)
                     .maybeSingle();
 
@@ -173,6 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (masterlistData.gender) masterGender = masterlistData.gender;
                     if (masterlistData.year_level) masterYear = masterlistData.year_level;
                     if (masterlistData.program) masterProgram = masterlistData.program;
+                    if (masterlistData.date_of_birth) masterDob = masterlistData.date_of_birth;
                     if (masterlistData.school_id) masterSchoolId = masterlistData.school_id;
 
                     // Auto-sync the profiles table silently with ALL authoritative masterlist data
@@ -184,6 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         (profile.gender || '') !== (masterGender || '') ||
                         (profile.year_level || '') !== (masterYear || '') ||
                         (profile.program || '') !== (masterProgram || '') ||
+                        (masterDob && (profile.date_of_birth || '') !== (masterDob || '')) ||
                         (masterSchoolId && profile.school_id !== masterSchoolId)
                     );
 
@@ -197,6 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             year_level: masterYear,
                             program: masterProgram
                         };
+                        if (masterDob) syncUpdates.date_of_birth = masterDob;
                         if (masterSchoolId) syncUpdates.school_id = masterSchoolId;
 
                         await window.supabaseClient.from('profiles').update(syncUpdates).eq('id', userId);
@@ -248,13 +252,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('reg_date').value = regDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             }
 
+            // --- Locked Date of Birth (Coordinator only) ---
+            let displayDob = masterDob || profile.date_of_birth || '';
+            if (displayDob) {
+                try {
+                    const parts = String(displayDob).trim().split('-');
+                    if (parts.length === 3 && parts[0].length === 4) {
+                        const year = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const day = parseInt(parts[2], 10);
+                        const d = new Date(year, month, day);
+                        if (!isNaN(d.getTime())) {
+                            displayDob = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                        }
+                    } else {
+                        const d = new Date(displayDob);
+                        if (!isNaN(d.getTime())) {
+                            displayDob = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                        }
+                    }
+                } catch (e) {}
+            }
+            if (document.getElementById('dob')) document.getElementById('dob').value = displayDob;
+
             // --- Locked Academic Information ---
             if (document.getElementById('school')) document.getElementById('school').value = schoolName;
             if (document.getElementById('program')) document.getElementById('program').value = masterProgram;
             if (document.getElementById('year_level')) document.getElementById('year_level').value = masterYear;
 
             // --- Editable Fields (Personal) ---
-            if (document.getElementById('dob')) document.getElementById('dob').value = profile.date_of_birth || '';
             if (document.getElementById('contact_number')) document.getElementById('contact_number').value = profile.contact_number || '';
             if (document.getElementById('address')) document.getElementById('address').value = profile.address || '';
             if (document.getElementById('gender')) document.getElementById('gender').value = masterGender;
@@ -386,7 +412,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     const updates = {
                         gender: document.getElementById('gender')?.value || null,
-                        date_of_birth: document.getElementById('dob')?.value || null,
                         contact_number: document.getElementById('contact_number')?.value.trim() || null,
                         address: document.getElementById('address')?.value.trim() || null,
                         updated_at: new Date()

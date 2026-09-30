@@ -105,6 +105,31 @@
     // ==========================================
     const tbody = document.getElementById('students-tbody');
 
+    function formatDobDisplay(dobVal) {
+        if (!dobVal) return 'N/A';
+        try {
+            const str = String(dobVal).trim();
+            if (!str) return 'N/A';
+            const parts = str.split('-');
+            if (parts.length === 3 && parts[0].length === 4) {
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[2], 10);
+                const d = new Date(year, month, day);
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                }
+            }
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+            return str;
+        } catch (e) {
+            return dobVal || 'N/A';
+        }
+    }
+
     function renderSkeletonLoading() {
         if (document.getElementById('stat-total')) {
             document.getElementById('stat-total').innerHTML = '<div class="skeleton-stat-num"></div>';
@@ -114,18 +139,19 @@
         }
         if (tbody) {
             const rowTemplates = [
-                { idW: '100px', nameW: '160px', emailW: '160px', progW: '220px' },
-                { idW: '110px', nameW: '190px', emailW: '180px', progW: '250px' },
-                { idW: '95px', nameW: '140px', emailW: '150px', progW: '210px' },
-                { idW: '105px', nameW: '175px', emailW: '170px', progW: '230px' },
-                { idW: '100px', nameW: '155px', emailW: '165px', progW: '200px' },
-                { idW: '115px', nameW: '180px', emailW: '175px', progW: '240px' }
+                { idW: '100px', nameW: '160px', dobW: '85px', emailW: '160px', progW: '220px' },
+                { idW: '110px', nameW: '190px', dobW: '95px', emailW: '180px', progW: '250px' },
+                { idW: '95px', nameW: '140px', dobW: '80px', emailW: '150px', progW: '210px' },
+                { idW: '105px', nameW: '175px', dobW: '90px', emailW: '170px', progW: '230px' },
+                { idW: '100px', nameW: '155px', dobW: '85px', emailW: '165px', progW: '200px' },
+                { idW: '115px', nameW: '180px', dobW: '95px', emailW: '175px', progW: '240px' }
             ];
             tbody.innerHTML = rowTemplates.map(r => `
                 <tr class="skeleton-row">
                     <td style="padding: 15px 18px; vertical-align: middle;"><div class="skeleton-box skeleton-cb"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-id" style="width: ${r.idW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-name" style="width: ${r.nameW};"></div></td>
+                    <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-dob" style="width: ${r.dobW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-email" style="width: ${r.emailW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-program" style="width: ${r.progW};"></div></td>
                     <td style="vertical-align: middle;"><div class="skeleton-line skeleton-w-year"></div></td>
@@ -144,7 +170,7 @@
 
     async function fetchEnrolledStudents() {
         if (!currentAdminSchoolId) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center text-red" style="padding:40px;">No school assigned to this admin.</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="text-center text-red" style="padding:40px;">No school assigned to this admin.</td></tr>`;
             const headerTitles = document.getElementById('header-titles-box');
             if (headerTitles) headerTitles.classList.remove('is-loading');
             return;
@@ -180,14 +206,14 @@
 
             const students = allFetched;
 
-            // Paginate profiles fetch as well (include verified login email and profile ID)
+            // Paginate profiles fetch as well (include verified login email, date_of_birth, and profile ID)
             let allProfiles = [];
             let profFrom = 0;
             let profHasMore = true;
             while (profHasMore) {
                 const { data: profPage, error: profError } = await window.supabaseClient
                     .from('profiles')
-                    .select('id, id_number, email, gender, role')
+                    .select('id, id_number, email, gender, date_of_birth, role')
                     .not('id_number', 'is', null)
                     .range(profFrom, profFrom + PAGE_SIZE - 1);
                 if (profError) break;
@@ -208,6 +234,7 @@
                     );
                     if (liveProfile) {
                         if (liveProfile.gender) s.gender = liveProfile.gender;
+                        if (liveProfile.date_of_birth && !s.date_of_birth) s.date_of_birth = liveProfile.date_of_birth;
                         s.email = liveProfile.email || '';
                         s.profile_id = liveProfile.id || null;
                     } else {
@@ -225,7 +252,7 @@
             applyFilters();
         } catch (err) {
             console.error("Error fetching students:", err);
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-red" style="padding:40px;">Failed to load students. ${err.message}</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="text-center text-red" style="padding:40px;">Failed to load students. ${err.message}</td></tr>`;
         } finally {
             const headerTitles = document.getElementById('header-titles-box');
             if (headerTitles) headerTitles.classList.remove('is-loading');
@@ -271,7 +298,7 @@
 
         if (!tbody) return;
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted" style="padding:40px;">No students found matching your criteria.</td></tr>`;
             return;
         }
 
@@ -312,6 +339,7 @@
                 </td>
                 <td style="color:var(--text-heading); font-weight:700; vertical-align: middle;">${s.id_number}</td>
                 <td style="vertical-align: middle; font-weight:600;">${fullName}</td>
+                <td style="vertical-align: middle; color:var(--text-muted); font-weight:500;">${formatDobDisplay(s.date_of_birth)}</td>
                 <td style="vertical-align: middle;">${emailCellHtml}</td>
                 <td style="vertical-align: middle; color:var(--text-muted);">${s.program || 'N/A'}</td>
                 <td style="vertical-align: middle;">${s.year_level || 'N/A'}</td>
@@ -447,6 +475,7 @@
             const matchSearch = (s.id_number || '').toLowerCase().includes(term) ||
                 (s.first_name || '').toLowerCase().includes(term) ||
                 (s.last_name || '').toLowerCase().includes(term) ||
+                (s.date_of_birth || '').toLowerCase().includes(term) ||
                 (s.email || '').toLowerCase().includes(term);
             const matchProg = prog === "" || s.program === prog;
             const matchYear = year === "" || s.year_level === year;
@@ -564,6 +593,10 @@
             if (studentForm) studentForm.reset();
             document.getElementById('student-db-id').value = '';
             document.getElementById('student-modal-title').innerHTML = `<i data-lucide="user-plus" style="width: 20px; height: 20px; color: var(--moss-green);"></i> Add New Student`;
+            const subTitleEl = document.getElementById('student-modal-subtitle');
+            if (subTitleEl) subTitleEl.textContent = 'Enter student identity, personal details, and academic enrollment.';
+
+            if (document.getElementById('stu-dob')) document.getElementById('stu-dob').value = '';
 
             // When adding a new student, they have not registered yet so hide the email field
             const stuEmailGroup = document.getElementById('stu-email-group');
@@ -578,9 +611,7 @@
             }
 
             const statusGroup = document.getElementById('stu-status-group');
-            const genderStatusGrid = document.getElementById('stu-gender-status-grid');
             if (statusGroup) statusGroup.style.display = 'none';
-            if (genderStatusGrid) genderStatusGrid.style.gridTemplateColumns = '1fr';
 
             studentModal.style.display = 'flex';
             if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -602,6 +633,7 @@
         if (document.getElementById('stu-fname')) document.getElementById('stu-fname').value = s.first_name || '';
         if (document.getElementById('stu-lname')) document.getElementById('stu-lname').value = s.last_name || '';
         if (mnameInput) mnameInput.value = s.middle_name || '';
+        if (document.getElementById('stu-dob')) document.getElementById('stu-dob').value = s.date_of_birth || '';
 
         const stuEmailGroup = document.getElementById('stu-email-group');
         const stuEmailInput = document.getElementById('stu-email');
@@ -659,20 +691,29 @@
         if (document.getElementById('stu-gender')) document.getElementById('stu-gender').value = s.gender || '';
 
         const statusGroup = document.getElementById('stu-status-group');
-        const genderStatusGrid = document.getElementById('stu-gender-status-grid');
         const stuStatus = document.getElementById('stu-status');
         if (statusGroup) statusGroup.style.display = 'block';
-        if (genderStatusGrid) genderStatusGrid.style.gridTemplateColumns = '1fr 1fr';
         if (stuStatus) stuStatus.value = s.status || 'Enrolled';
 
         if (document.getElementById('student-modal-title')) {
             document.getElementById('student-modal-title').innerHTML = `<i data-lucide="edit" style="width: 20px; height: 20px; color: var(--moss-green);"></i> Edit Student Information`;
         }
+        const subTitleEl = document.getElementById('student-modal-subtitle');
+        if (subTitleEl) subTitleEl.textContent = 'Modify student record, enrollment status, or verified contact information.';
+
         if (studentModal) studentModal.style.display = 'flex';
         if (typeof lucide !== 'undefined' && lucide.createIcons) {
             lucide.createIcons();
         }
     };
+
+    if (studentModal) {
+        studentModal.addEventListener('click', (e) => {
+            if (e.target === studentModal) {
+                studentModal.style.display = 'none';
+            }
+        });
+    }
 
     if (studentForm) {
         studentForm.addEventListener('submit', async (e) => {
@@ -700,6 +741,13 @@
                 return;
             }
 
+            const dobInput = document.getElementById('stu-dob');
+            const dobVal = dobInput ? dobInput.value.trim() : '';
+            if (!dobVal) {
+                Swal.fire('Date of Birth Required', 'Please provide a valid Date of Birth for the student.', 'warning');
+                return;
+            }
+
             const emailInput = document.getElementById('stu-email');
             const newEmailVal = (emailInput && !emailInput.disabled) ? emailInput.value.trim() : '';
             const originalEmailVal = emailInput ? (emailInput.dataset.originalEmail || '').trim() : '';
@@ -723,6 +771,7 @@
                 first_name: document.getElementById('stu-fname').value.trim(),
                 last_name: document.getElementById('stu-lname').value.trim(),
                 middle_name: middleNameVal,
+                date_of_birth: dobVal,
                 program: document.getElementById('stu-program').value,
                 year_level: document.getElementById('stu-year').value,
                 gender: genderVal,
@@ -745,6 +794,7 @@
                             last_name: payload.last_name,
                             middle_name: payload.middle_name,
                             id_number: payload.id_number,
+                            date_of_birth: payload.date_of_birth,
                             program: payload.program,
                             year_level: payload.year_level,
                             gender: payload.gender
@@ -788,7 +838,15 @@
                 fetchEnrolledStudents();
             } catch (err) {
                 console.error("Save Error:", err);
-                Swal.fire('Save Failed', err.message, 'error');
+                if (err.message && err.message.includes("date_of_birth") && err.message.includes("schema cache")) {
+                    Swal.fire({
+                        title: 'Database Column Missing',
+                        html: `The <code>date_of_birth</code> column has not been added to your Supabase <code>enrolled_masterlist</code> table yet.<br><br>Please run this command in your <strong>Supabase SQL Editor</strong>:<br><br><pre style="text-align:left; background:var(--card-bg-secondary); padding:10px; border-radius:8px; font-size:12px;">ALTER TABLE enrolled_masterlist ADD COLUMN IF NOT EXISTS date_of_birth DATE;\nNOTIFY pgrst, 'reload schema';</pre>`,
+                        icon: 'error'
+                    });
+                } else {
+                    Swal.fire('Save Failed', err.message, 'error');
+                }
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i data-lucide="save" style="width: 16px; height: 16px;"></i> Save Student`;
@@ -839,11 +897,11 @@
     const btnConfirmImport = document.getElementById('btn-confirm-import');
 
     window.downloadImportTemplate = () => {
-        const headers = [['Student ID', 'First Name', 'Middle Name', 'Last Name/Surname', 'Program', 'Year Level', 'Gender']];
-        const sampleData = [['2024-0001', 'Juan', 'Dela Cruz', 'Santos', 'Bachelor of Science in Information Technology', '1st year', 'Male']];
+        const headers = [['Student ID', 'First Name', 'Middle Name', 'Last Name/Surname', 'Date of Birth', 'Program', 'Year Level', 'Gender']];
+        const sampleData = [['2024-0001', 'Juan', 'Dela Cruz', 'Santos', '2003-05-15', 'Bachelor of Science in Information Technology', '1st year', 'Male']];
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([...headers, ...sampleData]);
-        ws['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 45 }, { wch: 15 }, { wch: 12 }];
+        ws['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 16 }, { wch: 45 }, { wch: 15 }, { wch: 12 }];
         XLSX.utils.book_append_sheet(wb, ws, "Template");
         XLSX.writeFile(wb, "Enrolled_Students_Template.xlsx");
     };
@@ -920,16 +978,53 @@
                     return null;
                 };
 
+                function parseExcelDate(val) {
+                    if (val === undefined || val === null || val === '') return null;
+                    if (typeof val === 'number') {
+                        // Excel serial date (days since Dec 30 1899)
+                        const jsDate = new Date(Math.round((val - 25569) * 86400 * 1000));
+                        if (!isNaN(jsDate.getTime())) {
+                            const y = jsDate.getUTCFullYear();
+                            const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+                            const d = String(jsDate.getUTCDate()).padStart(2, '0');
+                            return `${y}-${m}-${d}`;
+                        }
+                    }
+                    if (val instanceof Date && !isNaN(val.getTime())) {
+                        const y = val.getFullYear();
+                        const m = String(val.getMonth() + 1).padStart(2, '0');
+                        const d = String(val.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${d}`;
+                    }
+                    if (typeof val === 'string') {
+                        const str = val.trim();
+                        if (!str) return null;
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+                        const parsed = new Date(str);
+                        if (!isNaN(parsed.getTime())) {
+                            const y = parsed.getFullYear();
+                            const m = String(parsed.getMonth() + 1).padStart(2, '0');
+                            const d = String(parsed.getDate()).padStart(2, '0');
+                            return `${y}-${m}-${d}`;
+                        }
+                        return str;
+                    }
+                    return String(val).trim() || null;
+                }
+
                 rawData.forEach(row => {
                     const sid = findColumn(row, ['studentid', 'idnumber', 'studentno', 'sn', 'studid', 'id', 'idno']);
                     const fname = findColumn(row, ['firstname', 'first', 'fname', 'givenname']);
                     const lname = findColumn(row, ['lastname', 'surname', 'last', 'lname', 'lastnamesurname']);
                     const mname = findColumn(row, ['middlename', 'middle', 'mname']) || '';
-                    const yLevel = findColumn(row, ['yearlevel', 'year', 'level', 'ylevel']) || '1st year';
+                    const rawDob = findColumn(row, ['dateofbirth', 'birthdate', 'dob', 'birthday', 'bday', 'birth', 'dateofbirthdob']);
+                    const dob = parseExcelDate(rawDob);
+                    const program = findColumn(row, ['program', 'course', 'degree']);
+                    const yLevel = findColumn(row, ['yearlevel', 'year', 'level', 'ylevel']);
                     const gender = findColumn(row, ['gender', 'sex']) || 'Not Specified';
-                    const program = findColumn(row, ['program', 'course', 'degree']) || 'N/A';
 
-                    if (sid && fname && lname) {
+                    // Required Columns: Student ID, First Name, Last Name, Date of Birth, Program, Year Level
+                    if (sid && fname && lname && dob && program && yLevel) {
                         const cleanSid = sid.toString().trim();
                         const sidLower = cleanSid.toLowerCase();
 
@@ -943,6 +1038,7 @@
                                 first_name: fname.toString().trim(),
                                 last_name: lname.toString().trim(),
                                 middle_name: mname.toString().trim(),
+                                date_of_birth: dob,
                                 program: program.toString().trim(),
                                 year_level: yLevel.toString().trim(),
                                 gender: gender.toString().trim(),
@@ -954,7 +1050,7 @@
 
                 if (pendingImportPayload.length === 0 && pendingDuplicateRecords.length === 0) {
                     const detectedHeaders = Object.keys(rawData[0]).join(', ');
-                    throw new Error(`Could not find valid data.<br><br><b>Detected Columns:</b> [${detectedHeaders}]<br><br>Please ensure your sheet has 'Student ID', 'First Name', and 'Last Name/Surname' on Row 1.`);
+                    throw new Error(`Could not find valid complete student data.<br><br><b>Detected Columns:</b> [${detectedHeaders}]<br><br><b>Required Columns:</b> 'Student ID', 'First Name', 'Last Name/Surname', 'Date of Birth', 'Program', and 'Year Level'.<br>Please verify all required columns are present and filled in.`);
                 }
 
                 if (pendingImportPayload.length === 0 && pendingDuplicateRecords.length > 0) {
@@ -1007,8 +1103,9 @@
                         <tr>
                             <td style="font-weight:600;">${p.id_number}</td>
                             <td>${p.first_name}</td>
-                            <td>${p.middle_name}</td>
+                            <td>${p.middle_name || ''}</td>
                             <td>${p.last_name}</td>
+                            <td>${p.date_of_birth}</td>
                             <td>${p.program}</td>
                             <td>${p.year_level}</td>
                             <td>${p.gender}</td>
@@ -1016,7 +1113,7 @@
                     `;
                 });
                 if (pendingImportPayload.length > 50) {
-                    previewTbody.innerHTML += `<tr><td colspan="7" style="padding: 10px; text-align: center; color: var(--text-muted); font-style: italic;">...and ${pendingImportPayload.length - 50} more students</td></tr>`;
+                    previewTbody.innerHTML += `<tr><td colspan="8" style="padding: 10px; text-align: center; color: var(--text-muted); font-style: italic;">...and ${pendingImportPayload.length - 50} more students</td></tr>`;
                 }
 
                 if (pendingDuplicateRecords.length > 0) {

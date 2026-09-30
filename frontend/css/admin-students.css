@@ -953,6 +953,7 @@ body.dark-theme select.form-input {
 
 .skeleton-w-id { width: 100px; max-width: 80%; }
 .skeleton-w-name { width: 160px; max-width: 90%; }
+.skeleton-w-dob { width: 90px; }
 .skeleton-w-program { width: 220px; max-width: 95%; }
 .skeleton-w-year { width: 70px; }
 .skeleton-w-gender { width: 55px; }
@@ -1099,7 +1100,177 @@ body.dark-theme select.form-input {
 }
 
 .modal-content-sm { width: 92%; max-width: 480px; }
-.modal-content-md { width: 92%; max-width: 580px; }
+.modal-content-md { width: 94%; max-width: 720px; }
+
+/* Student Add / Edit Modal Layout (Sticky Header & Footer) */
+.student-modal-dialog {
+    width: 94%;
+    max-width: 720px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+    padding: 0 !important;
+    background: var(--modal-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.modal-form-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    margin: 0;
+}
+
+.modal-header-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--modal-bg);
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.modal-title-custom {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-heading);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-subtitle-custom {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.modal-close-btn-custom {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    color: var(--text-muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+
+.modal-close-btn-custom:hover {
+    background: var(--accent-light);
+    color: var(--text-heading);
+    border-color: var(--border-dark);
+    transform: scale(1.05);
+}
+
+.modal-body-scroll {
+    padding: 24px 28px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.modal-body-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-dark);
+    border-radius: 4px;
+}
+
+.modal-body-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--moss-green);
+}
+
+.modal-footer-sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    background: var(--modal-bg);
+    padding: 16px 28px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.form-section-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--moss-green);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.form-grid-academic {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 14px;
+}
+
+.mb-16 {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 680px) {
+    .student-modal-dialog {
+        width: 96%;
+        max-height: 92vh;
+        border-radius: 14px;
+    }
+    .modal-header-sticky,
+    .modal-body-scroll,
+    .modal-footer-sticky {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+    .form-grid-3,
+    .form-grid-2,
+    .form-grid-academic {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
 
 .input-group label {
     display: block;

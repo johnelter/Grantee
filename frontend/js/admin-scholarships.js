@@ -466,7 +466,18 @@
                 </td>
                 <td class="sch-col-type" style="text-align: center;">${getScholarshipTypeBadge(sch.scholarship_type)}</td>
                 <td class="sch-col-opening">${formatDate(sch.start_date)}</td>
-                <td class="sch-col-deadline">${formatDate(sch.end_date)}</td>
+                <td class="sch-col-deadline">
+                    <div class="sch-deadline-cell">
+                        <div class="sch-deadline-date ${sch.dynamic_status === 'Closed' ? 'is-closed' : ''}">
+                            <i data-lucide="calendar" class="sch-deadline-icon"></i>
+                            <span>${formatDate(sch.end_date)}</span>
+                        </div>
+                        <button type="button" class="btn-quick-edit-deadline" data-id="${sch.id}" title="Extend / Edit Deadline">
+                            <i data-lucide="calendar-plus"></i>
+                            <span>Extend</span>
+                        </button>
+                    </div>
+                </td>
                 <td class="sch-col-status" style="text-align: center;">${getStatusHTML(sch.dynamic_status)}</td>
                 <td class="sch-col-apps" style="text-align: center;">
                     <div style="font-weight: 700; color: var(--text-heading); font-size: 13px;">${appCount} ${appLabel}</div>
@@ -622,7 +633,12 @@
                     </div>
                     
                     <div class="preview-info-box">
-                        <div class="preview-info-label">Application Period / Deadline</div>
+                        <div class="preview-info-label" style="display:flex; align-items:center; justify-content:space-between;">
+                            <span>Application Period / Deadline</span>
+                            <button type="button" class="preview-extend-btn-tag" onclick="Swal.close(); openExtendDeadlineModal('${sch.id}');" title="Extend application deadline">
+                                <i data-lucide="calendar-plus" style="width: 12px; height: 12px;"></i> Extend
+                            </button>
+                        </div>
                         <div class="preview-info-value text-red">${dateText}</div>
                         
                         <div class="preview-info-label">Batch / Cohort</div>
@@ -638,7 +654,7 @@
                         <div class="preview-info-value">${escapeHtml(sch.school_year || 'N/A')}</div>
                         
                         <div class="preview-info-label">Status</div>
-                        <div class="preview-info-value text-green">ACTIVE</div>
+                        <div class="preview-info-value text-green">${sch.dynamic_status ? sch.dynamic_status.toUpperCase() : 'ACTIVE'}</div>
                     </div>
                 </div>
 
@@ -762,6 +778,8 @@
 
         if (btn.classList.contains('action-edit')) {
             window.location.href = `create-scholarship.html?id=${scholarshipId}`;
+        } else if (btn.classList.contains('action-deadline') || btn.classList.contains('btn-quick-edit-deadline')) {
+            if (scholarshipId) openExtendDeadlineModal(scholarshipId);
         } else if (btn.classList.contains('action-view')) {
             if (targetScholarship) showPreviewModal(targetScholarship);
         } else if (btn.classList.contains('action-delete')) {
@@ -796,6 +814,403 @@
                     }
                 }
             });
+        }
+    });
+
+    // ==========================================
+    // 6B. EXTEND DEADLINE MODAL & LOGIC
+    // ==========================================
+    let modalDeadlinePicker = null;
+
+    function initModalFlatpickr() {
+        if (typeof flatpickr === 'undefined') {
+            setTimeout(initModalFlatpickr, 100);
+            return;
+        }
+
+        const deadlineInput = document.getElementById('edit-deadline-date');
+
+        if (deadlineInput && !modalDeadlinePicker) {
+            modalDeadlinePicker = flatpickr(deadlineInput, {
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'F j, Y',
+                altInputClass: 'deadline-flatpickr-input',
+                disableMobile: true,
+                onChange: function () {
+                    updateDeadlinePreview();
+                }
+            });
+        }
+    }
+
+    window.openExtendDeadlineModal = (scholarshipId) => {
+        const sch = allScholarships.find(s => s.id == scholarshipId);
+        if (!sch) {
+            showUIToast('error', 'Error', 'Educational assistance program not found.');
+            return;
+        }
+
+        const modal = document.getElementById('extend-deadline-modal');
+        if (!modal) return;
+
+        initModalFlatpickr();
+
+        // Populate Program Info Card
+        document.getElementById('edit-deadline-sch-id').value = sch.id;
+        
+        const titleEl = document.getElementById('deadline-program-title');
+        if (titleEl) titleEl.innerText = sch.title || 'Untitled Program';
+        
+        const tagsContainer = document.getElementById('deadline-program-tags-container');
+        if (tagsContainer) {
+            tagsContainer.innerHTML = `${getTypeBadge(sch.category)} ${getScholarshipTypeBadge(sch.scholarship_type)} ${getStatusHTML(sch.dynamic_status)}`;
+        }
+
+        // Academic term info
+        const termParts = [];
+        if (sch.batch) termParts.push(`Batch ${sch.batch}`);
+        if (sch.semester) termParts.push(sch.semester);
+        if (sch.school_year) termParts.push(`SY ${sch.school_year}`);
+        const termStr = termParts.join(' • ') || 'Academic Year';
+        
+        const termEl = document.getElementById('deadline-program-term');
+        if (termEl) termEl.innerText = termStr;
+
+        const startEl = document.getElementById('deadline-program-start');
+        if (startEl) startEl.innerText = formatDate(sch.start_date);
+
+        const currentDeadlineEl = document.getElementById('deadline-program-current-deadline');
+        if (currentDeadlineEl) {
+            currentDeadlineEl.innerText = formatDate(sch.end_date);
+            if (sch.dynamic_status === 'Closed') {
+                currentDeadlineEl.className = 'deadline-info-val text-red';
+            } else {
+                currentDeadlineEl.className = 'deadline-info-val text-green';
+            }
+        }
+
+        // Set Flatpickr values
+        if (modalDeadlinePicker) {
+            if (sch.start_date) {
+                modalDeadlinePicker.set('minDate', sch.start_date);
+            } else {
+                modalDeadlinePicker.set('minDate', null);
+            }
+            if (sch.end_date) {
+                modalDeadlinePicker.setDate(sch.end_date, true);
+            } else {
+                modalDeadlinePicker.clear();
+            }
+        }
+
+        // Reset preset buttons active state
+        document.querySelectorAll('.btn-deadline-preset').forEach(b => b.classList.remove('active'));
+
+        // Update preview banner
+        updateDeadlinePreview();
+
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show', 'active'), 10);
+        document.body.style.overflow = 'hidden';
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    };
+
+    window.closeExtendDeadlineModal = () => {
+        const modal = document.getElementById('extend-deadline-modal');
+        if (!modal) return;
+        modal.classList.remove('show', 'active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function applyDeadlinePreset(targetBtn) {
+        const days = targetBtn.getAttribute('data-days');
+        const mode = targetBtn.getAttribute('data-mode');
+        const schId = document.getElementById('edit-deadline-sch-id').value;
+        const sch = allScholarships.find(s => s.id == schId);
+
+        document.querySelectorAll('.btn-deadline-preset').forEach(b => b.classList.remove('active'));
+        targetBtn.classList.add('active');
+
+        // Reference base date: if sch.end_date is in future, extend from sch.end_date, otherwise from today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let baseDate = new Date();
+        if (sch && sch.end_date) {
+            const schEnd = new Date(sch.end_date);
+            schEnd.setHours(0, 0, 0, 0);
+            if (schEnd > today) {
+                baseDate = schEnd;
+            }
+        }
+
+        let newDate = new Date(baseDate);
+
+        if (days) {
+            newDate.setDate(newDate.getDate() + parseInt(days, 10));
+        } else if (mode === 'end-month') {
+            const currentMonth = baseDate.getMonth();
+            const currentYear = baseDate.getFullYear();
+            newDate = new Date(currentYear, currentMonth + 1, 0);
+            if (newDate <= today) {
+                newDate = new Date(currentYear, currentMonth + 2, 0);
+            }
+        }
+
+        const year = newDate.getFullYear();
+        const month = String(newDate.getMonth() + 1).padStart(2, '0');
+        const day = String(newDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        if (modalDeadlinePicker) {
+            modalDeadlinePicker.setDate(dateStr, true);
+        } else {
+            const input = document.getElementById('edit-deadline-date');
+            if (input) input.value = dateStr;
+            updateDeadlinePreview();
+        }
+    }
+
+    function updateDeadlinePreview() {
+        const schId = document.getElementById('edit-deadline-sch-id')?.value;
+        const sch = allScholarships.find(s => s.id == schId);
+        const deadlineInput = document.getElementById('edit-deadline-date');
+        const previewText = document.getElementById('deadline-preview-text');
+        const previewBanner = document.getElementById('deadline-preview-banner');
+
+        if (!sch || !previewText || !previewBanner) return;
+
+        const newDeadlineStr = deadlineInput ? deadlineInput.value : '';
+        const currentStartStr = sch.start_date || '';
+
+        if (!newDeadlineStr) {
+            previewText.innerHTML = `<span style="color: var(--text-muted);">Please select a new deadline date above to preview changes.</span>`;
+            previewBanner.className = 'deadline-preview-box';
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const newEndDate = new Date(newDeadlineStr);
+        newEndDate.setHours(23, 59, 59, 999);
+
+        const oldEndDate = sch.end_date ? new Date(sch.end_date) : null;
+        if (oldEndDate) oldEndDate.setHours(23, 59, 59, 999);
+
+        // Calculate days difference
+        let diffDays = 0;
+        let diffText = '';
+        if (oldEndDate) {
+            const diffTime = newEndDate.getTime() - oldEndDate.getTime();
+            diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > 0) {
+                diffText = `<strong style="color: var(--moss-green);">+${diffDays} day${diffDays === 1 ? '' : 's'} extension</strong>`;
+            } else if (diffDays < 0) {
+                diffText = `<strong style="color: var(--danger-color);">${diffDays} day${diffDays === -1 ? '' : 's'} earlier</strong>`;
+            } else {
+                diffText = `<strong>same deadline date</strong>`;
+            }
+        }
+
+        // Determine prospective status
+        let prospectiveStatus = 'Active';
+        if (newEndDate < today) {
+            prospectiveStatus = 'Closed';
+        } else if (currentStartStr) {
+            const startDate = new Date(currentStartStr);
+            startDate.setHours(0, 0, 0, 0);
+            if (today < startDate) {
+                prospectiveStatus = 'Upcoming';
+            } else {
+                prospectiveStatus = 'Active';
+            }
+        }
+
+        const isReactivating = (sch.dynamic_status === 'Closed' || sch.status === 'Closed') && prospectiveStatus === 'Active';
+
+        let statusBadgeHtml = '';
+        if (prospectiveStatus === 'Active') {
+            statusBadgeHtml = `<span class="status-indicator status-active" style="font-size: 11px; padding: 2px 8px;">Active</span>`;
+        } else if (prospectiveStatus === 'Upcoming') {
+            statusBadgeHtml = `<span class="status-indicator status-upcoming" style="font-size: 11px; padding: 2px 8px;">Upcoming</span>`;
+        } else {
+            statusBadgeHtml = `<span class="status-indicator status-closed" style="font-size: 11px; padding: 2px 8px;">Closed</span>`;
+        }
+
+        let summaryHtml = `<div><strong>Extension Summary:</strong> Deadline will be set to <strong>${formatDate(newDeadlineStr)}</strong> (${diffText}).</div>`;
+        
+        if (isReactivating) {
+            summaryHtml += `<div style="margin-top: 4px; font-size: 12px; color: var(--moss-green); font-weight: 600;">
+                <i data-lucide="sparkles" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle;"></i>
+                Program is currently Closed. Extending deadline will reactivate it to ${statusBadgeHtml} and allow students to apply immediately!
+            </div>`;
+            previewBanner.className = 'deadline-preview-box is-success';
+        } else {
+            summaryHtml += `<div style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">
+                Program dynamic status will be ${statusBadgeHtml}.
+            </div>`;
+            previewBanner.className = 'deadline-preview-box';
+        }
+
+        previewText.innerHTML = summaryHtml;
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    window.saveExtendedDeadline = async () => {
+        const schId = document.getElementById('edit-deadline-sch-id')?.value;
+        const targetScholarship = allScholarships.find(s => s.id == schId);
+        if (!targetScholarship) {
+            showUIToast('error', 'Error', 'Program not found.');
+            return;
+        }
+
+        const newEndDate = document.getElementById('edit-deadline-date')?.value;
+        const currentStartDate = targetScholarship.start_date;
+
+        if (!newEndDate) {
+            showUIToast('warning', 'Missing Deadline', 'Please select a valid deadline date.');
+            return;
+        }
+
+        if (currentStartDate && newEndDate) {
+            const startD = new Date(currentStartDate);
+            startD.setHours(0, 0, 0, 0);
+            const endD = new Date(newEndDate);
+            endD.setHours(23, 59, 59, 999);
+            if (endD < startD) {
+                showUIToast('error', 'Invalid Date Range', 'Deadline cannot be earlier than the opening date (' + formatDate(currentStartDate) + ').');
+                return;
+            }
+        }
+
+        const saveBtn = document.getElementById('btn-save-deadline');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<i data-lucide="loader-2" class="animate-spin" style="width: 15px; height: 15px;"></i> Saving...`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        try {
+            // Determine correct new DB status
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const endD = new Date(newEndDate);
+            endD.setHours(23, 59, 59, 999);
+
+            let calculatedStatus = 'Active';
+            if (targetScholarship.status === 'Draft') {
+                calculatedStatus = 'Draft';
+            } else if (currentStartDate) {
+                const startD = new Date(currentStartDate);
+                startD.setHours(0, 0, 0, 0);
+                if (today < startD) {
+                    calculatedStatus = 'Upcoming';
+                } else if (today >= startD && today <= endD) {
+                    calculatedStatus = 'Active';
+                } else {
+                    calculatedStatus = 'Closed';
+                }
+            } else {
+                calculatedStatus = today <= endD ? 'Active' : 'Closed';
+            }
+
+            const updatePayload = {
+                end_date: newEndDate,
+                status: calculatedStatus
+            };
+
+            const { error } = await window.supabaseClient
+                .from('scholarships')
+                .update(updatePayload)
+                .eq('id', schId);
+
+            if (error) throw error;
+
+            // Audit log
+            try {
+                await window.supabaseClient.from('audit_logs').insert([{
+                    admin_id: adminId,
+                    school_id: currentAdminSchoolId,
+                    action: 'Educational Assistance deadline extended',
+                    module: 'Scholarships',
+                    details: JSON.stringify({
+                        scholarship_id: schId,
+                        title: targetScholarship.title,
+                        old_end_date: targetScholarship.end_date,
+                        new_end_date: newEndDate,
+                        status: calculatedStatus
+                    })
+                }]);
+            } catch (e) {
+                console.warn('Audit log error:', e);
+            }
+
+            // Update in-memory scholarship object
+            targetScholarship.end_date = newEndDate;
+            targetScholarship.status = calculatedStatus;
+            targetScholarship.dynamic_status = calculateDynamicStatus(targetScholarship);
+
+            // Re-sort & Re-render
+            sortScholarshipsActiveFirst(allScholarships);
+            updateTopStats(allScholarships);
+            applyFilters();
+
+            closeExtendDeadlineModal();
+
+            showUIToast(
+                'success',
+                'Deadline Extended',
+                `Application deadline for "${targetScholarship.title}" successfully extended to ${formatDate(newEndDate)}.`
+            );
+
+        } catch (error) {
+            console.error('Error saving deadline extension:', error);
+            showUIToast('error', 'Error', error.message || 'Failed to update application deadline.');
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `<i data-lucide="check" style="width: 15px; height: 15px;"></i> Save & Extend Deadline`;
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+    };
+
+    // Preset buttons event delegation
+    document.addEventListener('click', (e) => {
+        const presetBtn = e.target.closest('.btn-deadline-preset');
+        if (presetBtn) {
+            applyDeadlinePreset(presetBtn);
+        }
+    });
+
+    // Extend modal backdrop click and Escape key dismissal
+    const extendModalEl = document.getElementById('extend-deadline-modal');
+    if (extendModalEl) {
+        extendModalEl.addEventListener('click', (e) => {
+            if (e.target === extendModalEl) {
+                closeExtendDeadlineModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const em = document.getElementById('extend-deadline-modal');
+            if (em && em.classList.contains('show')) {
+                closeExtendDeadlineModal();
+            }
         }
     });
 
@@ -1142,11 +1557,17 @@
                         </div>
                     </td>
                     <td>${getStatusHTML(sch.dynamic_status)}</td>
-                    <td style="text-align: right;">
-                        <button type="button" class="btn-stat-modal-preview" onclick="openStatsProgramPreview('${sch.id}')" title="Preview Application Form">
-                            <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
-                            <span>Preview</span>
-                        </button>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                            <button type="button" class="btn-stat-modal-extend" onclick="openExtendDeadlineModal('${sch.id}')" title="Extend Deadline">
+                                <i data-lucide="calendar-plus" style="width: 13px; height: 13px;"></i>
+                                <span>Extend</span>
+                            </button>
+                            <button type="button" class="btn-stat-modal-preview" onclick="openStatsProgramPreview('${sch.id}')" title="Preview Application Form">
+                                <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
+                                <span>Preview</span>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;

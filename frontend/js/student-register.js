@@ -414,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     first_name: studentData.first_name,
                     middle_name: studentData.middle_name,
                     last_name: studentData.last_name,
+                    date_of_birth: studentData.date_of_birth || null,
                     program: studentData.program,
                     year_level: studentData.year_level, // Synced from Masterlist update
                     gender: studentData.gender,         // Synced from Masterlist update

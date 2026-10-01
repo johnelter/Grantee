@@ -189,7 +189,10 @@
                     notifDropdown.classList.remove('show');
                 }
                 if (targetUrl) {
-                    window.location.href = targetUrl;
+                    const currentPath = window.location.pathname.split('/').pop() || 'student-dashboard.html';
+                    if (currentPath !== targetUrl) {
+                        window.location.href = targetUrl;
+                    }
                 }
                 return;
             }

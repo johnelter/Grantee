@@ -1,5 +1,8 @@
 (async function () {
 
+    const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e2e8f0'/%3E%3Cpath d='M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z' fill='%2364748b'/%3E%3C/svg%3E";
+    const ADMIN_DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+
     document.querySelectorAll('form').forEach(f => f.addEventListener('submit', e => e.preventDefault()));
 
     // ==========================================
@@ -169,9 +172,10 @@
                 const headerName = document.getElementById('header-name');
                 if (headerName) headerName.innerText = fullName;
 
-                if (profile.avatar_url) {
-                    const headerAvatar = document.getElementById('header-avatar');
-                    if (headerAvatar) headerAvatar.src = profile.avatar_url;
+                const headerAvatar = document.getElementById('header-avatar');
+                if (headerAvatar) {
+                    headerAvatar.src = profile.avatar_url || ADMIN_DEFAULT_AVATAR;
+                    headerAvatar.onerror = function () { this.onerror = null; this.src = ADMIN_DEFAULT_AVATAR; };
                 }
 
                 if (document.getElementById('admin-school-display')) {
@@ -184,7 +188,7 @@
                 sessionStorage.setItem('grantee_admin_profile', JSON.stringify({
                     name: fullName,
                     role: profile.role === 'admin' ? 'Coordinator' : profile.role,
-                    avatar_url: profile.avatar_url || 'assets/admin-avatar.png',
+                    avatar_url: profile.avatar_url || ADMIN_DEFAULT_AVATAR,
                     school_name: schoolName,
                     school_id: profile.school_id
                 }));
@@ -358,7 +362,7 @@
             const dateStr = new Date(ann.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
             let authorName = "System Administrator";
-            let authorAvatar = "assets/admin-avatar.png";
+            let authorAvatar = ADMIN_DEFAULT_AVATAR;
             if (ann.profiles) {
                 authorName = `${ann.profiles.first_name || ''} ${ann.profiles.last_name || ''}`.trim();
                 if (ann.profiles.avatar_url) authorAvatar = ann.profiles.avatar_url;
@@ -403,7 +407,7 @@
             card.innerHTML = `
                 <div class="card-header">
                     <div class="card-author-group">
-                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.onerror=null; this.src='${ADMIN_DEFAULT_AVATAR}';">
                         <div class="card-author-meta">
                             <div class="card-author-title-row">
                                 <span class="card-author-name">${authorName}</span>
@@ -471,7 +475,7 @@
         const dateStr = new Date(ann.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
         let authorName = "System Administrator";
-        let authorAvatar = "assets/admin-avatar.png";
+        let authorAvatar = ADMIN_DEFAULT_AVATAR;
         if (ann.profiles) {
             authorName = `${ann.profiles.first_name || ''} ${ann.profiles.last_name || ''}`.trim();
             if (ann.profiles.avatar_url) authorAvatar = ann.profiles.avatar_url;
@@ -526,7 +530,7 @@
         detailContainer.innerHTML = `
             <div class="card-header">
                 <div class="card-author-group">
-                    <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                    <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.onerror=null; this.src='${ADMIN_DEFAULT_AVATAR}';">
                     <div class="card-author-meta">
                         <div class="card-author-title-row">
                             <span class="card-author-name">${authorName}</span>
@@ -1139,10 +1143,10 @@
             let authorName = "Unknown User";
             if (c.profiles) {
                 authorName = `${c.profiles.first_name || ''} ${c.profiles.last_name || ''}`.trim();
-                if (c.profiles.role === 'admin' || c.profiles.role === 'coordinator') authorName += ` <span class="badge-author">Staff</span>`;
+                if (c.profiles.role === 'admin' || c.profiles.role === 'coordinator') authorName += ` <span class="badge-author">Coordinator</span>`;
             }
 
-            const avatarUrl = c.profiles?.avatar_url || 'assets/default-avatar.png';
+            const avatarUrl = c.profiles?.avatar_url || DEFAULT_AVATAR;
 
             let timeString = "";
             const diffMs = new Date() - new Date(c.created_at);
@@ -1168,7 +1172,7 @@
 
             const commentHtml = `
                 <div class="comment-item" style="${hiddenStyling}">
-                    <img src="${avatarUrl}" class="comment-avatar" alt="User" onerror="this.src='assets/default-avatar.png'">
+                    <img src="${avatarUrl}" class="comment-avatar" alt="User" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR}';">
                     <div class="comment-body-wrapper" style="flex: 1;">
                         <div class="comment-top-row">
                             <span class="comment-author">${isMe ? "You" : authorName} ${pinnedLabel} ${hiddenLabel}</span>

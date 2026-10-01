@@ -1149,6 +1149,27 @@ body.dark-theme .filter-select {
     border: 1px solid var(--badge-outside-border);
 }
 
+.btn-table-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--accent-light);
+    color: var(--moss-green);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-table-edit:hover {
+    background: var(--moss-green);
+    color: #FFFFFF;
+    border-color: var(--moss-green);
+    transform: scale(1.08);
+}
+
 .btn-table-revoke {
     display: inline-flex;
     align-items: center;

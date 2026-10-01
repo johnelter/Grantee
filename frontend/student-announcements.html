@@ -61,7 +61,7 @@
                         style="width: 32px; height: 32px; object-fit: contain; border-radius: 8px;">
                     <div>
                         <h2>Grantee</h2>
-                        <span class="sub-brand">Smart Management</span>
+                        <span class="sub-brand">Educational Assistance Management</span>
                     </div>
                 </div>
                 <nav class="sidebar-menu">
@@ -162,13 +162,16 @@
 
                     <!-- Profile Dropdown -->
                     <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
-                        <img id="header-avatar" src="assets/default-avatar.png" alt="Profile"
-                            onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/><path d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/></svg>'">
+                        <img id="header-avatar"
+                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e2e8f0'/%3E%3Cpath d='M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z' fill='%2364748b'/%3E%3C/svg%3E"
+                            alt="Profile"
+                            onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23e2e8f0%22/%3E%3Cpath d=%22M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z%22 fill=%22%2364748b%22/%3E%3C/svg%3E'">
                         <div class="profile-info">
                             <strong id="header-name">Student Name</strong>
                             <span id="header-program">Program</span>
                         </div>
-                        <span class="dropdown-arrow"><i data-lucide="chevron-down"></i></span>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down"
+                                style="width: 14px; height: 14px;"></i></span>
 
                         <div class="profile-dropdown-menu" id="profile-menu">
                             <a href="profile-settings.html"><i data-lucide="user"></i> Profile Settings</a>
@@ -362,6 +365,27 @@
 
                     <div id="modal-root"></div>
         </main>
+    </div>
+
+    <!-- DELETE COMMENT CONFIRMATION MODAL -->
+    <div id="delete-comment-modal" class="global-modal-overlay" style="display: none; z-index: 100050;">
+        <div class="global-modal-content delete-modal-box">
+            <div class="delete-modal-icon">
+                <i data-lucide="trash-2"></i>
+            </div>
+            <h3 class="delete-modal-title">Delete Student Comment?</h3>
+            <p class="delete-modal-desc">
+                Are you sure you want to permanently delete this comment? This action cannot be undone.
+            </p>
+            <div class="global-modal-actions">
+                <button type="button" id="btn-cancel-delete-comment" class="global-btn-cancel">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-delete-comment" class="global-btn-confirm">
+                    <i data-lucide="trash-2"></i> Yes, delete it!
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- LOGOUT MODAL -->

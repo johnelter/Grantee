@@ -1,5 +1,98 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+    // ==========================================
+    // 0. CUSTOM UI TOAST SYSTEM (TOP CENTER)
+    // ==========================================
+    function showUIToast(type = 'success', title = '', message = '', duration = 3500) {
+        return new Promise((resolve) => {
+            if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+                Swal.close();
+            }
+
+            let container = document.getElementById('custom-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'custom-toast-container';
+                document.body.appendChild(container);
+            }
+
+            type = (type || 'success').toLowerCase();
+            if (!['success', 'error', 'info', 'warning'].includes(type)) {
+                type = 'info';
+            }
+
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                if (!title) title = 'Success';
+            } else if (type === 'error') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                if (!title) title = 'Error';
+            } else if (type === 'info') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+                if (!title) title = 'Info';
+            } else if (type === 'warning') {
+                iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                if (!title) title = 'Warning';
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `custom-ui-toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-left-bar"></div>
+                <div class="toast-icon-wrapper">
+                    ${iconSvg}
+                </div>
+                <div class="toast-details">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message || ''}</div>
+                </div>
+                <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    toast.classList.add('toast-show');
+                });
+            });
+
+            let isDismissed = false;
+            const dismissToast = () => {
+                if (isDismissed) return;
+                isDismissed = true;
+                toast.classList.remove('toast-show');
+                toast.classList.add('toast-hide');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                    resolve();
+                }, 300);
+            };
+
+            const closeBtn = toast.querySelector('.toast-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dismissToast();
+                });
+            }
+
+            const autoDismissTimer = setTimeout(dismissToast, duration);
+
+            toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+            toast.addEventListener('mouseleave', () => {
+                if (!isDismissed) {
+                    setTimeout(dismissToast, 2000);
+                }
+            });
+        });
+    }
+    window.showUIToast = showUIToast;
+    window.showToast = showUIToast;
+
     // --- 1. INJECT MODAL HTML FOR FULL VIEW ---
     const modalHtml = `
         <div id="full-view-modal" class="doc-modal-overlay" style="display: none;">
@@ -974,36 +1067,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }).catch(e => console.error("Coordinator notification failed:", e));
             }
 
-            let toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.className = 'toast-container';
-                document.body.appendChild(toastContainer);
-            }
-            const toast = document.createElement('div');
-            toast.className = 'toast toast-success';
-            toast.innerHTML = `
-                <div class="toast-icon"><i data-lucide="check-circle-2" style="width:24px; height:24px;"></i></div>
-                <div class="toast-content">
-                    <span class="toast-title">Success!</span>
-                    <span class="toast-message">Educational Assistance Application Submitted Successfully!</span>
-                </div>
-            `;
-            toastContainer.appendChild(toast);
-            refreshIcons();
-
-            setTimeout(() => toast.classList.add('active'), 10);
+            showUIToast(
+                'success',
+                'Success',
+                'Your educational assistance application has been successfully submitted and is under review.',
+                3500
+            );
 
             setTimeout(() => {
-                toast.classList.replace('active', 'exit');
-                setTimeout(() => {
-                    window.location.href = 'student-applications.html';
-                }, 400);
+                window.location.href = 'student-applications.html';
             }, 3000);
 
         } catch (err) {
             console.error("Submission Error:", err);
-            Swal.fire('Submission Failed', "Failed to submit application: " + err.message, 'error');
+            showUIToast('error', 'Submission Failed', err.message || 'Failed to submit application.');
             submitBtn.innerText = 'Submit Application';
             submitBtn.disabled = false;
             refreshIcons();

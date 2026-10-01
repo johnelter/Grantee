@@ -7,10 +7,16 @@ function hydrateUserProfile(root = document) {
             const nameEl = root.getElementById ? root.getElementById('header-name') : root.querySelector('#header-name');
             const programEl = root.getElementById ? root.getElementById('header-program') : root.querySelector('#header-program');
             const avatarEl = root.getElementById ? root.getElementById('header-avatar') : root.querySelector('#header-avatar');
+            const schoolEl = root.getElementById ? root.getElementById('student-school-display') : root.querySelector('#student-school-display');
+            const profileToggle = root.getElementById ? root.getElementById('profile-dropdown-toggle') : root.querySelector('#profile-dropdown-toggle');
 
             if (nameEl && profile.name) nameEl.innerText = profile.name;
             if (programEl && profile.program) programEl.innerText = profile.program;
             if (avatarEl && profile.avatar_url) avatarEl.src = profile.avatar_url;
+            if (schoolEl && profile.school_name) {
+                schoolEl.innerHTML = `<i data-lucide="school" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> <strong>${profile.school_name}</strong>`;
+            }
+            if (profileToggle) profileToggle.classList.remove('is-loading');
         }
 
         const cachedUnread = sessionStorage.getItem('grantee_notif_unread');
@@ -28,6 +34,60 @@ function hydrateUserProfile(root = document) {
         }
     } catch (e) {
         console.warn('Hydrate profile error:', e);
+    }
+}
+
+// Automatically fetch and cache student profile in the background
+async function fetchAndCacheStudentProfile() {
+    if (!window.supabaseClient) return;
+    try {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session || !session.user) return;
+        const studentId = session.user.id;
+
+        const { data: profile } = await window.supabaseClient
+            .from('profiles')
+            .select('*, schools(name), programs(name)')
+            .eq('id', studentId)
+            .single();
+
+        if (profile) {
+            let fullName = profile.full_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
+            let progName = profile.programs ? profile.programs.name : (profile.course_program || 'Student Program');
+            let schoolName = profile.schools ? profile.schools.name : (profile.school_name || '');
+            let avatarUrl = profile.avatar_url || 'assets/default-avatar.png';
+
+            const profileData = {
+                id: studentId,
+                name: fullName,
+                program: progName,
+                school_name: schoolName,
+                avatar_url: avatarUrl
+            };
+            sessionStorage.setItem('grantee_student_profile', JSON.stringify(profileData));
+
+            const nameEl = document.getElementById('header-name');
+            const progEl = document.getElementById('header-program');
+            const avatarEl = document.getElementById('header-avatar');
+            const schoolEl = document.getElementById('student-school-display');
+            const profileToggle = document.getElementById('profile-dropdown-toggle');
+            const titlesBox = document.getElementById('header-titles-box');
+
+            if (nameEl && fullName) nameEl.innerText = fullName;
+            if (progEl && progName) progEl.innerText = progName;
+            if (avatarEl && avatarUrl) avatarEl.src = avatarUrl;
+            if (schoolEl && schoolName) {
+                schoolEl.innerHTML = `<i data-lucide="school" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> <strong>${schoolName}</strong>`;
+            }
+            if (profileToggle) profileToggle.classList.remove('is-loading');
+            if (titlesBox) titlesBox.classList.remove('is-loading');
+
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+    } catch (e) {
+        console.warn('Background profile fetch error:', e);
     }
 }
 
@@ -423,6 +483,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // Fetch & cache latest student profile data in background
+    fetchAndCacheStudentProfile();
 
     // Inject sidebar and logout modal
     await loadStudentSidebar();

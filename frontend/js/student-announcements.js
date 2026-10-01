@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+    const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e2e8f0'/%3E%3Cpath d='M50 25a15 15 0 110 30 15 15 0 010-30zm0 35c-20 0-35 10-35 25v5h70v-5c0-15-15-25-35-25z' fill='%2364748b'/%3E%3C/svg%3E";
+    const ADMIN_DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+
     // ==========================================
     // 0. CUSTOM UI TOAST SYSTEM (TOP CENTER)
     // ==========================================
@@ -222,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     id: studentId,
                     name: fullName,
                     program: progName,
-                    avatar_url: profile.avatar_url || 'assets/default-avatar.png'
+                    avatar_url: profile.avatar_url || DEFAULT_AVATAR
                 }));
 
                 const nameEl = document.getElementById('header-name');
@@ -232,7 +235,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (nameEl) nameEl.innerText = fullName;
                 if (progEl) progEl.innerText = progName;
-                if (avatarEl && profile.avatar_url) avatarEl.src = profile.avatar_url;
+                if (avatarEl) {
+                    avatarEl.src = profile.avatar_url || DEFAULT_AVATAR;
+                    avatarEl.onerror = function() { this.onerror = null; this.src = DEFAULT_AVATAR; };
+                }
                 if (titlesBox) titlesBox.classList.remove('is-loading');
             } else if (profileError) {
                 console.warn("Could not load profile details:", profileError);
@@ -520,7 +526,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dateStr = new Date(ann.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
             let authorName = "Scholarship Office";
-            let authorAvatar = "assets/admin-avatar.png";
+            let authorAvatar = ADMIN_DEFAULT_AVATAR;
             if (ann.profiles) {
                 authorName = `${ann.profiles.first_name || ''} ${ann.profiles.last_name || ''}`.trim();
                 if (ann.profiles.avatar_url) authorAvatar = ann.profiles.avatar_url;
@@ -571,7 +577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.innerHTML = `
                 <div class="card-header-wrapper">
                     <div class="card-author-row">
-                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.onerror=null; this.src='${ADMIN_DEFAULT_AVATAR}';">
                         <div class="card-author-meta">
                             <div class="author-name-line">
                                 <span class="author-name-text">${authorName}</span>
@@ -680,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dateStr = new Date(activeAnn.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
             let authorName = "Scholarship Office";
-            let authorAvatar = "assets/admin-avatar.png";
+            let authorAvatar = ADMIN_DEFAULT_AVATAR;
             if (activeAnn.profiles) {
                 authorName = `${activeAnn.profiles.first_name || ''} ${activeAnn.profiles.last_name || ''}`.trim();
                 if (activeAnn.profiles.avatar_url) authorAvatar = activeAnn.profiles.avatar_url;
@@ -757,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             detailContainer.innerHTML = `
                 <div class="card-header-wrapper" style="padding: 0 0 14px 0;">
                     <div class="card-author-row">
-                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.src='assets/admin-avatar.png'">
+                        <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.onerror=null; this.src='${ADMIN_DEFAULT_AVATAR}';">
                         <div class="card-author-meta">
                             <div class="author-name-line">
                                 <span class="author-name-text">${authorName}</span>
@@ -892,7 +898,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isMe = c.user_id === studentId;
 
                 const displayName = isMe ? 'You' : `${c.profiles?.first_name || 'Student'} ${c.profiles?.last_name || ''}`.trim();
-                const avatarUrl = c.profiles?.avatar_url || 'assets/default-avatar.png';
+                const avatarUrl = c.profiles?.avatar_url || DEFAULT_AVATAR;
 
                 let timeString = "";
                 const diffMs = new Date() - new Date(c.created_at);
@@ -908,7 +914,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const commentHtml = `
                     <div class="comment-item">
-                        <img src="${avatarUrl}" class="comment-avatar" alt="${displayName}" onerror="this.src='assets/default-avatar.png'">
+                        <img src="${avatarUrl}" class="comment-avatar" alt="${displayName}" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR}';">
                         <div class="comment-content-box">
                             <div class="comment-top-row">
                                 <div class="comment-author-name">
@@ -1064,30 +1070,58 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    window.deleteMyComment = async (commentId) => {
-        const confirmDelete = await Swal.fire({
-            title: 'Delete Comment?',
-            text: "Are you sure you want to remove your comment?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it',
-            customClass: {
-                popup: 'swal-nature-popup'
-            }
-        });
+    let pendingDeleteCommentId = null;
 
-        if (confirmDelete.isConfirmed) {
-            try {
-                await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
-                showUIToast('success', 'Comment Deleted', 'Your comment has been removed.');
-                if (currentSelectedId) loadComments(currentSelectedId, true);
-            } catch (err) {
-                showUIToast('error', 'Error', 'Failed to delete comment.');
-            }
+    window.deleteMyComment = (commentId) => {
+        pendingDeleteCommentId = commentId;
+        const deleteCommentModal = document.getElementById('delete-comment-modal');
+        if (deleteCommentModal) {
+            deleteCommentModal.style.display = 'flex';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     };
+
+    document.getElementById('btn-cancel-delete-comment')?.addEventListener('click', () => {
+        const deleteCommentModal = document.getElementById('delete-comment-modal');
+        if (deleteCommentModal) deleteCommentModal.style.display = 'none';
+        pendingDeleteCommentId = null;
+    });
+
+    document.getElementById('delete-comment-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'delete-comment-modal') {
+            document.getElementById('delete-comment-modal').style.display = 'none';
+            pendingDeleteCommentId = null;
+        }
+    });
+
+    document.getElementById('btn-confirm-delete-comment')?.addEventListener('click', async () => {
+        const commentId = pendingDeleteCommentId;
+        if (!commentId) return;
+
+        const confirmBtn = document.getElementById('btn-confirm-delete-comment');
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i data-lucide="loader-2" class="spin-icon" style="width:15px; height:15px;"></i> Deleting...';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+
+        try {
+            await window.supabaseClient.from('announcement_comments').delete().eq('id', commentId);
+            if (currentSelectedId) loadComments(currentSelectedId, true);
+
+            const deleteCommentModal = document.getElementById('delete-comment-modal');
+            if (deleteCommentModal) deleteCommentModal.style.display = 'none';
+
+            showUIToast('success', 'Comment Deleted', 'Your comment has been removed.');
+        } catch (err) {
+            console.error("Error deleting comment:", err);
+            showUIToast('error', 'Error', 'Failed to delete comment.');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+            pendingDeleteCommentId = null;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+    });
 
     window.editMyComment = async (commentId, oldContent) => {
         const { value: newText } = await Swal.fire({
@@ -1356,11 +1390,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (profileToggle && profileMenu) {
         profileToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            profileMenu.classList.toggle('show');
+            const isShow = profileMenu.classList.toggle('show');
+            profileToggle.classList.toggle('active-state', isShow);
         });
         document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) {
+            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
                 profileMenu.classList.remove('show');
+                profileToggle.classList.remove('active-state');
             }
         });
     }
@@ -1376,6 +1412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 e.preventDefault();
                 logoutModal.style.display = 'flex';
                 if (profileMenu) profileMenu.classList.remove('show');
+                if (profileToggle) profileToggle.classList.remove('active-state');
             });
         });
 

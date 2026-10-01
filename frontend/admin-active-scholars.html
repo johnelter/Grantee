@@ -293,8 +293,8 @@
                         <div class="table-controls-filters filter-group">
                             <div class="filter-item">
                                 <select id="filter-scholarship" class="form-input filter-select"
-                                    aria-label="Filter by Program">
-                                    <option value="">All Programs</option>
+                                    aria-label="Filter by Educational Assistance">
+                                    <option value="">All Educational Assistance</option>
                                 </select>
                             </div>
 
@@ -659,25 +659,36 @@
                 <div style="background: var(--input-bg, #F8FAF7); border: 1px solid var(--border-color, #DFE6DC); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
                     <div style="font-size: 13.5px; font-weight: 700; color: var(--text-heading);" id="edit-student-display">Student Info</div>
                     <div style="font-size: 12.5px; color: var(--accent-color, #6B7F4E); font-weight: 600; margin-top: 2px;" id="edit-program-display">Program Title</div>
+                    <div id="edit-type-badge-container" style="margin-top: 6px;"></div>
                 </div>
 
+                <!-- Subtle Info Note for Internal Assistance -->
+                <div id="edit-internal-info-container" style="display: none; background: rgba(76, 106, 115, 0.08); border: 1px solid rgba(76, 106, 115, 0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 12px; color: var(--river-blue, #4C6A73); line-height: 1.45;">
+                    <div style="font-weight: 600; display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
+                        <i data-lucide="info" style="width: 14px; height: 14px;"></i> Internal Assistance Policy
+                    </div>
+                    <span>School Year, Semester, and Category are managed in the Educational Assistance program settings. You can edit the <strong>Batch</strong> and <strong>Assistance Duration</strong> for this student.</span>
+                </div>
+
+                <!-- Outside Assistance Name (Editable for Outside Assistance) -->
                 <div id="edit-outside-name-container" style="margin-bottom: 14px; display: none;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
-                        Outside Assistance Name
+                        Outside Assistance Name <span style="color: var(--danger-color);">*</span>
                     </label>
                     <input type="text" id="edit-outside-name" class="form-input" placeholder="e.g. CHED, DOST">
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-                    <div>
+                <!-- School Year & Semester Row (Editable for Outside Assistance) -->
+                <div id="edit-term-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div id="edit-sy-container">
                         <label
                             style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                             School Year (SY)
                         </label>
                         <input type="text" id="edit-sy" class="form-input" placeholder="e.g. 2025-2026">
                     </div>
-                    <div>
+                    <div id="edit-semester-container">
                         <label
                             style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                             Semester
@@ -691,15 +702,16 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-                    <div>
+                <!-- Batch & Duration Row (Editable for BOTH Outside & Internal Assistance) -->
+                <div id="edit-batch-duration-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div id="edit-batch-container">
                         <label
                             style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                             Batch
                         </label>
                         <input type="text" id="edit-batch" class="form-input" placeholder="e.g. Batch 1">
                     </div>
-                    <div>
+                    <div id="edit-duration-container">
                         <label
                             style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                             Assistance Duration
@@ -719,17 +731,17 @@
                     </div>
                 </div>
 
-                <div style="margin-bottom: 22px;">
+                <!-- Educational Assistance Category (Editable for Outside Assistance) -->
+                <div id="edit-category-container" style="margin-bottom: 22px;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
-                        Educational Assistance Category
+                        Educational Assistance Category <span style="color: var(--danger-color);">*</span>
                     </label>
                     <select id="edit-category" class="form-input">
                         <option value="Institution-Funded Educational Assistance">Institution-Funded Educational Assistance</option>
                         <option value="Ched Educational Assistance">Ched Educational Assistance</option>
                         <option value="Private Educational Assistance">Private Educational Assistance</option>
                         <option value="Government Educational Assistance">Government Educational Assistance</option>
-                        <option value="Outside Assistance">Outside Assistance</option>
                     </select>
                 </div>
 

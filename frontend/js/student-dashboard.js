@@ -1277,12 +1277,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (profileToggle && profileMenu) {
         profileToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            profileMenu.classList.toggle('show');
+            const isShow = profileMenu.classList.toggle('show');
+            profileToggle.classList.toggle('active-state', isShow);
         });
 
         document.addEventListener('click', (e) => {
-            if (!profileToggle.contains(e.target)) {
+            if (!profileToggle.contains(e.target) && !profileMenu.contains(e.target)) {
                 profileMenu.classList.remove('show');
+                profileToggle.classList.remove('active-state');
             }
         });
     }

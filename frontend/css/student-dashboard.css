@@ -267,7 +267,7 @@ body {
 }
 
 h1,
-h2,
+/* h2, */
 h3,
 h4,
 h5,
@@ -2539,6 +2539,11 @@ body.dark-theme .announcement-modal-body-content a {
     pointer-events: none !important;
     user-select: none !important;
   }
+
+  /* .sidebar-brand h2 {
+    color: var(--text-heading);
+    margin: 0;
+  } */
 
   .sidebar-overlay,
   #sidebar-overlay {

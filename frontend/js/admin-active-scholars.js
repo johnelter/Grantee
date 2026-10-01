@@ -274,6 +274,157 @@
         } catch (err) { console.error("Error fetching masterlist:", err); }
     }
 
+    function updateFilterDropdowns() {
+        const filterSelect = document.getElementById('filter-scholarship');
+        const batchFilter = document.getElementById('filter-batch');
+        const semFilter = document.getElementById('filter-semester');
+        const syFilter = document.getElementById('filter-school-year');
+
+        const curSch = filterSelect ? filterSelect.value : '';
+        const curBatch = batchFilter ? batchFilter.value : '';
+        const curSem = semFilter ? semFilter.value : '';
+        const curSy = syFilter ? syFilter.value : '';
+
+        // 1. POPULATE EDUCATIONAL ASSISTANCE DROPDOWN
+        if (filterSelect) {
+            filterSelect.innerHTML = '<option value="">All Educational Assistance</option>';
+
+            const internalList = [];
+            if (schoolScholarships && schoolScholarships.length > 0) {
+                schoolScholarships.forEach(sch => {
+                    if (!internalList.some(s => s.id === sch.id)) {
+                        internalList.push({ id: sch.id, title: sch.title });
+                    }
+                });
+            }
+            activeBeneficiaries.forEach(app => {
+                if (app.scholarship_id && app.scholarships?.title) {
+                    if (!internalList.some(s => s.id === app.scholarship_id)) {
+                        internalList.push({ id: app.scholarship_id, title: app.scholarships.title });
+                    }
+                }
+            });
+
+            const outsideSet = new Set();
+            activeBeneficiaries.forEach(app => {
+                if (!app.scholarship_id && app.outside_assistance_name) {
+                    const cleanName = app.outside_assistance_name.trim();
+                    if (cleanName) outsideSet.add(cleanName);
+                }
+            });
+
+            if (internalList.length > 0 && outsideSet.size > 0) {
+                const intGroup = document.createElement('optgroup');
+                intGroup.label = 'Internal Educational Assistance';
+                internalList.forEach(sch => {
+                    intGroup.appendChild(new Option(sch.title, `sch_${sch.id}`));
+                });
+                filterSelect.appendChild(intGroup);
+
+                const outGroup = document.createElement('optgroup');
+                outGroup.label = 'Outside Educational Assistance';
+                Array.from(outsideSet).sort((a, b) => a.localeCompare(b)).forEach(name => {
+                    outGroup.appendChild(new Option(name, `outside_${name}`));
+                });
+                filterSelect.appendChild(outGroup);
+            } else {
+                internalList.forEach(sch => {
+                    filterSelect.add(new Option(sch.title, `sch_${sch.id}`));
+                });
+                Array.from(outsideSet).sort((a, b) => a.localeCompare(b)).forEach(name => {
+                    filterSelect.add(new Option(`${name} (Outside Assistance)`, `outside_${name}`));
+                });
+            }
+
+            if (curSch) {
+                const hasOption = Array.from(filterSelect.options).some(o => o.value === curSch);
+                if (hasOption) {
+                    filterSelect.value = curSch;
+                } else if (curSch.startsWith('sch_') || curSch.startsWith('outside_')) {
+                    const raw = curSch.replace(/^sch_|^outside_/, '');
+                    const matchOpt = Array.from(filterSelect.options).find(o => o.value.endsWith(raw));
+                    if (matchOpt) filterSelect.value = matchOpt.value;
+                }
+            }
+        }
+
+        // 2. POPULATE SCHOOL YEAR DROPDOWN
+        if (syFilter) {
+            syFilter.innerHTML = '<option value="">All School Years</option>';
+            const uniqueSYs = new Set();
+
+            schoolScholarships.forEach(sch => {
+                if (sch.school_year && isValidValue(sch.school_year)) uniqueSYs.add(String(sch.school_year).trim());
+            });
+            activeBeneficiaries.forEach(app => {
+                const sy = app.outside_sy || app.scholarships?.school_year;
+                if (sy && isValidValue(sy)) uniqueSYs.add(String(sy).trim());
+            });
+
+            Array.from(uniqueSYs).sort((a, b) => b.localeCompare(a, undefined, { numeric: true })).forEach(sy => {
+                syFilter.add(new Option(sy, sy));
+            });
+
+            if (curSy && Array.from(syFilter.options).some(o => o.value === curSy)) {
+                syFilter.value = curSy;
+            }
+        }
+
+        // 3. POPULATE SEMESTER DROPDOWN
+        if (semFilter) {
+            semFilter.innerHTML = '<option value="">All Semesters</option>';
+            const uniqueSems = new Set();
+
+            schoolScholarships.forEach(sch => {
+                if (sch.semester && isValidValue(sch.semester)) uniqueSems.add(String(sch.semester).trim());
+            });
+            activeBeneficiaries.forEach(app => {
+                const sem = app.outside_semester || app.scholarships?.semester;
+                if (sem && isValidValue(sem)) uniqueSems.add(String(sem).trim());
+            });
+
+            const semOrder = ['1st Semester', '2nd Semester', 'Summer', 'Midyear', '3rd Semester', 'Trimester 1', 'Trimester 2', 'Trimester 3'];
+            const sortedSems = Array.from(uniqueSems).sort((a, b) => {
+                const idxA = semOrder.indexOf(a);
+                const idxB = semOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.localeCompare(b);
+            });
+
+            sortedSems.forEach(s => {
+                semFilter.add(new Option(s, s));
+            });
+
+            if (curSem && Array.from(semFilter.options).some(o => o.value === curSem)) {
+                semFilter.value = curSem;
+            }
+        }
+
+        // 4. POPULATE BATCH DROPDOWN
+        if (batchFilter) {
+            batchFilter.innerHTML = '<option value="">All Batches</option>';
+            const uniqueBatches = new Set();
+
+            schoolScholarships.forEach(sch => {
+                if (sch.batch && isValidValue(sch.batch)) uniqueBatches.add(String(sch.batch).trim());
+            });
+            activeBeneficiaries.forEach(app => {
+                const batch = app.outside_batch || app.scholarships?.batch;
+                if (batch && isValidValue(batch)) uniqueBatches.add(String(batch).trim());
+            });
+
+            Array.from(uniqueBatches).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(b => {
+                batchFilter.add(new Option(b, b));
+            });
+
+            if (curBatch && Array.from(batchFilter.options).some(o => o.value === curBatch)) {
+                batchFilter.value = curBatch;
+            }
+        }
+    }
+
     async function fetchScholarshipList() {
         try {
             const { data } = await window.supabaseClient
@@ -284,28 +435,14 @@
 
             if (data) {
                 schoolScholarships = data;
-                const filterSelect = document.getElementById('filter-scholarship');
                 const manualSelect = document.getElementById('manual-scholarship-select');
-                const uniqueBatches = new Set();
-                const uniqueSems = new Set();
-                const uniqueSYs = new Set();
-
-                data.forEach(sch => {
-                    if (filterSelect) filterSelect.add(new Option(sch.title, sch.id));
-                    if (manualSelect) manualSelect.add(new Option(`${sch.title} (${sch.category || 'Institution-Funded Educational Assistance'})`, sch.id));
-
-                    if (sch.batch) uniqueBatches.add(sch.batch);
-                    if (sch.semester) uniqueSems.add(sch.semester);
-                    if (sch.school_year) uniqueSYs.add(sch.school_year);
-                });
-
-                const batchFilter = document.getElementById('filter-batch');
-                const semFilter = document.getElementById('filter-semester');
-                const syFilter = document.getElementById('filter-school-year');
-
-                if (batchFilter) uniqueBatches.forEach(b => batchFilter.add(new Option(b, b)));
-                if (semFilter) uniqueSems.forEach(s => semFilter.add(new Option(s, s)));
-                if (syFilter) uniqueSYs.forEach(s => syFilter.add(new Option(s, s)));
+                if (manualSelect) {
+                    manualSelect.innerHTML = '<option value="">-- No Internal Program --</option>';
+                    data.forEach(sch => {
+                        manualSelect.add(new Option(`${sch.title} (${sch.category || 'Institution-Funded Educational Assistance'})`, sch.id));
+                    });
+                }
+                updateFilterDropdowns();
             }
         } catch (err) { console.error(err); }
     }
@@ -412,6 +549,7 @@
             });
 
             if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = activeBeneficiaries.length.toLocaleString();
+            updateFilterDropdowns();
             applyFilters();
         } catch (err) {
             console.error("Error fetching active beneficiaries:", err);
@@ -517,28 +655,23 @@
                     ${catBadge}
                 </td>
                 <td style="font-size:12px; line-height:1.4; color:var(--text-main);">
-                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">
-                        <div>${detailsHtml}</div>
-                        <button class="btn-edit-details" onclick="openEditDetailsModal('${app.id}')" title="Edit Assistance Details">
-                            <i data-lucide="pencil" style="width:13px; height:13px;"></i>
-                        </button>
-                    </div>
+                    <div>${detailsHtml}</div>
                 </td>
                 <td style="font-size:12.5px; color:var(--text-muted); font-weight:500; white-space:nowrap;">
                     ${dateAdded}
                 </td>
                 <td>
-                    <div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
-                        <span style="font-weight:600; font-size:12.5px; color:var(--text-main);">${escapeHtml(duration)}</span>
-                        <button class="btn-edit-duration" onclick="editDuration('${app.id}', '${escapeHtml(duration)}')" title="Edit Duration">
-                            <i data-lucide="pencil" style="width:13px; height:13px;"></i>
+                    <span style="font-weight:600; font-size:12.5px; color:var(--text-main); white-space:nowrap;">${escapeHtml(duration)}</span>
+                </td>
+                <td style="text-align: center; padding-right:14px; white-space: nowrap;">
+                    <div style="display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
+                        <button class="btn-table-edit" title="Edit Assistance Details" onclick="openEditDetailsModal('${app.id}')">
+                            <i data-lucide="pencil" style="width:15px; height:15px;"></i>
+                        </button>
+                        <button class="btn-table-revoke" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')">
+                            <i data-lucide="trash-2" style="width:15px; height:15px;"></i>
                         </button>
                     </div>
-                </td>
-                <td style="text-align: center; padding-right:14px;">
-                    <button class="btn-table-revoke" title="Revoke Assistance" onclick="revokeAssistance('${app.id}')">
-                        <i data-lucide="trash-2" style="width:15px; height:15px;"></i>
-                    </button>
                 </td>
             `;
 
@@ -767,10 +900,10 @@
 
     function applyFilters() {
         const term = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
-        const schId = document.getElementById('filter-scholarship')?.value || '';
-        const batch = document.getElementById('filter-batch')?.value || '';
-        const sem = document.getElementById('filter-semester')?.value || '';
-        const sy = document.getElementById('filter-school-year')?.value || '';
+        const schFilterVal = document.getElementById('filter-scholarship')?.value || '';
+        const batch = (document.getElementById('filter-batch')?.value || '').toLowerCase().trim();
+        const sem = (document.getElementById('filter-semester')?.value || '').toLowerCase().trim();
+        const sy = (document.getElementById('filter-school-year')?.value || '').toLowerCase().trim();
 
         const filtered = activeBeneficiaries.filter(app => {
             const masterInfo = findMasterlistStudent(app);
@@ -796,10 +929,29 @@
                 prog.includes(term) ||
                 yr.includes(term);
 
-            const matchSch = schId === "" || String(app.scholarship_id) === String(schId);
-            const matchBatch = batch === "" || String(app.scholarships?.batch || app.outside_batch || '') === String(batch);
-            const matchSem = sem === "" || String(app.scholarships?.semester || app.outside_semester || '') === String(sem);
-            const matchSy = sy === "" || String(app.scholarships?.school_year || app.outside_sy || '') === String(sy);
+            // Educational Assistance Filter
+            let matchSch = true;
+            if (schFilterVal !== '') {
+                if (schFilterVal.startsWith('outside_')) {
+                    const targetOutside = schFilterVal.replace('outside_', '').toLowerCase().trim();
+                    const appOutside = (app.outside_assistance_name || '').toLowerCase().trim();
+                    matchSch = !app.scholarship_id && appOutside === targetOutside;
+                } else if (schFilterVal.startsWith('sch_')) {
+                    const targetSchId = schFilterVal.replace('sch_', '');
+                    matchSch = String(app.scholarship_id) === String(targetSchId);
+                } else {
+                    matchSch = String(app.scholarship_id) === String(schFilterVal) ||
+                        (!app.scholarship_id && (app.outside_assistance_name || '').toLowerCase().trim() === schFilterVal.toLowerCase().trim());
+                }
+            }
+
+            const appBatch = (app.outside_batch || app.scholarships?.batch || '').toLowerCase().trim();
+            const appSem = (app.outside_semester || app.scholarships?.semester || '').toLowerCase().trim();
+            const appSy = (app.outside_sy || app.scholarships?.school_year || '').toLowerCase().trim();
+
+            const matchBatch = batch === "" || appBatch === batch;
+            const matchSem = sem === "" || appSem === sem;
+            const matchSy = sy === "" || appSy === sy;
 
             return matchSearch && matchSch && matchBatch && matchSem && matchSy;
         });
@@ -1714,38 +1866,74 @@
 
         const isOutside = !app.scholarship_id;
         const schTitle = isOutside ? (app.outside_assistance_name || 'Outside Assistance') : (app.scholarships?.title || 'Unknown Assistance');
+        const categoryValue = app.category || app.scholarships?.category || (isOutside ? 'Outside Assistance' : 'Institution-Funded Educational Assistance');
 
         if (document.getElementById('edit-app-id')) document.getElementById('edit-app-id').value = app.id;
         if (document.getElementById('edit-student-display')) document.getElementById('edit-student-display').textContent = displayName;
         if (document.getElementById('edit-program-display')) document.getElementById('edit-program-display').textContent = schTitle;
 
+        const badgeContainer = document.getElementById('edit-type-badge-container');
+        if (badgeContainer) {
+            const badgeLabel = isOutside ? 'Outside Educational Assistance' : 'Internal Educational Assistance';
+            const badgeClass = isOutside ? 'cat-badge-outside' : 'cat-badge-inst';
+            badgeContainer.innerHTML = `<span class="category-badge-pill ${badgeClass}" style="font-size: 11px;">${badgeLabel}</span>`;
+        }
+
         const outsideContainer = document.getElementById('edit-outside-name-container');
         const outsideInput = document.getElementById('edit-outside-name');
-        if (isOutside) {
-            if (outsideContainer) outsideContainer.style.display = 'block';
-            if (outsideInput) outsideInput.value = app.outside_assistance_name || '';
-        } else {
-            if (outsideContainer) outsideContainer.style.display = 'none';
-        }
+        const termRow = document.getElementById('edit-term-row');
+        const categoryContainer = document.getElementById('edit-category-container');
+        const internalInfoContainer = document.getElementById('edit-internal-info-container');
 
         const currentSy = app.outside_sy || app.scholarships?.school_year || '';
         const currentSem = app.outside_semester || app.scholarships?.semester || '';
         const currentBatch = app.outside_batch || app.scholarships?.batch || '';
         const currentDuration = app.duration || 'Not Set';
-        const currentCategory = app.category || app.scholarships?.category || 'Institution-Funded Educational Assistance';
 
-        if (document.getElementById('edit-sy')) document.getElementById('edit-sy').value = currentSy;
-        if (document.getElementById('edit-semester')) document.getElementById('edit-semester').value = currentSem;
+        // Populate common editable fields (Batch and Duration)
         if (document.getElementById('edit-batch')) document.getElementById('edit-batch').value = currentBatch;
         if (document.getElementById('edit-duration')) document.getElementById('edit-duration').value = currentDuration;
-        if (document.getElementById('edit-category')) {
-            const catSelect = document.getElementById('edit-category');
-            const matchOpt = Array.from(catSelect.options).find(opt => opt.value === currentCategory);
-            if (matchOpt) {
-                catSelect.value = currentCategory;
-            } else {
-                catSelect.add(new Option(currentCategory, currentCategory, true, true));
+
+        if (isOutside) {
+            // OUTSIDE ASSISTANCE: Coordinator can edit Outside Assistance Name, School Year (SY), Semester, Batch, Duration, and Category
+            if (outsideContainer) outsideContainer.style.display = 'block';
+            if (outsideInput) {
+                outsideInput.value = app.outside_assistance_name || '';
+                outsideInput.required = true;
             }
+
+            if (termRow) termRow.style.display = 'grid';
+            if (document.getElementById('edit-sy')) document.getElementById('edit-sy').value = currentSy;
+            if (document.getElementById('edit-semester')) document.getElementById('edit-semester').value = currentSem;
+
+            if (categoryContainer) categoryContainer.style.display = 'block';
+            if (document.getElementById('edit-category')) {
+                const catSelect = document.getElementById('edit-category');
+                catSelect.required = true;
+                const matchOpt = Array.from(catSelect.options).find(opt => opt.value === categoryValue);
+                if (matchOpt) {
+                    catSelect.value = categoryValue;
+                } else if (categoryValue) {
+                    catSelect.add(new Option(categoryValue, categoryValue, true, true));
+                }
+            }
+
+            if (internalInfoContainer) internalInfoContainer.style.display = 'none';
+        } else {
+            // INTERNAL ASSISTANCE: Coordinator can ONLY edit Batch and Assistance Duration
+            if (outsideContainer) outsideContainer.style.display = 'none';
+            if (outsideInput) {
+                outsideInput.value = '';
+                outsideInput.required = false;
+            }
+
+            if (termRow) termRow.style.display = 'none';
+            if (categoryContainer) categoryContainer.style.display = 'none';
+            if (document.getElementById('edit-category')) {
+                document.getElementById('edit-category').required = false;
+            }
+
+            if (internalInfoContainer) internalInfoContainer.style.display = 'block';
         }
 
         const modal = document.getElementById('edit-details-modal');
@@ -1762,28 +1950,49 @@
             const appId = document.getElementById('edit-app-id')?.value;
             if (!appId) return;
 
+            const targetApp = activeBeneficiaries.find(a => a.id === appId);
+            if (!targetApp) {
+                Swal.fire("Error", "Beneficiary record not found.", "error");
+                return;
+            }
+
+            const isOutside = !targetApp.scholarship_id;
             const btn = document.getElementById('btn-submit-edit-details');
             if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...'; btn.disabled = true; }
 
             try {
-                const targetApp = activeBeneficiaries.find(a => a.id === appId);
-                const newSy = document.getElementById('edit-sy')?.value.trim() || null;
-                const newSem = document.getElementById('edit-semester')?.value.trim() || null;
-                const newBatch = document.getElementById('edit-batch')?.value.trim() || null;
-                const newDuration = document.getElementById('edit-duration')?.value || 'Not Set';
-                const newCategory = document.getElementById('edit-category')?.value || 'Institution-Funded Educational Assistance';
-                const newOutsideName = document.getElementById('edit-outside-name')?.value.trim() || null;
+                let updatePayload = {};
 
-                const updatePayload = {
-                    outside_sy: newSy,
-                    outside_semester: newSem,
-                    outside_batch: newBatch,
-                    duration: newDuration,
-                    category: newCategory
-                };
+                if (isOutside) {
+                    const newOutsideName = document.getElementById('edit-outside-name')?.value.trim();
+                    if (!newOutsideName) {
+                        Swal.fire("Required", "Please provide the Outside Assistance Name.", "warning");
+                        if (btn) { btn.innerHTML = 'Save Assistance Details'; btn.disabled = false; }
+                        return;
+                    }
+                    const newSy = document.getElementById('edit-sy')?.value.trim() || null;
+                    const newSem = document.getElementById('edit-semester')?.value.trim() || null;
+                    const newBatch = document.getElementById('edit-batch')?.value.trim() || null;
+                    const newDuration = document.getElementById('edit-duration')?.value || 'Not Set';
+                    const newCategory = document.getElementById('edit-category')?.value || 'Institution-Funded Educational Assistance';
 
-                if (targetApp && !targetApp.scholarship_id && newOutsideName) {
-                    updatePayload.outside_assistance_name = newOutsideName;
+                    updatePayload = {
+                        outside_assistance_name: newOutsideName,
+                        outside_sy: newSy,
+                        outside_semester: newSem,
+                        outside_batch: newBatch,
+                        duration: newDuration,
+                        category: newCategory
+                    };
+                } else {
+                    // Internal Assistance: Coordinator can ONLY edit Batch and Assistance Duration
+                    const newBatch = document.getElementById('edit-batch')?.value.trim() || null;
+                    const newDuration = document.getElementById('edit-duration')?.value || 'Not Set';
+
+                    updatePayload = {
+                        outside_batch: newBatch,
+                        duration: newDuration
+                    };
                 }
 
                 const { error: updateErr } = await window.supabaseClient
@@ -1800,7 +2009,12 @@
                         school_id: currentAdminSchoolId,
                         action: 'Updated Assistance Details',
                         module: 'Active Beneficiaries',
-                        details: JSON.stringify({ appId, updatePayload, targetUserId: targetApp?.student_id })
+                        details: JSON.stringify({ 
+                            appId, 
+                            isOutside,
+                            updatePayload, 
+                            targetUserId: targetApp?.student_id 
+                        })
                     }]);
                 } catch (auditErr) {
                     console.error("Audit log failed:", auditErr);

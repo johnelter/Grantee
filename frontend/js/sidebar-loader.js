@@ -519,7 +519,10 @@ window.confirmGlobalLogout = async function (e) {
             console.error("Logout Error:", error);
             alert("Failed to logout safely.");
             if (confirmBtn) {
-                confirmBtn.innerHTML = '<i class="fa-solid fa-power-off"></i> Logout';
+                confirmBtn.innerHTML = '<i data-lucide="power" style="width: 16px; height: 16px;"></i> Logout';
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    try { lucide.createIcons({ root: confirmBtn }); } catch (err) {}
+                }
                 confirmBtn.disabled = false;
             }
         }

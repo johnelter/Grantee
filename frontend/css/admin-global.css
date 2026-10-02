@@ -1717,7 +1717,7 @@ body > .flatpickr-calendar:not(.open) select.flatpickr-monthDropdown-months {
     top: 24px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 100010;
+    z-index: 9999999 !important;
     display: flex;
     flex-direction: column;
     align-items: center;

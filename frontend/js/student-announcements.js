@@ -959,17 +959,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             return { passed: false, reason: "Comment is too short or empty." };
         }
 
-        // Fast local profanity & URL pre-filter (instant, 0ms)
-        const forbiddenWords = ['fuck', 'shit', 'bitch', 'asshole', 'http://', 'https://', 'www.', 'buy now', 'crypto', 'casino', 'gambling'];
+        // Fast local profanity & toxic terms pre-filter (instant, English & Cebuano)
+        const forbiddenWords = [
+            'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'pussy', 'dumbass', 'bastard', 'stfu',
+            'yawa', 'ywa', 'piste', 'pisti', 'bilat', 'belat', 'burikat', 'bigaon', 'kayat', 'iyot', 'otin', 'oten', 'pakyu', 'linti', 'animas',
+            'bogo', 'inutil', 'buang', 'atay', 'way batasan', 'walay batasan', 'way buot', 'walay buot', 'way kwenta', 'walay kwenta', 'bulok',
+            'http://', 'https://', 'www.', 'buy now', 'crypto', 'casino', 'gambling'
+        ];
         for (let word of forbiddenWords) {
             if (t.includes(word)) {
-                return { passed: false, reason: "Comment contains prohibited words or external links." };
+                return { passed: false, reason: "Comment contains rude, inappropriate, or prohibited language." };
             }
         }
 
-        // Instant allow for standard greetings, questions, or polite phrases (0ms)
-        const instantSafePattern = /^(hello|hi|hey|good\s+(morning|afternoon|evening|day)|thanks|thank\s+you|noted|copy|okay|ok|yes|no|when\s+is|what\s+time|where|how\s+to|question|is\s+there|po|opo)[\s\w.,?!@#+-]*$/i;
-        if (instantSafePattern.test(t) && t.length < 60) {
+        // Instant allow for standard standalone greetings & pleasantries (0ms)
+        const instantSafePattern = /^(hello|hi|hey|good\s+(morning|afternoon|evening|day)|thanks|thank\s+you|noted|copy|okay|ok|yes|no|po|opo|maayong\s+(buntag|hapon|gabii|adlaw)|salamat|daghang\s+salamat|way\s+sapayan)[\s.,!?-]*$/i;
+        if (instantSafePattern.test(t)) {
             return { passed: true };
         }
 
@@ -977,10 +982,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return clientModerationCache.get(t);
         }
 
-        // Fast fetch with 1.8s AbortController timeout to prevent hanging UI
+        // Fast fetch with 2.5s AbortController timeout to prevent hanging UI
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1800);
+            const timeoutId = setTimeout(() => controller.abort(), 2500);
 
             const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/moderate-comment', {
                 method: 'POST',
@@ -997,7 +1002,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return data;
             }
         } catch (err) {
-            // Gracefully pass local verification if remote moderation service is unreachable
+            // Fallback heuristic if remote moderation service is unreachable
+            const toxicPatterns = [
+                /\b(clown|clowns|idiots?|stupid|morons?|dumbass|useless|scumbag|trash|loser|stfu|shut\s*up)\b/i,
+                /\b(bogo|inutil|buang|yawa|pisti|peste|bilat|burikat|bigaon|pakyu|kolera|linti|animas|bulok)\b/i,
+                /\b(way\s+batasan|walay\s+batasan|way\s+buot|walay\s+buot|way\s+kwenta|walay\s+kwenta)\b/i
+            ];
+            for (const pattern of toxicPatterns) {
+                if (pattern.test(t)) {
+                    return { passed: false, reason: "Comment contains rude or demeaning language." };
+                }
+            }
         }
         return { passed: true };
     }

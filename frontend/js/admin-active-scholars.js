@@ -1044,6 +1044,7 @@
             if (importInput) importInput.value = '';
             if (importStatus) importStatus.innerHTML = '';
             if (importModal) importModal.style.display = 'flex';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         });
     }
 

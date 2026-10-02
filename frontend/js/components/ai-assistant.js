@@ -705,7 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         ${GIA_BOT_ICON_SVG}
                     </div>
                     <div class="chat-header-info">
-                        <strong class="chat-header-name">Gia <span style="font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px;">AI Helper</span></strong>
+                        <strong class="chat-header-name">Gia <span style="font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px;">AI Assistant</span></strong>
                         <span class="chat-header-subtitle">Your educational assistance companion</span>
                     </div>
                 </div>
@@ -752,26 +752,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById('ai-chat-input');
     const sendBtn = document.getElementById('ai-chat-send-btn');
 
+    // Utility to strip any unicode emojis from text
+    function removeEmojis(text) {
+        if (!text || typeof text !== 'string') return '';
+        return text
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{200D}\u{FE0F}\u{FE0E}\u{E0020}-\u{E007F}\u{E0000}-\u{E007F}]/gu, '')
+            .replace(/[ \t]{2,}/g, ' ')
+            .trim();
+    }
+
     // Default friendly welcoming message
     const defaultWelcome = {
         role: 'bot',
-        content: "Hi! 👋 I'm **Gia**, your friendly educational assistance companion! How can I help you today? Feel free to ask about open educational assistance programs, requirements, deadlines, or your application status! ✨",
+        content: "Hi! I'm **Gia**, your friendly educational assistance companion! How can I help you today? Feel free to ask about open educational assistance programs, requirements, deadlines, or your application status!",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         showChips: true
     };
 
     // Chat History in Session Storage
     let chatHistory = JSON.parse(sessionStorage.getItem('ai_chat_history')) || [defaultWelcome];
-    if (chatHistory.length > 0 && chatHistory[0].role === 'bot' && chatHistory[0].content) {
-        if (chatHistory[0].content.includes('Rantee')) {
-            chatHistory[0].content = chatHistory[0].content.replace(/Rantee/g, 'Gia');
-        }
-        if (chatHistory[0].content.includes('scholarship')) {
-            chatHistory[0].content = chatHistory[0].content
-                .replace(/scholarship companion/gi, 'educational assistance companion')
-                .replace(/open scholarships/gi, 'open educational assistance programs')
-                .replace(/scholarship/gi, 'educational assistance');
-        }
+    if (Array.isArray(chatHistory)) {
+        chatHistory = chatHistory.map(item => {
+            if (item && item.content) {
+                let cleaned = item.content;
+                if (cleaned.includes('Rantee')) {
+                    cleaned = cleaned.replace(/Rantee/g, 'Gia');
+                }
+                if (cleaned.includes('scholarship')) {
+                    cleaned = cleaned
+                        .replace(/scholarship companion/gi, 'educational assistance companion')
+                        .replace(/open scholarships/gi, 'open educational assistance programs')
+                        .replace(/scholarship/gi, 'educational assistance');
+                }
+                cleaned = removeEmojis(cleaned);
+                return { ...item, content: cleaned };
+            }
+            return item;
+        });
         sessionStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
     }
 
@@ -781,7 +798,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function parseSimpleMarkdown(text) {
         if (!text) return '';
-        let html = text
+        let clean = removeEmojis(text);
+        let html = clean
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/\n\n/g, '<br><br>')
@@ -795,10 +813,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (msg.role === 'bot') {
                 const chipsHtml = (idx === 0 || msg.showChips) ? `
                     <div class="gia-chips-container">
-                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What educational assistance programs are open right now?')">🎓 Open Educational Assistance</button>
-                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What is my current application status?')">📋 My Application Status</button>
-                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What documents do I need to prepare for educational assistance applications?')">📄 Required Documents</button>
-                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('Are there any new announcements or deadlines I should know?')">📢 Latest Announcements</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What educational assistance programs are open right now?')">Open Educational Assistance</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What is my current application status?')">My Application Status</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('What documents do I need to prepare for educational assistance applications?')">Required Documents</button>
+                        <button type="button" class="gia-chip" onclick="window.sendGiaQuickQuery('Are there any new announcements or deadlines I should know?')">Latest Announcements</button>
                     </div>
                 ` : '';
 
@@ -1063,7 +1081,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 widget.dataset.moved = 'true';
             }
         }
-    } catch (err) {}
+    } catch (err) { }
 
     // Handle screen resize
     window.addEventListener('resize', () => {
@@ -1145,9 +1163,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     content: m.content
                 }));
 
-            const isLocal = window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1' || 
-                            window.location.protocol === 'file:';
+            const isLocal = window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1' ||
+                window.location.protocol === 'file:';
 
             const candidateUrls = isLocal
                 ? ['http://localhost:3000/api/student/ai-chat', 'https://grantee-backend-n5f4.onrender.com/api/student/ai-chat']
@@ -1186,6 +1204,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     .replace(/\bscholarships\b/g, 'educational assistance programs')
                     .replace(/\bScholarship\b/g, 'Educational Assistance')
                     .replace(/\bscholarship\b/g, 'educational assistance');
+                botReply = removeEmojis(botReply);
                 chatHistory.push({
                     role: 'bot',
                     content: botReply,

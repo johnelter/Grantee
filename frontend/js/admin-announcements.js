@@ -1082,19 +1082,9 @@
     });
 
     // ==========================================
-    // 8. COMMENT SYSTEM & MODERATION
+    // 8. COMMENT SYSTEM
     // ==========================================
     const commentsList = document.getElementById('comments-list');
-
-    function moderateContent(text) {
-        const forbiddenWords = ['fuck', 'shit', 'bitch', 'asshole', 'http://', 'https://', 'buy now', 'crypto', 'casino'];
-        const textLower = text.toLowerCase();
-        for (let word of forbiddenWords) {
-            if (textLower.includes(word)) return { passed: false, reason: 'Contains inappropriate language, hate speech, or suspicious links.' };
-        }
-        if (/(.)\1{10,}/.test(text)) return { passed: false, reason: 'Contains spam-like repeated characters.' };
-        return { passed: true };
-    }
 
     window.loadComments = async (annId, commentsEnabled) => {
         const commentsList = document.getElementById('comments-list');
@@ -1264,12 +1254,6 @@
         const btn = document.getElementById('btn-send-reply');
 
         if (!text || !annId) return;
-
-        const moderation = moderateContent(text);
-        if (!moderation.passed) {
-            showUIToast('error', 'Violation Detected', moderation.reason);
-            return;
-        }
 
         btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span>';
         try {

@@ -254,6 +254,17 @@ async function getStudentContext(studentId) {
 }
 
 /**
+ * Removes all emojis and unicode emoji symbols from text
+ */
+function removeEmojis(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{200D}\u{FE0F}\u{FE0E}\u{E0020}-\u{E007F}\u{E0000}-\u{E007F}]/gu, '')
+        .replace(/[ \t]{2,}/g, ' ')
+        .trim();
+}
+
+/**
  * Generates an instant, highly accurate response directly from live database records
  * when the AI API rate limit or network fails.
  */
@@ -266,82 +277,81 @@ async function generateSmartFallbackReply(userQuery, studentId) {
         // 1. Status query
         if (q.includes('status') || q.includes('my application') || q.includes('track') || q.includes('submitted')) {
             if (!profile) {
-                return "Hi! 👋 To check your application status, please log in with your student account. Once logged in, you can view the live status of all your applications under **'My Applications'**! ✨";
+                return "Hi! To check your application status, please log in with your student account. Once logged in, you can view the live status of all your applications under **'My Applications'**.";
             }
             if (!applications || applications.length === 0) {
-                return `Hi ${profile.first_name || 'there'}! 👋 You haven't submitted any educational assistance applications yet. You can browse all open programs under **'Available Programs'** and apply today! 🎓`;
+                return `Hi ${profile.first_name || 'there'}! You haven't submitted any educational assistance applications yet. You can browse all open programs under **'Available Programs'** and apply today.`;
             }
-            let reply = `Hi ${profile.first_name || 'there'}! 👋 Here is the current status of your submitted educational assistance application(s):\n\n`;
+            let reply = `Hi ${profile.first_name || 'there'}! Here is the current status of your submitted educational assistance application(s):\n\n`;
             applications.forEach(app => {
                 const progTitle = app.scholarships?.title || app.title || 'Educational Assistance';
-                const statusEmoji = app.status === 'Approved' ? '✅' : (app.status === 'Rejected' ? '❌' : '⏳');
-                reply += `* ${statusEmoji} **${progTitle}**: **${app.status || 'Pending'}**\n`;
+                reply += `* **${progTitle}**: **${app.status || 'Pending'}**\n`;
             });
-            reply += `\nYou can track real-time evaluations under your **'My Applications'** dashboard. 📋`;
-            return reply;
+            reply += `\nYou can track real-time evaluations under your **'My Applications'** dashboard.`;
+            return removeEmojis(reply);
         }
 
         // 2. Who am I / Profile query
         if (q.includes('who am i') || q.includes('my name') || q.includes('my course') || q.includes('my gwa') || q.includes('my profile')) {
             if (!profile) {
-                return "Hi! 👋 You are currently browsing as a guest student. To check your personalized academic records and eligible programs, please log in with your student account! ✨";
+                return "Hi! You are currently browsing as a guest student. To check your personalized academic records and eligible programs, please log in with your student account.";
             }
-            let reply = `Hi **${profile.first_name || ''} ${profile.last_name || ''}**! 👋 Here are your current student records on Grantee:\n\n`;
+            let reply = `Hi **${profile.first_name || ''} ${profile.last_name || ''}**! Here are your current student records on Grantee:\n\n`;
             reply += `* **Course / Major:** ${profile.program || 'Not recorded'}\n`;
             reply += `* **Year Level:** ${profile.year_level || 'Not recorded'}\n`;
             reply += `* **GWA:** ${profile.gwa || 'Not recorded yet'}\n`;
             if (profile.id_number || profile.student_id) reply += `* **Student ID:** ${profile.id_number || profile.student_id}\n`;
-            reply += `\nFeel free to ask which educational assistance programs match your academic standing! 🎓`;
-            return reply;
+            reply += `\nFeel free to ask which educational assistance programs match your academic standing.`;
+            return removeEmojis(reply);
         }
 
         // 3. Document requirements query
         if (q.includes('document') || q.includes('requirement') || q.includes('file') || q.includes('prepare')) {
-            let reply = "Hello! 👋 Here are the required documents for currently open educational assistance programs:\n\n";
+            let reply = "Hello! Here are the required documents for currently open educational assistance programs:\n\n";
             if (openPrograms.length > 0) {
                 openPrograms.slice(0, 4).forEach(p => {
-                    reply += `* **${p.title}** (${p.category}):\n  📄 Requirements: *${p.reqDocs}*\n  ⏰ Deadline: ${p.deadline}\n\n`;
+                    reply += `* **${p.title}** (${p.category}):\n  - Requirements: *${p.reqDocs}*\n  - Deadline: ${p.deadline}\n\n`;
                 });
-                reply += "💡 *Tip:* Please prepare clear scans or photos in **PDF, JPG, or PNG** format before submitting your application. ✨";
+                reply += "*Tip:* Please prepare clear scans or photos in **PDF, JPG, or PNG** format before submitting your application.";
             } else {
                 reply += "Standard documents usually include your **Certificate of Enrollment**, **Latest Grade Slip / Transcript**, and **Valid ID**.";
             }
-            return reply;
+            return removeEmojis(reply);
         }
 
         // 4. Announcements & Deadlines query
         if (q.includes('announcement') || q.includes('news') || q.includes('update') || q.includes('deadline')) {
-            let reply = "Hello! 👋 Here are the latest official announcements and reminders from the educational assistance office:\n\n";
+            let reply = "Hello! Here are the latest official announcements and reminders from the educational assistance office:\n\n";
             if (announcements && announcements.length > 0) {
                 announcements.slice(0, 3).forEach(a => {
                     const clean = a.content ? a.content.replace(/<[^>]*>?/gm, '').trim() : '';
-                    reply += `📢 **${a.title}** (${a.category || 'General'})\n${clean}\n\n`;
+                    reply += `* **${a.title}** (${a.category || 'General'})\n${clean}\n\n`;
                 });
             } else {
-                reply += "There are no new broadcast announcements at this moment. Please check the open programs list for individual application deadlines! 🎓";
+                reply += "There are no new broadcast announcements at this moment. Please check the open programs list for individual application deadlines.";
             }
-            return reply;
+            return removeEmojis(reply);
         }
 
         // 5. Open / Available programs query (Default fallback)
         if (openPrograms.length > 0) {
-            let reply = `Hello! I'm **Gia**, your friendly educational assistance companion. ✨\n\nHere are the **educational assistance programs currently open and accepting applications**:\n\n`;
+            let reply = `Hello! I'm **Gia**, your educational assistance companion.\n\nHere are the **educational assistance programs currently open and accepting applications**:\n\n`;
             openPrograms.forEach(p => {
-                reply += `* 🎓 **${p.title}** (${p.category})\n`;
+                reply += `* **${p.title}** (${p.category})\n`;
                 reply += `  • **Type:** ${p.type} | **Slots:** ${p.slots}\n`;
                 reply += `  • **Application Deadline:** ${p.deadline}\n`;
                 reply += `  • **Eligible Levels:** ${p.eligYears}\n`;
                 if (p.minGwa && p.minGwa !== 'None required') reply += `  • **Min GWA:** ${p.minGwa}\n`;
                 reply += `\n`;
             });
-            reply += `To apply, simply navigate to the **'Available Programs'** or **'Apply for Assistance'** tab in your dashboard, select your program, and submit your requirements! 📋✨`;
-            return reply;
+            reply += `To apply, simply navigate to the **'Available Programs'** or **'Apply for Assistance'** tab in your dashboard, select your program, and submit your requirements.`;
+            return removeEmojis(reply);
         } else {
-            return "Hello! I'm **Gia**, your educational assistance companion. ✨ Currently, there are no active educational assistance programs open for application right at this moment, but new programs are posted regularly! Please stay tuned to the announcements board.";
+            return "Hello! I'm **Gia**, your educational assistance companion. Currently, there are no active educational assistance programs open for application right at this moment, but new programs are posted regularly. Please stay tuned to the announcements board.";
         }
     } catch (fallbackErr) {
         console.error("Smart fallback error:", fallbackErr);
-        return "Hi there! 👋 I'm **Gia**, your educational assistance companion. How can I assist you with educational assistance programs, eligibility criteria, required documents, or application deadlines today? ✨";
+        return "Hi there! I'm **Gia**, your educational assistance companion. How can I assist you with educational assistance programs, eligibility criteria, required documents, or application deadlines today?";
     }
 }
 
@@ -377,9 +387,9 @@ async function handleStudentChat(studentId, messages) {
    - Always use the term **"educational assistance"** (or "educational assistance program") instead of "scholarship" or "scholarships".
    - Never refer to programs, grants, or aid as "scholarships".
 
-5. **CONVERSATIONAL TONE & PRESENTATION**:
-   - Be concise, structured, friendly, and helpful. Use clear bullet points and appropriate emojis (🎓, ✨, 📋, 💡, 📢).
-   - Avoid generic robotic responses.
+5. **CONVERSATIONAL TONE & NO EMOJIS POLICY**:
+   - Be concise, structured, friendly, professional, and helpful. Use clear bullet points.
+   - STRICT REQUIREMENT: DO NOT include any emojis or emoji icons anywhere in your response. Keep all text completely emoji-free.
 
 ${contextStr}`;
 
@@ -444,14 +454,19 @@ ${contextStr}`;
                 .replace(/\bscholarships\b/g, 'educational assistance programs')
                 .replace(/\bScholarship\b/g, 'Educational Assistance')
                 .replace(/\bscholarship\b/g, 'educational assistance');
+            
+            // Remove any emojis
+            replyText = removeEmojis(replyText);
         }
 
         return replyText;
     } catch (error) {
         console.warn("Gia AI Primary Model Error (falling back to smart contextual responder):", error.message);
         // Instant intelligent fallback directly from live database records
-        return await generateSmartFallbackReply(lastUserQuery, studentId);
+        const fallbackReply = await generateSmartFallbackReply(lastUserQuery, studentId);
+        return removeEmojis(fallbackReply);
     }
 }
 
-module.exports = { handleStudentChat };
+module.exports = { handleStudentChat, removeEmojis };
+

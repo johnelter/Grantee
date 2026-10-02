@@ -1556,11 +1556,6 @@
             let notifMsg = `Your application for ${schName} has been updated to ${newStatus}.`;
             let notifHtml = '';
 
-            let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-            let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
-                ? window.location.origin + basePath + 'login.html'
-                : 'https://grantee-drab.vercel.app/frontend/login.html';
-
             if (newStatus === 'Approved') {
                 notifTitle = 'Application Approved';
                 notifMsg = `Congratulations! Your application for "${schName}" has been approved.`;
@@ -1569,9 +1564,6 @@
                         <h2 style="color: #6B7F4E; margin-top: 0;">Application Approved</h2>
                         <p>Congratulations! Your application for <strong>${schName}</strong> has been evaluated and approved.</p>
                         <p>Please log in to your student dashboard to view your grantee status and benefits.</p>
-                        <div style="text-align: center; margin-top: 24px;">
-                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
-                        </div>
                     </div>
                 `;
             } else if (newStatus === 'Declined' || newStatus === 'Rejected') {
@@ -1588,9 +1580,6 @@
                             <span style="color: #374151; font-size: 14px; line-height: 1.5;">${finalRejectionReason}</span>
                         </div>
                         <p style="font-size: 13px; color: #64748b;">Log in to your student portal to review your application details.</p>
-                        <div style="text-align: center; margin-top: 24px;">
-                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
-                        </div>
                     </div>
                 `;
             }

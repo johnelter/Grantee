@@ -1963,11 +1963,6 @@
 
                     // 2. Dispatch Email / Push notification via backend
                     try {
-                        let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                        let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
-                            ? window.location.origin + basePath + 'login.html'
-                            : 'https://grantee-drab.vercel.app/frontend/login.html';
-
                         fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1981,9 +1976,6 @@
                                         <h2 style="color: #6B7F4E; margin-top: 0;">Active Beneficiary Confirmation</h2>
                                         <p>Congratulations! You have been officially enrolled as an Active Beneficiary for <strong>${progName}</strong>.</p>
                                         <p>Log in to your student dashboard to review your status and benefit schedules.</p>
-                                        <div style="text-align: center; margin-top: 24px;">
-                                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
-                                        </div>
                                     </div>
                                 `,
                                 resourceId: insertedAppId

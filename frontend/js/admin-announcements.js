@@ -1361,11 +1361,6 @@
 
             const userIds = targetUsers.map(u => u.id);
 
-            let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-            let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
-                ? window.location.origin + basePath + 'login.html'
-                : 'https://grantee-drab.vercel.app/frontend/login.html';
-
             const payload = {
                 userIds: userIds,
                 eventType: 'announcements',
@@ -1379,9 +1374,6 @@
                             <strong>${title}</strong>
                         </blockquote>
                         <p>Log in to your student dashboard to read the full details.</p>
-                        <div style="text-align: center; margin-top: 24px;">
-                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
-                        </div>
                     </div>
                 `
             };

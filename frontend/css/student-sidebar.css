@@ -1016,10 +1016,9 @@
 }
 
 /* =========================================================
-   GLOBAL LOGOUT MODAL STYLES (Identical on all student pages)
+   GLOBAL LOGOUT MODAL STYLES (Scoped strictly to logout modal)
 ========================================================= */
-#logout-modal.global-modal-overlay,
-.global-modal-overlay {
+#logout-modal.global-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1031,12 +1030,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 99999;
+  z-index: 1000050 !important;
   animation: globalModalOverlayFade 0.2s ease;
 }
 
-#logout-modal .global-modal-content,
-.global-modal-content {
+#logout-modal .global-modal-content {
   background: var(--bg-card);
   padding: 32px 28px;
   border-radius: 16px;
@@ -1052,8 +1050,7 @@
   animation: globalModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#logout-modal .global-modal-icon,
-.global-modal-icon {
+#logout-modal .global-modal-icon {
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -1068,17 +1065,14 @@
 }
 
 #logout-modal .global-modal-icon svg,
-#logout-modal .global-modal-icon i,
-.global-modal-icon svg,
-.global-modal-icon i {
+#logout-modal .global-modal-icon i {
   width: 26px;
   height: 26px;
   display: block;
   margin: auto;
 }
 
-#logout-modal .global-modal-content h3,
-.global-modal-content h3 {
+#logout-modal .global-modal-content h3 {
   font-size: 20px;
   color: var(--text-heading);
   margin: 0 0 8px 0;
@@ -1086,16 +1080,14 @@
   line-height: 1.3;
 }
 
-#logout-modal .global-modal-content p,
-.global-modal-content p {
+#logout-modal .global-modal-content p {
   font-size: 14px;
   color: var(--text-muted);
   margin: 0 0 24px 0;
   line-height: 1.5;
 }
 
-#logout-modal .global-modal-actions,
-.global-modal-actions {
+#logout-modal .global-modal-actions {
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -1103,8 +1095,7 @@
   box-sizing: border-box;
 }
 
-#logout-modal .global-btn-cancel,
-.global-btn-cancel {
+#logout-modal .global-btn-cancel {
   background: var(--bg-card-secondary);
   border: 1px solid var(--border-color);
   color: var(--text-main);
@@ -1123,14 +1114,12 @@
   box-sizing: border-box;
 }
 
-#logout-modal .global-btn-cancel:hover,
-.global-btn-cancel:hover {
+#logout-modal .global-btn-cancel:hover {
   background: var(--bg-hover);
   border-color: var(--border-dark);
 }
 
-#logout-modal .global-btn-confirm,
-.global-btn-confirm {
+#logout-modal .global-btn-confirm {
   background: #ef4444;
   color: #ffffff;
   border: none;
@@ -1150,8 +1139,7 @@
   box-sizing: border-box;
 }
 
-#logout-modal .global-btn-confirm:hover,
-.global-btn-confirm:hover {
+#logout-modal .global-btn-confirm:hover {
   background: #dc2626;
   transform: translateY(-1px);
 }
@@ -1180,27 +1168,19 @@
 
 /* --- Perfect Mobile Phone Responsiveness --- */
 @media (max-width: 480px) {
-
-  #logout-modal .global-modal-content,
-  .global-modal-content {
+  #logout-modal .global-modal-content {
     padding: 24px 20px;
     width: 92%;
     max-width: 320px;
   }
 
-  #logout-modal .global-modal-actions,
-  .global-modal-actions {
+  #logout-modal .global-modal-actions {
     flex-direction: column;
     gap: 10px;
   }
 
   #logout-modal .global-btn-cancel,
-  #logout-modal .global-btn-confirm,
-  .global-btn-cancel,
-  .global-btn-confirm {
+  #logout-modal .global-btn-confirm {
     width: 100%;
   }
-}
-
-}
 }

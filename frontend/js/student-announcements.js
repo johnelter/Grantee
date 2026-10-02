@@ -97,22 +97,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'view-announcement-modal';
-            modal.className = 'announcement-modal-overlay';
+            modal.className = 'global-modal-overlay announcement-modal-overlay';
             modal.style.display = 'none';
             modal.innerHTML = `
-                <div class="announcement-modal-card">
+                <div class="global-modal-content view-modal-content announcement-modal-card">
                     <div class="modal-header">
                         <div class="modal-header-title-box">
-                            <i data-lucide="message-square-quote" class="modal-header-icon"></i>
-                            <h3 class="modal-title">Announcement Post & Discussion</h3>
+                            <i data-lucide="megaphone" class="modal-header-icon"></i>
+                            <h3 class="modal-title">Announcement Post</h3>
                         </div>
                         <button type="button" class="close-btn" id="modal-close-view" aria-label="Close dialog">
                             <i data-lucide="x"></i>
                         </button>
                     </div>
 
-                    <div class="modal-body-scroll">
-                        <div id="announcement-detail-view" class="announcement-detail-box"></div>
+                    <div class="modal-body-scroll view-modal-body">
+                        <div id="announcement-detail-view" class="announcement-detail-box announcement-detail-container"></div>
 
                         <div class="comments-section">
                             <div class="comments-header" id="comments-count-header">
@@ -130,9 +130,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
 
                             <div class="comment-input-area" id="comment-input-area">
-                                <div class="comment-input-card">
+                                <div class="input-wrapper comment-input-card">
                                     <input type="text" id="reply-input" placeholder="Write a comment or ask a question..." autocomplete="off">
-                                    <button class="btn-send-reply" id="btn-send-reply" title="Post comment">
+                                    <button type="button" class="btn-send btn-send-reply" id="btn-send-reply" aria-label="Post comment" title="Post comment">
                                         <i data-lucide="send"></i>
                                     </button>
                                 </div>
@@ -141,8 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
             `;
-            const mainContainer = document.querySelector('.main-content') || document.body;
-            mainContainer.appendChild(modal);
+            document.body.appendChild(modal);
             if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
 
@@ -150,30 +149,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!mediaViewer) {
             mediaViewer = document.createElement('div');
             mediaViewer.id = 'media-viewer-modal';
-            mediaViewer.className = 'media-viewer-overlay';
+            mediaViewer.className = 'global-modal-overlay media-viewer-overlay';
             mediaViewer.style.display = 'none';
+            mediaViewer.style.zIndex = '1000060';
             mediaViewer.innerHTML = `
-                <div class="media-viewer-wrapper">
-                    <button id="close-media-viewer" class="btn-close-viewer" title="Close"><i data-lucide="x"></i></button>
-                    
-                    <button id="prev-media" class="btn-nav-media btn-prev" title="Previous Image" style="display: none;">
-                        <i data-lucide="chevron-left"></i>
-                    </button>
-                    
-                    <div class="media-content-container">
-                        <img id="viewer-image" class="lightbox-img" alt="Announcement Media Preview" style="display: none;">
-                        <iframe id="viewer-iframe" class="lightbox-frame" title="Attachment Document Preview" style="display: none;"></iframe>
-                    </div>
-
-                    <button id="next-media" class="btn-nav-media btn-next" title="Next Image" style="display: none;">
-                        <i data-lucide="chevron-right"></i>
-                    </button>
-
-                    <div id="media-counter" class="media-counter" style="display: none;">1 / 1</div>
+                <button type="button" id="close-media-viewer" class="btn-close-viewer" aria-label="Close viewer">
+                    <i data-lucide="x"></i>
+                </button>
+                
+                <button type="button" id="prev-media" class="btn-nav-viewer btn-nav-media prev btn-prev" aria-label="Previous image" style="display: none;">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <button type="button" id="next-media" class="btn-nav-viewer btn-nav-media next btn-next" aria-label="Next image" style="display: none;">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+                
+                <div id="media-viewer-content" class="media-viewer-content media-content-container">
+                    <img id="viewer-image" class="viewer-img lightbox-img" style="display: none;" src="" alt="Full size view">
+                    <iframe id="viewer-iframe" class="viewer-iframe lightbox-frame" style="display: none;" src="" title="Attachment Document Preview"></iframe>
                 </div>
+
+                <div id="media-counter" class="media-counter" style="display: none;"></div>
             `;
-            const mainContainer = document.querySelector('.main-content') || document.body;
-            mainContainer.appendChild(mediaViewer);
+            document.body.appendChild(mediaViewer);
             if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
         return modal;
@@ -457,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     // 6. MULTI-IMAGE GRID HELPER
     // ==========================================
-    window.generateImageGrid = (urls) => {
+    window.generateImageGrid = (urls, customStyle = 'margin: 0 20px 16px 20px;') => {
         if (!urls) return '';
         if (typeof urls === 'string') {
             try {
@@ -493,12 +491,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (count === 5) {
                 imagesHtml += `<img src="${urls[4]}" class="fb-img" loading="lazy">`;
             } else {
-                imagesHtml += `<div class="more-images-container" data-more="+${count - 4}"><img src="${urls[4]}" class="fb-img" loading="lazy"></div>`;
+                imagesHtml += `<div class="more-images-container" data-more="+${count - 5}"><img src="${urls[4]}" class="fb-img" loading="lazy"></div>`;
             }
             layoutClass = 'fb-layout-5';
         }
 
-        return `<div class="fb-layout ${layoutClass}">${imagesHtml}</div>`;
+        return `<div class="fb-layout ${layoutClass}" style="${customStyle}">${imagesHtml}</div>`;
     };
 
     // ==========================================
@@ -761,7 +759,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             detailContainer.innerHTML = `
-                <div class="card-header-wrapper" style="padding: 0 0 14px 0;">
+                <div class="card-header-wrapper">
                     <div class="card-author-row">
                         <img src="${authorAvatar}" class="card-avatar" alt="${authorName}" onerror="this.onerror=null; this.src='${ADMIN_DEFAULT_AVATAR}';">
                         <div class="card-author-meta">
@@ -774,14 +772,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <div class="card-tags-row" style="padding: 0 0 14px 0;">
+                <div class="card-tags-row">
                     ${pinnedBadge}
                     <span class="tag-badge ${catClass}"><i data-lucide="${catIcon}"></i> ${activeAnn.category || 'General'}</span>
                 </div>
 
-                <h3 class="card-title" style="padding: 0 0 12px 0; font-size: 20px;">${activeAnn.title}</h3>
+                <h3 class="card-title">${activeAnn.title}</h3>
 
-                <div class="card-body" style="padding: 0 0 16px 0;">
+                <div class="card-body">
                     <div class="card-text-content">
                         ${activeAnn.content || 'No description provided.'}
                     </div>
@@ -1203,15 +1201,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Lightbox image click
-        const fbImg = e.target.closest('.fb-img');
-        if (fbImg) {
-            const layout = fbImg.closest('.fb-layout');
+        const fbTarget = e.target.closest('.fb-img, .more-images-container, .detail-cover-image');
+        if (fbTarget) {
+            const layout = fbTarget.closest('.fb-layout');
+            let allImgs = [];
+            let targetIdx = 0;
             if (layout) {
-                const allImgs = Array.from(layout.querySelectorAll('.fb-img')).map(img => img.src);
-                const idx = allImgs.indexOf(fbImg.src);
-                openLightbox(allImgs, idx >= 0 ? idx : 0);
+                const imgEls = Array.from(layout.querySelectorAll('.fb-img'));
+                allImgs = imgEls.map(img => img.src).filter(Boolean);
+                const targetImg = fbTarget.tagName === 'IMG' ? fbTarget : fbTarget.querySelector('img');
+                const targetSrc = targetImg ? targetImg.src : (allImgs[4] || allImgs[0]);
+                targetIdx = targetSrc ? allImgs.indexOf(targetSrc) : 0;
+                if (targetIdx < 0) targetIdx = 0;
+            } else if (fbTarget.src) {
+                allImgs = [fbTarget.src];
+                targetIdx = 0;
+            }
+
+            if (allImgs.length > 0) {
+                openLightbox(allImgs, targetIdx);
             }
             return;
+        }
+
+        // View document attachment click
+        const fileBtn = e.target.closest('.btn-view-file');
+        if (fileBtn && fileBtn.getAttribute('href') && fileBtn.getAttribute('href') !== '#') {
+            const href = fileBtn.getAttribute('href');
+            if (href.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i)) {
+                e.preventDefault();
+                openLightbox([href], 0);
+                return;
+            } else if (href.match(/\.pdf$/i)) {
+                e.preventDefault();
+                const modal = document.getElementById('media-viewer-modal');
+                const viewerIframe = document.getElementById('viewer-iframe');
+                const viewerImg = document.getElementById('viewer-image');
+                const mediaCounter = document.getElementById('media-counter');
+                const btnPrev = document.getElementById('prev-media');
+                const btnNext = document.getElementById('next-media');
+                if (modal && viewerIframe) {
+                    viewerIframe.src = href;
+                    viewerIframe.style.display = 'block';
+                    if (viewerImg) {
+                        viewerImg.src = '';
+                        viewerImg.style.display = 'none';
+                    }
+                    if (mediaCounter) mediaCounter.style.display = 'none';
+                    if (btnPrev) btnPrev.style.display = 'none';
+                    if (btnNext) btnNext.style.display = 'none';
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+                return;
+            }
         }
 
         // Close lightbox
@@ -1219,8 +1262,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (closeLightboxBtn || e.target.id === 'media-viewer-modal') {
             const modalViewer = document.getElementById('media-viewer-modal');
             const viewerImg = document.getElementById('viewer-image');
+            const viewerIframe = document.getElementById('viewer-iframe');
             if (modalViewer) modalViewer.style.display = 'none';
-            if (viewerImg) viewerImg.src = '';
+            if (viewerImg) {
+                viewerImg.src = '';
+                viewerImg.style.display = 'none';
+            }
+            if (viewerIframe) {
+                viewerIframe.src = '';
+                viewerIframe.style.display = 'none';
+            }
             document.body.style.overflow = '';
             return;
         }
@@ -1254,14 +1305,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         if (e.key === 'Escape') {
-            const annModal = document.getElementById('view-announcement-modal');
-            if (annModal && annModal.style.display !== 'none') {
-                closeAnnouncementModal();
-            }
             const mediaModal = document.getElementById('media-viewer-modal');
             if (mediaModal && mediaModal.style.display !== 'none') {
                 mediaModal.style.display = 'none';
+                const viewerImg = document.getElementById('viewer-image');
+                const viewerIframe = document.getElementById('viewer-iframe');
+                if (viewerImg) { viewerImg.src = ''; viewerImg.style.display = 'none'; }
+                if (viewerIframe) { viewerIframe.src = ''; viewerIframe.style.display = 'none'; }
                 document.body.style.overflow = '';
+                return;
+            }
+            const annModal = document.getElementById('view-announcement-modal');
+            if (annModal && annModal.style.display !== 'none') {
+                closeAnnouncementModal();
             }
         }
     });
@@ -1276,12 +1332,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!images || images.length === 0) return;
         ensureAnnouncementModals();
         lightboxImages = images;
-        lightboxCurrentIndex = startIndex;
+        lightboxCurrentIndex = startIndex >= 0 && startIndex < images.length ? startIndex : 0;
         showLightboxImage();
         const modalViewer = document.getElementById('media-viewer-modal');
         if (modalViewer) {
             modalViewer.style.display = 'flex';
             document.body.style.overflow = 'hidden';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     }
     window.openLightbox = openLightbox;
@@ -1299,7 +1356,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             viewerImg.src = url;
             viewerImg.style.display = 'block';
         }
-        if (viewerIframe) viewerIframe.style.display = 'none';
+        if (viewerIframe) {
+            viewerIframe.src = '';
+            viewerIframe.style.display = 'none';
+        }
 
         if (mediaCounter) {
             if (lightboxImages.length > 1) {

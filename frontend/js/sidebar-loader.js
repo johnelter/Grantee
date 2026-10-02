@@ -296,8 +296,35 @@ function initGlobalAdminDelegatedHandlers() {
         }
     }
 
-    // 1. Unified Click Handler for Mobile Menu, Overlay, Dropdowns, Theme Toggle, and Navigation Links
+    // 1. Unified Click Handler for Mobile Menu, Overlay, Dropdowns, Theme Toggle, Navigation Links, and Logout Modal
     document.addEventListener('click', (e) => {
+        // --- 0. LOGOUT TRIGGERS (PRIORITY #1) ---
+        const logoutTrigger = e.target.closest('#dropdown-logout-btn, #sidebar-logout-btn, .logout-trigger, [data-action="logout"]');
+        if (logoutTrigger) {
+            window.openLogoutModal(e);
+            return;
+        }
+
+        // --- 0B. LOGOUT MODAL CANCEL & BACKDROP ---
+        const logoutCancel = e.target.closest('#logout-modal #modal-cancel, #logout-modal .global-btn-cancel, #logout-modal .modal-cancel-btn');
+        if (logoutCancel) {
+            window.closeLogoutModal(e);
+            return;
+        }
+
+        const logoutModalEl = document.getElementById('logout-modal');
+        if (logoutModalEl && e.target === logoutModalEl) {
+            window.closeLogoutModal(e);
+            return;
+        }
+
+        // --- 0C. LOGOUT MODAL CONFIRM ---
+        const logoutConfirm = e.target.closest('#logout-modal #modal-confirm, #logout-modal .global-btn-confirm');
+        if (logoutConfirm) {
+            window.confirmGlobalLogout(e);
+            return;
+        }
+
         const themeToggle = e.target.closest('#theme-toggle, .btn-theme-toggle');
         const mobileToggle = e.target.closest('#mobile-menu-toggle, .hamburger-btn');
         const overlay = e.target.closest('#sidebar-overlay, .sidebar-overlay');
@@ -309,7 +336,7 @@ function initGlobalAdminDelegatedHandlers() {
         const pt = document.getElementById('profile-dropdown-toggle');
         const nt = document.getElementById('notification-toggle');
 
-        // 0. Theme Toggle Click
+        // Theme Toggle Click
         if (themeToggle) {
             e.preventDefault();
             e.stopPropagation();
@@ -319,7 +346,7 @@ function initGlobalAdminDelegatedHandlers() {
             return;
         }
 
-        // A. Mobile Hamburger Click
+        // Mobile Hamburger Click
         if (mobileToggle) {
             e.preventDefault();
             e.stopPropagation();
@@ -327,7 +354,7 @@ function initGlobalAdminDelegatedHandlers() {
             return;
         }
 
-        // B. Sidebar Overlay Click
+        // Sidebar Overlay Click
         if (overlay) {
             e.preventDefault();
             e.stopPropagation();
@@ -335,12 +362,12 @@ function initGlobalAdminDelegatedHandlers() {
             return;
         }
 
-        // C. Sidebar Nav Link Click on Mobile (Auto-close sidebar upon tapping link)
+        // Sidebar Nav Link Click on Mobile (Auto-close sidebar upon tapping link)
         if (menuLink && window.innerWidth <= 1024) {
             closeMobileSidebar();
         }
 
-        // D. Profile Dropdown Clicked
+        // Profile Dropdown Clicked
         if (profileToggle) {
             if (e.target.closest('#profile-menu')) return;
             e.stopPropagation();
@@ -357,7 +384,7 @@ function initGlobalAdminDelegatedHandlers() {
             return;
         }
 
-        // E. Notification Bell Clicked
+        // Notification Bell Clicked
         if (notifToggle) {
             if (e.target.closest('#notification-menu')) return;
             e.stopPropagation();
@@ -374,7 +401,7 @@ function initGlobalAdminDelegatedHandlers() {
             return;
         }
 
-        // F. Clicked Outside Dropdowns - Close both menus
+        // Clicked Outside Dropdowns - Close both menus
         if (profileMenu && !profileMenu.contains(e.target)) {
             profileMenu.classList.remove('show');
             profileMenu.style.display = 'none';
@@ -413,8 +440,97 @@ function initGlobalAdminDelegatedHandlers() {
                 notifMenu.style.display = 'none';
                 if (nt) nt.classList.remove('active-state');
             }
+            const logoutModal = document.getElementById('logout-modal');
+            if (logoutModal && (logoutModal.classList.contains('show') || logoutModal.style.display === 'flex')) {
+                window.closeLogoutModal(e);
+            }
         }
     });
+}
+
+// --- GLOBAL LOGOUT FUNCTIONS ---
+window.openLogoutModal = function (e) {
+    if (e) {
+        try { e.preventDefault(); } catch (err) {}
+        try { e.stopPropagation(); } catch (err) {}
+    }
+    let logoutModal = document.getElementById('logout-modal');
+    if (logoutModal) {
+        logoutModal.style.setProperty('display', 'flex', 'important');
+        logoutModal.classList.add('show', 'active');
+        logoutModal.style.setProperty('opacity', '1', 'important');
+        logoutModal.style.setProperty('visibility', 'visible', 'important');
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            try { lucide.createIcons({ root: logoutModal }); } catch (err) {}
+        }
+    } else {
+        loadLogoutModal().then(() => {
+            const modal = document.getElementById('logout-modal');
+            if (modal) {
+                modal.style.setProperty('display', 'flex', 'important');
+                modal.classList.add('show', 'active');
+                modal.style.setProperty('opacity', '1', 'important');
+                modal.style.setProperty('visibility', 'visible', 'important');
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    try { lucide.createIcons({ root: modal }); } catch (err) {}
+                }
+            }
+        });
+    }
+    const profileMenu = document.getElementById('profile-menu');
+    if (profileMenu) {
+        profileMenu.classList.remove('show');
+        profileMenu.style.display = 'none';
+    }
+    const pt = document.getElementById('profile-dropdown-toggle');
+    if (pt) pt.classList.remove('active-state');
+};
+
+window.closeLogoutModal = function (e) {
+    if (e) {
+        try { e.preventDefault(); } catch (err) {}
+        try { e.stopPropagation(); } catch (err) {}
+    }
+    const logoutModal = document.getElementById('logout-modal');
+    if (logoutModal) {
+        logoutModal.classList.remove('show', 'active');
+        logoutModal.style.setProperty('display', 'none', 'important');
+        logoutModal.style.removeProperty('opacity');
+        logoutModal.style.removeProperty('visibility');
+    }
+};
+
+window.confirmGlobalLogout = async function (e) {
+    if (e) {
+        try { e.preventDefault(); } catch (err) {}
+        try { e.stopPropagation(); } catch (err) {}
+    }
+    const confirmBtn = document.querySelector('#logout-modal #modal-confirm, #logout-modal .global-btn-confirm');
+    if (confirmBtn) {
+        confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
+        confirmBtn.disabled = true;
+    }
+    if (window.supabaseClient) {
+        try {
+            sessionStorage.removeItem('grantee_admin_profile');
+            await window.supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error("Logout Error:", error);
+            alert("Failed to logout safely.");
+            if (confirmBtn) {
+                confirmBtn.innerHTML = '<i class="fa-solid fa-power-off"></i> Logout';
+                confirmBtn.disabled = false;
+            }
+        }
+    } else {
+        sessionStorage.removeItem('grantee_admin_profile');
+        window.location.href = 'login.html';
+    }
+};
+
+function initGlobalLogoutLogic() {
+    // Kept for backward compatibility
 }
 
 // Run immediately
@@ -423,74 +539,6 @@ initGlobalAdminDelegatedHandlers();
 // Legacy compatibility
 function initMobileMenu() {
     initGlobalAdminDelegatedHandlers();
-}
-
-// --- GLOBAL LOGOUT FUNCTION ---
-let isLogoutLogicInitialized = false;
-function initGlobalLogoutLogic() {
-    if (isLogoutLogicInitialized) return;
-    isLogoutLogicInitialized = true;
-
-    // 1. Open Logout Modal
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('#dropdown-logout-btn, #sidebar-logout-btn, .logout-trigger');
-        if (btn) {
-            e.preventDefault();
-            const logoutModal = document.getElementById('logout-modal');
-            if (logoutModal) logoutModal.style.display = 'flex';
-            const profileMenu = document.getElementById('profile-menu');
-            if (profileMenu) {
-                profileMenu.classList.remove('show');
-                profileMenu.style.display = 'none';
-            }
-            const pt = document.getElementById('profile-dropdown-toggle');
-            if (pt) pt.classList.remove('active-state');
-        }
-    });
-
-    // 2. Close Modal on Cancel
-    document.addEventListener('click', (e) => {
-        const cancelBtn = e.target.closest('#logout-modal #modal-cancel, #logout-modal .global-btn-cancel, #logout-modal .modal-cancel-btn');
-        if (cancelBtn) {
-            e.preventDefault();
-            const logoutModal = document.getElementById('logout-modal');
-            if (logoutModal) logoutModal.style.display = 'none';
-        }
-    });
-
-    // 3. Close Modal on Outside Backdrop Click
-    document.addEventListener('click', (e) => {
-        const logoutModal = document.getElementById('logout-modal');
-        if (logoutModal && e.target === logoutModal) {
-            logoutModal.style.display = 'none';
-        }
-    });
-
-    // 4. Process Logout on Confirm
-    document.addEventListener('click', async (e) => {
-        const confirmBtn = e.target.closest('#logout-modal #modal-confirm, #logout-modal .global-btn-confirm');
-        if (confirmBtn) {
-            e.preventDefault();
-            if (window.supabaseClient) {
-                try {
-                    confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
-                    confirmBtn.disabled = true;
-
-                    sessionStorage.removeItem('grantee_admin_profile');
-                    await window.supabaseClient.auth.signOut();
-                    window.location.href = 'login.html';
-                } catch (error) {
-                    console.error("Logout Error:", error);
-                    alert("Failed to logout safely.");
-                    confirmBtn.innerHTML = '<i class="fa-solid fa-power-off"></i> Logout';
-                    confirmBtn.disabled = false;
-                }
-            } else {
-                sessionStorage.removeItem('grantee_admin_profile');
-                window.location.href = 'login.html';
-            }
-        }
-    });
 }
 
 // --- 0. SPA DOMContentLoaded POLYFILL ---
@@ -584,7 +632,7 @@ function initSidebarNavigation() {
 // GLOBAL ADMIN UI TOAST SYSTEM (TOP CENTER)
 // ==========================================
 if (!window.showUIToast) {
-    window.showUIToast = function (type = 'success', title = '', message = '') {
+    window.showUIToast = function (type = 'success', title = '', message = '', duration = 4000) {
         let container = document.getElementById('custom-toast-container');
         if (!container) {
             container = document.createElement('div');
@@ -655,7 +703,7 @@ if (!window.showUIToast) {
             });
         }
 
-        const autoDismissTimer = setTimeout(dismissToast, 3500);
+        const autoDismissTimer = setTimeout(dismissToast, duration || 4000);
 
         toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
         toast.addEventListener('mouseleave', () => {

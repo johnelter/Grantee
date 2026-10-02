@@ -20,6 +20,98 @@
     let currentAdminSchool = null;
     let currentAdminRole = null;
 
+    // --- MODERN TOAST NOTIFICATION UTILITY (TOP CENTER - LIGHT & DARK THEME) ---
+    function showUIToast(type = 'success', title = '', message = '', duration = 4000) {
+        if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+            Swal.close();
+        }
+
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            if (!title) title = 'Success';
+        } else if (type === 'error') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+            if (!title) title = 'Error';
+        } else if (type === 'info') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+            if (!title) title = 'Info';
+        } else if (type === 'warning') {
+            iconSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+            if (!title) title = 'Warning';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        const autoDismissTimer = setTimeout(dismissToast, duration || 3800);
+
+        toast.addEventListener('mouseenter', () => {
+            clearTimeout(autoDismissTimer);
+        });
+
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    }
+
+    window.showUIToast = showUIToast;
+    window.showToast = showUIToast;
+
     const formatText = (text, rule) => {
         if (!text || typeof text !== 'string') return text;
         if (rule === 'UPPERCASE') return text.toUpperCase();
@@ -219,7 +311,7 @@
             if (headerTitlesBox) {
                 headerTitlesBox.classList.remove('is-loading');
             }
-            Swal.fire('Error', 'Failed to load profile data.', 'error');
+            showUIToast('error', 'Error', 'Failed to load profile data.');
         }
     }
 
@@ -704,7 +796,7 @@
     window.openApplicantModal = (appId) => {
         const app = currentApplications.find(a => a.id === appId);
         if (!app) {
-            Swal.fire('Error', 'Applicant data not found.', 'error');
+            showUIToast('error', 'Error', 'Applicant data not found.');
             return;
         }
 
@@ -1185,7 +1277,7 @@
     async function handleRejectWithReason(appId) {
         const targetApp = currentApplications.find(a => a.id === appId);
         if (!targetApp) {
-            Swal.fire('Error', 'Applicant record not found.', 'error');
+            showUIToast('error', 'Error', 'Applicant record not found.');
             return;
         }
 
@@ -1423,7 +1515,7 @@
 
         } catch (error) {
             console.error("Policy evaluation error:", error);
-            Swal.fire('Error', 'Failed to evaluate assistance policies. Please try again.', 'error');
+            showUIToast('error', 'Error', 'Failed to evaluate assistance policies. Please try again.');
         }
     }
 
@@ -1464,6 +1556,11 @@
             let notifMsg = `Your application for ${schName} has been updated to ${newStatus}.`;
             let notifHtml = '';
 
+            let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+                ? window.location.origin + basePath + 'login.html'
+                : 'https://grantee-drab.vercel.app/frontend/login.html';
+
             if (newStatus === 'Approved') {
                 notifTitle = 'Application Approved';
                 notifMsg = `Congratulations! Your application for "${schName}" has been approved.`;
@@ -1472,6 +1569,9 @@
                         <h2 style="color: #6B7F4E; margin-top: 0;">Application Approved</h2>
                         <p>Congratulations! Your application for <strong>${schName}</strong> has been evaluated and approved.</p>
                         <p>Please log in to your student dashboard to view your grantee status and benefits.</p>
+                        <div style="text-align: center; margin-top: 24px;">
+                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
+                        </div>
                     </div>
                 `;
             } else if (newStatus === 'Declined' || newStatus === 'Rejected') {
@@ -1488,6 +1588,9 @@
                             <span style="color: #374151; font-size: 14px; line-height: 1.5;">${finalRejectionReason}</span>
                         </div>
                         <p style="font-size: 13px; color: #64748b;">Log in to your student portal to review your application details.</p>
+                        <div style="text-align: center; margin-top: 24px;">
+                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
+                        </div>
                     </div>
                 `;
             }
@@ -1571,12 +1674,12 @@
                 closeApplicantModal();
             }
 
-            await Swal.fire('Success!', `Applicant successfully ${newStatus === 'Approved' ? 'Approved' : 'Rejected'}.`, 'success');
+            showUIToast('success', 'Success', `Applicant successfully ${newStatus === 'Approved' ? 'Approved' : 'Rejected'}.`);
             loadApplicationsForActiveTab();
 
         } catch (err) {
             console.error(err);
-            Swal.fire('Error', 'Failed to update status: ' + (err.message || ''), 'error');
+            showUIToast('error', 'Error', 'Failed to update status: ' + (err.message || ''));
         }
     };
 
@@ -1611,11 +1714,11 @@
                 }
 
                 await logSystemAction('Deleted Application', `Deleted application ID: ${appId}`);
-                await Swal.fire('Deleted!', 'The application has been deleted.', 'success');
+                showUIToast('success', 'Deleted', 'The application has been deleted.');
                 loadApplicationsForActiveTab();
             } catch (err) {
                 console.error(err);
-                Swal.fire('Error', 'Failed to delete application.', 'error');
+                showUIToast('error', 'Error', 'Failed to delete application.');
             }
         }
     };
@@ -1632,7 +1735,7 @@
         });
 
         if (appsToExport.length === 0) {
-            Swal.fire('Empty', `No data to export for ${targetStatus} applicants.`, 'info');
+            showUIToast('info', 'Empty', `No data to export for ${targetStatus} applicants.`);
             return;
         }
 
@@ -1730,7 +1833,7 @@
 
     function exportToPDF(appsToExport, targetStatus) {
         if (!window.jspdf || !window.jspdf.jsPDF) {
-            Swal.fire('Missing Library', 'jsPDF is required to export to PDF. Please ensure jsPDF and jsPDF-AutoTable are linked in your HTML.', 'error');
+            showUIToast('error', 'Missing Library', 'jsPDF is required to export to PDF. Please ensure jsPDF is available.');
             return;
         }
 
@@ -1798,7 +1901,7 @@
         const appsToExport = currentApplications || [];
 
         if (!appsToExport || appsToExport.length === 0) {
-            Swal.fire('Empty', 'No applicant records found for this educational assistance program.', 'info');
+            showUIToast('info', 'Empty', 'No applicant records found for this educational assistance program.');
             return;
         }
 

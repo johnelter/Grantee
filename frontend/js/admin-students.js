@@ -18,6 +18,105 @@
     let pendingDuplicateRecords = [];
 
     // ==========================================
+    // UI TOAST SYSTEM (TOP CENTER - EXACT DESIGN)
+    // ==========================================
+    function showUIToast(type = 'success', title = '', message = '', duration = 4000) {
+        if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+            Swal.close();
+        }
+
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        // Clean & normalize type
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        // SVGs matching the visual design reference
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+            if (!message) message = 'Your changes are saved successfully';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+            if (!message) message = 'Error has occurred while saving changes.';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+            if (!message) message = 'New settings available on your account.';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+            if (!message) message = 'Please check the entered values.';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Entrance animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        // Auto dismiss after duration
+        const autoDismissTimer = setTimeout(dismissToast, duration || 3800);
+
+        // Pause on hover
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    }
+    window.showUIToast = showUIToast;
+    window.showToast = showUIToast;
+
+    // ==========================================
     // 1.5 EXACT PROGRAMS & YEAR LEVELS
     // ==========================================
     const EXACT_PROGRAMS = [
@@ -454,10 +553,10 @@
                 if (error) throw error;
 
                 selectedIds.clear();
-                Swal.fire('Deleted!', `${count.toLocaleString()} student${count !== 1 ? 's' : ''} have been removed.`, 'success');
+                showUIToast('success', 'Deleted', `${count.toLocaleString()} student${count !== 1 ? 's' : ''} have been removed.`);
                 fetchEnrolledStudents();
             } catch (err) {
-                Swal.fire('Error', 'Bulk delete failed: ' + err.message, 'error');
+                showUIToast('error', 'Error', 'Bulk delete failed: ' + err.message);
             }
         });
     }
@@ -737,14 +836,14 @@
 
             const isDuplicate = allStudents.some(s => s.id_number.toLowerCase() === inputIdNumber.toLowerCase() && String(s.id) !== String(id));
             if (isDuplicate) {
-                Swal.fire('Duplicate Entry', `A student with the ID Number "${inputIdNumber}" is already in the masterlist!`, 'error');
+                showUIToast('error', 'Duplicate Entry', `A student with the ID Number "${inputIdNumber}" is already in the masterlist!`);
                 return;
             }
 
             const dobInput = document.getElementById('stu-dob');
             const dobVal = dobInput ? dobInput.value.trim() : '';
             if (!dobVal) {
-                Swal.fire('Date of Birth Required', 'Please provide a valid Date of Birth for the student.', 'warning');
+                showUIToast('warning', 'Date of Birth Required', 'Please provide a valid Date of Birth for the student.');
                 return;
             }
 
@@ -754,7 +853,7 @@
             const profileIdVal = emailInput ? (emailInput.dataset.profileId || '') : '';
 
             if (profileIdVal && newEmailVal && (!newEmailVal.includes('@') || !newEmailVal.includes('.'))) {
-                Swal.fire('Invalid Email', 'Please provide a valid email address (e.g. name@gmail.com).', 'warning');
+                showUIToast('warning', 'Invalid Email', 'Please provide a valid email address (e.g. name@gmail.com).');
                 return;
             }
 
@@ -822,7 +921,7 @@
                             await updateStudentEmailService(profileIdVal, targetIdNumber, newEmailVal);
                         } catch (emailErr) {
                             console.error("Email update warning:", emailErr);
-                            Swal.fire('Partial Update', `Student details saved, but updating login email returned: ${emailErr.message}`, 'warning');
+                            showUIToast('warning', 'Partial Update', `Student details saved, but updating login email returned: ${emailErr.message}`);
                             studentModal.style.display = 'none';
                             fetchEnrolledStudents();
                             return;
@@ -833,7 +932,7 @@
                     if (error) throw error;
                 }
 
-                Swal.fire('Success!', 'Student information saved successfully.', 'success');
+                showUIToast('success', 'Success', 'Student information saved successfully.');
                 studentModal.style.display = 'none';
                 fetchEnrolledStudents();
             } catch (err) {
@@ -845,7 +944,7 @@
                         icon: 'error'
                     });
                 } else {
-                    Swal.fire('Save Failed', err.message, 'error');
+                    showUIToast('error', 'Save Failed', err.message || 'Failed to save student.');
                 }
             } finally {
                 btn.disabled = false;
@@ -872,10 +971,10 @@
             try {
                 const { error } = await window.supabaseClient.from('enrolled_masterlist').delete().eq('id', id);
                 if (error) throw error;
-                Swal.fire('Deleted!', 'The student has been deleted.', 'success');
+                showUIToast('success', 'Deleted', 'The student has been deleted.');
                 fetchEnrolledStudents();
             } catch (err) {
-                Swal.fire('Error', 'Failed to delete record: ' + err.message, 'error');
+                showUIToast('error', 'Error', 'Failed to delete record: ' + err.message);
             }
         }
     };
@@ -1182,8 +1281,8 @@
                     insertedCount += batch.length;
                 }
 
-                // SWEET ALERT SUCCESS MESSAGE
-                Swal.fire('Success!', `Successfully imported ${insertedCount.toLocaleString()} students!`, 'success');
+                // TOAST UI SUCCESS MESSAGE
+                showUIToast('success', 'Success', `Successfully imported ${insertedCount.toLocaleString()} students!`);
 
                 // Notify coordinators of successful import
                 if (currentAdminSchoolId) {
@@ -1205,6 +1304,7 @@
 
             } catch (err) {
                 console.error("Database Insert Error:", err);
+                showUIToast('error', 'Import Failed', `Import error: ${err.message}`);
                 importStatus.innerHTML = `<div class="text-red" style="text-align:left; background:var(--danger-light); padding:12px; border-radius:10px; border:1px solid rgba(217, 72, 65, 0.3);">Import failed at batch ${Math.ceil((insertedCount + 1) / BATCH_SIZE)}: ${err.message}<br><small>${insertedCount.toLocaleString()} of ${totalRecords.toLocaleString()} students were saved before the error.</small></div>`;
 
                 // Notify coordinators of failed import

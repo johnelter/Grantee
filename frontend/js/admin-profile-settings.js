@@ -26,6 +26,105 @@
     const adminId = session.user.id;
     const adminEmail = session.user.email || '';
 
+    // ==========================================
+    // UI TOAST SYSTEM (TOP CENTER - EXACT DESIGN)
+    // ==========================================
+    function showUIToast(type = 'success', title = '', message = '', duration = 4000) {
+        if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+            Swal.close();
+        }
+
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        // Clean & normalize type
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        // SVGs matching the visual design reference
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+            if (!message) message = 'Your changes are saved successfully';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+            if (!message) message = 'Error has occurred while saving changes.';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+            if (!message) message = 'New settings available on your account.';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+            if (!message) message = 'Please check the entered values.';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Entrance animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        // Auto dismiss after duration
+        const autoDismissTimer = setTimeout(dismissToast, duration || 3800);
+
+        // Pause on hover
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    }
+    window.showUIToast = showUIToast;
+    window.showToast = showUIToast;
+
     // --- STRONG PASSWORD VALIDATOR ---
     const validatePasswordStrength = (password) => {
         if (!password || password.length < 8) return "Password must be at least 8 characters long.";
@@ -197,24 +296,12 @@
 
                 if (error) throw error;
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Profile successfully updated!',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                }
+                showUIToast('success', 'Success', 'Profile successfully updated!');
                 await loadProfile();
 
             } catch (err) {
                 console.error("Update error:", err);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Failed to Update', text: err.message });
-                } else {
-                    alert("Failed to update profile: " + err.message);
-                }
+                showUIToast('error', 'Update Failed', err.message || 'Failed to update profile.');
             } finally {
                 if (saveBtn) {
                     saveBtn.innerHTML = originalText;
@@ -237,30 +324,18 @@
             const confirmPassword = document.getElementById('confirm-password')?.value || '';
 
             if (newPassword !== confirmPassword) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Mismatch', text: 'New passwords do not match. Please try again.' });
-                } else {
-                    alert('New passwords do not match.');
-                }
+                showUIToast('error', 'Mismatch', 'New passwords do not match. Please try again.');
                 return;
             }
 
             if (currentPassword === newPassword) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'warning', title: 'Invalid Choice', text: 'New password cannot be the same as the current password.' });
-                } else {
-                    alert('New password cannot be the same as current password.');
-                }
+                showUIToast('warning', 'Invalid Choice', 'New password cannot be the same as the current password.');
                 return;
             }
 
             const passwordError = validatePasswordStrength(newPassword);
             if (passwordError) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'warning', title: 'Weak Password', text: passwordError });
-                } else {
-                    alert(passwordError);
-                }
+                showUIToast('warning', 'Weak Password', passwordError);
                 return;
             }
 
@@ -286,29 +361,16 @@
 
                 if (updateError) throw updateError;
 
-                if (typeof Swal !== 'undefined') {
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Password Updated',
-                        text: 'For security, you will now be logged out.',
-                        timer: 2500,
-                        showConfirmButton: false
-                    });
-                } else {
-                    alert('Password updated! You will now be logged out.');
-                }
-
-                sessionStorage.removeItem('grantee_admin_profile');
-                await window.supabaseClient.auth.signOut();
-                window.location.href = 'login.html';
+                showUIToast('success', 'Password Updated', 'For security, you will now be logged out.');
+                setTimeout(async () => {
+                    sessionStorage.removeItem('grantee_admin_profile');
+                    await window.supabaseClient.auth.signOut();
+                    window.location.href = 'login.html';
+                }, 1800);
 
             } catch (err) {
                 console.error("Password change error:", err);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Update Failed', text: err.message });
-                } else {
-                    alert("Update failed: " + err.message);
-                }
+                showUIToast('error', 'Update Failed', err.message || 'Password update failed.');
                 if (btn) {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
@@ -345,18 +407,12 @@
                 const { error } = await window.supabaseClient.auth.resetPasswordForEmail(adminEmail);
                 if (error) throw error;
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: 'OTP Sent', text: 'Please check your email inbox for the 6-digit code.', timer: 2000, showConfirmButton: false });
-                }
+                showUIToast('success', 'OTP Sent', 'Please check your email inbox for the 6-digit code.');
                 if (otpModal) otpModal.style.display = 'flex';
 
             } catch (err) {
                 console.error("OTP request error:", err);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Failed to Send', text: err.message });
-                } else {
-                    alert("Failed to send OTP: " + err.message);
-                }
+                showUIToast('error', 'Failed to Send', err.message || 'Failed to send OTP.');
             }
         });
     }
@@ -371,11 +427,7 @@
 
             const passwordError = validatePasswordStrength(newPassword);
             if (passwordError) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'warning', title: 'Weak Password', text: passwordError });
-                } else {
-                    alert(passwordError);
-                }
+                showUIToast('warning', 'Weak Password', passwordError);
                 return;
             }
 
@@ -399,26 +451,16 @@
 
                 if (updateError) throw updateError;
 
-                if (typeof Swal !== 'undefined') {
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Password Reset',
-                        text: 'Password successfully reset! You will now be logged out.',
-                        timer: 2500,
-                        showConfirmButton: false
-                    });
-                }
-                sessionStorage.removeItem('grantee_admin_profile');
-                await window.supabaseClient.auth.signOut();
-                window.location.href = 'login.html';
+                showUIToast('success', 'Password Reset', 'Password successfully reset! You will now be logged out.');
+                setTimeout(async () => {
+                    sessionStorage.removeItem('grantee_admin_profile');
+                    await window.supabaseClient.auth.signOut();
+                    window.location.href = 'login.html';
+                }, 1800);
 
             } catch (err) {
                 console.error("OTP verification error:", err);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Verification Failed', text: err.message });
-                } else {
-                    alert("Verification failed: " + err.message);
-                }
+                showUIToast('error', 'Verification Failed', err.message || 'OTP verification failed.');
                 if (verifyBtn) {
                     verifyBtn.innerHTML = "Verify & Reset";
                     verifyBtn.disabled = false;
@@ -574,11 +616,7 @@
 
             } catch (error) {
                 console.error("2FA Enroll Error:", error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Setup Error', text: error.message });
-                } else {
-                    alert("Setup error: " + error.message);
-                }
+                showUIToast('error', 'Setup Error', error.message || '2FA setup error.');
             } finally {
                 enable2faBtn.innerHTML = originalText;
                 enable2faBtn.disabled = false;
@@ -590,11 +628,7 @@
         confirm2faBtn.addEventListener('click', async () => {
             const code = (verify2faInput?.value || '').trim();
             if (code.length !== 6) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'warning', title: 'Invalid Code', text: 'Please enter a valid 6-digit verification code.' });
-                } else {
-                    alert('Please enter a 6-digit code.');
-                }
+                showUIToast('warning', 'Invalid Code', 'Please enter a valid 6-digit verification code.');
                 return;
             }
 
@@ -613,9 +647,7 @@
 
                 if (verifyError) throw verifyError;
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: '2FA Enabled', text: 'Two-factor authentication is now active.' });
-                }
+                showUIToast('success', '2FA Enabled', 'Two-factor authentication is now active.');
 
                 if (setup2faSection) setup2faSection.style.display = 'none';
                 if (unregisteredSection) unregisteredSection.style.display = 'none';
@@ -623,11 +655,7 @@
 
             } catch (error) {
                 console.error("2FA Verification Error:", error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Verification Failed', text: error.message });
-                } else {
-                    alert("Verification failed: " + error.message);
-                }
+                showUIToast('error', 'Verification Failed', error.message || '2FA verification failed.');
                 if (verify2faInput) {
                     verify2faInput.value = '';
                     verify2faInput.focus();
@@ -668,9 +696,7 @@
                 const { error: unenrollError } = await window.supabaseClient.auth.mfa.unenroll({ factorId: activeFactor.id });
                 if (unenrollError) throw unenrollError;
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: '2FA Disabled', text: 'Two-Factor Authentication has been turned off.' });
-                }
+                showUIToast('success', '2FA Disabled', 'Two-Factor Authentication has been turned off.');
 
                 if (active2faSection) active2faSection.style.display = 'none';
                 if (setup2faSection) setup2faSection.style.display = 'none';
@@ -678,9 +704,7 @@
 
             } catch (error) {
                 console.error("2FA Disable Error:", error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
-                }
+                showUIToast('error', 'Error', error.message || 'Failed to turn off 2FA.');
             } finally {
                 disable2faBtn.innerText = 'Turn Off 2FA';
                 disable2faBtn.disabled = false;
@@ -744,6 +768,7 @@
                     uploadStatus.innerHTML = '<i class="fa-solid fa-circle-check"></i> Avatar updated successfully!';
                     setTimeout(() => { uploadStatus.innerHTML = ""; }, 3500);
                 }
+                showUIToast('success', 'Success', 'Avatar updated successfully!');
 
                 await loadProfile();
 
@@ -753,9 +778,7 @@
                     uploadStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Upload failed.';
                     uploadStatus.style.color = "var(--danger-color)";
                 }
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message });
-                }
+                showUIToast('error', 'Upload Failed', err.message || 'Avatar upload failed.');
             }
         });
     }

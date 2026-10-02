@@ -25,6 +25,16 @@
         'Government Educational Assistance'
     ];
 
+    function showToast(type = 'success', title = '', message = '', duration = 4000) {
+        if (window.showUIToast) {
+            window.showUIToast(type, title, message, duration);
+        } else if (window.showToast) {
+            window.showToast(type, title, message, duration);
+        } else {
+            console.log(`[Toast ${type}] ${title}: ${message}`);
+        }
+    }
+
     // ==========================================
     // 2. HEADER PROFILE & DROPDOWN LOGIC
     // ==========================================
@@ -437,7 +447,7 @@
                 schoolScholarships = data;
                 const manualSelect = document.getElementById('manual-scholarship-select');
                 if (manualSelect) {
-                    manualSelect.innerHTML = '<option value="">-- No Internal Program --</option>';
+                    manualSelect.innerHTML = '<option value="">-- No Internal Program (Outside Assistance) --</option>';
                     data.forEach(sch => {
                         manualSelect.add(new Option(`${sch.title} (${sch.category || 'Institution-Funded Educational Assistance'})`, sch.id));
                     });
@@ -769,10 +779,12 @@
                 }
 
                 selectedIds.clear();
-                Swal.fire('Revoked!', `${count.toLocaleString()} beneficiar${count !== 1 ? 'ies have' : 'y has'} been revoked.`, 'success');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('success', 'Revoked!', `${count.toLocaleString()} beneficiar${count !== 1 ? 'ies have' : 'y has'} been revoked.`);
                 fetchActiveBeneficiaries();
             } catch (err) {
-                Swal.fire('Error', 'Bulk revoke failed: ' + err.message, 'error');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('error', 'Revoke Failed', 'Bulk revoke failed: ' + err.message);
             }
         });
     }
@@ -804,24 +816,15 @@
                 const { error } = await window.supabaseClient.from('applications').update({ duration: newDuration }).eq('id', appId);
                 if (error) throw error;
                 
-                Swal.fire('Saved!', 'The duration has been successfully updated.', 'success');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('success', 'Saved!', 'The duration has been successfully updated.');
                 fetchActiveBeneficiaries();
             } catch (err) { 
                 console.error("Database Error on Update Duration:", err);
                 const errorText = err.message || 'Unknown Database Restriction';
                 
-                let policyWarning = (errorText.toLowerCase().includes('policy') || errorText.includes('row-level security')) 
-                    ? "Warning: Your database Assistance Policies or Row-Level Security rules are actively blocking updates to this record." 
-                    : "Database update rejected.";
-
-                Swal.fire({
-                    title: 'Failed to update duration',
-                    html: `<div style="text-align:left; font-size:13px; background:#fef2f2; color:#991b1b; padding:10px; border-radius:6px; border:1px solid #fca5a5;">
-                            <strong>Reason:</strong> ${errorText}<br>
-                            <small style="color:#6b7280; display:block; margin-top:8px; font-weight:bold;">${policyWarning}</small>
-                           </div>`,
-                    icon: 'error'
-                });
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('error', 'Failed to Update Duration', errorText);
             }
         }
     };
@@ -892,9 +895,13 @@
                     details: JSON.stringify({ details: `Revoked active assistance for application ID: ${appId}` })
                 }]);
 
-                Swal.fire('Revoked', 'The assistance has been revoked and policy counts have been updated.', 'success');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('success', 'Revoked', 'The assistance has been revoked and policy counts have been updated.');
                 fetchActiveBeneficiaries();
-            } catch (err) { Swal.fire('Error', 'Failed to revoke assistance.', 'error'); }
+            } catch (err) { 
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('error', 'Revoke Failed', 'Failed to revoke assistance.'); 
+            }
         }
     };
 
@@ -1070,7 +1077,7 @@
 
             const ext = file.name.split('.').pop().toLowerCase();
             if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
-                Swal.fire('Invalid File', 'Only CSV and Excel (.xlsx, .xls) files are supported.', 'error');
+                showToast('error', 'Invalid File', 'Only CSV and Excel (.xlsx, .xls) files are supported.');
                 importInput.value = '';
                 return;
             }
@@ -1129,8 +1136,9 @@
                             validRecords.push(record);
                             crosscheckData.push({ ...record, renderStatus: 'valid' });
                         } else {
-                            record.suggested = suggestCategory(record.assistance_name);
-                            record.selected = ''; 
+                            const suggestedCat = suggestCategory(record.assistance_name);
+                            record.suggested = suggestedCat;
+                            record.selected = suggestedCat || ''; 
                             invalidRecords.push(record);
                             crosscheckData.push({ ...record, renderStatus: 'invalid', invalidIdx: invalidRecords.length - 1 });
                         }
@@ -1141,22 +1149,32 @@
                     throw new Error("No recognizable records found. Please ensure your headers match the template.");
                 }
 
+                const hasImportableRecords = validRecords.length > 0 || invalidRecords.length > 0;
+                const allSkipped = !hasImportableRecords && unenrolledSkipped.length > 0;
+
                 // ALWAYS SHOW THE CROSSCHECKING VIEW
                 let html = `
                     <div style="background:var(--card-bg, #fff); border:1px solid var(--border-color, #e2e8f0); border-radius:8px; padding:15px; margin-top:15px; text-align:left;">
                         <h4 style="margin-top:0; color:var(--text-heading, #0f172a); margin-bottom:10px;">Import Crosschecking View</h4>
-                        <div style="display:flex; gap:15px; margin-bottom:15px;">
+                        <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap: wrap;">
                             <div style="font-size:13px;"><strong>Ready to Import:</strong> <span style="color:#10b981;">${validRecords.length}</span></div>
                             <div style="font-size:13px;"><strong>Needs Review:</strong> <span style="color:#f59e0b;">${invalidRecords.length}</span></div>
                             <div style="font-size:13px;"><strong>Failed (Not in School Masterlist):</strong> <span style="color:#ef4444;">${unenrolledSkipped.length}</span></div>
                         </div>
                 `;
 
-                if (invalidRecords.length > 0) {
+                if (allSkipped) {
                     html += `
-                        <div style="background:#fef3c7; color:#b45309; padding:10px; border-radius:6px; font-size:13px; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <div style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:12px; border-radius:6px; font-size:13px; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="ban" style="width:18px; height:18px; flex-shrink:0;"></i>
+                            <span><strong>Import Disabled:</strong> All records in this file were skipped because none were found in the official Enrolled Masterlist for this school. No records can be imported.</span>
+                        </div>
+                    `;
+                } else if (invalidRecords.length > 0) {
+                    html += `
+                        <div style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:10px; border-radius:6px; font-size:13px; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
                             <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
-                            <span><strong>Attention:</strong> Some records contain invalid educational assistance categories. Please map them to an accepted institutional category before importing.</span>
+                            <span><strong>Attention:</strong> Some records contain non-standard educational assistance categories. You can review or adjust them below before confirming import.</span>
                         </div>
                     `;
                 }
@@ -1188,15 +1206,23 @@
                     } 
                     else if (row.renderStatus === 'invalid') {
                         let options = `<option value="">-- Select Valid Category --</option>`;
-                        ALLOWED_CATEGORIES.forEach(cat => { options += `<option value="${cat}">${cat}</option>`; });
+                        ALLOWED_CATEGORIES.forEach(cat => { 
+                            const isSelected = (row.selected === cat) ? 'selected' : '';
+                            options += `<option value="${cat}" ${isSelected}>${cat}</option>`; 
+                        });
                         
+                        const borderCol = row.selected ? '#10b981' : '#ef4444';
                         finalCatHtml = `
-                            <div style="font-size:11px; color:#10b981; margin-bottom:4px;">Suggested: ${row.suggested || 'None'}</div>
-                            <select class="category-correction-select" data-index="${row.invalidIdx}" style="width:100%; padding:4px; border-radius:4px; border:1px solid #ef4444; background:var(--input-bg, #fff); color:var(--text-main, #0f172a);">
+                            ${row.suggested ? `<div style="font-size:11px; color:#10b981; margin-bottom:4px;">Suggested: ${row.suggested}</div>` : ''}
+                            <select class="category-correction-select" data-index="${row.invalidIdx}" style="width:100%; padding:4px; border-radius:4px; border:1px solid ${borderCol}; background:var(--input-bg, #fff); color:var(--text-main, #0f172a);">
                                 ${options}
                             </select>
                         `;
-                        statusHtml = `<span id="status-row-${row.invalidIdx}" style="color:#f59e0b; font-weight:bold;">Needs Review</span>`;
+                        if (row.selected) {
+                            statusHtml = `<span id="status-row-${row.invalidIdx}" style="color:#10b981; font-weight:bold; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="check" style="width:13px; height:13px;"></i> Ready</span>`;
+                        } else {
+                            statusHtml = `<span id="status-row-${row.invalidIdx}" style="color:#f59e0b; font-weight:bold;">Needs Review</span>`;
+                        }
                     }
                     else if (row.renderStatus === 'unenrolled') {
                         finalCatHtml = `<span style="color:var(--text-muted, #94a3b8); font-style:italic;">Not In School Masterlist</span>`;
@@ -1238,12 +1264,13 @@
                     html += `</ul></div>`;
                 }
 
-                const disabledAttr = invalidRecords.length > 0 ? 'disabled' : '';
-                const cursorStyle = invalidRecords.length > 0 ? 'cursor:not-allowed; opacity:0.5;' : 'cursor:pointer; opacity:1;';
+                const disabledAttr = allSkipped ? 'disabled' : '';
+                const cursorStyle = allSkipped ? 'cursor:not-allowed; opacity:0.5;' : 'cursor:pointer; opacity:1;';
+                const buttonTitle = allSkipped ? 'title="Cannot import: All records are skipped because they do not exist in the school masterlist."' : '';
                 
                 html += `
                         <div style="text-align:right; margin-top: 20px;">
-                            <button id="btn-confirm-import" ${disabledAttr} style="background:var(--primary-color); color:#ffffff; border:none; padding:10px 20px; border-radius:6px; font-weight:600; transition:0.2s; ${cursorStyle}">
+                            <button id="btn-confirm-import" ${disabledAttr} ${buttonTitle} style="background:var(--primary-color); color:#ffffff; border:none; padding:10px 20px; border-radius:6px; font-weight:600; transition:0.2s; ${cursorStyle}">
                                 Confirm & Import Records
                             </button>
                         </div>
@@ -1255,8 +1282,35 @@
                     lucide.createIcons();
                 }
                 
-                if (invalidRecords.length === 0) {
-                    document.getElementById('btn-confirm-import').onclick = () => executeFinalImport(validRecords, invalidRecords, unenrolledSkipped.map(u => u.id_number));
+                const confirmBtn = document.getElementById('btn-confirm-import');
+                if (confirmBtn) {
+                    if (allSkipped) {
+                        confirmBtn.disabled = true;
+                        confirmBtn.style.cursor = 'not-allowed';
+                        confirmBtn.style.opacity = '0.5';
+                        confirmBtn.style.pointerEvents = 'none';
+                        confirmBtn.onclick = null;
+                    } else {
+                        confirmBtn.disabled = false;
+                        confirmBtn.style.cursor = 'pointer';
+                        confirmBtn.style.opacity = '1';
+                        confirmBtn.style.pointerEvents = 'auto';
+                        confirmBtn.onclick = () => {
+                            const unmapped = invalidRecords.filter(r => !r.selected);
+                            if (unmapped.length > 0) {
+                                showToast('warning', 'Category Selection Required', `Please select a valid Educational Assistance Category for all ${unmapped.length} record(s) needing review before importing.`);
+                                document.querySelectorAll('.category-correction-select').forEach(sel => {
+                                    const idx = sel.getAttribute('data-index');
+                                    if (!invalidRecords[idx].selected) {
+                                        sel.style.borderColor = '#ef4444';
+                                        sel.focus();
+                                    }
+                                });
+                                return;
+                            }
+                            executeFinalImport(validRecords, invalidRecords, unenrolledSkipped.map(u => u.id_number));
+                        };
+                    }
                 }
                 
                 const selects = document.querySelectorAll('.category-correction-select');
@@ -1268,35 +1322,19 @@
                         
                         const statusTd = document.getElementById(`status-row-${idx}`);
                         if(val) {
-                            statusTd.innerHTML = `<span style="color:#10b981; font-weight:bold;">Ready</span>`;
+                            statusTd.innerHTML = `<span style="color:#10b981; font-weight:bold; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="check" style="width:13px; height:13px;"></i> Ready</span>`;
                             e.target.style.borderColor = '#10b981';
                         } else {
                             statusTd.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">Needs Review</span>`;
                             e.target.style.borderColor = '#ef4444';
                         }
-                        checkAllResolved();
+                        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
                     });
                 });
 
-                function checkAllResolved() {
-                    const allResolved = invalidRecords.every(r => r.selected !== '');
-                    const btn = document.getElementById('btn-confirm-import');
-                    if (allResolved) {
-                        btn.disabled = false;
-                        btn.style.cursor = 'pointer';
-                        btn.style.opacity = '1';
-                        btn.onclick = () => executeFinalImport(validRecords, invalidRecords, unenrolledSkipped.map(u => u.id_number));
-                    } else {
-                        btn.disabled = true;
-                        btn.style.cursor = 'not-allowed';
-                        btn.style.opacity = '0.5';
-                        btn.onclick = null;
-                    }
-                }
-
             } catch (err) {
                 console.error("Import Error:", err);
-                Swal.fire('Import Failed', err.message || 'An unexpected parsing issue occurred.', 'error');
+                showToast('error', 'Import Failed', err.message || 'An unexpected parsing issue occurred.');
                 importStatus.innerHTML = '';
             }
         });
@@ -1557,13 +1595,38 @@
             }
             summaryHtml += `</div>`;
 
-            await Swal.fire({
-                title: hasFailures ? 'Import Completed with Exceptions' : 'Import Successful!',
-                html: summaryHtml,
-                icon: hasFailures ? 'warning' : 'success',
-                confirmButtonColor: '#10b981',
-                width: 600
-            });
+            if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+            
+            let toastType = 'success';
+            let toastTitle = 'Import Successful!';
+
+            if (insertCount === 0 && updateCount === 0) {
+                // All processed records were Double Entry, Skipped, or Rejected
+                toastType = 'warning';
+                if (policyRejections.size > 0 && duplicateCount === 0 && skippedIds.length === 0 && noAccountSkipped === 0) {
+                    toastType = 'error';
+                    toastTitle = 'Import Blocked by Policy';
+                } else if (duplicateCount > 0 && skippedIds.length === 0 && noAccountSkipped === 0) {
+                    toastTitle = 'Double Entry / Skipped';
+                } else if (duplicateCount > 0 || skippedIds.length > 0 || noAccountSkipped > 0) {
+                    toastTitle = 'Double Entry / Skipped';
+                } else {
+                    toastTitle = 'No Records Imported';
+                }
+            } else if (hasFailures || duplicateCount > 0 || skippedIds.length > 0 || noAccountSkipped > 0) {
+                toastType = 'warning';
+                toastTitle = 'Import Completed with Warnings';
+            } else {
+                toastType = 'success';
+                toastTitle = 'Import Successful!';
+            }
+
+            showToast(
+                toastType,
+                toastTitle,
+                summaryHtml,
+                8000
+            );
 
             if (document.getElementById('import-modal')) document.getElementById('import-modal').style.display = 'none';
             if (document.getElementById('import-file-input')) document.getElementById('import-file-input').value = '';
@@ -1572,21 +1635,150 @@
             fetchActiveBeneficiaries();
 
         } catch (err) {
-            Swal.fire({
-                title: 'Import Interrupted',
-                text: err.message || 'The script failed before reaching the database loop.',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
-            });
+            if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+            showToast('error', 'Import Interrupted', err.message || 'The script failed before reaching the database loop.', 6000);
         }
     }
 
     // ==========================================
     // 7. MANUALLY ADD BENEFICIARY WITH POLICIES
     // ==========================================
+    function updateManualAddFormFields() {
+        const schSelect = document.getElementById('manual-scholarship-select');
+        const schId = schSelect ? schSelect.value : '';
+        const outsideContainer = document.getElementById('manual-outside-name-container');
+        const outsideInput = document.getElementById('manual-outside-name');
+        const termRow = document.getElementById('manual-term-row');
+        const syInput = document.getElementById('manual-sy');
+        const semSelect = document.getElementById('manual-semester');
+        const categoryContainer = document.getElementById('manual-category-container');
+        const categorySelect = document.getElementById('manual-category');
+        const internalInfoContainer = document.getElementById('manual-internal-info-container');
+        const batchInput = document.getElementById('manual-batch');
+        const durationSelect = document.getElementById('manual-duration');
+
+        // Always keep Term Row, Category, Batch, and Duration containers visible in the layout
+        if (termRow) termRow.style.display = 'grid';
+        if (categoryContainer) categoryContainer.style.display = 'block';
+
+        if (schId) {
+            // INTERNAL PROGRAM SELECTED:
+            // Outside Assistance Name is not applicable
+            if (outsideContainer) outsideContainer.style.display = 'none';
+            if (outsideInput) {
+                outsideInput.value = '';
+                outsideInput.required = false;
+            }
+
+            // Lock School Year (SY), Semester, and Category (Visible but Read-Only / Disabled)
+            if (syInput) {
+                syInput.disabled = true;
+                syInput.style.backgroundColor = 'var(--input-bg, #F8FAF7)';
+                syInput.style.cursor = 'not-allowed';
+            }
+            if (semSelect) {
+                semSelect.disabled = true;
+                semSelect.style.backgroundColor = 'var(--input-bg, #F8FAF7)';
+                semSelect.style.cursor = 'not-allowed';
+            }
+            if (categorySelect) {
+                categorySelect.disabled = true;
+                categorySelect.style.backgroundColor = 'var(--input-bg, #F8FAF7)';
+                categorySelect.style.cursor = 'not-allowed';
+                categorySelect.required = false;
+            }
+
+            // Show informational banner
+            if (internalInfoContainer) {
+                internalInfoContainer.style.display = 'block';
+                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            }
+
+            // Pre-fill values from the selected internal program
+            const matchedSch = schoolScholarships.find(s => s.id === schId);
+            if (matchedSch) {
+                if (matchedSch.category && categorySelect) {
+                    const existingOption = Array.from(categorySelect.options).find(opt => opt.value === matchedSch.category);
+                    if (existingOption) {
+                        categorySelect.value = matchedSch.category;
+                    } else {
+                        categorySelect.add(new Option(matchedSch.category, matchedSch.category, true, true));
+                    }
+                }
+                if (syInput) syInput.value = matchedSch.school_year || '';
+                if (semSelect) semSelect.value = matchedSch.semester || '';
+                if (batchInput) batchInput.value = matchedSch.batch || '';
+            }
+
+            // Batch and Assistance Duration remain fully editable
+            if (batchInput) {
+                batchInput.disabled = false;
+                batchInput.style.backgroundColor = '';
+                batchInput.style.cursor = '';
+            }
+            if (durationSelect) {
+                durationSelect.disabled = false;
+                durationSelect.style.backgroundColor = '';
+                durationSelect.style.cursor = '';
+            }
+        } else {
+            // NO INTERNAL PROGRAM (OUTSIDE ASSISTANCE):
+            // Outside Assistance Name, School Year (SY), Semester, Batch, Category, and Duration are all cleared and editable
+            if (outsideContainer) outsideContainer.style.display = 'block';
+            if (outsideInput) {
+                outsideInput.value = '';
+                outsideInput.required = true;
+            }
+
+            if (syInput) {
+                syInput.value = '';
+                syInput.disabled = false;
+                syInput.style.backgroundColor = '';
+                syInput.style.cursor = '';
+            }
+            if (semSelect) {
+                semSelect.value = '';
+                semSelect.disabled = false;
+                semSelect.style.backgroundColor = '';
+                semSelect.style.cursor = '';
+            }
+            if (categorySelect) {
+                categorySelect.value = '';
+                categorySelect.disabled = false;
+                categorySelect.style.backgroundColor = '';
+                categorySelect.style.cursor = '';
+                categorySelect.required = true;
+            }
+            if (batchInput) {
+                batchInput.value = '';
+                batchInput.disabled = false;
+                batchInput.style.backgroundColor = '';
+                batchInput.style.cursor = '';
+            }
+            if (durationSelect) {
+                durationSelect.value = 'Not Set';
+                durationSelect.disabled = false;
+                durationSelect.style.backgroundColor = '';
+                durationSelect.style.cursor = '';
+            }
+
+            if (internalInfoContainer) internalInfoContainer.style.display = 'none';
+        }
+    }
+
     if (document.getElementById('btn-add-manual')) {
         document.getElementById('btn-add-manual').addEventListener('click', () => {
+            const form = document.getElementById('form-manual-add');
+            if (form) form.reset();
+            updateManualAddFormFields();
             document.getElementById('manual-add-modal').style.display = 'flex';
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        });
+    }
+
+    if (document.getElementById('manual-scholarship-select')) {
+        document.getElementById('manual-scholarship-select').addEventListener('change', () => {
+            updateManualAddFormFields();
         });
     }
 
@@ -1596,31 +1788,36 @@
             const btn = document.getElementById('btn-submit-manual');
             const sid = document.getElementById('manual-student-id').value.trim();
             const schId = document.getElementById('manual-scholarship-select').value;
-            const outsideName = document.getElementById('manual-outside-name').value.trim();
-            let category = document.getElementById('manual-category').value.trim();
-            const duration = document.getElementById('manual-duration').value;
+            const outsideName = document.getElementById('manual-outside-name')?.value.trim();
+            let category = document.getElementById('manual-category')?.value.trim();
+            const duration = document.getElementById('manual-duration')?.value || 'Not Set';
+            const manualBatch = document.getElementById('manual-batch')?.value.trim() || null;
 
             if (!schId && !outsideName) {
-                Swal.fire("Required", "Please select an Internal Program OR provide an Outside Assistance Name.", "warning");
+                showToast("warning", "Required Field", "Please select an Internal Program OR provide an Outside Assistance Name.");
                 return;
             }
 
-            if (!category) {
-                Swal.fire("Required", "Please select an Educational Assistance Category to track policies accurately.", "warning");
-                return;
+            if (schId) {
+                const internalSch = schoolScholarships.find(s => s.id === schId);
+                if (internalSch && internalSch.category) {
+                    category = internalSch.category;
+                } else if (!category) {
+                    category = 'Institution-Funded Educational Assistance';
+                }
+            } else {
+                if (!category) {
+                    showToast("warning", "Required Field", "Please select an Educational Assistance Category to track policies accurately.");
+                    return;
+                }
             }
 
             const masterMatch = masterlistMap[sid] || masterlistMap[sid.toLowerCase()] || masterlistMap[sid.toLowerCase().replace(/[\s\-_]/g, '')];
             const isEnrolledInSchool = masterMatch && (!currentAdminSchoolId || !masterMatch.school_id || String(masterMatch.school_id) === String(currentAdminSchoolId));
             if (!isEnrolledInSchool) {
                 const schoolMsg = currentAdminSchool ? ` for ${currentAdminSchool}` : '';
-                Swal.fire("Not Enrolled", `This Student ID is not found in the official Enrolled Masterlist${schoolMsg}.`, "error");
+                showToast("error", "Not Enrolled", `This Student ID is not found in the official Enrolled Masterlist${schoolMsg}.`, 5000);
                 return;
-            }
-
-            if (schId) {
-                const internalSch = schoolScholarships.find(s => s.id === schId);
-                if (internalSch && internalSch.category) { category = internalSch.category; }
             }
 
             btn.innerHTML = 'Adding...';
@@ -1712,9 +1909,8 @@
                     }
                 }
 
-                const manualSy = document.getElementById('manual-sy')?.value.trim() || null;
-                const manualSem = document.getElementById('manual-semester')?.value.trim() || null;
-                const manualBatch = document.getElementById('manual-batch')?.value.trim() || null;
+                const manualSy = schId ? null : (document.getElementById('manual-sy')?.value.trim() || null);
+                const manualSem = schId ? null : (document.getElementById('manual-semester')?.value.trim() || null);
 
                 const payload = {
                     student_id: profile.id,
@@ -1767,6 +1963,11 @@
 
                     // 2. Dispatch Email / Push notification via backend
                     try {
+                        let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+                        let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+                            ? window.location.origin + basePath + 'login.html'
+                            : 'https://grantee-drab.vercel.app/frontend/login.html';
+
                         fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1775,6 +1976,16 @@
                                 eventType: 'APPLICATION_APPROVED',
                                 subject: `Active Beneficiary: ${progName}`,
                                 message: `You have been officially enrolled as an Active Beneficiary for "${progName}".`,
+                                htmlContent: `
+                                    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
+                                        <h2 style="color: #6B7F4E; margin-top: 0;">Active Beneficiary Confirmation</h2>
+                                        <p>Congratulations! You have been officially enrolled as an Active Beneficiary for <strong>${progName}</strong>.</p>
+                                        <p>Log in to your student dashboard to review your status and benefit schedules.</p>
+                                        <div style="text-align: center; margin-top: 24px;">
+                                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
+                                        </div>
+                                    </div>
+                                `,
                                 resourceId: insertedAppId
                             })
                         }).catch(e => console.error("Notification dispatch failed:", e));
@@ -1796,9 +2007,9 @@
                 }
 
                 if (alreadyActiveRecord) {
-                    Swal.fire("Record Updated", `Beneficiary record for ${escapeHtml(displayName)} has been successfully updated.`, "success");
+                    showToast("success", "Record Updated", `Beneficiary record for ${escapeHtml(displayName)} has been successfully updated.`);
                 } else {
-                    Swal.fire("Success", "Beneficiary manually added successfully.", "success");
+                    showToast("success", "Success", "Beneficiary manually added successfully.");
                 }
                 document.getElementById('form-manual-add').reset();
                 document.getElementById('manual-add-modal').style.display = 'none';
@@ -1809,42 +2020,12 @@
                 const isPolicyError = /^(Error: )?(PolicyLimitReached:|CategoryLimitReached:|CombinationRuleViolation:)/i.test(err.message || '');
                 if (isPolicyError) {
                     const cleanError = (err.message || '').replace(/^(Error: )?(PolicyLimitReached:|CategoryLimitReached:|CombinationRuleViolation:)\s*/i, '');
-                    Swal.fire("Policy Blocked", cleanError, "error");
+                    showToast("error", "Policy Blocked", cleanError, 6000);
                 } else {
-                    Swal.fire("Error", err.message || "Failed to add beneficiary.", "error");
+                    showToast("error", "Error", err.message || "Failed to add beneficiary.");
                 }
             } finally { 
                 btn.innerHTML = 'Add Beneficiary'; btn.disabled = false; 
-            }
-        });
-    }
-
-    if (document.getElementById('manual-scholarship-select')) {
-        document.getElementById('manual-scholarship-select').addEventListener('change', (e) => {
-            const outsideInput = document.getElementById('manual-outside-name');
-            const categorySelect = document.getElementById('manual-category');
-            if (e.target.value) {
-                outsideInput.value = '';
-                outsideInput.disabled = true;
-                
-                const matchedSch = schoolScholarships.find(s => s.id === e.target.value);
-                if (matchedSch) {
-                    if (matchedSch.category) {
-                        const existingOption = Array.from(categorySelect.options).find(opt => opt.value === matchedSch.category);
-                        if (existingOption) { categorySelect.value = matchedSch.category; } 
-                        else { categorySelect.add(new Option(matchedSch.category, matchedSch.category, true, true)); }
-                        categorySelect.disabled = true;
-                    }
-                    if (document.getElementById('manual-sy')) document.getElementById('manual-sy').value = matchedSch.school_year || '';
-                    if (document.getElementById('manual-semester')) document.getElementById('manual-semester').value = matchedSch.semester || '';
-                    if (document.getElementById('manual-batch')) document.getElementById('manual-batch').value = matchedSch.batch || '';
-                }
-            } else {
-                outsideInput.disabled = false;
-                categorySelect.disabled = false;
-                if (document.getElementById('manual-sy')) document.getElementById('manual-sy').value = '';
-                if (document.getElementById('manual-semester')) document.getElementById('manual-semester').value = '';
-                if (document.getElementById('manual-batch')) document.getElementById('manual-batch').value = '';
             }
         });
     }
@@ -1855,7 +2036,7 @@
     window.openEditDetailsModal = (appId) => {
         const app = activeBeneficiaries.find(a => a.id === appId);
         if (!app) {
-            Swal.fire("Error", "Beneficiary record not found.", "error");
+            showToast("error", "Beneficiary Not Found", "Beneficiary record not found.");
             return;
         }
 
@@ -1952,7 +2133,7 @@
 
             const targetApp = activeBeneficiaries.find(a => a.id === appId);
             if (!targetApp) {
-                Swal.fire("Error", "Beneficiary record not found.", "error");
+                showToast("error", "Beneficiary Not Found", "Beneficiary record not found.");
                 return;
             }
 
@@ -1966,7 +2147,7 @@
                 if (isOutside) {
                     const newOutsideName = document.getElementById('edit-outside-name')?.value.trim();
                     if (!newOutsideName) {
-                        Swal.fire("Required", "Please provide the Outside Assistance Name.", "warning");
+                        showToast("warning", "Required Field", "Please provide the Outside Assistance Name.");
                         if (btn) { btn.innerHTML = 'Save Assistance Details'; btn.disabled = false; }
                         return;
                     }
@@ -2020,13 +2201,13 @@
                     console.error("Audit log failed:", auditErr);
                 }
 
-                Swal.fire("Saved!", "Assistance details have been successfully updated.", "success");
+                showToast("success", "Saved!", "Assistance details have been successfully updated.");
                 document.getElementById('edit-details-modal').style.display = 'none';
                 fetchActiveBeneficiaries();
 
             } catch (err) {
                 console.error("Error updating assistance details:", err);
-                Swal.fire("Error", err.message || "Failed to update assistance details.", "error");
+                showToast("error", "Update Failed", err.message || "Failed to update assistance details.");
             } finally {
                 if (btn) { btn.innerHTML = 'Save Assistance Details'; btn.disabled = false; }
             }
@@ -2063,7 +2244,7 @@
                 if (btnExportToggle) btnExportToggle.classList.remove('active');
             }
             if (currentFilteredBeneficiaries.length === 0) {
-                Swal.fire('Empty Data', 'There are no active beneficiaries matching the current filters to export.', 'info');
+                showToast('info', 'Empty Data', 'There are no active beneficiaries matching the current filters to export.');
                 return;
             }
             exportToExcel();
@@ -2077,7 +2258,7 @@
                 if (btnExportToggle) btnExportToggle.classList.remove('active');
             }
             if (currentFilteredBeneficiaries.length === 0) {
-                Swal.fire('Empty Data', 'There are no active beneficiaries matching the current filters to export.', 'info');
+                showToast('info', 'Empty Data', 'There are no active beneficiaries matching the current filters to export.');
                 return;
             }
             exportToPDF();
@@ -2138,19 +2319,19 @@
                 XLSX.writeFile(workbook, `Active_Beneficiaries_Export_${today}.xlsx`);
                 
                 // Explicitly close the loading modal before showing success
-                Swal.close();
-                Swal.fire('Exported!', 'Your Excel file has been downloaded.', 'success');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('success', 'Exported!', 'Your Excel file has been downloaded.');
             } catch (error) {
                 console.error("Excel Export Error: ", error);
-                Swal.close();
-                Swal.fire('Export Failed', 'There was an error generating the Excel file. Please check the console.', 'error');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('error', 'Export Failed', 'There was an error generating the Excel file. Please check the console.');
             }
         }, 500);
     }
 
     function exportToPDF() {
         if (!window.jspdf || !window.jspdf.jsPDF) {
-            Swal.fire('Library Missing', 'jsPDF library is not loaded. Please add the CDN links to your HTML.', 'error');
+            showToast('error', 'Library Missing', 'jsPDF library is not loaded. Please add the CDN links to your HTML.');
             return;
         }
 
@@ -2188,12 +2369,12 @@
                 doc.save(`Active_Beneficiaries_Export_${fileNameDate}.pdf`);
                 
                 // Explicitly close the loading modal before showing success
-                Swal.close();
-                Swal.fire('Exported!', 'Your PDF file has been downloaded.', 'success');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('success', 'Exported!', 'Your PDF file has been downloaded.');
             } catch (error) {
                 console.error("PDF Export Error: ", error);
-                Swal.close();
-                Swal.fire('Export Failed', 'There was an error generating the PDF file. Please check the console.', 'error');
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
+                showToast('error', 'Export Failed', 'There was an error generating the PDF file. Please check the console.');
             }
         }, 500);
     }

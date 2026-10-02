@@ -216,7 +216,7 @@
                                     style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
                                 Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"><i
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger" onclick="openLogoutModal(event)"><i
                                     data-lucide="log-out"
                                     style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
                                 Logout</a>
@@ -555,19 +555,27 @@
                         Internal Program (Leave blank for outside)
                     </label>
                     <select id="manual-scholarship-select" class="form-input">
-                        <option value="">-- No Internal Program --</option>
+                        <option value="">-- No Internal Program (Outside Assistance) --</option>
                     </select>
                 </div>
 
-                <div style="margin-bottom: 14px;">
+                <!-- Internal Assistance Informational Note (Shown when Internal Program is selected) -->
+                <div id="manual-internal-info-container" style="display: none; background: rgba(76, 106, 115, 0.08); border: 1px solid rgba(76, 106, 115, 0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 12px; color: var(--river-blue, #4C6A73); line-height: 1.45;">
+                    <div style="font-weight: 600; display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
+                        <i data-lucide="info" style="width: 14px; height: 14px;"></i> Internal Assistance Policy
+                    </div>
+                    <span>School Year, Semester, and Category are automatically set from the educational assistance program and locked from editing. You can input the <strong>Batch</strong> and <strong>Assistance Duration</strong> for this student.</span>
+                </div>
+
+                <div id="manual-outside-name-container" style="margin-bottom: 14px;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
-                        Outside Assistance Name
+                        Outside Assistance Name <span style="color: var(--danger-color);">*</span>
                     </label>
                     <input type="text" id="manual-outside-name" class="form-input" placeholder="e.g. CHED, DOST">
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                <div id="manual-term-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
                     <div>
                         <label
                             style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
@@ -589,7 +597,7 @@
                     </div>
                 </div>
 
-                <div style="margin-bottom: 14px;">
+                <div id="manual-batch-container" style="margin-bottom: 14px;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Batch
@@ -597,7 +605,7 @@
                     <input type="text" id="manual-batch" class="form-input" placeholder="e.g. Batch 1">
                 </div>
 
-                <div style="margin-bottom: 14px;">
+                <div id="manual-category-container" style="margin-bottom: 14px;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Educational Assistance Category <span style="color: var(--danger-color);">*</span>
@@ -612,7 +620,7 @@
                     </select>
                 </div>
 
-                <div style="margin-bottom: 22px;">
+                <div id="manual-duration-container" style="margin-bottom: 22px;">
                     <label
                         style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; color: var(--text-main);">
                         Assistance Duration
@@ -753,7 +761,7 @@
     </div>
 
     <!-- LOGOUT MODAL -->
-    <div id="logout-modal" class="global-modal-overlay" style="display: none;">
+    <div id="logout-modal" class="global-modal-overlay" style="display: none;" onclick="if(event.target===this)closeLogoutModal(event)">
         <div class="global-modal-content">
             <div class="global-modal-icon">
                 <i data-lucide="log-out" style="width: 36px; height: 36px; color: var(--danger-color);"></i>
@@ -761,8 +769,8 @@
             <h3>Logout</h3>
             <p>Are you sure you want to log out of your account?</p>
             <div class="global-modal-actions">
-                <button id="modal-cancel" class="global-btn-cancel">Cancel</button>
-                <button id="modal-confirm" class="global-btn-confirm">
+                <button id="modal-cancel" class="global-btn-cancel" onclick="closeLogoutModal(event)">Cancel</button>
+                <button id="modal-confirm" class="global-btn-confirm" onclick="confirmGlobalLogout(event)">
                     <i data-lucide="power"
                         style="width: 15px; height: 15px; margin-right: 6px; display: inline-block; vertical-align: middle;"></i>
                     Logout

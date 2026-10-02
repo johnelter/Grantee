@@ -2889,6 +2889,52 @@ body.dark-theme .filter-select {
     visibility: visible !important;
 }
 
+/* Explicit Logout Modal Override to ensure full visibility on admin-scholarships */
+#logout-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 99999 !important;
+}
+
+#logout-modal.show,
+#logout-modal.active,
+#logout-modal:not([style*="display: none"]) {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#logout-modal[style*="display: none"] {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#logout-modal .global-modal-content {
+    background: var(--modal-bg, #ffffff) !important;
+    padding: 32px 28px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.08) !important;
+    width: 90% !important;
+    max-width: 380px !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important;
+    animation: globalModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transform: none !important;
+}
+
 /* Base Modal Dialog Window (Solid, Cohesive Card) */
 .applicants-modal-dialog,
 .deadline-modal-dialog {

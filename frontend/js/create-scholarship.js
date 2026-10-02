@@ -274,7 +274,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3C. TOUCH-FRIENDLY ELIGIBILITY CHECKBOX LISTS
     // ==========================================
     const availableYearLevels = [
-        "Incoming 1st year",
         "1st year",
         "2nd year",
         "3rd year",

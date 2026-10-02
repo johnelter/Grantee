@@ -1361,6 +1361,11 @@
 
             const userIds = targetUsers.map(u => u.id);
 
+            let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+                ? window.location.origin + basePath + 'login.html'
+                : 'https://grantee-drab.vercel.app/frontend/login.html';
+
             const payload = {
                 userIds: userIds,
                 eventType: 'announcements',
@@ -1368,12 +1373,15 @@
                 message: `A new announcement has been published: ${title}`,
                 htmlContent: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
-                        <h2 style="color: #10b981;">New Announcement</h2>
+                        <h2 style="color: #10b981; margin-top: 0;">New Announcement</h2>
                         <p>A new announcement has been published on the Grantee System:</p>
-                        <blockquote style="border-left: 4px solid #10b981; padding-left: 10px; color: #475569;">
+                        <blockquote style="border-left: 4px solid #10b981; padding-left: 10px; color: #475569; margin: 16px 0;">
                             <strong>${title}</strong>
                         </blockquote>
                         <p>Log in to your student dashboard to read the full details.</p>
+                        <div style="text-align: center; margin-top: 24px;">
+                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
+                        </div>
                     </div>
                 `
             };

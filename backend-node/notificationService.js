@@ -29,11 +29,13 @@ function generateEmailTemplate(subject, bodyContent, schoolName = null, actionLi
     const headerTitle = schoolName ? schoolName : 'Grantee';
     const dateStr = new Date().toLocaleString();
     const adminGreeting = adminName ? `<p style="margin-top: 0;">Hello ${adminName},</p>` : '';
-    const buttonHtml = actionLink && actionLink !== '#' ? `
+    const baseUrl = (process.env.FRONTEND_URL || 'https://grantee-drab.vercel.app/frontend').replace(/\/+$/, '');
+    const loginUrl = `${baseUrl}/login.html`;
+    const buttonHtml = `
         <div style="text-align: center; margin-top: 24px;">
-            <a href="http://localhost:3000${actionLink}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">View Details</a>
+            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
         </div>
-    ` : '';
+    `;
 
     return `
         <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -121,7 +123,8 @@ function getNotificationMetadata(eventType, resourceId) {
         // --- LOW PRIORITY (Green) ---
         case 'ANNOUNCEMENT_PUBLISHED':
         case 'SCHEDULED_ANNOUNCEMENT_PUBLISHED':
-            type = 'announcement'; priority = 'low'; actionLink = `admin-announcements.html${idParam}`; break;
+        case 'announcements':
+            type = 'announcement'; priority = 'low'; actionLink = `student-announcements.html${idParam}`; break;
         case 'DEADLINE_REMINDER':
             type = 'deadline'; priority = 'low'; actionLink = `admin-scholarships.html${idParam}`; break;
         case 'BENEFICIARY_UPDATE':
@@ -135,7 +138,7 @@ function getNotificationMetadata(eventType, resourceId) {
             type = 'application'; priority = 'high'; actionLink = resourceId ? `student-applications.html?app_id=${resourceId}` : `student-applications.html`; break;
 
         default:
-            type = 'system'; priority = 'low'; actionLink = '#';
+            type = 'system'; priority = 'low'; actionLink = 'login.html';
     }
 
     return { type, priority, actionLink };

@@ -1031,7 +1031,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { error } = await window.supabaseClient.from('applications').insert([payload]);
             if (error) throw error;
 
-            // Existing dispatch notification for the student
+            let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            let loginUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+                ? window.location.origin + basePath + 'login.html'
+                : 'https://grantee-drab.vercel.app/frontend/login.html';
+
             const notifPayload = {
                 userIds: [studentId],
                 eventType: 'applications',
@@ -1039,9 +1043,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 message: 'Your educational assistance application has been successfully submitted and is under review.',
                 htmlContent: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
-                        <h2 style="color: #1F3D2E;">Application Submitted</h2>
+                        <h2 style="color: #1F3D2E; margin-top: 0;">Application Submitted</h2>
                         <p>Your application has been successfully submitted and is now under review by the administrators.</p>
                         <p>We will notify you once a decision has been made.</p>
+                        <div style="text-align: center; margin-top: 24px;">
+                            <a href="${loginUrl}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Log In</a>
+                        </div>
                     </div>
                 `
             };

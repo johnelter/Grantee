@@ -328,13 +328,21 @@ function initGlobalDelegatedHandlers() {
             if (profileMenu) profileMenu.classList.remove('show');
             if (modal) {
                 modal.style.display = 'flex';
+                modal.classList.add('show', 'active');
+                modal.style.opacity = '1';
+                modal.style.visibility = 'visible';
             }
             return;
         }
 
         if (cancelBtn) {
             e.preventDefault();
-            if (modal) modal.style.display = 'none';
+            if (modal) {
+                modal.classList.remove('show', 'active');
+                modal.style.display = 'none';
+                modal.style.opacity = '';
+                modal.style.visibility = '';
+            }
             return;
         }
 

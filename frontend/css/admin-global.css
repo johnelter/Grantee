@@ -724,7 +724,7 @@ button {
     height: 18px !important;
     min-width: 18px !important;
     min-height: 18px !important;
-    display: flex !important;
+    display: flex;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 50% !important;
@@ -733,6 +733,21 @@ button {
     line-height: 1 !important;
     padding: 0 !important;
     box-sizing: border-box;
+}
+
+.notification-bell .badge:empty,
+#nav-notification-badge:empty,
+.notification-bell .badge.is-hidden,
+#nav-notification-badge.is-hidden,
+.notification-bell .badge[hidden],
+#nav-notification-badge[hidden],
+.notification-bell .badge[style*="display: none"],
+#nav-notification-badge[style*="display: none"],
+.notification-bell .badge[data-count="0"],
+#nav-notification-badge[data-count="0"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
 }
 
 /* Notification Dropdown Menu */

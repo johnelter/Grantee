@@ -12,7 +12,7 @@
         container.innerHTML = `
             <button type="button" class="notification-bell" id="notification-toggle" title="Notifications" aria-label="Notifications">
                 <i data-lucide="bell">${bellSvg}</i>
-                <span class="badge" id="nav-notification-badge" style="display: none;"></span>
+                <span class="badge is-hidden" id="nav-notification-badge" hidden style="display: none !important;"></span>
             </button>
             
             <div class="profile-dropdown-menu notification-menu" id="notification-menu" style="display: none;">
@@ -40,11 +40,34 @@
             lucide.createIcons();
         }
 
-        const notifToggle = document.getElementById('notification-toggle');
-        const notifMenu = document.getElementById('notification-menu');
-        const badge = document.getElementById('nav-notification-badge');
         const listContainer = document.getElementById('notification-list');
         const markAllBtn = document.getElementById('mark-all-read-btn');
+
+        const updateBadge = (count) => {
+            const badgeEl = document.getElementById('nav-notification-badge');
+            if (!badgeEl) return;
+            const num = Number(count) || 0;
+            if (num > 0) {
+                badgeEl.textContent = num > 99 ? '99+' : num.toString();
+                badgeEl.setAttribute('data-count', num.toString());
+                badgeEl.removeAttribute('hidden');
+                badgeEl.classList.remove('is-hidden');
+                badgeEl.style.setProperty('display', 'flex', 'important');
+                badgeEl.style.setProperty('visibility', 'visible', 'important');
+                badgeEl.style.setProperty('opacity', '1', 'important');
+            } else {
+                badgeEl.textContent = '';
+                badgeEl.setAttribute('data-count', '0');
+                badgeEl.setAttribute('hidden', '');
+                badgeEl.classList.add('is-hidden');
+                badgeEl.style.setProperty('display', 'none', 'important');
+                badgeEl.style.setProperty('visibility', 'hidden', 'important');
+                badgeEl.style.setProperty('opacity', '0', 'important');
+            }
+        };
+
+        // Ensure badge is hidden by default
+        updateBadge(0);
 
         if (!window.supabaseClient) return;
 
@@ -84,41 +107,16 @@
             }
         };
 
-        const loadNotifications = async () => {
-            try {
-                const { data, error } = await window.supabaseClient
-                    .from('notifications')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .order('created_at', { ascending: false })
-                    .limit(30);
-
-                if (error) {
-                    console.error('Error fetching notifications:', error);
-                    return;
-                }
-                renderNotifications(data || []);
-            } catch (err) {
-                console.warn('Load notifications failed:', err);
-            }
-        };
-
         const renderNotifications = (notifications) => {
-            const unreadCount = notifications.filter(n => n.is_read !== true).length;
+            const list = Array.isArray(notifications) ? notifications : [];
+            const unreadItems = list.filter(n => n.is_read !== true && n.is_read !== 'true');
+            const unreadCount = unreadItems.length;
 
-            if (badge) {
-                if (unreadCount > 0) {
-                    badge.innerText = unreadCount > 99 ? '99+' : unreadCount;
-                    badge.style.display = 'flex';
-                } else {
-                    badge.innerText = '';
-                    badge.style.display = 'none';
-                }
-            }
+            updateBadge(unreadCount);
 
             if (!listContainer) return;
 
-            if (notifications.length === 0) {
+            if (list.length === 0) {
                 listContainer.innerHTML = `
                     <div class="notif-empty">
                         <i data-lucide="inbox" style="width: 28px; height: 28px; color: #cbd5e1; stroke-width: 1.5;"></i>
@@ -130,15 +128,15 @@
                 return;
             }
 
-            listContainer.innerHTML = notifications.map(notif => {
+            listContainer.innerHTML = list.map(notif => {
                 const timeString = notif.created_at ? new Date(notif.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Just now';
-                const isRead = notif.is_read === true;
+                const isRead = notif.is_read === true || notif.is_read === 'true';
                 const style = getNotificationStyle(notif.type);
                 const wrapperTag = notif.action_link ? 'a' : 'div';
                 const hrefAttr = notif.action_link ? `href="${notif.action_link}"` : '';
 
                 return `
-                    <${wrapperTag} ${hrefAttr} class="notif-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${notif.id}">
+                    <${wrapperTag} ${hrefAttr} class="notif-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${notif.id}" data-read="${isRead}">
                         <div class="notif-icon-box" style="background-color: ${style.bg}; color: ${style.color};">
                             <i data-lucide="${style.icon}" style="width: 16px; height: 16px;"></i>
                         </div>
@@ -159,31 +157,77 @@
                 lucide.createIcons();
             }
 
-            // Click listener on notification links
-            listContainer.querySelectorAll('a[data-id]').forEach(link => {
-                link.addEventListener('click', async (e) => {
-                    const notifId = e.currentTarget.getAttribute('data-id');
-                    try {
-                        await window.supabaseClient.from('notifications').update({ is_read: true }).eq('id', notifId);
-                    } catch (err) { }
+            // Click listener on notification items
+            listContainer.querySelectorAll('.notif-item').forEach(item => {
+                item.addEventListener('click', async () => {
+                    const notifId = item.getAttribute('data-id');
+                    const isUnread = item.classList.contains('is-unread') || item.getAttribute('data-read') === 'false';
+
+                    if (isUnread) {
+                        item.classList.remove('is-unread');
+                        item.classList.add('is-read');
+                        item.setAttribute('data-read', 'true');
+                        const dot = item.querySelector('.notif-unread-dot');
+                        if (dot) dot.remove();
+
+                        const currentUnread = listContainer.querySelectorAll('.notif-item.is-unread').length;
+                        updateBadge(currentUnread);
+
+                        if (notifId && window.supabaseClient) {
+                            try {
+                                await window.supabaseClient
+                                    .from('notifications')
+                                    .update({ is_read: true })
+                                    .eq('id', notifId);
+                            } catch (err) {
+                                console.warn('Failed to mark notification as read:', err);
+                            }
+                        }
+                    }
                 });
             });
+        };
+
+        const loadNotifications = async () => {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(30);
+
+                if (error) {
+                    console.error('Error fetching notifications:', error);
+                    updateBadge(0);
+                    return;
+                }
+                renderNotifications(data || []);
+            } catch (err) {
+                console.warn('Load notifications failed:', err);
+                updateBadge(0);
+            }
         };
 
         // Mark all as read
         if (markAllBtn) {
             markAllBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                if (badge) {
-                    badge.innerText = '';
-                    badge.style.display = 'none';
+
+                // Instantly remove badge
+                updateBadge(0);
+
+                // Update UI state
+                if (listContainer) {
+                    listContainer.querySelectorAll('.notif-item').forEach(el => {
+                        el.classList.remove('is-unread');
+                        el.classList.add('is-read');
+                        el.setAttribute('data-read', 'true');
+                        const dot = el.querySelector('.notif-unread-dot');
+                        if (dot) dot.remove();
+                    });
                 }
-                listContainer.querySelectorAll('.notif-item').forEach(el => {
-                    el.classList.remove('is-unread');
-                    el.classList.add('is-read');
-                    const dot = el.querySelector('.notif-unread-dot');
-                    if (dot) dot.remove();
-                });
 
                 try {
                     await window.supabaseClient
@@ -199,11 +243,11 @@
 
         await loadNotifications();
 
-        // Realtime Subscription (ensure single channel)
+        // Realtime Subscription (ensure single channel per session)
         if (!notifChannel) {
             try {
                 notifChannel = window.supabaseClient
-                    .channel('admin-notifications-realtime')
+                    .channel(`admin-notifications-${userId}`)
                     .on(
                         'postgres_changes',
                         { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
@@ -217,6 +261,9 @@
             }
         }
     };
+
+    // Expose reload function for external triggers if needed
+    window.loadAdminNotifications = window.initAdminNotifications;
 
     // Auto-run on DOM ready and immediately
     if (document.readyState === 'loading') {

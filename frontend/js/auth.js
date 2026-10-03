@@ -513,10 +513,11 @@ if (adminLoginForm) {
 // --- 3. GOOGLE OAUTH SIGN-IN LOGIC ---
 const handleGoogleSignIn = async () => {
     try {
+        let basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin + '/frontend/login.html'
+                redirectTo: window.location.origin + basePath + 'login.html'
             }
         });
         if (error) throw error;

@@ -29,7 +29,8 @@ function generateEmailTemplate(subject, bodyContent, schoolName = null, actionLi
     const headerTitle = schoolName ? schoolName : 'Grantee';
     const dateStr = new Date().toLocaleString();
     const adminGreeting = adminName ? `<p style="margin-top: 0;">Hello ${adminName},</p>` : '';
-    const baseUrl = (process.env.FRONTEND_URL || 'https://grantee-drab.vercel.app/frontend').replace(/\/+$/, '');
+    const rawBaseUrl = process.env.FRONTEND_URL || 'https://grantee-drab.vercel.app';
+    const baseUrl = rawBaseUrl.replace(/\/+$/, '').replace(/\/frontend$/, '');
     const loginUrl = `${baseUrl}/login.html`;
     const buttonHtml = `
         <div style="text-align: center; margin-top: 24px;">

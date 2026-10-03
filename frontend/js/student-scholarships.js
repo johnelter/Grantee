@@ -66,7 +66,238 @@ document.addEventListener('DOMContentLoaded', async () => {
         gridContainer.innerHTML = skeletonHTML;
     }
 
-    // --- 3. INITIALIZATION SEQUENCE ---
+    // --- 2.5 UI TOAST NOTIFICATION SYSTEM ---
+    function showUIToast(type = 'success', title = '', message = '', duration = 4000) {
+        let container = document.getElementById('custom-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'custom-toast-container';
+            document.body.appendChild(container);
+        }
+
+        type = (type || 'success').toLowerCase();
+        if (!['success', 'error', 'info', 'warning'].includes(type)) {
+            type = 'info';
+        }
+
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            if (!title) title = 'Success';
+        } else if (type === 'error') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            if (!title) title = 'Error';
+        } else if (type === 'info') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            if (!title) title = 'Info';
+        } else if (type === 'warning') {
+            iconSvg = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            if (!title) title = 'Warning';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `custom-ui-toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-left-bar"></div>
+            <div class="toast-icon-wrapper">
+                ${iconSvg}
+            </div>
+            <div class="toast-details">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message || ''}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('toast-show');
+            });
+        });
+
+        let isDismissed = false;
+        const dismissToast = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 320);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast();
+            });
+        }
+
+        const autoDismissTimer = setTimeout(dismissToast, duration || 4000);
+
+        toast.addEventListener('mouseenter', () => clearTimeout(autoDismissTimer));
+        toast.addEventListener('mouseleave', () => {
+            if (!isDismissed) {
+                setTimeout(dismissToast, 2000);
+            }
+        });
+    }
+
+    // --- 3. INITIALIZATION & LIVE REALTIME SYNC SEQUENCE ---
+    let realtimeScholarshipsChannel = null;
+    let isLiveRefreshing = false;
+    let refreshDebounceTimer = null;
+
+    async function refreshPageData(toastInfo = null) {
+        if (isLiveRefreshing) return;
+        isLiveRefreshing = true;
+
+        try {
+            await loadProfileAndMasterlist();
+            await Promise.all([
+                loadPolicies(),
+                loadStudentApplications(),
+                loadScholarships()
+            ]);
+            applyFilters();
+
+            if (toastInfo && typeof showUIToast === 'function') {
+                showUIToast(toastInfo.type || 'info', toastInfo.title || 'Data Updated', toastInfo.message || 'Page data has been refreshed.');
+            }
+        } catch (err) {
+            console.warn("Live data refresh error:", err);
+        } finally {
+            isLiveRefreshing = false;
+        }
+    }
+
+    function triggerDebouncedRefresh(toastInfo = null) {
+        if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
+        refreshDebounceTimer = setTimeout(() => {
+            refreshPageData(toastInfo);
+        }, 300);
+    }
+
+    function setupRealtimeSubscriptions() {
+        if (!window.supabaseClient) return;
+
+        if (realtimeScholarshipsChannel) {
+            try {
+                window.supabaseClient.removeChannel(realtimeScholarshipsChannel);
+            } catch (e) { }
+            realtimeScholarshipsChannel = null;
+        }
+
+        realtimeScholarshipsChannel = window.supabaseClient
+            .channel(`student-scholarships-live-${studentId}-${Date.now()}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'scholarships'
+                },
+                (payload) => {
+                    let msg = 'Educational assistance programs have been updated.';
+                    if (payload.eventType === 'INSERT') {
+                        msg = payload.new?.title ? `New assistance program published: "${payload.new.title}".` : 'A new educational assistance program is now available.';
+                    } else if (payload.eventType === 'DELETE') {
+                        msg = 'An assistance program was removed.';
+                    } else if (payload.eventType === 'UPDATE') {
+                        msg = payload.new?.title ? `Program details updated for "${payload.new.title}".` : 'Program details have been updated.';
+                    }
+                    triggerDebouncedRefresh({ type: 'info', title: 'Programs Updated', message: msg });
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'school_policies'
+                },
+                (payload) => {
+                    triggerDebouncedRefresh({ type: 'info', title: 'Policies Updated', message: 'Assistance policy limits and rules have been updated.' });
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'applications',
+                    filter: `student_id=eq.${studentId}`
+                },
+                (payload) => {
+                    let msg = 'Your application status has been updated.';
+                    if (payload.eventType === 'UPDATE' && payload.new?.status) {
+                        msg = `Your application status changed to: ${payload.new.status}.`;
+                    }
+                    triggerDebouncedRefresh({ type: 'info', title: 'Application Updated', message: msg });
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${studentId}`
+                },
+                (payload) => {
+                    triggerDebouncedRefresh({ type: 'info', title: 'Profile Updated', message: 'Your profile information has been synchronized.' });
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'enrolled_masterlist'
+                },
+                (payload) => {
+                    if (profile?.id_number && (payload.new?.id_number === profile.id_number || payload.old?.id_number === profile.id_number)) {
+                        triggerDebouncedRefresh({ type: 'info', title: 'Academic Record Updated', message: 'Your enrolled student record has been updated.' });
+                    }
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('Realtime subscriptions active for student-scholarships.');
+                }
+            });
+    }
+
+    // Window focus, visibility and cross-tab storage change listeners
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            triggerDebouncedRefresh();
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        triggerDebouncedRefresh();
+    });
+
+    window.addEventListener('storage', (e) => {
+        if (e.key && (e.key.includes('profile') || e.key.includes('student') || e.key.includes('scholarship') || e.key.includes('application'))) {
+            triggerDebouncedRefresh();
+        }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (realtimeScholarshipsChannel && window.supabaseClient) {
+            try {
+                window.supabaseClient.removeChannel(realtimeScholarshipsChannel);
+            } catch (e) { }
+        }
+    });
+
     async function init() {
         try {
             renderScholarshipsSkeleton();
@@ -80,6 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ]);
 
             applyFilters();
+            setupRealtimeSubscriptions();
         } catch (err) {
             console.error("Initialization error:", err);
         } finally {
@@ -484,7 +716,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     class: 'btn-disabled',
                     action: 'restricted',
                     title: 'Application Not Allowed',
-                    msg: `Application not allowed because you have a pending application for <b>${pendingTitle}</b>.<br><br>This educational assistance program requires applicants to have no other pending or active scholarship applications.`
+                    msg: `Application not allowed because you have a pending application for <b>${pendingTitle}</b>.<br><br>This educational assistance program requires applicants to have no other pending or active educational assistance applications.`
                 };
             }
             if (activeGrants.length > 0) {
@@ -495,7 +727,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     class: 'btn-disabled',
                     action: 'restricted',
                     title: 'Application Not Allowed',
-                    msg: `Application not allowed because you already hold an active grant (<b>${activeTitle}</b>).<br><br>This educational assistance requires holding no other scholarships.`
+                    msg: `Application not allowed because you already hold an active grant (<b>${activeTitle}</b>).<br><br>This educational assistance requires holding no other educational assistance.`
                 };
             }
         }
@@ -533,7 +765,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             class: 'btn-disabled',
                             action: 'restricted',
                             title: 'Category Limit Reached',
-                            msg: `You already have an active or pending scholarship under the <b>${targetCat}</b> category (<i>${existingTitle}</i>).<br><br>Institutional policy permits a maximum of ${maxLimit} program(s) in this category.`
+                            msg: `You already have an active or pending educational assistance under the <b>${targetCat}</b> category (<i>${existingTitle}</i>).<br><br>Institutional policy permits a maximum of ${maxLimit} program(s) in this category.`
                         };
                     }
                 }
@@ -547,7 +779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             class: 'btn-disabled',
                             action: 'restricted',
                             title: 'Category Limit Reached',
-                            msg: `You already have an active or pending scholarship under the <b>${targetCat}</b> category (<i>${existingTitle}</i>).<br><br>Institutional policy permits only 1 educational assistance in this category.`
+                            msg: `You already have an active or pending educational assistance under the <b>${targetCat}</b> category (<i>${existingTitle}</i>).<br><br>Institutional policy permits only 1 educational assistance in this category.`
                         };
                     }
                 }
@@ -884,12 +1116,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (catVal.toLowerCase() === 'all categories') catVal = '';
 
         filteredScholarships = allScholarships.filter(sch => {
-            const matchesSearch = !searchVal || 
+            const matchesSearch = !searchVal ||
                 (sch.title || '').toLowerCase().includes(searchVal) ||
                 (sch.description || '').toLowerCase().includes(searchVal);
 
-            const matchesCat = !catVal || 
-                normalizeCategory(sch.category) === normalizeCategory(catVal) || 
+            const matchesCat = !catVal ||
+                normalizeCategory(sch.category) === normalizeCategory(catVal) ||
                 sch.category === catVal;
 
             return matchesSearch && matchesCat;

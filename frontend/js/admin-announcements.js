@@ -1153,7 +1153,7 @@
             let modTools = `
                 <button onclick="pinComment('${c.id}', ${c.is_pinned})" class="btn-comment-mod" style="color:${c.is_pinned ? 'var(--text-muted)' : 'var(--nature-accent)'};" title="${c.is_pinned ? 'Unpin' : 'Pin'}"><i data-lucide="pin"></i> ${c.is_pinned ? 'Unpin' : 'Pin'}</button>
                 <button onclick="toggleHideComment('${c.id}', ${c.is_hidden || false})" class="btn-comment-mod" title="${c.is_hidden ? 'Unhide' : 'Hide'} Comment"><i data-lucide="${c.is_hidden ? 'eye' : 'eye-off'}"></i> ${c.is_hidden ? 'Unhide' : 'Hide'}</button>
-                ${isMe ? `<button onclick="editComment('${c.id}', '${c.content.replace(/'/g, "\\'")}')" class="btn-comment-mod" title="Edit"><i data-lucide="edit-3"></i> Edit</button>` : ''}
+                ${isMe ? `<button onclick="editComment('${c.id}', '${encodeURIComponent(c.content).replace(/'/g, '%27')}')" class="btn-comment-mod" title="Edit"><i data-lucide="edit-3"></i> Edit</button>` : ''}
                 <button onclick="deleteComment('${c.id}')" class="btn-comment-mod text-red" title="Delete Permanently"><i data-lucide="trash-2"></i> Delete</button>
             `;
 
@@ -1218,9 +1218,14 @@
         }
     };
 
-    window.editComment = async (id, oldText) => {
+    window.editComment = async (id, rawOrOldText) => {
+        let oldText = rawOrOldText || '';
+        if (typeof oldText === 'string' && oldText.includes('%')) {
+            try { oldText = decodeURIComponent(oldText); } catch (e) {}
+        }
+
         const { value: newText } = await Swal.fire({
-            title: 'Edit Reply',
+            title: 'Edit Comment',
             input: 'textarea',
             inputValue: oldText,
             showCancelButton: true,
@@ -1234,7 +1239,7 @@
             }
         });
 
-        if (newText !== undefined && newText !== null && newText.trim() !== '' && newText !== oldText) {
+        if (newText !== undefined && newText !== null && newText.trim() !== '' && newText.trim() !== oldText.trim()) {
             try {
                 await window.supabaseClient.from('announcement_comments').update({ content: newText.trim() }).eq('id', id);
                 const annId = currentSelectedAnnId;
@@ -1242,7 +1247,7 @@
                 window.loadComments(annId, ann ? ann.allow_comments !== false : true);
                 showUIToast('success', 'Comment Updated', 'Your reply has been edited.');
             } catch (err) {
-                showUIToast('error', 'Error', 'Failed to edit reply.');
+                showUIToast('error', 'Error', 'Failed to edit comment.');
             }
         }
     };

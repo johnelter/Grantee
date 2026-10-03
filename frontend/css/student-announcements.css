@@ -1066,16 +1066,16 @@ body {
 }
 
 #view-announcement-modal {
-  z-index: 999999 !important;
+  z-index: 1000000 !important;
 }
 
 #delete-comment-modal,
 #logout-modal {
-  z-index: 1000050 !important;
+  z-index: 2000050 !important;
 }
 
 #media-viewer-modal {
-  z-index: 1000060 !important;
+  z-index: 2000060 !important;
 }
 
 .global-modal-content,
@@ -1871,7 +1871,7 @@ body {
    SWEETALERT2 Z-INDEX & NATURE THEME POPUP
 ========================================================= */
 .swal2-container {
-  z-index: 100005 !important;
+  z-index: 2000050 !important;
 }
 
 .swal-nature-popup {
@@ -1964,6 +1964,30 @@ body {
   background: var(--card-bg-secondary, #1D3327) !important;
   border-color: var(--border-color, #243E2F) !important;
   color: var(--text-main, #EDF3EE) !important;
+}
+
+.swal2-validation-message {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  margin: 12px 0 0 0 !important;
+  padding: 10px 14px !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.swal2-validation-message:empty {
+  display: none !important;
+}
+
+[data-theme="dark"] .swal2-validation-message,
+body.dark-theme .swal2-validation-message {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
 }
 
 /* =========================================================
@@ -2531,7 +2555,7 @@ body.dark-theme .file-size {
 }
 
 #delete-comment-modal {
-  z-index: 100050 !important;
+  z-index: 2000050 !important;
 }
 
 [data-theme="dark"] .delete-modal-box,

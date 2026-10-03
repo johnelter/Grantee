@@ -16,14 +16,20 @@ async function runTests() {
         { text: "This is fucking stupid, you all are useless idiots", expected: false, desc: "English profanity & insults" },
         { text: "Shut up you dumbass", expected: false, desc: "English rude insult" },
         { text: "Worst school ever, fire these clown coordinators", expected: false, desc: "English hostile demeaning comment" },
+        
+        // 3. Villain, threatening, and angry character phrases (Should FAIL)
+        { text: "I will make you pay for what you did, you will suffer", expected: false, desc: "English angry/villain threat" },
+        { text: "Rot in hell, I will destroy you all", expected: false, desc: "English hostile villain phrase" },
+        { text: "Mamatay unta mo tanan, mga demonyo mo", expected: false, desc: "Cebuano death wish & demonic insult" },
+        { text: "Magabaan ra mo sa inyong gibuhat, salbahe kaayo mo", expected: false, desc: "Cebuano curse & aggressive complaint" },
 
-        // 3. Cebuano polite/normal student comments (Should PASS)
+        // 4. Cebuano polite/normal student comments (Should PASS)
         { text: "Maayong buntag po! Kanus-a po ang releasing sa allowance?", expected: true, desc: "Cebuano polite question" },
         { text: "Salamat kaayo sa update Ma'am!", expected: true, desc: "Cebuano gratitude" },
         { text: "Asa dapit mag pasa sa Certificate of Enrollment?", expected: true, desc: "Cebuano inquiry" },
         { text: "Unsaon pag apply kung 2nd year student?", expected: true, desc: "Cebuano inquiry" },
 
-        // 4. English polite/normal student comments (Should PASS)
+        // 5. English polite/normal student comments (Should PASS)
         { text: "Good morning! Are 3rd year engineering students eligible for this grant?", expected: true, desc: "English polite question" },
         { text: "Thank you for the announcement!", expected: true, desc: "English polite gratitude" }
     ];

@@ -22,9 +22,6 @@
                         <h4>Notifications</h4>
                     </div>
                     <div class="notif-header-actions">
-                        <button type="button" class="btn-clear-read" id="clear-read-btn" title="Clear read notifications">
-                            <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
-                        </button>
                         <button type="button" class="btn-mark-all" id="mark-all-read-btn">
                             Mark all as read
                         </button>
@@ -48,7 +45,6 @@
         const badge = document.getElementById('nav-notification-badge');
         const listContainer = document.getElementById('notification-list');
         const markAllBtn = document.getElementById('mark-all-read-btn');
-        const clearReadBtn = document.getElementById('clear-read-btn');
 
         if (!window.supabaseClient) return;
 
@@ -197,35 +193,6 @@
                         .neq('is_read', true);
                 } catch (err) {
                     console.error("Mark all read error:", err);
-                }
-            });
-        }
-
-        // Clear read notifications
-        if (clearReadBtn) {
-            clearReadBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const readItems = listContainer.querySelectorAll('.notif-item.is-read');
-                readItems.forEach(el => el.remove());
-
-                if (listContainer.children.length === 0) {
-                    listContainer.innerHTML = `
-                        <div class="notif-empty">
-                            <i data-lucide="inbox" style="width: 28px; height: 28px; color: #cbd5e1; stroke-width: 1.5;"></i>
-                            <span style="font-weight: 500; color: #64748b;">No new notifications</span>
-                        </div>
-                    `;
-                    if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-                }
-
-                try {
-                    await window.supabaseClient
-                        .from('notifications')
-                        .delete()
-                        .eq('user_id', userId)
-                        .eq('is_read', true);
-                } catch (err) {
-                    console.error("Clear read error:", err);
                 }
             });
         }

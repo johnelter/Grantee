@@ -1485,7 +1485,7 @@ body.dark-theme {
 
 /* Ensure SweetAlert2 always renders in front of modals and overlays */
 .swal2-container {
-  z-index: 100005 !important;
+  z-index: 2000050 !important;
 }
 
 /* Global Loading Spinner Utility */

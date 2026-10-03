@@ -11,21 +11,25 @@ const MAX_CACHE_SIZE = 500;
 const FAST_SAFE_REGEX = /^(hello|hi|hey|good\s+(morning|afternoon|evening|day)|thanks|thank\s+you|noted|copy|okay|ok|yes|no|congrats|congratulations|good\s+luck|amen|po|opo|maayong\s+(buntag|hapon|gabii|adlaw)|salamat|daghang\s+salamat|way\s+sapayan)[\s.,!?-]*$/i;
 
 // Fast profanity, rude terms, and spam pre-filters in English and Cebuano / Bisaya
-const FAST_FORBIDDEN_WORDS = [
+const FAST_FORBIDDEN_PATTERNS = [
     // English profanity & severe insults
-    'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'pussy', 'motherfuck', 'dumbass', 'bastard', 'stfu', 'dipshit', 'retard',
+    /\b(fuck|fucking|fucker|shit|shitty|bitch|asshole|cunt|dick|pussy|motherfuck|motherfucker|dumbass|bastard|stfu|dipshit|retard)\b/i,
     
     // Cebuano / Bisaya profanity & vulgarities
-    'yawa', 'ywa', 'piste', 'pisti', 'bilat', 'belat', 'burikat', 'bigaon', 'kayat', 'iyot', 'otin', 'oten', 'pakyu', 'pakyow', 'linti', 'animas', 'kolera',
+    /\b(yawa|ywa|piste|pisti|bilat|belat|burikat|bigaon|kayat|iyot|otin|oten|pakyu|pakyow|linti|animas|kolera)\b/i,
     
     // Cebuano / Bisaya rude insults & demeaning phrases
-    'bogoa', 'mga bogo', 'bogo ka', 'bogo man', 'inutil', 'buang ka', 'buang man', 'atay ka', 'atay man', 'bahog lubot', 'bahog bilat', 'way batasan', 'walay batasan', 'way buot', 'walay buot', 'walay kwenta', 'way kwenta', 'walay pulos', 'way pulos',
+    /\b(bogoa|mga\s+bogo|bogo\s+ka|bogo\s+man|inutil|buang\s+ka|buang\s+man|atay\s+ka|atay\s+man|bahog\s+lubot|bahog\s+bilat|way\s+batasan|walay\s+batasan|way\s+buot|walay\s+buot|walay\s+kwenta|way\s+kwenta|walay\s+pulos|way\s+pulos|walay\s+ayo|way\s+ayo|walay\s+klaro|way\s+klaro)\b/i,
     
-    // Tagalog / Common Filipino profanities
-    'putangina', 'tangina', 'tang ina', 'gago', 'tarantado', 'tanga', 'ulol', 'pucha', 'punyeta',
+    // Angry, villainous, threatening, death wishes & curse phrases (English, Cebuano, Tagalog)
+    /\b(i\s+will\s+destroy|will\s+destroy\s+you|make\s+you\s+pay|you\s+will\s+pay|you\s+will\s+suffer|suffer\s+for\s+this|rot\s+in\s+hell|burn\s+in\s+hell|drop\s+dead|curse\s+you|curse\s+all\s+of\s+you|watch\s+your\s+back|regret\s+this|make\s+you\s+regret|my\s+revenge|take\s+revenge|pathetic\s+fools|worthless\s+scum|evil\s+coordinators|you\s+are\s+evil|i\s+hate\s+all\s+of\s+you|i\s+hate\s+you\s+all)\b/i,
+    /\b(mamatay\s+unta|pangamatay\s+mo|pangamatay\s+unta|patyon\s+ta\s+mo|patyon\s+mo|gabaan\s+ra\s+mo|magabaan\s+unta|magabaan\s+mo|gabaan\s+mo|demonyo\s+mo|mga\s+demonyo|mga\s+hayop|salbahe\s+kaayo|salbahis|ipabarang|ipabarangay|ipatulfo|bwisit|bwesit|leche|letse)\b/i,
+    
+    // Tagalog / Common Filipino profanities & insults
+    /\b(putangina|tangina|tang\s+ina|gago|tarantado|tanga|ulol|pucha|punyeta|bwisit|bwesit|salbahe|hayop\s+kayo|mamatay\s+kayo)\b/i,
     
     // Malicious links & spam
-    'http://', 'https://', 't.me/', 'wa.me/', 'telegram.me', 'crypto', 'casino', 'free money'
+    /(https?:\/\/|t\.me\/|wa\.me\/|telegram\.me|crypto|casino|free\s*money|buy\s+now)/i
 ];
 
 /**
@@ -55,17 +59,17 @@ function extractJson(text) {
 function heuristicModeration(text) {
     const lower = text.toLowerCase();
     
-    for (const bad of FAST_FORBIDDEN_WORDS) {
-        if (lower.includes(bad)) {
-            return { passed: false, reason: "Comment contains rude, inappropriate, or prohibited language." };
+    for (const pattern of FAST_FORBIDDEN_PATTERNS) {
+        if (pattern.test(lower)) {
+            return { passed: false, reason: "Comment contains rude, aggressive, or prohibited language." };
         }
     }
     
     const toxicPatterns = [
         /\b(clown|clowns|idiots?|stupid|morons?|dumbass|useless|scumbag|trash|loser|stfu|shut\s*up)\b/i,
-        /\b(bogo|inutil|buang|yawa|pisti|peste|bilat|burikat|bigaon|pakyu|kolera|linti|animas)\b/i,
+        /\b(bogo|inutil|buang|yawa|pisti|peste|bilat|burikat|bigaon|pakyu|kolera|linti|animas|bulok)\b/i,
         /\b(bulok|way\s+batasan|walay\s+batasan|way\s+buot|walay\s+buot|way\s+kwenta|walay\s+kwenta)\b/i,
-        /\b(worst\s+school|fire\s+these|fucking|shitty)\b/i
+        /\b(worst\s+school|fire\s+these|fucking|shitty|evil|demonyo|salbahe)\b/i
     ];
     
     for (const pattern of toxicPatterns) {
@@ -99,12 +103,12 @@ async function moderateComment(text) {
         return moderationCache.get(lower);
     }
 
-    // 3. Fast profanity / rude / scam links pre-filter (English & Cebuano)
-    for (const bad of FAST_FORBIDDEN_WORDS) {
-        if (lower.includes(bad)) {
+    // 3. Fast profanity / rude / toxic / angry terms pre-filter
+    for (const pattern of FAST_FORBIDDEN_PATTERNS) {
+        if (pattern.test(lower)) {
             const res = { 
                 passed: false, 
-                reason: "Comment contains rude, inappropriate, or prohibited language." 
+                reason: "Comment contains rude, aggressive, or prohibited language." 
             };
             if (moderationCache.size >= MAX_CACHE_SIZE) moderationCache.clear();
             moderationCache.set(lower, res);
@@ -112,23 +116,22 @@ async function moderateComment(text) {
         }
     }
 
-    // 4. Fast Gemini model with bilingual English & Cebuano moderation understanding
+    // 4. Gemini AI Model with bilingual English & Cebuano moderation understanding
     try {
         const systemInstruction = `You are an expert bilingual AI Comment Moderator for a Philippine school educational assistance announcement board. You are fluent in English, Cebuano (Bisaya / Binisaya), and Filipino (Tagalog/Taglish).
 
 Your job is to analyze comments submitted by students and determine if they are acceptable or if they violate community standards.
 
-=== MODERATION RULES ===
-1. REJECT RUDE, DISRESPECTFUL, DEMEANING, OR TOXIC COMMENTS (IN ENGLISH OR CEBUANO):
-   - Personal attacks, insults, or demeaning language directed at coordinators, staff, the school, or fellow students.
-   - Cebuano rude expressions/insults: e.g., "bogo", "bogoa ninyo", "inutil", "buang", "walay buot / way buot", "walay batasan / way batasan", "walay kwenta", "bulok", "yawa", "pisti / piste", "bilat", "burikat", "bigaon", "atay", "animas", "kolera", "damak", etc.
-   - English rude expressions/insults: e.g., "idiot", "stupid", "dumbass", "moron", "loser", "shut up", "useless coordinators", "fuck you", "shitty system", "trash", "clown", "fire these clowns", etc.
-   - Hostile complaints, disrespectful mocking, aggressive sarcasm, or bullying.
+=== STRICT MODERATION RULES ===
+1. REJECT RUDE, HOSTILE, AGGRESSIVE, ANGRY, OR VILLAINOUS PHRASES:
+   - Hostile threats, angry character statements, intimidation, or vengeful remarks (e.g., "I will destroy you", "You will pay for this", "I will make you suffer", "Rot in hell", "Burn in hell", "Drop dead", "Curse you all", "I hate all of you", "Watch your back", "You'll regret this", "You are evil", "Pathetic fools", "Worthless scum").
+   - Cebuano hostile threats, death wishes, or curse phrases: e.g., "mamatay unta mo", "pangamatay mo", "gabaan ra mo", "magabaan unta mo", "patyon ta mo", "demonyo mo", "salbahe mo", "hayop mo", "walay pulos", "way ayo", "mga bogo", "inutil", "buang", "yawa", "pisti", "bulok", "animas", "kolera".
+   - Personal attacks, demeaning insults, hostile mocking, aggressive sarcasm, or bullying against coordinators, staff, the school, or fellow students.
 
 2. REJECT PROFANITY, VULGARITY & OBSCENITY:
-   - Any sexually explicit terms, vulgar slang, or offensive curses in English or Cebuano.
+   - Any sexually explicit terms, vulgar slang, or offensive curses in English, Cebuano, or Tagalog.
 
-3. REJECT HARASSMENT, THREATS & HATE SPEECH:
+3. REJECT HARASSMENT, THREATS, HATE SPEECH & VIOLENCE:
    - Any intimidation, harassment, hate speech, or wishes of harm.
 
 4. REJECT SPAM, SCAMS & COMMERCIAL ADS:
@@ -136,30 +139,42 @@ Your job is to analyze comments submitted by students and determine if they are 
 
 5. ALLOW CONSTRUCTIVE, POLITE, OR NORMAL STUDENT INQUIRIES & EXPRESSIONS:
    - Normal student questions, respectful inquiries, confusion, and polite follow-ups in English, Cebuano, or Tagalog (e.g., "Kanus-a ang releasing sa allowance?", "Salamat kaayo!", "Asa ta pwede mag submit ug requirements?", "What time is the payout tomorrow?", "Thank you po").
-   - Constructive feedback or questions without hostile insults or profanity.
+   - Constructive feedback or questions without hostile insults, threats, or profanity.
 
 === REQUIRED OUTPUT FORMAT ===
 Respond ONLY with a JSON object:
 {"passed": true, "reason": null}
 or
-{"passed": false, "reason": "Comment contains rude or inappropriate language."}`;
+{"passed": false, "reason": "Comment contains rude, aggressive, or inappropriate language."}`;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-            systemInstruction: systemInstruction,
-            generationConfig: {
-                responseMimeType: "application/json",
-                maxOutputTokens: 120,
-                temperature: 0.0
+        const modelNames = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash"];
+        let parsed = null;
+
+        for (const modelName of modelNames) {
+            try {
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    systemInstruction: systemInstruction,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        maxOutputTokens: 120,
+                        temperature: 0.0
+                    }
+                });
+
+                const result = await model.generateContent({
+                    contents: [{ role: 'user', parts: [{ text: `Analyze this comment: "${trimmed}"` }] }]
+                });
+                const response = await result.response;
+                const textResp = response.text().trim();
+                parsed = extractJson(textResp);
+                if (parsed && typeof parsed.passed === 'boolean') {
+                    break;
+                }
+            } catch (modelErr) {
+                console.warn(`Model ${modelName} failed or quota reached, trying next model...`);
             }
-        });
-
-        const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `Analyze this comment: "${trimmed}"` }] }]
-        });
-        const response = await result.response;
-        const textResp = response.text().trim();
-        const parsed = extractJson(textResp);
+        }
 
         if (parsed && typeof parsed.passed === 'boolean') {
             const safeResult = {

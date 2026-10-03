@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             modal.id = 'view-announcement-modal';
             modal.className = 'global-modal-overlay announcement-modal-overlay';
             modal.style.display = 'none';
+            modal.style.zIndex = '1000000';
             modal.innerHTML = `
                 <div class="global-modal-content view-modal-content announcement-modal-card">
                     <div class="modal-header">
@@ -151,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             mediaViewer.id = 'media-viewer-modal';
             mediaViewer.className = 'global-modal-overlay media-viewer-overlay';
             mediaViewer.style.display = 'none';
-            mediaViewer.style.zIndex = '1000060';
+            mediaViewer.style.zIndex = '2000060';
             mediaViewer.innerHTML = `
                 <button type="button" id="close-media-viewer" class="btn-close-viewer" aria-label="Close viewer">
                     <i data-lucide="x"></i>
@@ -172,6 +173,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div id="media-counter" class="media-counter" style="display: none;"></div>
             `;
             document.body.appendChild(mediaViewer);
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+
+        let deleteCommentModal = document.getElementById('delete-comment-modal');
+        if (!deleteCommentModal) {
+            deleteCommentModal = document.createElement('div');
+            deleteCommentModal.id = 'delete-comment-modal';
+            deleteCommentModal.className = 'global-modal-overlay';
+            deleteCommentModal.style.display = 'none';
+            deleteCommentModal.style.zIndex = '2000050';
+            deleteCommentModal.innerHTML = `
+                <div class="global-modal-content delete-modal-box">
+                    <div class="delete-modal-icon">
+                        <i data-lucide="trash-2"></i>
+                    </div>
+                    <h3 class="delete-modal-title">Delete Comment?</h3>
+                    <p class="delete-modal-desc">
+                        Are you sure you want to permanently delete this comment? This action cannot be undone.
+                    </p>
+                    <div class="global-modal-actions">
+                        <button type="button" id="btn-cancel-delete-comment" class="global-btn-cancel">
+                            Cancel
+                        </button>
+                        <button type="button" id="btn-confirm-delete-comment" class="global-btn-confirm">
+                            <i data-lucide="trash-2"></i> Yes, delete it!
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(deleteCommentModal);
             if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
         return modal;
@@ -907,7 +938,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else timeString = diffMins === 0 ? "Just now" : diffMins + "m ago";
 
                 const replyActionBtn = `<button type="button" class="btn-comment-tool" onclick="replyToUser('${displayName.replace(/'/g, "\\'").replace(/<[^>]*>?/gm, '').trim()}')"><i data-lucide="message-square"></i> Reply</button>`;
-                const editBtn = isMe ? `<button type="button" class="btn-comment-tool tool-edit" onclick="editMyComment('${c.id}', \`${c.content.replace(/`/g, "\\`").replace(/'/g, "\\'")}\`)"><i data-lucide="edit-3"></i> Edit</button>` : '';
+                const editBtn = isMe ? `<button type="button" class="btn-comment-tool tool-edit" onclick="editMyComment('${c.id}', '${encodeURIComponent(c.content).replace(/'/g, '%27')}')"><i data-lucide="edit-3"></i> Edit</button>` : '';
                 const deleteBtn = isMe ? `<button type="button" class="btn-comment-tool tool-delete" onclick="deleteMyComment('${c.id}')"><i data-lucide="trash-2"></i> Delete</button>` : '';
 
                 const commentHtml = `
@@ -957,16 +988,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             return { passed: false, reason: "Comment is too short or empty." };
         }
 
-        // Fast local profanity & toxic terms pre-filter (instant, English & Cebuano)
-        const forbiddenWords = [
-            'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'pussy', 'dumbass', 'bastard', 'stfu',
-            'yawa', 'ywa', 'piste', 'pisti', 'bilat', 'belat', 'burikat', 'bigaon', 'kayat', 'iyot', 'otin', 'oten', 'pakyu', 'linti', 'animas',
-            'bogo', 'inutil', 'buang', 'atay', 'way batasan', 'walay batasan', 'way buot', 'walay buot', 'way kwenta', 'walay kwenta', 'bulok',
-            'http://', 'https://', 'www.', 'buy now', 'crypto', 'casino', 'gambling'
+        // Fast local profanity & toxic terms pre-filter (instant, English & Cebuano with word boundaries)
+        const FORBIDDEN_REGEX_PATTERNS = [
+            // English profanity & severe insults
+            /\b(fuck|fucking|fucker|shit|shitty|bitch|asshole|cunt|dick|pussy|motherfuck|motherfucker|dumbass|bastard|stfu|dipshit|retard)\b/i,
+            
+            // Cebuano / Bisaya profanity & vulgarities
+            /\b(yawa|ywa|piste|pisti|bilat|belat|burikat|bigaon|kayat|iyot|otin|oten|pakyu|pakyow|linti|animas|kolera)\b/i,
+            
+            // Cebuano / Bisaya rude insults & demeaning phrases
+            /\b(bogoa|mga\s+bogo|bogo\s+ka|bogo\s+man|inutil|buang\s+ka|buang\s+man|atay\s+ka|atay\s+man|bahog\s+lubot|bahog\s+bilat|way\s+batasan|walay\s+batasan|way\s+buot|walay\s+buot|walay\s+kwenta|way\s+kwenta|walay\s+pulos|way\s+pulos|walay\s+ayo|way\s+ayo|walay\s+klaro|way\s+klaro)\b/i,
+            
+            // Angry, villainous, threatening, death wishes & curse phrases (English, Cebuano, Tagalog)
+            /\b(i\s+will\s+destroy|will\s+destroy\s+you|make\s+you\s+pay|you\s+will\s+pay|you\s+will\s+suffer|suffer\s+for\s+this|rot\s+in\s+hell|burn\s+in\s+hell|drop\s+dead|curse\s+you|curse\s+all\s+of\s+you|watch\s+your\s+back|regret\s+this|make\s+you\s+regret|my\s+revenge|take\s+revenge|pathetic\s+fools|worthless\s+scum|evil\s+coordinators|you\s+are\s+evil|i\s+hate\s+all\s+of\s+you|i\s+hate\s+you\s+all)\b/i,
+            /\b(mamatay\s+unta|pangamatay\s+mo|pangamatay\s+unta|patyon\s+ta\s+mo|patyon\s+mo|gabaan\s+ra\s+mo|magabaan\s+unta|magabaan\s+mo|gabaan\s+mo|demonyo\s+mo|mga\s+demonyo|mga\s+hayop|salbahe\s+kaayo|salbahis|ipabarang|ipabarangay|ipatulfo|bwisit|bwesit|leche|letse)\b/i,
+            
+            // Tagalog / Common Filipino profanities & insults
+            /\b(putangina|tangina|tang\s+ina|gago|tarantado|tanga|ulol|pucha|punyeta|bwisit|bwesit|salbahe|hayop\s+kayo|mamatay\s+kayo)\b/i,
+            
+            // Malicious links & spam
+            /(https?:\/\/|www\.|t\.me\/|wa\.me\/|telegram\.me|casino|crypto|free\s*money|buy\s+now)/i
         ];
-        for (let word of forbiddenWords) {
-            if (t.includes(word)) {
-                return { passed: false, reason: "Comment contains rude, inappropriate, or prohibited language." };
+        for (const pattern of FORBIDDEN_REGEX_PATTERNS) {
+            if (pattern.test(t)) {
+                return { passed: false, reason: "Comment contains rude, aggressive, or prohibited language." };
             }
         }
 
@@ -980,10 +1025,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return clientModerationCache.get(t);
         }
 
-        // Fast fetch with 2.5s AbortController timeout to prevent hanging UI
+        // Fetch with 5s AbortController timeout to allow AI model evaluation
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2500);
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             const response = await fetch('https://grantee-backend-n5f4.onrender.com/api/moderate-comment', {
                 method: 'POST',
@@ -1004,7 +1049,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const toxicPatterns = [
                 /\b(clown|clowns|idiots?|stupid|morons?|dumbass|useless|scumbag|trash|loser|stfu|shut\s*up)\b/i,
                 /\b(bogo|inutil|buang|yawa|pisti|peste|bilat|burikat|bigaon|pakyu|kolera|linti|animas|bulok)\b/i,
-                /\b(way\s+batasan|walay\s+batasan|way\s+buot|walay\s+buot|way\s+kwenta|walay\s+kwenta)\b/i
+                /\b(way\s+batasan|walay\s+batasan|way\s+buot|walay\s+buot|way\s+kwenta|walay\s+kwenta|walay\s+pulos|way\s+pulos)\b/i,
+                /\b(destroy|suffer|rot\s+in\s+hell|burn\s+in\s+hell|drop\s+dead|curse\s+you|regret|revenge|demonyo|salbahe|mamatay|gabaan)\b/i
             ];
             for (const pattern of toxicPatterns) {
                 if (pattern.test(t)) {
@@ -1089,10 +1135,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         pendingDeleteCommentId = commentId;
         const deleteCommentModal = document.getElementById('delete-comment-modal');
         if (deleteCommentModal) {
+            deleteCommentModal.style.zIndex = '2000050';
             deleteCommentModal.style.display = 'flex';
             if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         }
     };
+    window.deleteComment = window.deleteMyComment;
 
     document.getElementById('btn-cancel-delete-comment')?.addEventListener('click', () => {
         const deleteCommentModal = document.getElementById('delete-comment-modal');
@@ -1136,32 +1184,99 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    window.editMyComment = async (commentId, oldContent) => {
-        const { value: newText } = await Swal.fire({
+    window.editMyComment = async (commentId, rawOrEncodedContent) => {
+        let oldContent = rawOrEncodedContent || '';
+        if (typeof oldContent === 'string' && oldContent.includes('%')) {
+            try {
+                oldContent = decodeURIComponent(oldContent);
+            } catch (e) {
+                // Keep oldContent as-is if decoding fails
+            }
+        }
+
+        const result = await Swal.fire({
             title: 'Edit Comment',
             input: 'textarea',
             inputValue: oldContent,
             showCancelButton: true,
             confirmButtonText: 'Save Changes',
             cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
             customClass: {
                 popup: 'swal-nature-popup',
                 input: 'swal-custom-textarea',
                 confirmButton: 'swal-nature-confirm',
                 cancelButton: 'swal-nature-cancel'
-            }
+            },
+            didOpen: () => {
+                Swal.resetValidationMessage();
+                const textarea = Swal.getInput();
+                if (textarea) {
+                    textarea.addEventListener('input', () => {
+                        Swal.resetValidationMessage();
+                    });
+                }
+            },
+            preConfirm: async (val) => {
+                const inputEl = Swal.getInput();
+                const rawVal = (val !== undefined && val !== null) ? val : (inputEl ? inputEl.value : '');
+                const trimmed = String(rawVal).trim();
+
+                if (!trimmed) {
+                    Swal.showValidationMessage('Comment cannot be empty.');
+                    return false;
+                }
+
+                if (trimmed === oldContent.trim()) {
+                    return trimmed;
+                }
+
+                // 1. AI Moderation Check
+                try {
+                    const modCheck = await checkAiModeration(trimmed);
+                    if (modCheck && modCheck.passed === false) {
+                        Swal.showValidationMessage(modCheck.reason || 'Comment contains inappropriate or prohibited language.');
+                        return false;
+                    }
+                } catch (err) {
+                    console.error('Moderation check error on edit:', err);
+                }
+
+                // 2. Perform Supabase database update
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('announcement_comments')
+                        .update({ content: trimmed })
+                        .eq('id', commentId);
+
+                    if (error) {
+                        console.error('Database update error on edit comment:', error);
+                        Swal.showValidationMessage(error.message || 'Failed to update comment in database.');
+                        return false;
+                    }
+                    return trimmed;
+                } catch (dbErr) {
+                    console.error('Supabase update exception:', dbErr);
+                    Swal.showValidationMessage(dbErr.message || 'Failed to save changes.');
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading()
         });
 
-        if (newText !== undefined && newText !== null && newText.trim() !== '' && newText.trim() !== oldContent) {
-            try {
-                await window.supabaseClient.from('announcement_comments').update({ content: newText.trim() }).eq('id', commentId);
+        if (result && result.isConfirmed && result.value) {
+            const updatedText = String(result.value).trim();
+            if (updatedText !== oldContent.trim()) {
                 showUIToast('success', 'Comment Updated', 'Your comment has been edited.');
-                if (currentSelectedId) loadComments(currentSelectedId, true);
-            } catch (err) {
-                showUIToast('error', 'Error', 'Failed to update comment.');
+                const annId = currentSelectedId;
+                if (annId) {
+                    const ann = allAnnouncements.find(a => String(a.id) === String(annId));
+                    loadComments(annId, ann ? (ann.allow_comments !== false && ann.allow_comments !== 'false' && ann.allow_comments !== 0) : true);
+                }
             }
         }
     };
+    window.editComment = window.editMyComment;
 
     // ==========================================
     // 10.1 GLOBAL DELEGATED EVENT LISTENERS

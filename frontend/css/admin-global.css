@@ -1706,7 +1706,7 @@ body > .flatpickr-calendar:not(.open) select.flatpickr-monthDropdown-months {
 
 /* SweetAlert2 Global Overlay & Z-Index */
 .swal2-container {
-    z-index: 100005 !important;
+    z-index: 2000050 !important;
 }
 
 /* =========================================================

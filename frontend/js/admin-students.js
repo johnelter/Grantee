@@ -552,6 +552,22 @@
 
                 if (error) throw error;
 
+                // Audit log for bulk delete
+                try {
+                    await window.supabaseClient.from('audit_logs').insert([{
+                        admin_id: adminId,
+                        school_id: currentAdminSchoolId,
+                        action: 'Bulk Deleted Students',
+                        module: 'Student Management',
+                        details: JSON.stringify({
+                            details: `Bulk deleted ${count.toLocaleString()} student record(s) from the masterlist.`,
+                            deleted_count: count
+                        })
+                    }]);
+                } catch (auditErr) {
+                    console.warn("Audit logging for bulk delete failed:", auditErr);
+                }
+
                 selectedIds.clear();
                 showUIToast('success', 'Deleted', `${count.toLocaleString()} student${count !== 1 ? 's' : ''} have been removed.`);
                 fetchEnrolledStudents();
@@ -927,9 +943,54 @@
                             return;
                         }
                     }
+
+                    // Audit log for editing student info
+                    try {
+                        const studentFullName = `${payload.first_name} ${payload.last_name}`;
+                        const emailChangeInfo = (newEmailVal && newEmailVal.toLowerCase() !== originalEmailVal.toLowerCase()) 
+                            ? ` (Email updated to: ${newEmailVal})` 
+                            : '';
+                        await window.supabaseClient.from('audit_logs').insert([{
+                            admin_id: adminId,
+                            school_id: currentAdminSchoolId,
+                            action: 'Edited Student Information',
+                            module: 'Student Management',
+                            details: JSON.stringify({
+                                details: `Updated details for ${studentFullName} (${payload.id_number})${emailChangeInfo} - Status: ${payload.status}, ${payload.program}, ${payload.year_level}.`,
+                                id_number: payload.id_number,
+                                student_name: studentFullName,
+                                status: payload.status,
+                                program: payload.program,
+                                year_level: payload.year_level,
+                                targetUserId: profileIdVal || null
+                            })
+                        }]);
+                    } catch (auditErr) {
+                        console.warn("Audit logging for edit student failed:", auditErr);
+                    }
                 } else {
                     const { error } = await window.supabaseClient.from('enrolled_masterlist').insert([payload]);
                     if (error) throw error;
+
+                    // Audit log for adding student manually
+                    try {
+                        const studentFullName = `${payload.first_name} ${payload.last_name}`;
+                        await window.supabaseClient.from('audit_logs').insert([{
+                            admin_id: adminId,
+                            school_id: currentAdminSchoolId,
+                            action: 'Added Student Manually',
+                            module: 'Student Management',
+                            details: JSON.stringify({
+                                details: `Manually added student ${studentFullName} (ID: ${payload.id_number}) - ${payload.program}, ${payload.year_level}.`,
+                                id_number: payload.id_number,
+                                student_name: studentFullName,
+                                program: payload.program,
+                                year_level: payload.year_level
+                            })
+                        }]);
+                    } catch (auditErr) {
+                        console.warn("Audit logging for add student failed:", auditErr);
+                    }
                 }
 
                 showUIToast('success', 'Success', 'Student information saved successfully.');
@@ -969,8 +1030,29 @@
 
         if (result.isConfirmed) {
             try {
+                const deletedStudent = allStudents.find(x => String(x.id) === String(id));
+                const studentDesc = deletedStudent 
+                    ? `${deletedStudent.first_name} ${deletedStudent.last_name} (${deletedStudent.id_number})` 
+                    : `ID: ${id}`;
+
                 const { error } = await window.supabaseClient.from('enrolled_masterlist').delete().eq('id', id);
                 if (error) throw error;
+
+                // Audit log for deleting single student
+                try {
+                    await window.supabaseClient.from('audit_logs').insert([{
+                        admin_id: adminId,
+                        school_id: currentAdminSchoolId,
+                        action: 'Deleted Student',
+                        module: 'Student Management',
+                        details: JSON.stringify({
+                            details: `Deleted student record for ${studentDesc} from the masterlist.`
+                        })
+                    }]);
+                } catch (auditErr) {
+                    console.warn("Audit logging for delete student failed:", auditErr);
+                }
+
                 showUIToast('success', 'Deleted', 'The student has been deleted.');
                 fetchEnrolledStudents();
             } catch (err) {
@@ -1279,6 +1361,23 @@
                     if (error) throw error;
 
                     insertedCount += batch.length;
+                }
+
+                // Audit log for bulk importing students
+                try {
+                    await window.supabaseClient.from('audit_logs').insert([{
+                        admin_id: adminId,
+                        school_id: currentAdminSchoolId,
+                        action: 'Bulk Imported Students',
+                        module: 'Student Management',
+                        details: JSON.stringify({
+                            details: `Bulk imported ${insertedCount.toLocaleString()} student record(s) into the enrolled masterlist.`,
+                            imported_count: insertedCount,
+                            total_file_records: totalRecords
+                        })
+                    }]);
+                } catch (auditErr) {
+                    console.warn("Audit logging for bulk import failed:", auditErr);
                 }
 
                 // TOAST UI SUCCESS MESSAGE

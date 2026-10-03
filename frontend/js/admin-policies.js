@@ -320,6 +320,31 @@
 
             if (error) throw error;
 
+            // Record in audit logs for activity tracking and transparency
+            try {
+                const limitDetails = payload.global_enabled 
+                    ? `Global Limit: ${payload.global_limit} program(s)` 
+                    : 'Global Limit: Disabled';
+                const autoVal = payload.auto_validate ? 'Auto-Validate: Enabled' : 'Auto-Validate: Disabled';
+                const overrideVal = payload.allow_override ? 'Allow Override: Enabled' : 'Allow Override: Disabled';
+
+                await window.supabaseClient.from('audit_logs').insert([{
+                    admin_id: adminId,
+                    school_id: currentAdminSchoolId,
+                    action: 'Updated Assistance Policies',
+                    module: 'Assistance Policies',
+                    details: JSON.stringify({
+                        details: `Updated assistance policies: ${limitDetails}, ${autoVal}, ${overrideVal}.`,
+                        global_enabled: payload.global_enabled,
+                        global_limit: payload.global_limit,
+                        auto_validate: payload.auto_validate,
+                        allow_override: payload.allow_override
+                    })
+                }]);
+            } catch (auditErr) {
+                console.warn("Audit logging for policies failed:", auditErr);
+            }
+
             showUIToast('success', 'Success', 'Your changes are saved successfully');
 
         } catch (err) {

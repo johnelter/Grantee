@@ -470,15 +470,32 @@
             allDashboardApplications = applications;
 
             // Fetch Audit Logs (All records in date range)
-            const { data: auditLogs, error: auditError } = await window.supabaseClient
-                .from('audit_logs')
-                .select('*, profiles(first_name, last_name, email, avatar_url)')
-                .eq('school_id', adminSchoolId)
-                .gte('created_at', start)
-                .lte('created_at', end)
-                .order('created_at', { ascending: false });
+            let auditLogs = [];
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('audit_logs')
+                    .select('*, profiles(first_name, last_name, email, avatar_url)')
+                    .eq('school_id', adminSchoolId)
+                    .gte('created_at', start)
+                    .lte('created_at', end)
+                    .order('created_at', { ascending: false });
 
-            if (auditError) console.warn("Audit logs error:", auditError);
+                if (!error && data) {
+                    auditLogs = data;
+                } else {
+                    const { data: fallbackData, error: fbError } = await window.supabaseClient
+                        .from('audit_logs')
+                        .select('*')
+                        .eq('school_id', adminSchoolId)
+                        .gte('created_at', start)
+                        .lte('created_at', end)
+                        .order('created_at', { ascending: false });
+                    if (fbError) console.warn("Audit logs error:", fbError);
+                    auditLogs = fallbackData || [];
+                }
+            } catch (err) {
+                console.warn("Audit logs error:", err);
+            }
             allDashboardAuditLogs = auditLogs || [];
 
             // Fetch Notifications for Recent Activity
@@ -729,6 +746,7 @@
         }
     };
 
+    let cachedAdminProfiles = {};
     let cachedTargetUserProfiles = {};
 
     const formatLogDetails = (detailsRaw, targetProfiles = cachedTargetUserProfiles) => {
@@ -741,8 +759,8 @@
                 if (!dText) {
                     const parts = [];
                     for (const [key, value] of Object.entries(parsed)) {
-                        if (key !== 'targetUserId') {
-                            const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                        if (key !== 'targetUserId' && key !== 'school_id' && key !== 'timestamp') {
+                            const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
                             parts.push(`${formattedKey}: ${value}`);
                         }
                     }
@@ -760,28 +778,45 @@
     };
 
     const fetchTargetUserProfiles = async (logs) => {
-        const missingIds = [];
+        const missingTargetIds = [];
+        const missingAdminIds = [];
+
         logs.forEach(log => {
+            if (log.admin_id && !log.profiles && !cachedAdminProfiles[log.admin_id] && !missingAdminIds.includes(log.admin_id)) {
+                missingAdminIds.push(log.admin_id);
+            }
             try {
-                if (log.details && log.details.startsWith('{')) {
+                if (log.details && typeof log.details === 'string' && log.details.startsWith('{')) {
                     const parsed = JSON.parse(log.details);
-                    if (parsed.targetUserId && !cachedTargetUserProfiles[parsed.targetUserId] && !missingIds.includes(parsed.targetUserId)) {
-                        missingIds.push(parsed.targetUserId);
+                    if (parsed.targetUserId && !cachedTargetUserProfiles[parsed.targetUserId] && !missingTargetIds.includes(parsed.targetUserId)) {
+                        missingTargetIds.push(parsed.targetUserId);
                     }
                 }
             } catch (e) {}
         });
 
-        if (missingIds.length > 0) {
-            const { data: profiles } = await window.supabaseClient
-                .from('profiles')
-                .select('id, first_name, last_name')
-                .in('id', missingIds);
+        const allIdsToFetch = Array.from(new Set([...missingTargetIds, ...missingAdminIds]));
+        if (allIdsToFetch.length > 0) {
+            try {
+                const { data: profiles } = await window.supabaseClient
+                    .from('profiles')
+                    .select('id, first_name, last_name, avatar_url')
+                    .in('id', allIdsToFetch);
 
-            if (profiles) {
-                profiles.forEach(p => {
-                    cachedTargetUserProfiles[p.id] = `${p.first_name} ${p.last_name}`.trim();
-                });
+                if (profiles) {
+                    profiles.forEach(p => {
+                        const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+                        cachedTargetUserProfiles[p.id] = fullName;
+                        cachedAdminProfiles[p.id] = {
+                            first_name: p.first_name || '',
+                            last_name: p.last_name || '',
+                            avatar_url: p.avatar_url || null,
+                            name: fullName || 'Coordinator'
+                        };
+                    });
+                }
+            } catch (e) {
+                console.warn("Profiles fetch error for activity logs:", e);
             }
         }
     };
@@ -801,7 +836,10 @@
         let html = '';
         logs.forEach(log => {
             const timeString = new Date(log.created_at).toLocaleString();
-            const userName = log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown Admin';
+            const prof = log.profiles || cachedAdminProfiles[log.admin_id] || {};
+            const userName = (prof.first_name || prof.last_name)
+                ? `${prof.first_name || ''} ${prof.last_name || ''}`.trim()
+                : (prof.name || 'Coordinator');
             const detailsText = formatLogDetails(log.details);
 
             html += `
@@ -810,11 +848,11 @@
                     <td>
                         <span class="flex items-center gap-1.5" style="font-weight: 500; color: var(--text-heading);">
                             <i data-lucide="user" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
-                            ${userName}
+                            ${escapeHtmlAttr(userName)}
                         </span>
                     </td>
-                    <td style="font-weight: 600; color: var(--text-heading);">${log.action || '-'}</td>
-                    <td><span class="audit-module-badge">${log.module || 'System'}</span></td>
+                    <td style="font-weight: 600; color: var(--text-heading);">${escapeHtmlAttr(log.action || '-')}</td>
+                    <td><span class="audit-module-badge">${escapeHtmlAttr(log.module || 'System')}</span></td>
                     <td style="color: var(--text-muted); font-size: 12.5px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtmlAttr(detailsText)}">${detailsText}</td>
                 </tr>
             `;
@@ -2111,6 +2149,8 @@
     const getModuleCategory = (log) => {
         const mod = (log.module || '').toLowerCase();
         const act = (log.action || '').toLowerCase();
+        if (mod.includes('policy') || mod.includes('policies') || act.includes('policy') || act.includes('policies')) return 'Policy';
+        if (mod.includes('student') || act.includes('student') || mod.includes('masterlist') || act.includes('masterlist') || act.includes('import')) return 'Student';
         if (mod.includes('scholar') || act.includes('scholar') || mod.includes('grant') || act.includes('educational assistance')) return 'Scholarship';
         if (mod.includes('app') || act.includes('app') || mod.includes('beneficiar') || act.includes('applicant') || act.includes('grantee')) return 'Application';
         if (mod.includes('announc') || act.includes('announc') || mod.includes('news')) return 'Announcement';
@@ -2165,6 +2205,8 @@
         const allCount = allDashboardAuditLogs.length;
         const scholCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Scholarship').length;
         const appCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Application').length;
+        const studentCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Student').length;
+        const policyCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Policy').length;
         const annCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Announcement').length;
         const authCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Authentication').length;
         const otherCount = allDashboardAuditLogs.filter(l => getModuleCategory(l) === 'Other').length;
@@ -2172,6 +2214,8 @@
         if (document.getElementById('modal-activity-count-all')) document.getElementById('modal-activity-count-all').innerText = allCount;
         if (document.getElementById('modal-activity-count-schol')) document.getElementById('modal-activity-count-schol').innerText = scholCount;
         if (document.getElementById('modal-activity-count-app')) document.getElementById('modal-activity-count-app').innerText = appCount;
+        if (document.getElementById('modal-activity-count-student')) document.getElementById('modal-activity-count-student').innerText = studentCount;
+        if (document.getElementById('modal-activity-count-policy')) document.getElementById('modal-activity-count-policy').innerText = policyCount;
         if (document.getElementById('modal-activity-count-ann')) document.getElementById('modal-activity-count-ann').innerText = annCount;
         if (document.getElementById('modal-activity-count-auth')) document.getElementById('modal-activity-count-auth').innerText = authCount;
         if (document.getElementById('modal-activity-count-other')) document.getElementById('modal-activity-count-other').innerText = otherCount;
@@ -2192,7 +2236,8 @@
             // Search Filter
             if (modalActivitySearchQuery) {
                 const q = modalActivitySearchQuery.toLowerCase();
-                const userName = log.profiles ? `${log.profiles.first_name || ''} ${log.profiles.last_name || ''}`.toLowerCase() : 'unknown admin';
+                const prof = log.profiles || cachedAdminProfiles[log.admin_id] || {};
+                const userName = `${prof.first_name || ''} ${prof.last_name || ''} ${prof.name || ''}`.toLowerCase();
                 const action = (log.action || '').toLowerCase();
                 const module = (log.module || '').toLowerCase();
                 const details = formatLogDetails(log.details).toLowerCase();
@@ -2237,15 +2282,15 @@
                 hour12: true
             });
 
-            const p = log.profiles || {};
+            const p = log.profiles || cachedAdminProfiles[log.admin_id] || {};
             const firstName = p.first_name || '';
             const lastName = p.last_name || '';
-            const userName = `${firstName} ${lastName}`.trim() || 'Admin User';
-            const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'AU';
+            const userName = `${firstName} ${lastName}`.trim() || p.name || 'Coordinator';
+            const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || (userName ? userName.slice(0, 2).toUpperCase() : 'CO');
             const avatarUrl = p.avatar_url;
 
             const avatarHtml = avatarUrl
-                ? `<img src="${avatarUrl}" alt="${userName}" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
+                ? `<img src="${avatarUrl}" alt="${escapeHtmlAttr(userName)}" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
                 : initials;
 
             const detailsText = formatLogDetails(log.details);
@@ -2263,11 +2308,11 @@
                     <td>
                         <div class="activity-user-badge">
                             <div class="activity-user-avatar">${avatarHtml}</div>
-                            <span>${userName}</span>
+                            <span>${escapeHtmlAttr(userName)}</span>
                         </div>
                     </td>
-                    <td><span class="activity-action-text">${log.action || '-'}</span></td>
-                    <td><span class="audit-module-badge">${log.module || 'System'}</span></td>
+                    <td><span class="activity-action-text">${escapeHtmlAttr(log.action || '-')}</span></td>
+                    <td><span class="audit-module-badge">${escapeHtmlAttr(log.module || 'System')}</span></td>
                     <td><div class="activity-details-cell" title="${safeDetails}">${detailsText}</div></td>
                 </tr>
             `;

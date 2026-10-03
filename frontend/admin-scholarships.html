@@ -198,8 +198,8 @@
                                     style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
                                 Profile Settings</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger" onclick="openLogoutModal(event)"><i
-                                    data-lucide="log-out"
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger"
+                                onclick="openLogoutModal(event)"><i data-lucide="log-out"
                                     style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i>
                                 Logout</a>
                         </div>
@@ -376,7 +376,7 @@
                                     <th class="sch-col-deadline th-sch-deadline">Deadline</th>
                                     <th class="sch-col-status th-sch-status" style="text-align: center;">Status</th>
                                     <th class="sch-col-apps th-sch-apps" style="text-align: center;">Applications</th>
-                                    <th class="sch-col-actions th-sch-actions" style="text-align: center;">Actions</th>
+                                    <th class="sch-col-actions th-sch-actions" style="text-align: center;"></th>
                                 </tr>
                             </thead>
                             <tbody id="scholarships-tbody">
@@ -692,13 +692,16 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="applicants-modal-title" id="deadline-modal-main-title">Extend Application Deadline</h3>
+                            <h3 class="applicants-modal-title" id="deadline-modal-main-title">Extend Application
+                                Deadline</h3>
                             <span id="deadline-modal-badge" class="audit-module-badge">Deadline Management</span>
                         </div>
-                        <p class="applicants-modal-subtitle">Update or extend the application cutoff date for this educational assistance program.</p>
+                        <p class="applicants-modal-subtitle">Update or extend the application cutoff date for this
+                            educational assistance program.</p>
                     </div>
                 </div>
-                <button type="button" class="modal-close-icon-btn" onclick="closeExtendDeadlineModal()" title="Close modal">
+                <button type="button" class="modal-close-icon-btn" onclick="closeExtendDeadlineModal()"
+                    title="Close modal">
                     <i data-lucide="x"></i>
                 </button>
             </div>
@@ -731,7 +734,8 @@
                         </div>
                         <div class="deadline-info-item">
                             <span class="deadline-info-label">Current Deadline</span>
-                            <strong id="deadline-program-current-deadline" class="deadline-info-val text-red">Oct 15, 2026</strong>
+                            <strong id="deadline-program-current-deadline" class="deadline-info-val text-red">Oct 15,
+                                2026</strong>
                         </div>
                     </div>
                 </div>
@@ -751,7 +755,8 @@
                             <button type="button" class="btn-deadline-preset" data-days="7">+1 Week (7 Days)</button>
                             <button type="button" class="btn-deadline-preset" data-days="14">+2 Weeks (14 Days)</button>
                             <button type="button" class="btn-deadline-preset" data-days="30">+1 Month (30 Days)</button>
-                            <button type="button" class="btn-deadline-preset" data-mode="end-month">End of Current Month</button>
+                            <button type="button" class="btn-deadline-preset" data-mode="end-month">End of Current
+                                Month</button>
                         </div>
                     </div>
 
@@ -762,17 +767,21 @@
                             <span>Select New Application Deadline: <span class="text-red">*</span></span>
                         </label>
                         <div class="deadline-datepicker-wrapper">
-                            <input type="text" id="edit-deadline-date" class="deadline-flatpickr-input" placeholder="Select new deadline (YYYY-MM-DD)" required readonly>
+                            <input type="text" id="edit-deadline-date" class="deadline-flatpickr-input"
+                                placeholder="Select new deadline (YYYY-MM-DD)" required readonly>
                             <i data-lucide="calendar" class="deadline-input-icon"></i>
                         </div>
-                        <p class="deadline-input-hint">The application deadline will be set until 11:59 PM of the selected date.</p>
+                        <p class="deadline-input-hint">The application deadline will be set until 11:59 PM of the
+                            selected date.</p>
                     </div>
 
                     <!-- Live Extension Summary / Notice Banner -->
                     <div id="deadline-preview-banner" class="deadline-preview-box">
                         <div class="flex items-start gap-2.5">
-                            <i data-lucide="info" style="width: 18px; height: 18px; color: var(--moss-green); flex-shrink: 0; margin-top: 2px;"></i>
-                            <div id="deadline-preview-text" style="font-size: 13px; line-height: 1.5; color: var(--text-main);">
+                            <i data-lucide="info"
+                                style="width: 18px; height: 18px; color: var(--moss-green); flex-shrink: 0; margin-top: 2px;"></i>
+                            <div id="deadline-preview-text"
+                                style="font-size: 13px; line-height: 1.5; color: var(--text-main);">
                                 Select a new deadline date above to preview changes.
                             </div>
                         </div>
@@ -782,7 +791,8 @@
 
             <!-- Modal Footer -->
             <div class="applicants-modal-footer">
-                <button type="button" class="modal-btn-primary-action" id="btn-save-deadline" onclick="saveExtendedDeadline()">
+                <button type="button" class="modal-btn-primary-action" id="btn-save-deadline"
+                    onclick="saveExtendedDeadline()">
                     <i data-lucide="check" style="width: 15px; height: 15px;"></i> Save & Extend Deadline
                 </button>
             </div>
@@ -790,7 +800,8 @@
     </div>
 
     <!-- LOGOUT MODAL -->
-    <div id="logout-modal" class="global-modal-overlay" style="display: none;" onclick="if(event.target===this)closeLogoutModal(event)">
+    <div id="logout-modal" class="global-modal-overlay" style="display: none;"
+        onclick="if(event.target===this)closeLogoutModal(event)">
         <div class="global-modal-content">
             <div class="global-modal-icon">
                 <i data-lucide="log-out" style="width: 36px; height: 36px; color: var(--danger-color);"></i>

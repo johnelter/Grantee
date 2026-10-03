@@ -15,14 +15,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const showToast = (message, type = 'success') => {
         const toast = document.createElement('div');
         toast.className = `custom-toast ${type}`;
-        
+
         const iconName = type === 'success' ? 'check-circle-2' : 'alert-triangle';
         toast.innerHTML = `<i data-lucide="${iconName}"></i> <span>${message}</span>`;
         document.body.appendChild(toast);
         refreshIcons();
-        
+
         setTimeout(() => toast.classList.add('show'), 10);
-        
+
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 350);
@@ -67,11 +67,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     program: progName,
                     avatar_url: profile.avatar_url || 'assets/default-avatar.png'
                 }));
-                
-                if(document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = fullName;
-                if(document.getElementById('header-name')) document.getElementById('header-name').innerText = fullName;
-                if(document.getElementById('header-program')) document.getElementById('header-program').innerText = progName;
-                if(profile.avatar_url && document.getElementById('header-avatar')) {
+
+                if (document.getElementById('display-user-name')) document.getElementById('display-user-name').innerText = fullName;
+                if (document.getElementById('header-name')) document.getElementById('header-name').innerText = fullName;
+                if (document.getElementById('header-program')) document.getElementById('header-program').innerText = progName;
+                if (profile.avatar_url && document.getElementById('header-avatar')) {
                     document.getElementById('header-avatar').src = profile.avatar_url;
                 }
             }
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusFilter.addEventListener('change', (e) => {
                     const filterValue = e.target.value;
                     let filteredApps = applicationsData;
-                    
+
                     if (filterValue !== 'all') {
                         filteredApps = applicationsData.filter(app => {
                             const statusLower = (app.status || 'pending').toLowerCase();
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     renderTable(filteredApps);
                 });
-                
+
                 // Apply filter from URL if present
                 const urlParams = new URLSearchParams(window.location.search);
                 const filterParam = urlParams.get('filter');
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     renderTable(applicationsData);
                 }
-                
+
                 // Apply app_id auto-open and highlight
                 const appIdParam = urlParams.get('app_id');
                 if (appIdParam) {
@@ -319,14 +319,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const latestApp = apps[0]; 
+        const latestApp = apps[0];
         const programName = latestApp.scholarships?.title || latestApp.outside_assistance_name || 'Assistance Program';
         const createdDate = new Date(latestApp.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
-        if(document.getElementById('latest-app-title')) {
+        if (document.getElementById('latest-app-title')) {
             document.getElementById('latest-app-title').innerText = `(${programName})`;
         }
-        if(document.getElementById('date-submitted')) {
+        if (document.getElementById('date-submitted')) {
             document.getElementById('date-submitted').innerText = createdDate;
         }
 
@@ -339,25 +339,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const line1 = document.getElementById('line-1');
         const line2 = document.getElementById('line-2');
 
-        if(!stepSub) return; 
+        if (!stepSub) return;
 
-        [stepSub, stepRev, stepFinal].forEach(el => { if(el) el.classList.remove('completed', 'active', 'step-approved', 'step-rejected') });
-        [line1, line2].forEach(el => { if(el) el.classList.remove('active') });
+        [stepSub, stepRev, stepFinal].forEach(el => { if (el) el.classList.remove('completed', 'active', 'step-approved', 'step-rejected') });
+        [line1, line2].forEach(el => { if (el) el.classList.remove('active') });
 
         // Step 1: Submitted (Always active if application exists)
-        if(stepSub) stepSub.classList.add('active');
-        
+        if (stepSub) stepSub.classList.add('active');
+
         if (statusLower === 'pending' || statusLower === 'under review') {
-            if(line1) line1.classList.add('active');
-            if(stepRev) stepRev.classList.add('active');
+            if (line1) line1.classList.add('active');
+            if (stepRev) stepRev.classList.add('active');
             const dateRev = document.getElementById('date-review');
             if (dateRev) dateRev.innerText = 'In Progress';
             const finalNode = document.getElementById('date-final');
             if (finalNode) finalNode.innerText = '--';
         }
         else if (statusLower === 'approved' || statusLower === 'rejected' || statusLower === 'grantee' || statusLower === 'declined' || statusLower === 'revoked') {
-            if(stepRev) stepRev.classList.add('active');
-            if(stepFinal) {
+            if (stepRev) stepRev.classList.add('active');
+            if (stepFinal) {
                 stepFinal.classList.add('active');
                 if (statusLower === 'approved' || statusLower === 'grantee') {
                     stepFinal.classList.add('step-approved');
@@ -365,14 +365,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     stepFinal.classList.add('step-rejected');
                 }
             }
-            if(line1) line1.classList.add('active');
-            if(line2) line2.classList.add('active');
-            
+            if (line1) line1.classList.add('active');
+            if (line2) line2.classList.add('active');
+
             const dateRev = document.getElementById('date-review');
             if (dateRev) dateRev.innerText = 'Reviewed';
 
             const finalNode = document.getElementById('date-final');
-            if(finalNode) {
+            if (finalNode) {
                 if (statusLower === 'approved' || statusLower === 'grantee') {
                     finalNode.innerText = 'Approved';
                 } else {
@@ -490,14 +490,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mname = currentProfile?.middle_name || '';
         const lname = currentProfile?.last_name || '';
         const name = `${fname} ${mname ? mname + ' ' : ''}${lname}`.trim() || 'Student Name';
-        
+
         const sid = currentProfile?.id_number || 'N/A';
         const email = currentProfile?.email || 'N/A';
         const dob = currentProfile?.date_of_birth || 'N/A';
         const gender = currentProfile?.gender || 'N/A';
         const contact = currentProfile?.contact_number || 'N/A';
         const address = currentProfile?.address || 'N/A';
-        const program = currentProfile?.program || currentProfile?.course || 'N/A'; 
+        const program = currentProfile?.program || currentProfile?.course || 'N/A';
         const yearLevel = currentProfile?.year_level || 'N/A';
 
         let profileHTML = `
@@ -541,9 +541,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             app.documents.forEach(doc => {
                 const fileUrl = doc.file_url || doc.url;
                 let previewContent = '';
-                
-                const fullViewLink = fileUrl 
-                    ? `<a href="${fileUrl}" target="_blank" class="modal-doc-link"><i data-lucide="external-link"></i> Full View</a>` 
+
+                const fullViewLink = fileUrl
+                    ? `<a href="${fileUrl}" target="_blank" class="modal-doc-link"><i data-lucide="external-link"></i> Full View</a>`
                     : '';
 
                 if (fileUrl) {
@@ -563,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let extractedDataHtml = '';
                 if (doc.extracted_data && Object.keys(doc.extracted_data).length > 0) {
                     let liHtml = '';
-                    
+
                     for (const [key, value] of Object.entries(doc.extracted_data)) {
                         let displayValue = '';
 
@@ -574,7 +574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
                                 return item;
                             }).join('<div style="height:1px; background:var(--border-color); margin:6px 0;"></div>');
-                            
+
                         } else if (typeof value === 'object' && value !== null) {
                             displayValue = Object.entries(value).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
                         } else {
@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </li>
                         `;
                     }
-                    
+
                     extractedDataHtml = `
                         <div class="modal-ai-box" style="flex: 1; min-width: 260px; max-height: 320px; overflow-y: auto;">
                             <div class="modal-ai-box-title">

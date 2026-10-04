@@ -1412,6 +1412,11 @@
                                 });
                                 return;
                             }
+                            confirmBtn.disabled = true;
+                            confirmBtn.style.opacity = '0.7';
+                            confirmBtn.style.cursor = 'not-allowed';
+                            confirmBtn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;"><i data-lucide="loader-2" class="spin" style="width:16px;height:16px;animation:spin 1s linear infinite;"></i> Importing Records...</span>`;
+                            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
                             executeFinalImport(validRecords, invalidRecords, unenrolledSkipped.map(u => u.id_number));
                         };
                     }
@@ -1452,7 +1457,13 @@
             title: 'Processing Records...',
             text: 'Importing valid beneficiaries and verifying strict institutional policy tracking...',
             allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                if (typeof Swal.showLoading === 'function') {
+                    Swal.showLoading();
+                }
+            }
         });
         
         try {
@@ -1785,6 +1796,13 @@
         } catch (err) {
             if (typeof Swal !== 'undefined' && Swal.isVisible()) Swal.close();
             showToast('error', 'Import Interrupted', err.message || 'The script failed before reaching the database loop.', 6000);
+            const confirmBtn = document.getElementById('btn-confirm-import');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.style.cursor = 'pointer';
+                confirmBtn.innerHTML = `Confirm & Import Records`;
+            }
         }
     }
 

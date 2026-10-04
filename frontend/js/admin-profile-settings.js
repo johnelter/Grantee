@@ -186,7 +186,7 @@
                 if (lnInput) lnInput.value = profile.last_name || '';
 
                 const phInput = document.getElementById('prof-phone');
-                if (phInput) phInput.value = profile.contact_number || '';
+                if (phInput) phInput.value = (profile.contact_number || '').replace(/\D/g, '').slice(0, 11);
 
                 // Populate Display Elements & Locked Fields
                 const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Admin User';
@@ -267,6 +267,32 @@
         }
     }
 
+    // Attach strict 11-digit numeric filter to prof-phone input
+    const adminPhoneInput = document.getElementById('prof-phone');
+    if (adminPhoneInput) {
+        adminPhoneInput.addEventListener('input', function () {
+            const clean = this.value.replace(/\D/g, '').slice(0, 11);
+            if (this.value !== clean) {
+                this.value = clean;
+            }
+        });
+        adminPhoneInput.addEventListener('keypress', function (e) {
+            if (!/^\d$/.test(e.key) && !e.ctrlKey && !e.metaKey && e.key !== 'Enter') {
+                e.preventDefault();
+            }
+        });
+        adminPhoneInput.addEventListener('paste', function (e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+            const clean = text.replace(/\D/g, '').slice(0, 11);
+            const current = this.value.replace(/\D/g, '');
+            const start = this.selectionStart || 0;
+            const end = this.selectionEnd || 0;
+            const combined = (current.slice(0, start) + clean + current.slice(end)).replace(/\D/g, '').slice(0, 11);
+            this.value = combined;
+        });
+    }
+
     // ==========================================
     // 3. UPDATE PERSONAL INFORMATION
     // ==========================================
@@ -276,6 +302,16 @@
             e.preventDefault();
             const saveBtn = document.getElementById('btn-save-profile');
             const originalText = saveBtn ? saveBtn.innerHTML : 'Save Changes';
+
+            const phoneInput = document.getElementById('prof-phone');
+            const cleanPhone = (phoneInput?.value || '').replace(/\D/g, '').slice(0, 11);
+
+            if (cleanPhone && cleanPhone.length !== 11) {
+                showUIToast('warning', 'Invalid Contact Number', 'Contact number must be exactly 11 digits (e.g., 09123456789).');
+                phoneInput?.focus();
+                return;
+            }
+
             if (saveBtn) {
                 saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
                 saveBtn.disabled = true;
@@ -285,7 +321,7 @@
                 first_name: (document.getElementById('prof-firstname')?.value || '').trim(),
                 middle_name: (document.getElementById('prof-middlename')?.value || '').trim(),
                 last_name: (document.getElementById('prof-lastname')?.value || '').trim(),
-                contact_number: (document.getElementById('prof-phone')?.value || '').trim()
+                contact_number: cleanPhone || null
             };
 
             try {

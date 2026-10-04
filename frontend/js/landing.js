@@ -227,6 +227,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
+    /**
+     * Resolves and formats the exact academic grade requirement for an Educational Assistance program.
+     */
+    function getExactGradeRequirement(sch) {
+        const hasCollegeGwa = sch.min_college_gwa !== null && sch.min_college_gwa !== undefined && sch.min_college_gwa !== '';
+        const hasHsAvg = sch.min_hs_average !== null && sch.min_hs_average !== undefined && sch.min_hs_average !== '';
+        const hasCollegeSubj = sch.min_college_subject_grade !== null && sch.min_college_subject_grade !== undefined && sch.min_college_subject_grade !== '';
+        const hasHsSubj = sch.min_hs_subject_grade !== null && sch.min_hs_subject_grade !== undefined && sch.min_hs_subject_grade !== '';
+
+        const legacyGwa = sch.gwa_requirement || sch.min_gwa || (sch.eligibility_rules?.gwa?.enabled ? sch.eligibility_rules?.gwa?.minimum : null);
+
+        let display = 'Open to all';
+        let fullDetail = 'No minimum grade requirement for this assistance program.';
+        let hasRequirement = false;
+
+        if (hasCollegeGwa && hasHsAvg) {
+            hasRequirement = true;
+            display = `GWA ≤ ${sch.min_college_gwa} | HS ≥ ${sch.min_hs_average}%`;
+            fullDetail = `Must have a College GWA of ${sch.min_college_gwa} or better, or High School Average of ${sch.min_hs_average}% or better.`;
+            if (hasCollegeSubj) fullDetail += ` (Min. College Subject: ${sch.min_college_subject_grade})`;
+            if (hasHsSubj) fullDetail += ` (Min. HS Subject: ${sch.min_hs_subject_grade}%)`;
+        } else if (hasCollegeGwa) {
+            hasRequirement = true;
+            display = `Min. GWA ${sch.min_college_gwa}`;
+            fullDetail = `Must have a College GWA of ${sch.min_college_gwa} or better.`;
+            if (hasCollegeSubj) {
+                display = `GWA ≤ ${sch.min_college_gwa} (Subj ≤ ${sch.min_college_subject_grade})`;
+                fullDetail += ` No subject grade lower than ${sch.min_college_subject_grade}.`;
+            }
+        } else if (hasHsAvg) {
+            hasRequirement = true;
+            display = `Min. ${sch.min_hs_average}% HS Avg`;
+            fullDetail = `Must have a High School / Senior High Average of ${sch.min_hs_average}% or better.`;
+            if (hasHsSubj) {
+                display = `HS Avg ≥ ${sch.min_hs_average}% (Subj ≥ ${sch.min_hs_subject_grade}%)`;
+                fullDetail += ` No subject grade lower than ${sch.min_hs_subject_grade}%.`;
+            }
+        } else if (hasCollegeSubj) {
+            hasRequirement = true;
+            display = `Subj. Grade ≤ ${sch.min_college_subject_grade}`;
+            fullDetail = `Must have a minimum college subject grade of ${sch.min_college_subject_grade} or better.`;
+        } else if (hasHsSubj) {
+            hasRequirement = true;
+            display = `Subj. Grade ≥ ${sch.min_hs_subject_grade}%`;
+            fullDetail = `Must have a minimum high school subject grade of ${sch.min_hs_subject_grade}% or better.`;
+        } else if (legacyGwa) {
+            hasRequirement = true;
+            display = `Min. GWA ${legacyGwa}`;
+            fullDetail = `Must meet the minimum GWA requirement of ${legacyGwa}.`;
+        }
+
+        return { display, fullDetail, hasRequirement };
+    }
+
     // --- 1. FETCH ACTUAL SCHOOL RECORDS FROM DATABASE ---
     async function loadSchools() {
         try {
@@ -388,13 +442,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     statusBadgeHTML = `<span class="sch-status-badge status-open"><i data-lucide="check-circle-2"></i> Open</span>`;
                 }
 
-                // 2. Min GWA requirement
-                let gwaDisplay = 'Open to all';
-                if (sch.eligibility_rules?.gwa?.enabled && sch.eligibility_rules.gwa.minimum) {
-                    gwaDisplay = `Min. GWA ${sch.eligibility_rules.gwa.minimum}`;
-                } else if (sch.gwa_requirement || sch.min_gwa) {
-                    gwaDisplay = `Min. GWA ${sch.gwa_requirement || sch.min_gwa}`;
-                }
+                // 2. Exact Min. Grade & Academic Requirement Resolution
+                const gradeReq = getExactGradeRequirement(sch);
 
                 // 3. Application Deadline formatted
                 let deadlineDisplay = 'No Deadline';
@@ -455,11 +504,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
 
-                    <!-- Quick Specs Grid (GWA & Deadline with Open/Closed Tag) -->
+                    <!-- Quick Specs Grid (Exact Grade & Deadline with Open/Closed Tag) -->
                     <div class="sch-specs-grid">
                         <div class="sch-spec-item">
-                            <span class="spec-label"><i data-lucide="award"></i> Min. Grade (GWA)</span>
-                            <span class="spec-value" title="${gwaDisplay}">${gwaDisplay}</span>
+                            <span class="spec-label"><i data-lucide="award"></i> Min. Grade Requirement</span>
+                            <span class="spec-value" title="${gradeReq.fullDetail}">${gradeReq.display}</span>
                         </div>
                         <div class="sch-spec-item">
                             <span class="spec-label"><i data-lucide="calendar"></i> Application Deadline</span>
@@ -487,6 +536,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="sch-desc-collapse" id="${descId}">
                             <div class="sch-desc-inner">
                                 <p class="sch-desc-text">${rawDescription}</p>
+                                ${gradeReq.hasRequirement ? `
+                                    <div class="sch-grade-requirement-box" style="margin-top: 14px; padding: 10px 14px; background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981; border-radius: 6px; font-size: 13px; color: var(--text-color);">
+                                        <strong style="color: var(--text-heading); display: block; margin-bottom: 2px;"><i data-lucide="award" style="width: 14px; height: 14px; display: inline-block; vertical-align: -2px; color: #10b981;"></i> Academic Grade Requirement:</strong>
+                                        <span>${gradeReq.fullDetail}</span>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>

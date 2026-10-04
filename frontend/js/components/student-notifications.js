@@ -90,12 +90,14 @@
                     const redirectUrl = getRedirectUrl(n);
                     const readClass = n.is_read ? 'notification-read' : 'notification-unread';
                     const indicator = n.is_read ? '' : '<span class="notification-dot"></span>';
-                    
+                    const isDeadline = n.type === 'deadline' || (n.title && n.title.toLowerCase().includes('deadline'));
+                    const deadlineBadge = isDeadline ? '<span style="display: inline-block; font-size: 10px; background: #fee2e2; color: #b91c1c; border-radius: 4px; padding: 1px 5px; font-weight: 700; margin-right: 5px; vertical-align: middle;">DEADLINE</span>' : '';
+
                     return `
                     <div class="notification-item ${readClass}" data-id="${n.id}" data-url="${redirectUrl}" data-read="${n.is_read}">
                         <div class="notification-item-header">
                             <strong class="notification-title">
-                                ${indicator}${n.title || 'Notification'}
+                                ${indicator}${deadlineBadge}${n.title || 'Notification'}
                             </strong>
                             <span class="notification-time">
                                 ${new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric' })}

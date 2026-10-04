@@ -387,8 +387,8 @@
                                     </div>
                                     <div class="input-group">
                                         <label for="prof-phone">Contact Number</label>
-                                        <input type="tel" id="prof-phone" class="form-input"
-                                            placeholder="e.g. 09123456789">
+                                        <input type="tel" id="prof-phone" class="form-input" maxlength="11" minlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="09123456789" autocomplete="tel">
+                                        <small class="hint-text" style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">Must be an 11-digit mobile number (e.g., 09123456789)</small>
                                     </div>
                                 </div>
 

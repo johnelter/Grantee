@@ -281,7 +281,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (document.getElementById('year_level')) document.getElementById('year_level').value = masterYear;
 
             // --- Editable Fields (Personal) ---
-            if (document.getElementById('contact_number')) document.getElementById('contact_number').value = profile.contact_number || '';
+            if (document.getElementById('contact_number')) {
+                document.getElementById('contact_number').value = (profile.contact_number || '').replace(/\D/g, '').slice(0, 11);
+            }
             if (document.getElementById('address')) document.getElementById('address').value = profile.address || '';
             if (document.getElementById('gender')) document.getElementById('gender').value = masterGender;
 
@@ -384,6 +386,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Attach strict 11-digit numeric filter to contact_number input
+    const studentContactInput = document.getElementById('contact_number');
+    if (studentContactInput) {
+        studentContactInput.addEventListener('input', function () {
+            const clean = this.value.replace(/\D/g, '').slice(0, 11);
+            if (this.value !== clean) {
+                this.value = clean;
+            }
+        });
+        studentContactInput.addEventListener('keypress', function (e) {
+            if (!/^\d$/.test(e.key) && !e.ctrlKey && !e.metaKey && e.key !== 'Enter') {
+                e.preventDefault();
+            }
+        });
+        studentContactInput.addEventListener('paste', function (e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+            const clean = text.replace(/\D/g, '').slice(0, 11);
+            const current = this.value.replace(/\D/g, '');
+            const start = this.selectionStart || 0;
+            const end = this.selectionEnd || 0;
+            const combined = (current.slice(0, start) + clean + current.slice(end)).replace(/\D/g, '').slice(0, 11);
+            this.value = combined;
+        });
+    }
+
     // ==========================================
     // 2. SAVING PROFILE (Personal & Academic)
     // ==========================================
@@ -391,6 +419,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (personalForm) {
         personalForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Strict contact number validation (Must be 11 numeric digits)
+            const contactInput = document.getElementById('contact_number');
+            const cleanContact = (contactInput?.value || '').replace(/\D/g, '').slice(0, 11);
+
+            if (!cleanContact || cleanContact.length !== 11) {
+                showUIToast('warning', 'Invalid Contact Number', 'Contact number must be exactly 11 digits (e.g., 09123456789).');
+                contactInput?.focus();
+                return;
+            }
 
             const result = await Swal.fire({
                 title: 'Save Changes',
@@ -412,13 +450,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     const updates = {
                         gender: document.getElementById('gender')?.value || null,
-                        contact_number: document.getElementById('contact_number')?.value.trim() || null,
+                        contact_number: cleanContact,
                         address: document.getElementById('address')?.value.trim() || null,
                         updated_at: new Date()
                     };
 
                     const { error } = await window.supabaseClient.from('profiles').update(updates).eq('id', userId);
                     if (error) throw error;
+
 
                     // Also sync gender back to enrolled_masterlist if available
                     const studentIdVal = document.getElementById('student_id')?.value?.trim();

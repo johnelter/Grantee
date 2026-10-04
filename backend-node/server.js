@@ -443,7 +443,7 @@ app.post('/api/verify-id', async (req, res) => {
 // REAL EMAIL OTP SYSTEM (Using Brevo)
 // ============================================================================
 const otpDatabase = {}; // Temporarily holds codes in memory
-const { sendNotification, notifyCoordinators } = require('./notificationService');
+const { sendNotification, notifyCoordinators, checkAndNotifyApproachingDeadlines } = require('./notificationService');
 
 app.post('/api/send-otp', async (req, res) => {
     const { email } = req.body;
@@ -716,6 +716,25 @@ app.post('/api/admin/update-student-email', async (req, res) => {
 
 
 // ============================================================================
+// CHECK AND NOTIFY APPROACHING DEADLINES (Manual Trigger / Webhook / Cron)
+// ============================================================================
+app.all('/api/check-deadlines', async (req, res) => {
+    try {
+        const targetDays = req.query.targetDays
+            ? req.query.targetDays.split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n))
+            : [7, 5, 3, 2, 1, 0];
+        const schoolId = req.query.schoolId || req.body?.schoolId || null;
+
+        console.log(`[API /api/check-deadlines] Triggering check for milestones: [${targetDays.join(', ')}]...`);
+        const result = await checkAndNotifyApproachingDeadlines({ targetDays, schoolId });
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Error in /api/check-deadlines endpoint:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============================================================================
 // START THE SERVER & SCHEDULED JOBS
 // ============================================================================
 app.get('/api/test', (req, res) => {
@@ -724,29 +743,32 @@ app.get('/api/test', (req, res) => {
 
 // A simple daily job to check for pending reviews and deadlines
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-setInterval(async () => {
+
+const runDailyChecks = async () => {
     try {
-        console.log('[System Cron] Running daily checks...');
-        
+        console.log('[System Cron] Running automated daily checks...');
+
         // 1. Check for Pending Reviews (older than 3 days)
         const threeDaysAgo = new Date();
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-        
+
         const { data: pendingApps, error: pendingError } = await supabase
             .from('applications')
             .select('id, profiles!inner(school_id)')
             .eq('status', 'Pending')
             .lt('created_at', threeDaysAgo.toISOString());
-            
+
         if (!pendingError && pendingApps && pendingApps.length > 0) {
             // Group by school
             const appsBySchool = pendingApps.reduce((acc, app) => {
-                const schoolId = app.profiles.school_id;
-                if (!acc[schoolId]) acc[schoolId] = 0;
-                acc[schoolId]++;
+                const schoolId = app.profiles?.school_id;
+                if (schoolId) {
+                    if (!acc[schoolId]) acc[schoolId] = 0;
+                    acc[schoolId]++;
+                }
                 return acc;
             }, {});
-            
+
             for (const [schoolId, count] of Object.entries(appsBySchool)) {
                 await notifyCoordinators({
                     schoolId: schoolId,
@@ -757,46 +779,23 @@ setInterval(async () => {
             }
         }
 
-        // 2. Check for Deadlines (7 days, 3 days, 1 day) & Expirations
-        // (Assuming a 'scholarships' table exists with a 'deadline' column)
-        const today = new Date();
-        const { data: scholarships, error: scholError } = await supabase
-            .from('scholarships')
-            .select('id, title, deadline, school_id');
-            
-        if (!scholError && scholarships) {
-            for (const schol of scholarships) {
-                if (!schol.deadline) continue;
-                const deadlineDate = new Date(schol.deadline);
-                const diffTime = deadlineDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                if ([7, 3, 1].includes(diffDays)) {
-                    await notifyCoordinators({
-                        schoolId: schol.school_id || null, 
-                        eventType: 'DEADLINE_REMINDER',
-                        subject: 'Application Deadline Approaching',
-                        message: `${schol.title} closes in ${diffDays} day(s).`,
-                        resourceId: schol.id
-                    });
-                } else if (diffDays === 0 || diffDays === -1) { // 0 or -1 to catch just expired
-                    // Fire just once when it expires
-                    await notifyCoordinators({
-                        schoolId: schol.school_id || null,
-                        eventType: 'EDUCATIONAL_ASSISTANCE_CLOSED',
-                        subject: 'Educational Assistance Expired',
-                        message: `The application period for ${schol.title} has ended.`,
-                        resourceId: schol.id
-                    });
-                }
-            }
-        }
+        // 2. Check for Approaching Deadlines: Notify enrolled students of the specific institution & coordinators
+        await checkAndNotifyApproachingDeadlines({ targetDays: [7, 5, 3, 2, 1, 0] });
+
     } catch (err) {
         console.error('[System Cron] Error during daily checks:', err);
     }
-}, ONE_DAY_MS);
+};
 
+// Set up periodic interval
+setInterval(runDailyChecks, ONE_DAY_MS);
+
+// Run initial check 5 seconds after server startup
+setTimeout(() => {
+    console.log('[Startup] Executing initial automated deadline & review check...');
+    runDailyChecks();
+}, 5000);
 
 app.listen(PORT, () => {
     console.log(`Grantee Master Backend running on port ${PORT}`);
-});
+});

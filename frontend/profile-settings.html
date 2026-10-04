@@ -433,8 +433,9 @@
                                     </select>
                                 </div>
                                 <div class="input-group full-width">
-                                    <label>Contact Number <span class="text-red">*</span></label>
-                                    <input type="text" id="contact_number" placeholder="e.g., 09123456789">
+                                    <label for="contact_number">Contact Number <span class="text-red">*</span></label>
+                                    <input type="tel" id="contact_number" maxlength="11" minlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="09123456789" required autocomplete="tel">
+                                    <small class="hint-text" style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">Must be an 11-digit mobile number (e.g., 09123456789)</small>
                                 </div>
 
                                 <div class="input-group full-width">

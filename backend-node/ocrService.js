@@ -5,8 +5,6 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function validateDocumentWithGemini(fileBuffer, mimeType, documentType, applicantName, minHsAvg, minCollegeGwa, minHsSubject, minCollegeSubject) {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     // ENHANCED SCHEMA: Added Certificate of Indigency & Highest Performing Grades
     const schemas = {
         "Report Card (Form 138) (High School Level)": [
@@ -107,17 +105,35 @@ async function validateDocumentWithGemini(fileBuffer, mimeType, documentType, ap
         "rejection_reason": "Provide reason if false, else null"
     }`;
 
-    try {
-        const result = await model.generateContent([prompt, documentPart]);
-        const response = await result.response;
-        
-        // Clean markdown formatting if present
-        const jsonString = response.text().replace(/```json/g, '').replace(/```/g, '');
-        return JSON.parse(jsonString);
-    } catch (error) {
-        console.error("Gemini AI Validation Error:", error);
-        throw new Error("Failed to process document validation.");
+    // Fallback across Gemini model tiers in case of 503 high-demand or capacity issues
+    const modelNames = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    let lastError = null;
+
+    for (const modelName of modelNames) {
+        try {
+            const model = genAI.getGenerativeModel({ 
+                model: modelName,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.1
+                }
+            });
+
+            const result = await model.generateContent([prompt, documentPart]);
+            const response = await result.response;
+            
+            // Clean markdown formatting if present
+            const jsonString = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(jsonString);
+            return parsed;
+        } catch (error) {
+            console.warn(`Gemini OCR model ${modelName} failed, attempting next model:`, error.message || error);
+            lastError = error;
+        }
     }
+
+    console.error("Gemini AI Validation Error (All fallback models failed):", lastError);
+    throw new Error("Failed to process document validation.");
 }
 
 module.exports = { validateDocumentWithGemini };

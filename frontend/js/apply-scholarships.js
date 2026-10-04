@@ -798,14 +798,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             formData.append('minHsSubject', currentScholarship.min_hs_subject_grade || 0);
             formData.append('minCollegeSubject', currentScholarship.min_college_subject_grade || 5.0);
 
-            const BACKEND_URL = 'https://grantee-backend-n5f4.onrender.com/api/validate-document';
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const endpoints = isLocal
+                ? ['http://localhost:3000/api/validate-document', 'https://grantee-backend-n5f4.onrender.com/api/validate-document']
+                : ['https://grantee-backend-n5f4.onrender.com/api/validate-document', 'http://localhost:3000/api/validate-document'];
 
-            const response = await fetch(BACKEND_URL, {
-                method: 'POST',
-                body: formData
-            });
+            let response = null;
+            let lastFetchError = null;
 
-            if (!response.ok) throw new Error("Backend validation failed.");
+            for (const url of endpoints) {
+                try {
+                    response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (response && response.ok) break;
+                } catch (e) {
+                    lastFetchError = e;
+                }
+            }
+
+            if (!response || !response.ok) {
+                let errMessage = "Validation failed. Please ensure the backend is running and the file is legible.";
+                if (response) {
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMessage = errJson.error;
+                    } catch (_) {}
+                } else if (lastFetchError) {
+                    errMessage = `Network error: Could not reach the backend server (${lastFetchError.message || 'Connection failed'}).`;
+                }
+                throw new Error(errMessage);
+            }
 
             const validationResult = await response.json();
 
@@ -883,7 +907,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (err) {
             console.error("Validation Error:", err);
-            Swal.fire('Validation Error', 'Validation failed. Please ensure the backend is running and the file is legible.', 'error');
+            Swal.fire('Validation Error', err.message || 'Validation failed. Please ensure the backend is running and the file is legible.', 'error');
             window.removeFile(index);
         }
     }

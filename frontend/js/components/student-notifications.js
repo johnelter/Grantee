@@ -19,7 +19,7 @@
         const combined = title + ' ' + msg;
 
         if (combined.includes('announcement')) return 'student-announcements.html';
-        if (combined.includes('application') || combined.includes('approved') || combined.includes('rejected') || combined.includes('revision')) return 'student-applications.html';
+        if (combined.includes('application') || combined.includes('approved') || combined.includes('rejected') || combined.includes('revision') || combined.includes('beneficiary') || combined.includes('grantee') || combined.includes('enrolled')) return 'student-applications.html';
         if (combined.includes('deadline') || combined.includes('assistance') || combined.includes('scholarship')) return 'student-scholarships.html';
         
         return 'student-dashboard.html';

@@ -25,6 +25,16 @@ function isEmailEnabled(preferences, category) {
     if (category === 'deadlines' && preferences.deadlines !== undefined) {
         return preferences.deadlines !== false;
     }
+    const catLower = (category || '').toLowerCase();
+    if (catLower.includes('beneficiary') || catLower === 'grantee' || catLower.includes('enrolled')) {
+        if (preferences.beneficiary !== undefined) return preferences.beneficiary !== false;
+    }
+    if (catLower.includes('application')) {
+        if (preferences.applications !== undefined) return preferences.applications !== false;
+    }
+    if (catLower.includes('announcement')) {
+        if (preferences.announcements !== undefined) return preferences.announcements !== false;
+    }
     return preferences[category] !== false;
 }
 
@@ -278,7 +288,12 @@ function getNotificationMetadata(eventType, resourceId) {
         case 'DECISION_MADE':
             type = 'status'; priority = 'low'; actionLink = `admin-active-scholars.html${idParam}`; break;
         case 'APPLICATION_APPROVED':
+        case 'BENEFICIARY_ENROLLED':
+        case 'ACTIVE_BENEFICIARY_ENROLLED':
+        case 'ACTIVE_BENEFICIARY':
             type = 'application'; priority = 'low'; actionLink = resourceId ? `student-applications.html?app_id=${resourceId}` : `student-applications.html`; break;
+        case 'BENEFICIARY_REVOKED':
+            type = 'application'; priority = 'high'; actionLink = resourceId ? `student-applications.html?app_id=${resourceId}` : `student-applications.html`; break;
 
         default:
             type = 'system'; priority = 'low'; actionLink = 'login.html';

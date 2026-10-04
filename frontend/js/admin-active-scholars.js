@@ -25,6 +25,16 @@
         'Government Educational Assistance'
     ];
 
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     function showToast(type = 'success', title = '', message = '', duration = 4000) {
         if (window.showUIToast) {
             window.showUIToast(type, title, message, duration);
@@ -32,6 +42,99 @@
             window.showToast(type, title, message, duration);
         } else {
             console.log(`[Toast ${type}] ${title}: ${message}`);
+        }
+    }
+
+    /**
+     * Sends both in-app and email notifications to a student when they are imported or enrolled as an Active Beneficiary.
+     */
+    async function notifyImportedBeneficiary(studentUuid, progName, appId) {
+        if (!studentUuid) return;
+        const safeProgName = progName || 'Educational Assistance';
+        const notifTitle = 'Enrolled as Active Beneficiary';
+        const notifMsg = `You have been officially enrolled as an Active Beneficiary for ${safeProgName}.`;
+        const actionLink = appId ? `student-applications.html?app_id=${appId}` : 'student-applications.html';
+
+        // 1. In-App Notification (Database)
+        try {
+            await window.supabaseClient.from('notifications').insert([{
+                user_id: studentUuid,
+                title: notifTitle,
+                message: notifMsg,
+                type: 'application',
+                priority: 'low',
+                action_link: actionLink,
+                is_read: false
+            }]);
+        } catch (notifErr) {
+            console.warn("Direct in-app notification insert warning:", notifErr);
+        }
+
+        // 2. Email Notification Dispatch via Backend
+        try {
+            const emailHtml = `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #047857 100%); padding: 24px; text-align: center; color: #ffffff;">
+                        <div style="text-transform: uppercase; font-size: 11px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; margin-bottom: 4px;">Beneficiary Enrollment</div>
+                        <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Active Beneficiary Confirmation</h1>
+                    </div>
+                    <div style="padding: 28px 24px; background-color: #ffffff; color: #334155;">
+                        <p style="margin-top: 0; font-size: 15px; color: #0f172a; font-weight: 600;">Congratulations!</p>
+                        <p style="font-size: 14px; line-height: 1.6; color: #334155;">
+                            You have been officially enrolled as an <strong>Active Beneficiary</strong> for <strong>${escapeHtml(safeProgName)}</strong>.
+                        </p>
+                        <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                            <p style="margin: 0; font-size: 13.5px; color: #166534; line-height: 1.5;">
+                                <strong>Status:</strong> Active Beneficiary (Grantee)<br>
+                                <strong>Program:</strong> ${escapeHtml(safeProgName)}
+                            </p>
+                        </div>
+                        <p style="font-size: 13.5px; line-height: 1.6; color: #475569;">
+                            Please log in to your student portal to review your status, application details, and grant schedules.
+                        </p>
+                        <div style="text-align: center; margin: 28px 0 10px 0;">
+                            <a href="https://grantee-drab.vercel.app/${actionLink}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);">
+                                View Beneficiary Status &rarr;
+                            </a>
+                        </div>
+                    </div>
+                    <div style="background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0;">
+                        <p style="margin: 0;">Automated notification from Grantee System. Please do not reply directly.</p>
+                    </div>
+                </div>
+            `;
+
+            const payload = {
+                userIds: [studentUuid],
+                eventType: 'ACTIVE_BENEFICIARY_ENROLLED',
+                subject: `Active Beneficiary: ${safeProgName}`,
+                message: notifMsg,
+                htmlContent: emailHtml,
+                resourceId: appId || null
+            };
+
+            const isLocal = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1' || 
+                            window.location.protocol === 'file:';
+
+            const candidateUrls = isLocal
+                ? ['http://localhost:3000/api/dispatch-notification', 'https://grantee-backend-n5f4.onrender.com/api/dispatch-notification']
+                : ['https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', 'http://localhost:3000/api/dispatch-notification'];
+
+            for (const url of candidateUrls) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) break;
+                } catch (fetchErr) {
+                    // Fallback to next url
+                }
+            }
+        } catch (dispatchErr) {
+            console.warn("Email notification dispatch error:", dispatchErr);
         }
     }
 
@@ -1424,6 +1527,7 @@
 
                 const internalProgram = schoolScholarships.find(s => s.title.toLowerCase() === row.assistance_name.toLowerCase());
                 const finalCategory = row.category;
+                const progName = internalProgram ? internalProgram.title : row.assistance_name;
                 
                 // Keep track of their current memory list so sequential rows don't bypass checks
                 const studentActiveList = activeUserMap[studentUuid] || []; 
@@ -1456,6 +1560,10 @@
                         
                         // Append to memory array to block subsequent rows if they exceed the limit
                         studentActiveList.push({ category: finalCategory, scholarship_id: internalProgram.id }); 
+
+                        // Notify student on email and in-app
+                        await notifyImportedBeneficiary(studentUuid, progName, extApp.id);
+
                         return 'Updated';
                     }
                 } else {
@@ -1488,6 +1596,10 @@
 
                         if (updateOutError) throw updateOutError;
                         studentActiveList.push({ category: finalCategory, outside_assistance_name: row.assistance_name }); 
+
+                        // Notify student on email and in-app
+                        await notifyImportedBeneficiary(studentUuid, progName, extOut.id);
+
                         return 'Updated';
                     }
                 }
@@ -1501,18 +1613,20 @@
                 validateAgainstPolicies(finalCategory, otherActiveList, policyConfig, row.id_number);
 
                 // 3. Proceed to Insert
+                let insertedAppId = null;
                 if (internalProgram) {
-                    const { error: insertError } = await window.supabaseClient.from('applications').insert({
+                    const { data: insertedData, error: insertError } = await window.supabaseClient.from('applications').insert({
                         student_id: studentUuid,
                         scholarship_id: internalProgram.id,
                         status: 'Grantee',
                         duration: row.duration,
                         category: finalCategory,
                         remarks: 'Directly Imported Beneficiary'
-                    });
+                    }).select('id').single();
                     if (insertError) throw insertError; 
+                    insertedAppId = insertedData?.id || null;
                 } else {
-                    const { error: outsideInsertError } = await window.supabaseClient.from('applications').insert({
+                    const { data: insertedData, error: outsideInsertError } = await window.supabaseClient.from('applications').insert({
                         student_id: studentUuid,
                         scholarship_id: null,
                         outside_assistance_name: row.assistance_name,
@@ -1523,12 +1637,17 @@
                         category: finalCategory, 
                         status: 'Grantee',
                         remarks: 'Imported Outside Educational Assistance'
-                    });
+                    }).select('id').single();
                     if (outsideInsertError) throw outsideInsertError; 
+                    insertedAppId = insertedData?.id || null;
                 }
 
                 // Append to memory array
                 studentActiveList.push({ category: finalCategory }); 
+
+                // Notify student on email and in-app
+                await notifyImportedBeneficiary(studentUuid, progName, insertedAppId);
+
                 return 'Inserted';
             });
 
@@ -1571,6 +1690,34 @@
                     module: 'Active Beneficiaries',
                     details: JSON.stringify({ details: `Admin manually corrected categories for ${correctedInvalid.length} records.` })
                 }]);
+            }
+
+            // Notify coordinators/admins of completed bulk import
+            if (currentAdminSchoolId && (insertCount > 0 || updateCount > 0)) {
+                const isLocal = window.location.hostname === 'localhost' || 
+                                window.location.hostname === '127.0.0.1' || 
+                                window.location.protocol === 'file:';
+                const candidateUrls = isLocal
+                    ? ['http://localhost:3000/api/notify-coordinators', 'https://grantee-backend-n5f4.onrender.com/api/notify-coordinators']
+                    : ['https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', 'http://localhost:3000/api/notify-coordinators'];
+
+                for (const url of candidateUrls) {
+                    try {
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                schoolId: currentAdminSchoolId,
+                                eventType: 'IMPORT_COMPLETED',
+                                subject: 'Active Beneficiaries Bulk Import',
+                                message: `Beneficiary import completed: ${insertCount} new beneficiaries enrolled, ${updateCount} records auto-approved.`
+                            })
+                        });
+                        if (res.ok) break;
+                    } catch (e) {
+                        // fallback
+                    }
+                }
             }
 
             let summaryHtml = `<div style="text-align: left; font-size: 14px; margin-top: 10px;">`;
@@ -1948,43 +2095,7 @@
 
                 // If this wasn't already active, send new enrollment notifications
                 if (!alreadyActiveRecord) {
-                    // 1. In-App Notification
-                    try {
-                        await window.supabaseClient.from('notifications').insert([{
-                            user_id: profile.id,
-                            title: 'Enrolled as Active Beneficiary',
-                            message: `You have been officially enrolled as an Active Beneficiary for ${progName}.`,
-                            type: 'application',
-                            action_link: insertedAppId ? `student-applications.html?app_id=${insertedAppId}` : 'student-applications.html',
-                            is_read: false
-                        }]);
-                    } catch (notifErr) {
-                        console.error("In-app notification failed:", notifErr);
-                    }
-
-                    // 2. Dispatch Email / Push notification via backend
-                    try {
-                        fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userIds: [profile.id],
-                                eventType: 'APPLICATION_APPROVED',
-                                subject: `Active Beneficiary: ${progName}`,
-                                message: `You have been officially enrolled as an Active Beneficiary for "${progName}".`,
-                                htmlContent: `
-                                    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
-                                        <h2 style="color: #6B7F4E; margin-top: 0;">Active Beneficiary Confirmation</h2>
-                                        <p>Congratulations! You have been officially enrolled as an Active Beneficiary for <strong>${progName}</strong>.</p>
-                                        <p>Log in to your student dashboard to review your status and benefit schedules.</p>
-                                    </div>
-                                `,
-                                resourceId: insertedAppId
-                            })
-                        }).catch(e => console.error("Notification dispatch failed:", e));
-                    } catch (dispatchErr) {
-                        console.error("Notification dispatch error:", dispatchErr);
-                    }
+                    await notifyImportedBeneficiary(profile.id, progName, insertedAppId);
                 }
 
                 try {

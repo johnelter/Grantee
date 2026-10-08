@@ -10,6 +10,7 @@ const { handleStudentChat } = require('./aiAssistantService');
 
 // --- NEW CONTROLLER IMPORTS ---
 const { createAnnouncement } = require('./controllers/announcementController');
+const { submitApplication } = require('./controllers/applicationController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -367,6 +368,13 @@ app.post('/api/student/applications', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+
+// ============================================================================
+// 8.5 STUDENT: ATOMIC CONCURRENCY-CONTROLLED APPLICATION SUBMISSION
+// ============================================================================
+app.post('/api/student/submit-application', submitApplication);
+
 
 
 // ============================================================================
@@ -795,6 +803,54 @@ setTimeout(() => {
     console.log('[Startup] Executing initial automated deadline & review check...');
     runDailyChecks();
 }, 5000);
+
+// ============================================================================
+// AUTOMATED SCHEDULED BACKUPS & DISASTER RECOVERY (RPO <= 1h / RTO <= 30m)
+// ============================================================================
+const { runFullBackup, listAvailableBackups, restoreBackup } = require('./backupService');
+
+// Configurable backup interval (default: 1 hour for RPO target)
+const BACKUP_INTERVAL_HOURS = parseInt(process.env.BACKUP_INTERVAL_HOURS || '1', 10);
+const BACKUP_INTERVAL_MS = BACKUP_INTERVAL_HOURS * 60 * 60 * 1000;
+
+setInterval(async () => {
+    try {
+        console.log(`[Automated Backup] Running scheduled snapshot (RPO Target: ${BACKUP_INTERVAL_HOURS}h)...`);
+        await runFullBackup({ trigger: 'SCHEDULED_HOURLY' });
+    } catch (err) {
+        console.error('[Automated Backup] Scheduled backup failed:', err);
+    }
+}, BACKUP_INTERVAL_MS);
+
+// Backup Administration API Endpoints
+app.post('/api/admin/backups/trigger', async (req, res) => {
+    try {
+        const result = await runFullBackup({ trigger: 'API_ADMIN_TRIGGER' });
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/admin/backups', (req, res) => {
+    try {
+        const backups = listAvailableBackups();
+        res.status(200).json({ success: true, backups });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/admin/backups/restore', async (req, res) => {
+    const { snapshotId, dryRun } = req.body;
+    if (!snapshotId) return res.status(400).json({ error: "snapshotId is required" });
+    try {
+        const report = await restoreBackup(snapshotId, { dryRun: !!dryRun });
+        res.status(200).json({ success: true, report });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Grantee Master Backend running on port ${PORT}`);

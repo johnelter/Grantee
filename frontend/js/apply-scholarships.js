@@ -180,8 +180,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 4. INIT FUNCTION ---
     async function init() {
         try {
-            // A. Fetch Educational Assistance Details First (To get formatting rules)
-            const { data: sch } = await window.supabaseClient.from('scholarships').select('*').eq('id', scholarshipId).single();
+            // A. Fetch Educational Assistance Details First (To get formatting rules and slot data)
+            const { data: sch, error: schError } = await window.supabaseClient
+                .from('scholarships')
+                .select('*, applications(id, status)')
+                .eq('id', scholarshipId)
+                .single();
+
+            if (schError || !sch) {
+                await Swal.fire({
+                    title: 'Program Not Found',
+                    text: 'The requested educational assistance program does not exist or has been removed.',
+                    icon: 'error',
+                    confirmButtonText: 'Back to Programs',
+                    confirmButtonColor: 'var(--primary-color, #1F3D2E)',
+                    allowOutsideClick: false
+                });
+                window.location.href = 'student-scholarships.html';
+                return;
+            }
+
+            if (sch.status === 'Draft') {
+                await Swal.fire({
+                    title: 'Program Unavailable',
+                    text: 'This educational assistance program is currently not open for applications.',
+                    icon: 'info',
+                    confirmButtonText: 'Back to Programs',
+                    confirmButtonColor: 'var(--primary-color, #1F3D2E)',
+                    allowOutsideClick: false
+                });
+                window.location.href = 'student-scholarships.html';
+                return;
+            }
+
+            // Check if deadline has passed
+            if (sch.end_date) {
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const endDate = new Date(sch.end_date); endDate.setHours(23, 59, 59, 999);
+                if (today > endDate) {
+                    await Swal.fire({
+                        title: 'Application Closed',
+                        html: `Applications for <b>${sch.title}</b> are closed because the application deadline has passed.`,
+                        icon: 'warning',
+                        confirmButtonText: 'Back to Programs',
+                        confirmButtonColor: 'var(--primary-color, #1F3D2E)',
+                        allowOutsideClick: false
+                    });
+                    window.location.href = 'student-scholarships.html';
+                    return;
+                }
+            }
+
+            // Calculate slots and capacity
+            const isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+            const totalSlots = isUnlimited ? null : (parseInt(sch.slots, 10) || 0);
+            let remainingSlots = null;
+            if (!isUnlimited) {
+                if (sch.available_slots !== undefined && sch.available_slots !== null && !isNaN(parseInt(sch.available_slots, 10))) {
+                    remainingSlots = Math.max(0, parseInt(sch.available_slots, 10));
+                } else {
+                    const nonDraftApps = (sch.applications || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
+                    const occupiedApps = nonDraftApps.filter(app => {
+                        const st = (app.status || '').toLowerCase().trim();
+                        return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn';
+                    });
+                    remainingSlots = Math.max(0, totalSlots - occupiedApps.length);
+                }
+            }
+            const occupiedCount = isUnlimited ? 0 : (totalSlots !== null ? Math.max(0, totalSlots - (remainingSlots || 0)) : 0);
+
+            if (!isUnlimited && remainingSlots <= 0) {
+                await Swal.fire({
+                    title: 'Slots Full',
+                    html: `This educational assistance program (<b>${sch.title}</b>) has reached its maximum applicant capacity (<b>${occupiedCount}/${totalSlots} slots taken</b>) and no slots remain available.`,
+                    icon: 'warning',
+                    confirmButtonText: 'Back to Programs',
+                    confirmButtonColor: 'var(--primary-color, #1F3D2E)',
+                    allowOutsideClick: false
+                });
+                window.location.href = 'student-scholarships.html';
+                return;
+            }
+
             currentScholarship = sch;
             const autoFmt = sch.auto_collected_formats || {};
 
@@ -199,7 +279,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (document.getElementById('sch-semester')) document.getElementById('sch-semester').innerText = sch.semester || 'N/A';
             if (document.getElementById('sch-school-year')) document.getElementById('sch-school-year').innerText = sch.school_year || 'N/A';
 
-            if (document.getElementById('sch-slots')) document.getElementById('sch-slots').innerText = sch.slots || 'Unlimited';
+            if (document.getElementById('sch-slots')) {
+                document.getElementById('sch-slots').innerText = isUnlimited ? 'Unlimited' : `${remainingSlots} / ${totalSlots} Slots Left`;
+            }
+
+            if (document.getElementById('sch-status')) {
+                document.getElementById('sch-status').innerText = 'ACTIVE';
+            }
 
             // B. Fetch Student Profile
             const { data: profile } = await window.supabaseClient.from('profiles').select('*').eq('id', studentId).single();
@@ -1044,62 +1130,236 @@ document.addEventListener('DOMContentLoaded', async () => {
         refreshIcons();
 
         try {
-            const payload = {
+            const submissionPayload = {
                 student_id: studentId,
                 scholarship_id: scholarshipId,
-                status: 'Pending',
                 form_responses: formResponses,
-                documents: uploadedDocumentsList
+                documents: uploadedDocumentsList,
+                student_name: studentFullName,
+                student_school_id: studentSchoolId,
+                docs_completed_at: new Date().toISOString()
             };
 
-            const { error } = await window.supabaseClient.from('applications').insert([payload]);
-            if (error) throw error;
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const endpoints = isLocal
+                ? ['http://localhost:3000/api/student/submit-application', 'https://grantee-backend-n5f4.onrender.com/api/student/submit-application']
+                : ['https://grantee-backend-n5f4.onrender.com/api/student/submit-application', 'http://localhost:3000/api/student/submit-application'];
 
-            const notifPayload = {
-                userIds: [studentId],
-                eventType: 'applications',
-                subject: 'Application Submitted',
-                message: 'Your educational assistance application has been successfully submitted and is under review.',
-                htmlContent: `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
-                        <h2 style="color: #1F3D2E; margin-top: 0;">Application Submitted</h2>
-                        <p>Your application has been successfully submitted and is now under review by the administrators.</p>
-                        <p>We will notify you once a decision has been made.</p>
-                    </div>
-                `
-            };
+            let resultData = null;
+            let backendSucceeded = false;
 
-            await fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(notifPayload)
-            }).catch(e => console.error("Notification dispatch failed:", e));
+            // 1. ATTEMPT BACKEND ATOMIC ENDPOINT FIRST
+            for (const url of endpoints) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(submissionPayload)
+                    });
 
-            // Notify Coordinators of new application
-            if (studentSchoolId) {
-                await fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        schoolId: studentSchoolId,
-                        eventType: 'NEW_APPLICATION',
-                        subject: 'New Application Received',
-                        message: `New application received from ${studentFullName} for ${currentScholarship?.title || 'Educational Assistance'}.`,
-                        resourceId: scholarshipId
-                    })
-                }).catch(e => console.error("Coordinator notification failed:", e));
+                    if (response) {
+                        const rawText = await response.text();
+                        let json = null;
+                        try {
+                            json = JSON.parse(rawText);
+                        } catch (_) {
+                            // Non-JSON HTML response (e.g. 404 from Render before deployment)
+                        }
+
+                        if (response.ok && json && json.success) {
+                            resultData = json;
+                            backendSucceeded = true;
+                            break;
+                        } else if (json && json.error) {
+                            // Definite validation error from server (e.g. deadline closed or duplicate)
+                            throw new Error(json.error);
+                        }
+                    }
+                } catch (fetchErr) {
+                    // If it's a real business error thrown above, rethrow
+                    if (fetchErr.message && !fetchErr.message.includes('fetch') && !fetchErr.message.includes('NetworkError') && !fetchErr.message.includes('JSON')) {
+                        throw fetchErr;
+                    }
+                }
             }
 
+            // 2. RESILIENT FALLBACK: If backend endpoint is offline / not yet deployed to Render, handle directly via Supabase
+            if (!backendSucceeded) {
+                console.log("[Apply] Backend endpoint unavailable; executing direct Supabase atomic allocation fallback...");
+
+                // 2a. Duplicate Check
+                const { data: existingApp } = await window.supabaseClient
+                    .from('applications')
+                    .select('id, status')
+                    .eq('student_id', studentId)
+                    .eq('scholarship_id', scholarshipId)
+                    .maybeSingle();
+
+                if (existingApp && !['rejected', 'declined', 'revoked', 'withdrawn'].includes((existingApp.status || '').toLowerCase())) {
+                    throw new Error(`You already have an active application for this scholarship (Status: ${existingApp.status}).`);
+                }
+
+                // 2b. Fetch latest scholarship slots & deadline
+                const { data: latestSch, error: schErr } = await window.supabaseClient
+                    .from('scholarships')
+                    .select('*')
+                    .eq('id', scholarshipId)
+                    .single();
+
+                if (schErr || !latestSch) throw new Error("Could not verify scholarship details.");
+
+                if (latestSch.end_date) {
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    const endDate = new Date(latestSch.end_date); endDate.setHours(23, 59, 59, 999);
+                    if (today > endDate) {
+                        throw new Error("Applications for this educational assistance program are now closed.");
+                    }
+                }
+
+                const isUnlim = latestSch.slots === 'Open' || !latestSch.slots || String(latestSch.slots).toLowerCase() === 'open';
+                let curAvail = 999999;
+                if (!isUnlim) {
+                    const maxSlots = parseInt(latestSch.slots, 10) || 0;
+                    if (latestSch.available_slots !== undefined && latestSch.available_slots !== null && !isNaN(parseInt(latestSch.available_slots, 10))) {
+                        curAvail = parseInt(latestSch.available_slots, 10);
+                    } else {
+                        const { data: activeApps } = await window.supabaseClient
+                            .from('applications')
+                            .select('id, status')
+                            .eq('scholarship_id', scholarshipId);
+
+                        const occupied = (activeApps || []).filter(a => !['rejected', 'declined', 'revoked', 'withdrawn', 'draft', 'waitlisted'].includes((a.status || '').toLowerCase().trim())).length;
+                        curAvail = Math.max(0, maxSlots - occupied);
+                    }
+                }
+
+                // 2c. Allocate: Primary Slot vs Waitlist
+                if (curAvail > 0) {
+                    // Decrement slots
+                    if (!isUnlim) {
+                        const newAvail = Math.max(0, curAvail - 1);
+                        await window.supabaseClient.from('scholarships').update({ available_slots: newAvail }).eq('id', scholarshipId);
+                    }
+
+                    const appPayload = {
+                        student_id: studentId,
+                        scholarship_id: scholarshipId,
+                        status: 'Pending',
+                        form_responses: formResponses,
+                        documents: uploadedDocumentsList,
+                        created_at: new Date().toISOString(),
+                        remarks: `Primary slot secured at ${new Date().toISOString()}`
+                    };
+
+                    const { error: insertErr } = await window.supabaseClient.from('applications').insert([appPayload]);
+                    if (insertErr) throw insertErr;
+
+                    resultData = {
+                        success: true,
+                        isWaitlisted: false,
+                        message: 'Your educational assistance application has been successfully submitted and a slot has been reserved.'
+                    };
+
+                    // Send Notifications
+                    const notifPayload = {
+                        userIds: [studentId],
+                        eventType: 'applications',
+                        subject: 'Application Submitted',
+                        message: 'Your educational assistance application has been successfully submitted and is under review.',
+                        htmlContent: `
+                            <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
+                                <h2 style="color: #1F3D2E; margin-top: 0;">Application Submitted</h2>
+                                <p>Your application has been successfully submitted and a slot has been reserved.</p>
+                            </div>
+                        `
+                    };
+                    fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(notifPayload)
+                    }).catch(() => {});
+
+                } else {
+                    // Slots full: Place on Waitlist
+                    const { count: waitlistCount } = await window.supabaseClient
+                        .from('applications')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('scholarship_id', scholarshipId)
+                        .eq('status', 'Waitlisted');
+
+                    const waitlistPos = (waitlistCount || 0) + 1;
+
+                    const appPayload = {
+                        student_id: studentId,
+                        scholarship_id: scholarshipId,
+                        status: 'Waitlisted',
+                        form_responses: formResponses,
+                        documents: uploadedDocumentsList,
+                        created_at: new Date().toISOString(),
+                        remarks: `All primary slots filled. Placed on Waitlist at Position #${waitlistPos}.`
+                    };
+
+                    const { error: insertErr } = await window.supabaseClient.from('applications').insert([appPayload]);
+                    if (insertErr) throw insertErr;
+
+                    resultData = {
+                        success: true,
+                        isWaitlisted: true,
+                        waitlist_position: waitlistPos,
+                        message: `All regular slots have been filled. You have been placed on the Waitlist at Position #${waitlistPos}.`
+                    };
+                }
+
+                // Notify Coordinators
+                if (studentSchoolId) {
+                    fetch('https://grantee-backend-n5f4.onrender.com/api/notify-coordinators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            schoolId: studentSchoolId,
+                            eventType: 'NEW_APPLICATION',
+                            subject: 'New Application Received',
+                            message: `New application received from ${studentFullName} for ${currentScholarship?.title || 'Educational Assistance'}.`,
+                            resourceId: scholarshipId
+                        })
+                    }).catch(() => {});
+                }
+            }
+
+            // 3. RENDER ALLOCATION OUTCOME
+            if (resultData && resultData.isWaitlisted) {
+                const waitlistPos = resultData.waitlist_position || 1;
+                await Swal.fire({
+                    title: 'Application Waitlisted',
+                    html: `
+                        <div style="text-align: left; font-size: 14px; line-height: 1.6; color: var(--text-color);">
+                            <p style="margin-bottom: 12px;">All primary slots for <strong>${currentScholarship?.title || 'this scholarship'}</strong> were just filled by concurrent submissions.</p>
+                            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+                                <strong style="color: #92400e; display: block; margin-bottom: 4px;">Waitlist Position Assigned: #${waitlistPos}</strong>
+                                <span style="color: #78350f; font-size: 13px;">Your application has been successfully saved. If a slot opens up, waitlisted students are prioritized in order.</span>
+                            </div>
+                        </div>
+                    `,
+                    icon: 'info',
+                    confirmButtonText: 'View My Applications',
+                    confirmButtonColor: 'var(--primary-color, #1F3D2E)'
+                });
+
+                window.location.href = 'student-applications.html';
+                return;
+            }
+
+            // Primary Slot Reserved
             showUIToast(
                 'success',
-                'Success',
-                'Your educational assistance application has been successfully submitted and is under review.',
+                'Application Submitted',
+                resultData?.message || 'Your educational assistance application has been successfully submitted and a slot has been reserved.',
                 3500
             );
 
             setTimeout(() => {
                 window.location.href = 'student-applications.html';
-            }, 3000);
+            }, 2500);
 
         } catch (err) {
             console.error("Submission Error:", err);

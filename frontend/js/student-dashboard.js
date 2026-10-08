@@ -761,8 +761,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 2. Slots Capacity Check
-        const hasUnlimitedSlots = sch.slots === 'Open';
-        if (!hasUnlimitedSlots && sch.available_slots === 0) {
+        const hasUnlimitedSlots = sch.is_unlimited || sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+        if (!hasUnlimitedSlots && (sch.remaining_slots === 0 || sch.available_slots === 0)) {
             return {
                 text: 'Slots Full',
                 icon: 'lock',
@@ -1097,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Fetch scholarships
             let schQuery = window.supabaseClient
                 .from('scholarships')
-                .select('*')
+                .select('*, applications(id, status)')
                 .neq('status', 'Draft')
                 .order('created_at', { ascending: false });
 
@@ -1111,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if ((!rawScholarships || rawScholarships.length === 0) && studentSchoolId) {
                 const { data: fallbackData } = await window.supabaseClient
                     .from('scholarships')
-                    .select('*')
+                    .select('*, applications(id, status)')
                     .neq('status', 'Draft')
                     .order('created_at', { ascending: false });
                 if (fallbackData && fallbackData.length > 0) {
@@ -1128,11 +1128,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Compute dynamic status for each scholarship
-            const scholarshipsWithStatus = rawScholarships.map(sch => ({
-                ...sch,
-                display_status: calculateDynamicStatus(sch)
-            }));
+            // Compute dynamic status and remaining slots for each scholarship
+            const scholarshipsWithStatus = rawScholarships.map(sch => {
+                const isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+                const totalSlots = isUnlimited ? null : (parseInt(sch.slots, 10) || 0);
+
+                let remainingSlots = null;
+                if (!isUnlimited) {
+                    if (sch.available_slots !== undefined && sch.available_slots !== null && !isNaN(parseInt(sch.available_slots, 10))) {
+                        remainingSlots = Math.max(0, parseInt(sch.available_slots, 10));
+                    } else {
+                        const nonDraftApps = (sch.applications || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
+                        const occupiedApps = nonDraftApps.filter(app => {
+                            const st = (app.status || '').toLowerCase().trim();
+                            return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn';
+                        });
+                        remainingSlots = Math.max(0, totalSlots - occupiedApps.length);
+                    }
+                }
+
+                const occupiedCount = isUnlimited ? 0 : (totalSlots !== null ? Math.max(0, totalSlots - (remainingSlots || 0)) : 0);
+
+                return {
+                    ...sch,
+                    is_unlimited: isUnlimited,
+                    applications_count: occupiedCount,
+                    occupied_count: occupiedCount,
+                    approved_count: occupiedCount,
+                    remaining_slots: remainingSlots,
+                    available_slots: remainingSlots,
+                    display_status: calculateDynamicStatus(sch)
+                };
+            });
 
             // Determine if Profile is Complete (Middle name is optional as some students don't have one)
             const requiredProfileFields = ['first_name', 'last_name', 'email', 'id_number', 'date_of_birth', 'gender', 'contact_number', 'address'];

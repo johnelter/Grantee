@@ -1023,6 +1023,22 @@ body.dark-theme .pagination button.active {
     border: 1px solid var(--metric-rejected-border);
 }
 
+.badge-revision,
+.badge-waitlisted {
+    background: #FEF3C7;
+    color: #B45309;
+    border: 1px solid #FCD34D;
+}
+
+[data-theme="dark"] .badge-revision,
+[data-theme="dark"] .badge-waitlisted,
+body.dark-theme .badge-revision,
+body.dark-theme .badge-waitlisted {
+    background: rgba(245, 158, 11, 0.18);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
 .btn-approve,
 .btn-reject,
 .btn-remove,

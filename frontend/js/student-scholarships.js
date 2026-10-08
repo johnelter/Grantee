@@ -230,15 +230,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 {
                     event: '*',
                     schema: 'public',
-                    table: 'applications',
-                    filter: `student_id=eq.${studentId}`
+                    table: 'applications'
                 },
                 (payload) => {
-                    let msg = 'Your application status has been updated.';
-                    if (payload.eventType === 'UPDATE' && payload.new?.status) {
-                        msg = `Your application status changed to: ${payload.new.status}.`;
+                    let msg = 'Assistance programs and applications have been synchronized.';
+                    if (payload.new?.student_id === studentId || payload.old?.student_id === studentId) {
+                        if (payload.eventType === 'UPDATE' && payload.new?.status) {
+                            msg = `Your application status changed to: ${payload.new.status}.`;
+                        }
+                        triggerDebouncedRefresh({ type: 'info', title: 'Application Updated', message: msg });
+                    } else {
+                        // Silent reload for slot counts when other students apply
+                        triggerDebouncedRefresh(null);
                     }
-                    triggerDebouncedRefresh({ type: 'info', title: 'Application Updated', message: msg });
                 }
             )
             .on(
@@ -423,7 +427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let schQuery = window.supabaseClient
                 .from('scholarships')
-                .select('*')
+                .select('*, applications(id, status)')
                 .neq('status', 'Draft')
                 .order('created_at', { ascending: false });
 
@@ -437,7 +441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if ((!rawData || rawData.length === 0) && studentSchoolId) {
                 const { data: fallbackData } = await window.supabaseClient
                     .from('scholarships')
-                    .select('*')
+                    .select('*, applications(id, status)')
                     .neq('status', 'Draft')
                     .order('created_at', { ascending: false });
                 if (fallbackData && fallbackData.length > 0) {
@@ -447,10 +451,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error && (!rawData || rawData.length === 0)) throw error;
 
-            allScholarships = (rawData || []).map(sch => ({
-                ...sch,
-                display_status: calculateDynamicStatus(sch)
-            }));
+            allScholarships = (rawData || []).map(sch => {
+                const isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+                const totalSlots = isUnlimited ? null : (parseInt(sch.slots, 10) || 0);
+
+                let remainingSlots = null;
+                if (!isUnlimited) {
+                    if (sch.available_slots !== undefined && sch.available_slots !== null && !isNaN(parseInt(sch.available_slots, 10))) {
+                        remainingSlots = Math.max(0, parseInt(sch.available_slots, 10));
+                    } else {
+                        const nonDraftApps = (sch.applications || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
+                        const occupiedApps = nonDraftApps.filter(app => {
+                            const st = (app.status || '').toLowerCase().trim();
+                            return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn';
+                        });
+                        remainingSlots = Math.max(0, totalSlots - occupiedApps.length);
+                    }
+                }
+
+                const occupiedCount = isUnlimited ? 0 : (totalSlots !== null ? Math.max(0, totalSlots - (remainingSlots || 0)) : 0);
+
+                return {
+                    ...sch,
+                    is_unlimited: isUnlimited,
+                    applications_count: occupiedCount,
+                    occupied_count: occupiedCount,
+                    approved_count: occupiedCount,
+                    remaining_slots: remainingSlots,
+                    available_slots: remainingSlots,
+                    display_status: calculateDynamicStatus(sch)
+                };
+            });
         } catch (error) {
             console.error('Error fetching assistance programs:', error);
             gridContainer.innerHTML = `
@@ -649,8 +680,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 2. Slots Capacity Check
-        const hasUnlimitedSlots = sch.slots === 'Open';
-        if (!hasUnlimitedSlots && sch.available_slots === 0) {
+        const hasUnlimitedSlots = sch.is_unlimited || sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+        if (!hasUnlimitedSlots && (sch.remaining_slots === 0 || sch.available_slots === 0)) {
             return {
                 text: 'Slots Full',
                 icon: 'lock',
@@ -972,8 +1003,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btnState = validateEligibility(sch);
             const isClosed = sch.display_status === 'Closed';
             const cardOpacity = isClosed ? 'opacity: 0.72;' : '';
-            const isUnlimitedSlots = sch.slots === 'Open';
-            const slotsText = isUnlimitedSlots ? 'Unlimited' : (sch.available_slots !== null ? `${sch.available_slots} Left` : 'Varies');
+            const isUnlimitedSlots = sch.is_unlimited || sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+            const slotsText = isUnlimitedSlots ? 'Unlimited' : (sch.remaining_slots !== null && sch.remaining_slots !== undefined ? (sch.remaining_slots === 0 ? '0 Left (Full)' : `${sch.remaining_slots} Left`) : 'Varies');
 
             // Compute brief description regarding required program & year
             const progs = parseArray(sch.eligibility_programs).map(p => p.trim());

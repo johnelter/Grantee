@@ -333,6 +333,17 @@
                                             <small>Approved and selected scholars</small>
                                         </div>
                                     </button>
+                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Waitlisted')"
+                                        role="menuitem">
+                                        <div class="export-option-icon"
+                                            style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3);">
+                                            <i data-lucide="list-ordered"></i>
+                                        </div>
+                                        <div class="export-option-text">
+                                            <strong>Export Waitlisted Applicants</strong>
+                                            <small>Applicants queued for available slots</small>
+                                        </div>
+                                    </button>
                                     <button type="button" class="export-option-btn" onclick="exportByStatus('Rejected')"
                                         role="menuitem">
                                         <div class="export-option-icon"
@@ -354,6 +365,11 @@
                             <i data-lucide="clock" style="width: 15px; height: 15px;"></i>
                             <span>Pending</span>
                             <span class="tab-badge-count" id="tab-count-pending">0</span>
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('Waitlisted')">
+                            <i data-lucide="list-ordered" style="width: 15px; height: 15px;"></i>
+                            <span>Waitlisted</span>
+                            <span class="tab-badge-count" id="tab-count-waitlisted">0</span>
                         </button>
                         <button class="tab-btn" onclick="switchTab('Approved')">
                             <i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i>

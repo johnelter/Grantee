@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const { data: sch, error } = await window.supabaseClient
                 .from('scholarships')
-                .select('*')
+                .select('*, applications(id, status)')
                 .eq('id', scholarshipId)
                 .single();
 
@@ -53,7 +53,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 deadlineEl.innerText = 'No deadline set';
             }
             
-            slotsEl.innerText = sch.available_slots || 'Unlimited';
+            const isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+            const totalSlots = isUnlimited ? null : (parseInt(sch.slots, 10) || 0);
+            let remainingSlots = null;
+            if (!isUnlimited) {
+                if (sch.available_slots !== undefined && sch.available_slots !== null && !isNaN(parseInt(sch.available_slots, 10))) {
+                    remainingSlots = Math.max(0, parseInt(sch.available_slots, 10));
+                } else {
+                    const nonDraftApps = (sch.applications || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
+                    const occupiedApps = nonDraftApps.filter(app => {
+                        const st = (app.status || '').toLowerCase().trim();
+                        return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn';
+                    });
+                    remainingSlots = Math.max(0, totalSlots - occupiedApps.length);
+                }
+            }
+
+            slotsEl.innerText = isUnlimited ? 'Unlimited' : (remainingSlots === 0 ? `FULL (0/${totalSlots} Left)` : `${remainingSlots} / ${totalSlots} Left`);
             statusEl.innerText = sch.status.toUpperCase();
 
             // 2. Setup Eligibility List

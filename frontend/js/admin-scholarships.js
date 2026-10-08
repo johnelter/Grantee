@@ -334,11 +334,13 @@
     };
 
     // --- 4. FETCH & LOAD SCHOLARSHIPS ---
-    const loadScholarships = async () => {
+    const loadScholarships = async (silent = false) => {
         try {
             if (!currentAdminSchoolId) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--danger-color);">Account error: No school assigned to this admin.</td></tr>`;
-                removeStatSkeletons();
+                if (!silent) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--danger-color);">Account error: No school assigned to this admin.</td></tr>`;
+                    removeStatSkeletons();
+                }
                 return;
             }
 
@@ -351,21 +353,28 @@
             if (error) throw error;
 
             allScholarships = (rawData || []).map(sch => {
-                const totalAppsCount = sch.applications ? sch.applications.length : 0;
-                const passedAppsCount = sch.applications ? sch.applications.filter(app => app.status === 'Passed').length : 0;
-                let isUnlimited = sch.slots === 'Open' || !sch.slots;
+                const nonDraftApps = sch.applications ? sch.applications.filter(a => (a.status || '').toLowerCase() !== 'draft') : [];
+                const totalAppsCount = nonDraftApps.length;
+
+                let isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
                 let remaining = null;
 
                 if (!isUnlimited) {
-                    const totalSlots = parseInt(sch.slots) || 0;
-                    remaining = Math.max(0, totalSlots - passedAppsCount);
+                    const totalSlots = parseInt(sch.slots, 10) || 0;
+                    remaining = Math.max(0, totalSlots - totalAppsCount);
+                    if (sch.available_slots !== remaining) {
+                        window.supabaseClient.from('scholarships').update({ available_slots: remaining }).eq('id', sch.id).then(() => {}).catch(() => {});
+                    }
                 }
 
                 return {
                     ...sch,
                     applications_count: totalAppsCount,
-                    passed_count: passedAppsCount,
+                    occupied_count: totalAppsCount,
+                    passed_count: totalAppsCount,
+                    approved_count: totalAppsCount,
                     remaining_slots: remaining,
+                    available_slots: remaining,
                     is_unlimited: isUnlimited,
                     dynamic_status: calculateDynamicStatus(sch)
                 };
@@ -380,14 +389,16 @@
 
         } catch (error) {
             console.error('Error fetching data:', error);
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--danger-color);">Failed to load data from database.</td></tr>`;
-            removeStatSkeletons();
-            Swal.fire({
-                title: 'Error',
-                text: 'Failed to load data from database.',
-                icon: 'error',
-                confirmButtonColor: '#1F3D2E'
-            });
+            if (!silent) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--danger-color);">Failed to load data from database.</td></tr>`;
+                removeStatSkeletons();
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to load data from database.',
+                    icon: 'error',
+                    confirmButtonColor: '#1F3D2E'
+                });
+            }
         }
     };
 
@@ -647,8 +658,8 @@
                         <div class="preview-info-label">Semester</div>
                         <div class="preview-info-value">${escapeHtml(sch.semester || 'N/A')}</div>
 
-                        <div class="preview-info-label">Available Slots</div>
-                        <div class="preview-info-value">${escapeHtml(sch.slots || 'Unlimited')}</div>
+                        <div class="preview-info-label">Available / Remaining Slots</div>
+                        <div class="preview-info-value">${sch.is_unlimited ? 'Unlimited Slots' : (sch.remaining_slots === 0 ? '<span style="color:var(--danger-color); font-weight:700;">FULL (0/' + sch.slots + ' Left)</span>' : sch.remaining_slots + ' / ' + sch.slots + ' Slots Left')}</div>
 
                         <div class="preview-info-label">School Year</div>
                         <div class="preview-info-value">${escapeHtml(sch.school_year || 'N/A')}</div>
@@ -1287,7 +1298,7 @@
             const end = formatDate(sch.end_date);
             const status = sch.dynamic_status || 'Unknown';
             const appsCount = sch.applications_count || 0;
-            const slots = sch.is_unlimited ? 'Unlimited' : sch.remaining_slots;
+            const slots = sch.is_unlimited ? 'Unlimited' : (sch.remaining_slots === 0 ? `FULL (0/${sch.slots})` : `${sch.remaining_slots}/${sch.slots}`);
 
             csvContent += `${name},${category},${type},${start},${end},${status},${appsCount},${slots}\n`;
         });
@@ -1333,7 +1344,7 @@
                 formatDate(sch.end_date),
                 sch.dynamic_status || 'Unknown',
                 sch.applications_count || 0,
-                sch.is_unlimited ? 'Unlimited' : sch.remaining_slots
+                sch.is_unlimited ? 'Unlimited' : (sch.remaining_slots === 0 ? `FULL (0/${sch.slots})` : `${sch.remaining_slots}/${sch.slots}`)
             ];
             tableRows.push(rowData);
         });
@@ -1737,6 +1748,59 @@
         });
     }
 
+    // ==========================================
+    // REALTIME SUBSCRIPTIONS & LIFECYCLE
+    // ==========================================
+    let refreshDebounceTimer = null;
+    const triggerDebouncedRefresh = () => {
+        clearTimeout(refreshDebounceTimer);
+        refreshDebounceTimer = setTimeout(() => {
+            loadScholarships(true);
+        }, 300);
+    };
+
+    let realtimeChannel = null;
+    function setupRealtimeSubscriptions() {
+        if (!window.supabaseClient) return;
+        try {
+            if (realtimeChannel) {
+                window.supabaseClient.removeChannel(realtimeChannel);
+            }
+        } catch (e) { }
+
+        realtimeChannel = window.supabaseClient.channel('admin-scholarships-realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'scholarships' },
+                () => triggerDebouncedRefresh()
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'applications' },
+                () => triggerDebouncedRefresh()
+            )
+            .subscribe();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            triggerDebouncedRefresh();
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        triggerDebouncedRefresh();
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (realtimeChannel && window.supabaseClient) {
+            try {
+                window.supabaseClient.removeChannel(realtimeChannel);
+            } catch (e) { }
+        }
+    });
+
     // INIT
-    loadProfile();
+    await loadProfile();
+    setupRealtimeSubscriptions();
 })();

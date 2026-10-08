@@ -264,6 +264,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 progress = 60;
                 barColor = 'var(--badge-revision-color, #d97706)';
                 displayStatus = 'Revision Required';
+            } else if (statusLower === 'waitlisted') {
+                badgeClass = 'badge-revision';
+                progress = 35;
+                barColor = '#f59e0b';
+                displayStatus = 'Waitlisted';
             } else {
                 badgeClass = 'badge-review';
                 progress = 50;

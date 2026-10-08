@@ -124,6 +124,7 @@
         const value = (status || '').toString().trim().toLowerCase();
         if (value === 'grantee' || value === 'passed' || value === 'approved') return 'approved';
         if (value === 'declined' || value === 'rejected') return 'rejected';
+        if (value === 'waitlisted' || value === 'waitlist') return 'waitlisted';
         if (value === 'pending' || value === 'under review' || value === 'submitted' || value === 'review') return 'pending';
         return value || 'pending';
     };
@@ -132,6 +133,7 @@
         const normalized = normalizeApplicantStatus(status);
         if (normalized === 'approved') return 'Approved';
         if (normalized === 'rejected') return 'Rejected';
+        if (normalized === 'waitlisted') return 'Waitlisted';
         if (normalized === 'pending') return 'Pending';
         return normalized.charAt(0).toUpperCase() + normalized.slice(1);
     };
@@ -393,6 +395,7 @@
                 return st === 'pending' || st === 'under review';
             }).length;
             const approvedCount = apps.filter(a => normalizeApplicantStatus(a.status) === 'approved').length;
+            const waitlistedCount = apps.filter(a => normalizeApplicantStatus(a.status) === 'waitlisted').length;
 
             const card = document.createElement('div');
             card.className = 'data-panel card-hoverable';
@@ -432,6 +435,12 @@
                         <span class="card-stat-label">Pending</span>
                         <span class="card-stat-val-pending">${pendingCount}</span>
                     </div>
+                    ${waitlistedCount > 0 ? `
+                    <div style="text-align:center;">
+                        <span class="card-stat-label" style="color: #b45309;">Waitlisted</span>
+                        <span style="font-weight: 700; color: #d97706; font-size: 14px;">${waitlistedCount}</span>
+                    </div>
+                    ` : ''}
                     <div style="text-align:right;">
                         <span class="card-stat-label">Approved</span>
                         <span class="card-stat-val-approved">${approvedCount}</span>
@@ -459,6 +468,7 @@
         if (initialTab) {
             const norm = initialTab.trim().toLowerCase();
             if (norm === 'approved') targetTab = 'Approved';
+            else if (norm === 'waitlisted' || norm === 'waitlist') targetTab = 'Waitlisted';
             else if (norm === 'rejected' || norm === 'declined') targetTab = 'Rejected';
             else targetTab = 'Pending';
         }
@@ -466,7 +476,7 @@
         activeTabStatus = targetTab;
         const sortSelect = document.getElementById('sort-date-select');
         if (sortSelect) {
-            if (targetTab === 'Pending') {
+            if (targetTab === 'Pending' || targetTab === 'Waitlisted') {
                 sortSelect.value = 'asc';
             }
         }
@@ -484,6 +494,9 @@
             if (targetTab === 'Pending') {
                 badge.innerHTML = `<i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation`;
                 badge.className = 'badge-status badge-pending';
+            } else if (targetTab === 'Waitlisted') {
+                badge.innerHTML = `<i data-lucide="list-ordered" style="width: 12px; height: 12px;"></i> Waitlisted Applicants`;
+                badge.className = 'badge-status badge-revision';
             } else if (targetTab === 'Approved') {
                 badge.innerHTML = `<i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Approved Applicants`;
                 badge.className = 'badge-status badge-approved';
@@ -506,6 +519,7 @@
                 const appNorm = normalizeApplicantStatus(targetApp.status);
                 let neededTab = 'Pending';
                 if (appNorm === 'approved') neededTab = 'Approved';
+                else if (appNorm === 'waitlisted') neededTab = 'Waitlisted';
                 else if (appNorm === 'rejected') neededTab = 'Rejected';
 
                 if (activeTabStatus !== neededTab) {
@@ -567,10 +581,12 @@
 
             // Update Tab Badge Counts
             const pendingCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'pending').length;
+            const waitlistedCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'waitlisted').length;
             const approvedCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'approved').length;
             const rejectedCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'rejected').length;
 
             if (document.getElementById('tab-count-pending')) document.getElementById('tab-count-pending').innerText = pendingCount;
+            if (document.getElementById('tab-count-waitlisted')) document.getElementById('tab-count-waitlisted').innerText = waitlistedCount;
             if (document.getElementById('tab-count-approved')) document.getElementById('tab-count-approved').innerText = approvedCount;
             if (document.getElementById('tab-count-rejected')) document.getElementById('tab-count-rejected').innerText = rejectedCount;
 
@@ -590,7 +606,7 @@
         activeTabStatus = status;
 
         const sortSelect = document.getElementById('sort-date-select');
-        if (sortSelect && status === 'Pending') {
+        if (sortSelect && (status === 'Pending' || status === 'Waitlisted')) {
             sortSelect.value = 'asc';
         }
 
@@ -606,6 +622,9 @@
             if (status === 'Pending') {
                 badge.innerHTML = `<i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation`;
                 badge.className = 'badge-status badge-pending';
+            } else if (status === 'Waitlisted') {
+                badge.innerHTML = `<i data-lucide="list-ordered" style="width: 12px; height: 12px;"></i> Waitlisted Applicants`;
+                badge.className = 'badge-status badge-revision';
             } else if (status === 'Approved') {
                 badge.innerHTML = `<i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Approved Applicants`;
                 badge.className = 'badge-status badge-approved';
@@ -631,7 +650,7 @@
         const searchInput = document.getElementById('search-applicant');
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const sortSelect = document.getElementById('sort-date-select');
-        const sortOrder = sortSelect ? sortSelect.value : (activeTabStatus === 'Pending' ? 'asc' : 'desc');
+        const sortOrder = sortSelect ? sortSelect.value : (activeTabStatus === 'Pending' || activeTabStatus === 'Waitlisted' ? 'asc' : 'desc');
         const tbody = document.getElementById('applicants-tbody');
         if (!tbody) return;
 
@@ -640,9 +659,11 @@
 
             const matchStatus = activeTabStatus === 'Pending'
                 ? (currentAppStatus === 'pending')
-                : activeTabStatus === 'Approved'
-                    ? (currentAppStatus === 'approved')
-                    : (currentAppStatus === 'rejected');
+                : activeTabStatus === 'Waitlisted'
+                    ? (currentAppStatus === 'waitlisted')
+                    : activeTabStatus === 'Approved'
+                        ? (currentAppStatus === 'approved')
+                        : (currentAppStatus === 'rejected');
 
             const fname = app.profiles?.first_name || '';
             const mname = app.profiles?.middle_name || '';
@@ -711,8 +732,11 @@
                 statusClass = 'badge-approved';
                 statusIcon = 'check-circle-2';
                 displayStatus = 'Approved';
-            }
-            if (normalizedStatus === 'rejected') {
+            } else if (normalizedStatus === 'waitlisted') {
+                statusClass = 'badge-revision';
+                statusIcon = 'list-ordered';
+                displayStatus = 'Waitlisted';
+            } else if (normalizedStatus === 'rejected') {
                 statusClass = 'badge-rejected';
                 statusIcon = 'x-circle';
                 displayStatus = 'Rejected';
@@ -728,6 +752,18 @@
                         <button type="button" class="btn-reject" onclick="confirmUpdateStatus('${app.id}', 'Rejected', 'Reject')" title="Reject applicant">
                             <i data-lucide="x" style="width: 14px; height: 14px;"></i> Reject
                         </button>
+                        <button type="button" class="btn-outline" onclick="openApplicantModal('${app.id}')" title="View applicant responses and documents">
+                            <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> View Responses
+                        </button>
+                    </div>
+                `;
+            } else if (activeTabStatus === 'Waitlisted') {
+                // Coordinators can view waitlisted applicant details/responses but CANNOT approve or reject them
+                actionsHtml = `
+                    <div style="display:flex; gap:8px; justify-content: flex-end; align-items: center;">
+                        <span class="count-pill" style="font-size: 11.5px; padding: 4px 10px; background: rgba(245, 158, 11, 0.12); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.3);">
+                            <i data-lucide="lock" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 3px;"></i> Waitlisted (Locked)
+                        </span>
                         <button type="button" class="btn-outline" onclick="openApplicantModal('${app.id}')" title="View applicant responses and documents">
                             <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> View Responses
                         </button>
@@ -847,6 +883,9 @@
             if (normalizedStatus === 'approved') {
                 badgeClass = 'badge-approved';
                 badgeIcon = 'check-circle-2';
+            } else if (normalizedStatus === 'waitlisted') {
+                badgeClass = 'badge-revision';
+                badgeIcon = 'list-ordered';
             } else if (normalizedStatus === 'rejected' || normalizedStatus === 'declined') {
                 badgeClass = 'badge-rejected';
                 badgeIcon = 'x-circle';
@@ -860,7 +899,7 @@
             ? `<img src="${app.profiles.avatar_url}" alt="${displayName}" class="modal-profile-avatar" onerror="this.onerror=null; this.outerHTML='<div class=\\'modal-profile-avatar-fallback\\'>${initials}</div>'">`
             : `<div class="modal-profile-avatar-fallback">${initials}</div>`;
 
-        // Rejection / Decision / Remarks Notice
+        // Rejection / Waitlist / Decision / Remarks Notice
         let rejectionBannerHtml = '';
         if (normalizedStatus === 'rejected' || normalizedStatus === 'declined' || normalizedStatus === 'revoked') {
             const isRevoked = normalizedStatus === 'revoked';
@@ -872,6 +911,18 @@
                     </div>
                     <p style="margin: 0; font-size: 13.5px; color: var(--text-main); line-height: 1.5; font-weight: 500;">
                         ${app.remarks || (isRevoked ? 'Beneficiary status was revoked by the institution.' : 'Application was not approved during evaluation.')}
+                    </p>
+                </div>
+            `;
+        } else if (normalizedStatus === 'waitlisted') {
+            rejectionBannerHtml = `
+                <div class="modal-waitlist-card" style="margin-bottom: 20px; background: rgba(245, 158, 11, 0.09); border: 1px solid rgba(245, 158, 11, 0.3); border-left: 4px solid #f59e0b; border-radius: 12px; padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <i data-lucide="list-ordered" style="width: 17px; height: 17px; color: #d97706;"></i>
+                        <strong style="color: #b45309; font-size: 14px; font-weight: 700;">Waitlist Status & Information</strong>
+                    </div>
+                    <p style="margin: 0; font-size: 13.5px; color: var(--text-main); line-height: 1.5; font-weight: 500;">
+                        ${app.remarks || 'This applicant was placed on the Waitlist due to exhausted primary slots. Evaluation actions are locked.'}
                     </p>
                 </div>
             `;
@@ -1122,6 +1173,16 @@
                         <i data-lucide="check" style="width: 14px; height: 14px;"></i> Approve
                     </button>
                 `;
+            } else if (normalizedStatus === 'waitlisted') {
+                footerBtnsHtml = `
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 12px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 8px 14px; border-radius: 8px; color: #b45309; font-size: 13px; font-weight: 500;">
+                            <i data-lucide="lock" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+                            <span><strong>Waitlisted Application:</strong> Evaluation & Approval actions are locked. Waitlisted applicants will be promoted in order when a primary slot opens up.</span>
+                        </div>
+                        <button type="button" class="btn-outline" onclick="closeApplicantModal()">Close</button>
+                    </div>
+                `;
             } else if (normalizedStatus === 'approved') {
                 footerBtnsHtml = `
                     <span class="badge-status badge-approved"><i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Approved</span>
@@ -1251,6 +1312,17 @@
 
     // --- 8. POLICY VALIDATION & APPROVAL LOGIC ---
     window.confirmUpdateStatus = async (appId, newStatus, actionName) => {
+        const targetApp = currentApplications.find(a => a.id === appId);
+        if (targetApp && normalizeApplicantStatus(targetApp.status) === 'waitlisted') {
+            await Swal.fire({
+                title: 'Action Restricted',
+                html: 'This applicant is currently on the <strong>Waitlist</strong>.<br><br>Coordinators cannot approve or reject waitlisted applicants while they are waiting in the queue.',
+                icon: 'warning',
+                confirmButtonColor: '#1F3D2E'
+            });
+            return;
+        }
+
         if (newStatus === 'Approved') {
             await processApprovalWithPolicyValidation(appId);
         } else if (newStatus === 'Rejected') {
@@ -1549,6 +1621,22 @@
             targetApp.status = newStatus;
             targetApp.remarks = updatePayload.remarks;
 
+            // Recalculate & sync available_slots for this scholarship
+            if (targetApp.scholarship_id) {
+                try {
+                    const { data: schRow } = await window.supabaseClient.from('scholarships').select('id, slots').eq('id', targetApp.scholarship_id).single();
+                    if (schRow && schRow.slots && schRow.slots !== 'Open' && String(schRow.slots).toLowerCase() !== 'open') {
+                        const { data: allSchApps } = await window.supabaseClient.from('applications').select('id, status').eq('scholarship_id', targetApp.scholarship_id).neq('status', 'Draft');
+                        const totalApps = (allSchApps || []).length;
+                        const totalSlots = parseInt(schRow.slots, 10) || 0;
+                        const newAvail = Math.max(0, totalSlots - totalApps);
+                        await window.supabaseClient.from('scholarships').update({ available_slots: newAvail }).eq('id', targetApp.scholarship_id);
+                    }
+                } catch (slotSyncErr) {
+                    console.warn("Could not sync scholarship available_slots:", slotSyncErr);
+                }
+            }
+
             const schName = targetApp.scholarships ? targetApp.scholarships.title : (activeScholarshipData?.title || 'the educational assistance program');
 
             // Dynamic Notification Messaging based on evaluation
@@ -1720,6 +1808,7 @@
             const normalizedStatus = normalizeApplicantStatus(app.status);
             if (targetStatus === 'Pending') return normalizedStatus === 'pending' || normalizedStatus === 'under review';
             if (targetStatus === 'Approved') return normalizedStatus === 'approved';
+            if (targetStatus === 'Waitlisted') return normalizedStatus === 'waitlisted';
             return normalizedStatus === targetStatus.toLowerCase();
         });
 

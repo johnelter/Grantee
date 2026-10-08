@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const { data: scholarships, error } = await window.supabaseClient
                 .from('scholarships')
-                .select('*')
+                .select('*, applications(id, status)')
                 .eq('status', 'Active')
                 .eq('school_id', schoolId)
                 .order('created_at', { ascending: false });
@@ -455,11 +455,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 // 4. Available Slots
+                const isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
+                const approvedApps = (sch.applications || []).filter(app => {
+                    const st = (app.status || '').toLowerCase().trim();
+                    return st === 'approved' || st === 'grantee' || st === 'passed';
+                });
+                const approvedCount = approvedApps.length;
+                const totalSlots = isUnlimited ? null : (parseInt(sch.slots, 10) || 0);
+                const remainingSlots = isUnlimited ? null : Math.max(0, totalSlots - approvedCount);
+
                 let slotsText = 'Slots Vary';
-                if (sch.slots === 'Open' || sch.available_slots === 'Unlimited') {
+                if (isUnlimited) {
                     slotsText = 'Open / Unlimited';
-                } else if (sch.available_slots !== undefined && sch.available_slots !== null) {
-                    slotsText = `${sch.available_slots} Slots Available`;
+                } else if (remainingSlots === 0) {
+                    slotsText = 'Slots Full (0 Left)';
+                } else if (remainingSlots !== null) {
+                    slotsText = `${remainingSlots} Slots Available`;
                 }
 
                 // 5. Description handling

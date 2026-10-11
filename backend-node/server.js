@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -11,6 +12,7 @@ const { handleStudentChat } = require('./aiAssistantService');
 // --- NEW CONTROLLER IMPORTS ---
 const { createAnnouncement } = require('./controllers/announcementController');
 const { submitApplication } = require('./controllers/applicationController');
+const { getRankedShortlist } = require('./controllers/shortlistController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -374,6 +376,11 @@ app.post('/api/student/applications', async (req, res) => {
 // 8.5 STUDENT: ATOMIC CONCURRENCY-CONTROLLED APPLICATION SUBMISSION
 // ============================================================================
 app.post('/api/student/submit-application', submitApplication);
+
+// ============================================================================
+// 8.6 EDUCATIONAL PROVIDERS & COORDINATORS: RANKED SHORTLIST EVALUATION
+// ============================================================================
+app.get('/api/scholarships/:scholarshipId/ranked-shortlist', getRankedShortlist);
 
 
 

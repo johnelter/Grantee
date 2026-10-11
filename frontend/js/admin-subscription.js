@@ -543,21 +543,28 @@
                 // Redirect user to PayMongo official checkout page
                 window.location.href = session.checkout_url;
             } else if (session && !session.configured) {
-                // Key not configured yet in .env - prompt user
+                // Key not configured yet on deployed Render backend or local .env
                 if (window.Swal) {
                     Swal.fire({
                         icon: 'info',
-                        title: 'PayMongo Gateway Ready for Setup',
+                        title: 'PayMongo Secret Key Required',
                         html: `
-                            <p style="font-size: 14px; text-align: left; line-height: 1.5; color: #475569;">
-                                The online payment architecture is fully integrated in Grantee!
-                                <br><br>
-                                To enable live redirection to GCash/Maya and deposit school funds directly into your online bank account:
-                                <br><br>
-                                <strong>1.</strong> Add your PayMongo API keys to <code>backend-node/.env</code> (<code>PAYMONGO_SECRET_KEY</code>).<br>
-                                <strong>2.</strong> Link your Philippine bank account in PayMongo Dashboard.<br><br>
-                                In the meantime, you can use the <strong>Direct Settlement</strong> channel below to record and activate licensing immediately!
-                            </p>
+                            <div style="font-size: 13.5px; text-align: left; line-height: 1.6; color: #475569;">
+                                <p style="margin-bottom: 12px; font-weight: 600; color: #1e293b;">
+                                    The deployed backend cannot redirect to <code>checkout.paymongo.com</code> because <code>PAYMONGO_SECRET_KEY</code> is not configured.
+                                </p>
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                    <strong style="color: #0f172a; display: block; margin-bottom: 6px;">How to enable PayMongo on Deployed Server (Render):</strong>
+                                    1. Open your <a href="https://dashboard.render.com" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 600;">Render Dashboard</a>.<br>
+                                    2. Select your backend service (<code>grantee-backend-n5f4</code>).<br>
+                                    3. Go to the <strong>Environment</strong> tab.<br>
+                                    4. Add <strong><code>PAYMONGO_SECRET_KEY</code></strong> = <code>sk_test_...</code> (or <code>sk_live_...</code>).<br>
+                                    5. Click <strong>Save Changes</strong>. Render will redeploy automatically!
+                                </div>
+                                <p style="font-size: 12.5px; color: #64748b;">
+                                    For local development, add <code>PAYMONGO_SECRET_KEY</code> to <code>backend-node/.env</code>.
+                                </p>
+                            </div>
                         `,
                         showCancelButton: true,
                         confirmButtonText: 'View Setup Guide',
@@ -719,31 +726,163 @@
     };
 
     /**
-     * Handle "Open in GCash" Click
+     * Handle "Open in GCash / Maya / Banking App" Click
+     * Intelligently launches native mobile wallet apps on Android & iOS without prematurely blocking popups
      */
     window.handleOpenGcashAppClick = function () {
-        // Attempt deep link on mobile devices
-        try {
-            window.location.href = 'gcash://';
-        } catch (e) {}
+        const btn = document.getElementById('btn-open-gcash-app');
+        const originalText = btn ? btn.innerHTML : 'Open in GCash';
 
-        if (window.Swal) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Open in GCash App',
-                html: `
-                    <p style="font-size: 14px; color: #475569; text-align: left; line-height: 1.5;">
-                        If you are on mobile with GCash installed, the app will open directly.
-                        <br><br>
-                        On desktop, log in to your GCash app and <strong>scan the QR code</strong> on screen with the QR scanner!
-                        <br><br>
-                        Once confirmed, copy your <strong>GCash Reference No.</strong> from the SMS or receipt and click <strong>"I Have Completed the Payment"</strong> below to instantly activate your institutional license.
-                    </p>
-                `,
-                confirmButtonText: 'Got It',
-                confirmButtonColor: '#0057E7'
-            });
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+        const isAndroid = /android/i.test(userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+        const isMobile = isAndroid || isIOS || /mobile|tablet/i.test(userAgent);
+
+        const gcashCfg = cachedPaymentConfig?.receiving_accounts?.wallets?.find(w => w.id === 'wallet_gcash' || w.wallet_name.includes('GCash'));
+        const mobileNumber = gcashCfg?.mobile_number || '09700551207';
+        const accountName = gcashCfg?.account_name || 'John Elter Gelig';
+
+        // 1. DESKTOP EXPERIENCE: Guide user to scan QR code on their screen
+        if (!isMobile) {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Scan QR with your Smartphone',
+                    html: `
+                        <div style="font-size: 13.5px; text-align: left; line-height: 1.6; color: #475569;">
+                            <p style="margin-bottom: 10px;">
+                                <strong>GCash is a mobile application.</strong> To complete payment from your computer:
+                            </p>
+                            <ol style="padding-left: 18px; margin-bottom: 14px;">
+                                <li style="margin-bottom: 6px;">Open the <strong>GCash</strong> app on your mobile phone.</li>
+                                <li style="margin-bottom: 6px;">Tap the <strong>QR Scanner</strong> icon and scan the QR code displayed on this screen.</li>
+                                <li>Or Send Money directly to <strong>${mobileNumber}</strong> (${accountName}).</li>
+                            </ol>
+                            <div style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>GCash No: <strong style="color: #0057E7;">${mobileNumber}</strong></span>
+                                <button type="button" onclick="navigator.clipboard.writeText('${mobileNumber}'); if (window.Swal) Swal.showValidationMessage('Copied ${mobileNumber} to clipboard!');" style="background: #0057E7; color: white; border: none; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Copy Number</button>
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'Got It',
+                    confirmButtonColor: '#0057E7'
+                });
+            }
+            return;
         }
+
+        // 2. MOBILE EXPERIENCE: LAUNCH NATIVE APP DIRECTLY
+        let appName = 'GCash';
+        let deepLink = 'gcash://';
+        let intentLink = 'intent://#Intent;scheme=gcash;package=com.globe.gcash.android;end';
+        let storeLink = isAndroid
+            ? 'https://play.google.com/store/apps/details?id=com.globe.gcash.android'
+            : 'https://apps.apple.com/ph/app/gcash/id520358135';
+
+        if (selectedPaymentMethod === 'Maya') {
+            appName = 'Maya';
+            deepLink = 'paymaya://';
+            intentLink = 'intent://#Intent;scheme=paymaya;package=com.paymaya;end';
+            storeLink = isAndroid
+                ? 'https://play.google.com/store/apps/details?id=com.paymaya'
+                : 'https://apps.apple.com/ph/app/maya-credit-wallet-bank/id991898455';
+        } else if (selectedPaymentMethod === 'Bank Transfer') {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Open Your Mobile Banking App',
+                    text: 'Please switch to your banking app (BDO, BPI, Landbank, UnionBank, etc.) to scan the universal QR Ph or transfer using our bank account details.',
+                    confirmButtonText: 'Got It',
+                    confirmButtonColor: '#1F3D2E'
+                });
+            }
+            return;
+        }
+
+        if (btn) {
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Opening ${appName}...`;
+            btn.disabled = true;
+        }
+
+        let appOpened = false;
+
+        // Listen for visibility change (detects when user successfully leaves browser to native app)
+        const onVisibilityChange = () => {
+            if (document.hidden) {
+                appOpened = true;
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange, { once: true });
+
+        // Trigger deep link via Anchor click (avoids modern Android Chrome blocking window.location.href)
+        const targetUrl = isAndroid ? intentLink : deepLink;
+        const clicker = document.createElement('a');
+        clicker.href = targetUrl;
+        clicker.rel = 'noopener noreferrer';
+        clicker.style.display = 'none';
+        document.body.appendChild(clicker);
+
+        try {
+            clicker.click();
+        } catch (err) {
+            console.warn('Clicker error, falling back to location.href:', err);
+            window.location.href = targetUrl;
+        }
+
+        // Secondary fallback for Android if Intent URL was not handled
+        if (isAndroid) {
+            setTimeout(() => {
+                if (!appOpened && !document.hidden) {
+                    try {
+                        window.location.href = deepLink;
+                    } catch (e) {}
+                }
+            }, 600);
+        }
+
+        // Clean up and restore button; only display fallback if app did NOT launch
+        setTimeout(() => {
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            if (clicker.parentNode) clicker.parentNode.removeChild(clicker);
+
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+
+            // Only show modal if the user remained in the browser after 2 seconds
+            if (!appOpened && !document.hidden) {
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: `Opening ${appName} App`,
+                        html: `
+                            <div style="font-size: 13.5px; text-align: left; line-height: 1.6; color: #475569;">
+                                <p style="margin-bottom: 10px;">
+                                    If <strong>${appName}</strong> didn't launch automatically, you can open your GCash app and transfer directly:
+                                </p>
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                    <strong style="color: #0f172a; display: block; margin-bottom: 4px;">Verified Direct Transfer Details:</strong>
+                                    <span>Recipient: <strong>${accountName}</strong></span><br>
+                                    <span>${appName} Number: <strong style="color: #0057E7; font-size: 15px;">${mobileNumber}</strong></span>
+                                </div>
+                                <p style="font-size: 12.5px; color: #64748b; margin-bottom: 0;">
+                                    Tip: You can also take a screenshot of the QR code on screen and select <strong>"Upload QR"</strong> inside your GCash app!
+                                </p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: `Install / Open Store`,
+                        cancelButtonText: 'I Will Pay Manually',
+                        confirmButtonColor: '#0057E7'
+                    }).then(res => {
+                        if (res.isConfirmed) {
+                            window.open(storeLink, '_blank');
+                        }
+                    });
+                }
+            }
+        }, 2200);
     };
 
     /**

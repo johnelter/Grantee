@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const { createClient } = require('@supabase/supabase-js');
 
 // These keys are found in your Supabase Project Settings > API

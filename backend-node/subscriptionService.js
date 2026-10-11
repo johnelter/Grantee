@@ -555,7 +555,7 @@ async function createPaymongoCheckoutSession({
     if (!paymongoKey) {
         return {
             configured: false,
-            message: 'PAYMONGO_SECRET_KEY not set in backend-node/.env. Please configure PayMongo keys or use Direct Bank / Wallet payment.',
+            message: 'PAYMONGO_SECRET_KEY is not configured in the server environment. Please set PAYMONGO_SECRET_KEY in your Render dashboard (Environment Variables) or backend-node/.env.',
             plan: plan,
             schoolName: schoolName
         };
@@ -567,6 +567,12 @@ async function createPaymongoCheckoutSession({
     const frontendBase = process.env.FRONTEND_URL || 'http://127.0.0.1:5500/frontend';
     const defSuccess = `${frontendBase}/admin-subscription.html?payment=success&school_id=${schoolId}&session_id={CHECKOUT_SESSION_ID}`;
     const defCancel = `${frontendBase}/admin-subscription.html?payment=cancelled&school_id=${schoolId}`;
+
+    // Standard universally enabled payment methods on all PayMongo accounts (Cards, GCash, Maya)
+    const customMethods = process.env.PAYMONGO_PAYMENT_METHODS
+        ? process.env.PAYMONGO_PAYMENT_METHODS.split(',').map(m => m.trim().toLowerCase())
+        : null;
+    const initialPaymentMethods = customMethods || ['card', 'gcash', 'paymaya'];
 
     const payload = {
         data: {
@@ -588,7 +594,7 @@ async function createPaymongoCheckoutSession({
                         quantity: 1
                     }
                 ],
-                payment_method_types: ['gcash', 'paymaya', 'card', 'grab_pay', 'dob', 'billease'],
+                payment_method_types: initialPaymentMethods,
                 success_url: successUrl || defSuccess,
                 cancel_url: cancelUrl || defCancel,
                 metadata: {
@@ -615,9 +621,9 @@ async function createPaymongoCheckoutSession({
 
     let data = await res.json();
     if (!res.ok) {
-        // Automatic fallback: If optional channels like grab_pay or billease are not activated on the merchant account, retry with core types
-        if (data.errors && data.errors.some(e => e.detail && (e.detail.toLowerCase().includes('payment_method_types') || e.detail.toLowerCase().includes('not enabled') || e.detail.toLowerCase().includes('not allowed')))) {
-            payload.data.attributes.payment_method_types = ['gcash', 'paymaya', 'card'];
+        // Automatic fallback: If optional channels fail or are not activated, retry with core types (card, gcash)
+        if (payload.data.attributes.payment_method_types.length > 2) {
+            payload.data.attributes.payment_method_types = ['card', 'gcash'];
             const retryRes = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
                 method: 'POST',
                 headers: {
@@ -642,6 +648,7 @@ async function createPaymongoCheckoutSession({
         }
 
         const errorMsg = data.errors ? data.errors.map(e => e.detail).join(', ') : 'PayMongo API request failed';
+        console.error('PayMongo API Error Details:', errorMsg, JSON.stringify(data));
         throw new Error(errorMsg);
     }
 

@@ -26,11 +26,13 @@
     async function fetchWithFallback(path, options = {}) {
         const endpoints = getBackendEndpoints(path);
         let lastErr = null;
+        // Allow up to 45 seconds for checkout creation/payments to survive Render free tier cold starts
+        const timeoutMs = options.timeoutMs || (path.includes('checkout') || path.includes('payment') ? 45000 : 15000);
 
         for (const url of endpoints) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
                 const res = await fetch(url, {
                     ...options,

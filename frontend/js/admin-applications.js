@@ -20,6 +20,28 @@
     let currentAdminSchool = null;
     let currentAdminRole = null;
 
+    // --- RANKED SHORTLIST & EDUCATIONAL CRITERIA STATE ---
+    let rankedShortlist = [];
+    let filteredShortlist = [];
+    let shortlistFilterTier = 'all';
+    let shortlistFilterGwa = 'all';
+    let shortlistFilterProgram = 'all';
+    let shortlistFilterYear = 'all';
+    let shortlistFilterMinScore = 0;
+    let shortlistSearchTerm = '';
+    let shortlistSummaryData = null;
+
+    // --- HTML ESCAPE HELPER ---
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // --- MODERN TOAST NOTIFICATION UTILITY (TOP CENTER - LIGHT & DARK THEME) ---
     function showUIToast(type = 'success', title = '', message = '', duration = 4000) {
         if (typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
@@ -351,13 +373,26 @@
             if (error) throw error;
 
             allScholarships = scholarships || [];
+            window.allScholarships = allScholarships;
+
+            // Global shortcut to open Ranked Shortlist tab directly from anywhere
+            window.openRankedShortlist = (scholarshipId) => {
+                const list = window.allScholarships || allScholarships || [];
+                const found = list.find(s => String(s.id) === String(scholarshipId));
+                if (found) {
+                    window.openScholarship(found, 'Shortlist');
+                } else {
+                    window.openScholarship(scholarshipId, 'Shortlist');
+                }
+            };
+
             renderScholarshipCards();
 
             // Auto-open target scholarship if provided in URL parameter (e.g. from Dashboard Top Scholarships, Metric Modals, etc.)
             if (autoOpenFromUrl) {
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetScholId = urlParams.get('scholarship_id') || urlParams.get('id');
-                const targetStatus = urlParams.get('status');
+                const targetStatus = urlParams.get('status') || urlParams.get('tab');
                 const targetApplicantId = urlParams.get('applicant_id') || urlParams.get('app_id') || urlParams.get('applicant');
 
                 if (targetScholId) {
@@ -446,7 +481,21 @@
                         <span class="card-stat-val-approved">${approvedCount}</span>
                     </div>
                 </div>
+
+                <button type="button" class="btn-card-shortlist" onclick="event.stopPropagation(); if (window.openRankedShortlist) { window.openRankedShortlist('${sch.id}'); } else { window.openScholarship('${sch.id}', 'Shortlist'); }">
+                    <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> View Ranked Shortlist
+                </button>
             `;
+
+            // Explicit direct event listener for maximum reliability
+            const shortlistBtn = card.querySelector('.btn-card-shortlist');
+            if (shortlistBtn) {
+                shortlistBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.openScholarship(sch, 'Shortlist');
+                };
+            }
+
             cardsContainer.appendChild(card);
         });
 
@@ -457,6 +506,12 @@
 
     // --- 5. VIEW APPLICANTS FOR A PROGRAM ---
     window.openScholarship = async (scholarshipObj, initialTab, targetApplicantId) => {
+        if (scholarshipObj && typeof scholarshipObj !== 'object') {
+            const list = window.allScholarships || allScholarships || [];
+            scholarshipObj = list.find(s => String(s.id) === String(scholarshipObj)) || { id: String(scholarshipObj), title: 'Educational Assistance Program' };
+        }
+        if (!scholarshipObj) return;
+
         activeScholarshipData = scholarshipObj;
         const titleEl = document.getElementById('active-sch-title');
         if (titleEl) titleEl.innerText = scholarshipObj.title;
@@ -467,7 +522,8 @@
         let targetTab = 'Pending';
         if (initialTab) {
             const norm = initialTab.trim().toLowerCase();
-            if (norm === 'approved') targetTab = 'Approved';
+            if (norm === 'shortlist' || norm === 'ranked') targetTab = 'Shortlist';
+            else if (norm === 'approved') targetTab = 'Approved';
             else if (norm === 'waitlisted' || norm === 'waitlist') targetTab = 'Waitlisted';
             else if (norm === 'rejected' || norm === 'declined') targetTab = 'Rejected';
             else targetTab = 'Pending';
@@ -488,10 +544,17 @@
                 btn.classList.add('active');
             }
         });
+        const shortlistTabBtn = document.getElementById('tab-btn-shortlist');
+        if (targetTab === 'Shortlist' && shortlistTabBtn) {
+            shortlistTabBtn.classList.add('active');
+        }
 
         const badge = document.getElementById('main-status-badge');
         if (badge) {
-            if (targetTab === 'Pending') {
+            if (targetTab === 'Shortlist') {
+                badge.innerHTML = `<i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> Ranked Shortlist & Merit Evaluation`;
+                badge.className = 'badge-status badge-approved';
+            } else if (targetTab === 'Pending') {
                 badge.innerHTML = `<i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation`;
                 badge.className = 'badge-status badge-pending';
             } else if (targetTab === 'Waitlisted') {
@@ -503,6 +566,47 @@
             } else if (targetTab === 'Rejected') {
                 badge.innerHTML = `<i data-lucide="x-circle" style="width: 12px; height: 12px;"></i> Rejected Applicants`;
                 badge.className = 'badge-status badge-rejected';
+            }
+        }
+
+        const overviewContainer = document.getElementById('shortlist-overview-container');
+        const filtersPanel = document.getElementById('shortlist-filters-panel');
+        const stdControls = document.getElementById('standard-table-controls');
+        const thead = document.getElementById('applicants-table-thead');
+
+        if (targetTab === 'Shortlist') {
+            if (overviewContainer) overviewContainer.style.display = 'block';
+            if (filtersPanel) filtersPanel.style.display = 'flex';
+            if (stdControls) stdControls.style.display = 'none';
+            if (thead) {
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 62px;">Rank</th>
+                        <th>Candidate Name & ID</th>
+                        <th>Program & Year</th>
+                        <th>Academic Merit (GWA)</th>
+                        <th>Qualification Score</th>
+                        <th>Shortlist Status & Recommendation</th>
+                        <th style="text-align: right;">Evaluation Actions</th>
+                    </tr>
+                `;
+            }
+        } else {
+            if (overviewContainer) overviewContainer.style.display = 'none';
+            if (filtersPanel) filtersPanel.style.display = 'none';
+            if (stdControls) stdControls.style.display = 'flex';
+            if (thead) {
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 48px;">#</th>
+                        <th>Applicant Name</th>
+                        <th>Student ID</th>
+                        <th>Email</th>
+                        <th>Date Applied</th>
+                        <th>Evaluation Status</th>
+                        <th style="text-align: right;"></th>
+                    </tr>
+                `;
             }
         }
 
@@ -568,7 +672,7 @@
 
             const { data: apps, error } = await window.supabaseClient
                 .from('applications')
-                .select('*, profiles ( first_name, middle_name, last_name, id_number, email, contact_number, date_of_birth, gender, address, program, year_level, avatar_url ), scholarships (title)')
+                .select('*, profiles ( first_name, middle_name, last_name, id_number, email, contact_number, date_of_birth, gender, address, program, year_level, avatar_url, gwa ), scholarships (title)')
                 .eq('scholarship_id', activeScholarshipData.id)
                 .order('created_at', { ascending: true });
 
@@ -579,18 +683,41 @@
 
             currentApplications = (apps || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
 
+            // Generate Ranked Shortlist based on educational criteria
+            await generateRankedShortlist();
+
             // Update Tab Badge Counts
             const pendingCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'pending').length;
             const waitlistedCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'waitlisted').length;
             const approvedCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'approved').length;
             const rejectedCount = currentApplications.filter(a => normalizeApplicantStatus(a.status) === 'rejected').length;
+            const qualifiedCount = rankedShortlist.filter(c => c.is_strictly_eligible).length;
 
             if (document.getElementById('tab-count-pending')) document.getElementById('tab-count-pending').innerText = pendingCount;
             if (document.getElementById('tab-count-waitlisted')) document.getElementById('tab-count-waitlisted').innerText = waitlistedCount;
             if (document.getElementById('tab-count-approved')) document.getElementById('tab-count-approved').innerText = approvedCount;
             if (document.getElementById('tab-count-rejected')) document.getElementById('tab-count-rejected').innerText = rejectedCount;
+            if (document.getElementById('tab-count-shortlist')) document.getElementById('tab-count-shortlist').innerText = rankedShortlist.length;
 
-            filterTable();
+            const overviewContainer = document.getElementById('shortlist-overview-container');
+            const filtersPanel = document.getElementById('shortlist-filters-panel');
+            const stdControls = document.getElementById('standard-table-controls');
+
+            if (activeTabStatus === 'Shortlist') {
+                if (overviewContainer) overviewContainer.style.display = 'block';
+                if (filtersPanel) filtersPanel.style.display = 'flex';
+                if (stdControls) stdControls.style.display = 'none';
+
+                renderShortlistOverview();
+                renderShortlistFilters();
+                filterShortlist();
+            } else {
+                if (overviewContainer) overviewContainer.style.display = 'none';
+                if (filtersPanel) filtersPanel.style.display = 'none';
+                if (stdControls) stdControls.style.display = 'flex';
+
+                filterTable();
+            }
 
         } catch (err) {
             console.error("Error loading applications:", err);
@@ -602,7 +729,7 @@
         }
     }
 
-    window.switchTab = (status) => {
+    window.switchTab = async (status) => {
         activeTabStatus = status;
 
         const sortSelect = document.getElementById('sort-date-select');
@@ -616,10 +743,17 @@
                 btn.classList.add('active');
             }
         });
+        const shortlistTabBtn = document.getElementById('tab-btn-shortlist');
+        if (status === 'Shortlist' && shortlistTabBtn) {
+            shortlistTabBtn.classList.add('active');
+        }
 
         const badge = document.getElementById('main-status-badge');
         if (badge) {
-            if (status === 'Pending') {
+            if (status === 'Shortlist') {
+                badge.innerHTML = `<i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> Ranked Shortlist & Merit Evaluation`;
+                badge.className = 'badge-status badge-approved';
+            } else if (status === 'Pending') {
                 badge.innerHTML = `<i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pending Evaluation`;
                 badge.className = 'badge-status badge-pending';
             } else if (status === 'Waitlisted') {
@@ -634,19 +768,88 @@
             }
         }
 
-        if (typeof lucide !== 'undefined' && lucide.createIcons) {
-            lucide.createIcons();
+        const overviewContainer = document.getElementById('shortlist-overview-container');
+        const filtersPanel = document.getElementById('shortlist-filters-panel');
+        const stdControls = document.getElementById('standard-table-controls');
+        const thead = document.getElementById('applicants-table-thead');
+
+        if (status === 'Shortlist') {
+            if (overviewContainer) overviewContainer.style.display = 'block';
+            if (filtersPanel) filtersPanel.style.display = 'flex';
+            if (stdControls) stdControls.style.display = 'none';
+
+            if (thead) {
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 62px;">Rank</th>
+                        <th>Candidate Name & ID</th>
+                        <th>Program & Year</th>
+                        <th>Academic Merit (GWA)</th>
+                        <th>Qualification Score</th>
+                        <th>Shortlist Status & Recommendation</th>
+                        <th style="text-align: right;">Evaluation Actions</th>
+                    </tr>
+                `;
+            }
+            if (!rankedShortlist || rankedShortlist.length === 0) {
+                await generateRankedShortlist();
+            }
+            renderShortlistOverview();
+            renderShortlistFilters();
+            filterShortlist();
+        } else {
+            if (overviewContainer) overviewContainer.style.display = 'none';
+            if (filtersPanel) filtersPanel.style.display = 'none';
+            if (stdControls) stdControls.style.display = 'flex';
+
+            if (thead) {
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 48px;">#</th>
+                        <th>Applicant Name</th>
+                        <th>Student ID</th>
+                        <th>Email</th>
+                        <th>Date Applied</th>
+                        <th>Evaluation Status</th>
+                        <th style="text-align: right;"></th>
+                    </tr>
+                `;
+            }
+
+            if (!currentApplications || currentApplications.length === 0) {
+                await loadApplicationsForActiveTab();
+            } else {
+                filterTable();
+            }
         }
 
-        if (!currentApplications || currentApplications.length === 0) {
-            loadApplicationsForActiveTab();
-        } else {
-            filterTable();
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
         }
     };
 
     // --- 6. TABLE WITH SORTING ---
     window.filterTable = () => {
+        if (activeTabStatus === 'Shortlist') {
+            filterShortlist();
+            return;
+        }
+
+        const thead = document.getElementById('applicants-table-thead');
+        if (thead) {
+            thead.innerHTML = `
+                <tr>
+                    <th style="width: 48px;">#</th>
+                    <th>Applicant Name</th>
+                    <th>Student ID</th>
+                    <th>Email</th>
+                    <th>Date Applied</th>
+                    <th>Evaluation Status</th>
+                    <th style="text-align: right;"></th>
+                </tr>
+            `;
+        }
+
         const searchInput = document.getElementById('search-applicant');
         const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const sortSelect = document.getElementById('sort-date-select');
@@ -1802,6 +2005,1636 @@
 
     window.viewApplicantDetails = window.openApplicantModal;
 
+    // =========================================================================
+    // 8.5 RANKED SHORTLIST & MULTI-CRITERIA EVALUATION ENGINE
+    // =========================================================================
+
+    /**
+     * Checks whether an educational assistance program has specific educational criteria
+     */
+    function hasEducationalCriteria(scholarship) {
+        if (!scholarship) return false;
+        const hasCollegeGwa = scholarship.min_college_gwa !== null && scholarship.min_college_gwa !== undefined && parseFloat(scholarship.min_college_gwa) > 0;
+        const hasHsAvg = scholarship.min_hs_average !== null && scholarship.min_hs_average !== undefined && parseFloat(scholarship.min_hs_average) > 0;
+
+        const progs = Array.isArray(scholarship.eligibility_programs)
+            ? scholarship.eligibility_programs.filter(p => p && p !== 'All' && p !== 'Any' && String(p).trim().length > 0)
+            : [];
+        const hasProgs = progs.length > 0;
+
+        const years = Array.isArray(scholarship.eligibility_years)
+            ? scholarship.eligibility_years.filter(y => y && y !== 'All' && y !== 'Any' && String(y).trim().length > 0)
+            : [];
+        const hasYears = years.length > 0;
+
+        const docs = Array.isArray(scholarship.required_documents)
+            ? scholarship.required_documents.filter(d => d && String(d).trim().length > 0)
+            : [];
+        const hasDocs = docs.length > 0;
+
+        return hasCollegeGwa || hasHsAvg || hasProgs || hasYears || hasDocs;
+    }
+
+    /**
+     * Normalizes and extracts student's GWA or general grade average SOLELY from the application
+     * (Uploaded documents OCR extracted_data or application form responses).
+     * Does NOT pull from the student's profile settings.
+     */
+    function extractStudentGwa(app) {
+        // 1. From uploaded documents OCR extracted_data
+        if (Array.isArray(app.documents)) {
+            for (const doc of app.documents) {
+                const ext = doc.extracted_data || {};
+                const possibleKeys = [
+                    'Cumulative GWA', 'GWA', 'gwa', 'General Average', 
+                    'General Weighted Average', 'Average', 'average',
+                    'Final Grade', 'Computed GWA'
+                ];
+                for (const key of possibleKeys) {
+                    if (ext[key] !== undefined && ext[key] !== null && !isNaN(parseFloat(ext[key]))) {
+                        const parsed = parseFloat(ext[key]);
+                        if (parsed > 0 && parsed <= 100) {
+                            return { value: parsed, source: `Application Document OCR: ${doc.name || 'Grade Document'}` };
+                        }
+                    }
+                }
+                if (Array.isArray(ext['Extracted Semesters']) && ext['Extracted Semesters'].length > 0) {
+                    const lastSem = ext['Extracted Semesters'][ext['Extracted Semesters'].length - 1];
+                    if (lastSem && lastSem.GWA !== undefined && !isNaN(parseFloat(lastSem.GWA))) {
+                        const parsed = parseFloat(lastSem.GWA);
+                        if (parsed > 0 && parsed <= 100) {
+                            return { value: parsed, source: `Application Document OCR: ${doc.name || 'Transcript'}` };
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. From application form responses (answers submitted in this application)
+        if (app.form_responses && typeof app.form_responses === 'object') {
+            for (const [key, val] of Object.entries(app.form_responses)) {
+                const lowerKey = key.toLowerCase();
+                if (
+                    lowerKey.includes('gwa') || 
+                    lowerKey.includes('general weighted average') || 
+                    lowerKey.includes('grade average') || 
+                    (lowerKey.includes('average') && !lowerKey.includes('income'))
+                ) {
+                    const parsed = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+                    if (!isNaN(parsed) && parsed > 0 && parsed <= 100) {
+                        return { value: parsed, source: 'Application Form Response' };
+                    }
+                }
+            }
+        }
+
+        // Never fall back to profile settings - evaluation is strictly based on the application
+        return { value: null, source: 'Pending Grade Verification' };
+    }
+
+    /**
+     * Extracts student degree program & year level from application form responses first,
+     * falling back to profile record if not specified on the application form.
+     */
+    function extractProgramAndYear(app) {
+        let program = '';
+        let year = '';
+
+        if (app.form_responses && typeof app.form_responses === 'object') {
+            for (const [key, val] of Object.entries(app.form_responses)) {
+                const lk = key.toLowerCase();
+                if (!program && (lk.includes('course') || lk.includes('degree') || lk.includes('program') || lk.includes('field of study'))) {
+                    program = String(val).trim();
+                }
+                if (!year && (lk.includes('year level') || lk.includes('current year') || lk.includes('year') || lk.includes('grade level'))) {
+                    year = String(val).trim();
+                }
+            }
+        }
+
+        if (!program) {
+            program = (app.profiles?.program || 'N/A').trim();
+        }
+        if (!year) {
+            year = (app.profiles?.year_level || 'N/A').trim();
+        }
+
+        return { program, year };
+    }
+
+    function evaluateCandidate(app, scholarship, maxSlots) {
+        const hasCriteria = hasEducationalCriteria(scholarship);
+        const { program: studentProgram, year: studentYear } = extractProgramAndYear(app);
+        const gwaInfo = extractStudentGwa(app);
+        const studentGwa = gwaInfo.value;
+        const submittedDocs = Array.isArray(app.documents) ? app.documents : [];
+
+        const appliedDateObj = app.created_at ? new Date(app.created_at) : new Date();
+        const appliedDateStr = appliedDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const appliedTimeStr = appliedDateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        const criteriaBreakdown = {
+            academicMerit: { max: 45, score: 0, details: '', passed: true },
+            programMatch: { max: 20, score: 0, details: '', passed: true },
+            yearMatch: { max: 15, score: 0, details: '', passed: true },
+            documentCompleteness: { max: 15, score: 0, details: '', passed: true },
+            timeliness: { max: 5, score: 0, details: '', passed: true }
+        };
+
+        let isStrictlyEligible = true;
+        const disqualifications = [];
+        const flags = [];
+
+        // =========================================================================
+        // SCENARIO A: PROGRAM HAS NO EDUCATIONAL CRITERIA
+        // (Ranked strictly by Date & Time Applied: First-Come, First-Served)
+        // =========================================================================
+        if (!hasCriteria) {
+            criteriaBreakdown.academicMerit.score = 45;
+            criteriaBreakdown.academicMerit.details = studentGwa !== null 
+                ? `Application GWA: ${studentGwa.toFixed(2)} (Open Criteria / No Minimum GWA Required)`
+                : 'Open Educational Criteria (No Minimum GWA Required for this program)';
+
+            criteriaBreakdown.programMatch.score = 20;
+            criteriaBreakdown.programMatch.details = studentProgram !== 'N/A' 
+                ? `Open to all degree programs (${studentProgram})`
+                : 'Open to all degree programs';
+
+            criteriaBreakdown.yearMatch.score = 15;
+            criteriaBreakdown.yearMatch.details = studentYear !== 'N/A' 
+                ? `Open to all year levels (${studentYear})`
+                : 'Open to all year levels';
+
+            criteriaBreakdown.documentCompleteness.score = 15;
+            criteriaBreakdown.documentCompleteness.details = 'No specific mandatory document upload required';
+
+            criteriaBreakdown.timeliness.score = 5;
+            criteriaBreakdown.timeliness.details = `Applied promptly on ${appliedDateStr} at ${appliedTimeStr} (First-Come, First-Served)`;
+
+            return {
+                applicant_id: app.id,
+                student_id: app.student_id,
+                student_number: app.profiles?.id_number || 'N/A',
+                first_name: app.profiles?.first_name || '',
+                middle_name: app.profiles?.middle_name || '',
+                last_name: app.profiles?.last_name || '',
+                full_name: `${app.profiles?.last_name || ''}, ${app.profiles?.first_name || ''} ${app.profiles?.middle_name || ''}`.trim().replace(/^,\s*|,\s*$/g, '') || 'Applicant',
+                email: app.profiles?.email || 'N/A',
+                contact_number: app.profiles?.contact_number || 'N/A',
+                gender: app.profiles?.gender || 'N/A',
+                program: studentProgram,
+                year_level: studentYear,
+                avatar_url: app.profiles?.avatar_url || null,
+                current_status: app.status,
+                created_at: app.created_at,
+                applied_date_str: appliedDateStr,
+                applied_time_str: appliedTimeStr,
+                gwa: studentGwa,
+                gwa_display: studentGwa !== null ? (studentGwa <= 5.0 ? studentGwa.toFixed(2) : studentGwa.toFixed(1) + '%') : 'FCFS (No Min GWA)',
+                gwa_source: gwaInfo.source,
+                total_score: 100,
+                has_educational_criteria: false,
+                is_strictly_eligible: true,
+                disqualifications: [],
+                flags: [],
+                tier: 'qualified',
+                recommendation: `Meets open criteria (Ranked by Application Date & Time: ${appliedDateStr} ${appliedTimeStr})`,
+                breakdown: criteriaBreakdown,
+                documents_count: submittedDocs.length,
+                form_responses: app.form_responses || {}
+            };
+        }
+
+        // =========================================================================
+        // SCENARIO B: PROGRAM HAS SPECIFIC EDUCATIONAL CRITERIA
+        // =========================================================================
+
+        // 1. Academic Merit Evaluation (45 Pts)
+        const minCollegeGwa = scholarship.min_college_gwa !== null && scholarship.min_college_gwa !== undefined && parseFloat(scholarship.min_college_gwa) > 0 ? parseFloat(scholarship.min_college_gwa) : null;
+        const minHsAvg = scholarship.min_hs_average !== null && scholarship.min_hs_average !== undefined && parseFloat(scholarship.min_hs_average) > 0 ? parseFloat(scholarship.min_hs_average) : null;
+
+        if (studentGwa !== null) {
+            if (studentGwa <= 5.0) {
+                // Philippine 1.00 - 5.00 grading scale (1.00 is highest, 5.00 failing)
+                if (minCollegeGwa !== null) {
+                    if (studentGwa <= minCollegeGwa) {
+                        const ratio = Math.max(0, 1 - ((studentGwa - 1.0) / Math.max(0.5, (minCollegeGwa - 1.0 || 1.0))));
+                        const pts = 34 + (ratio * 11);
+                        criteriaBreakdown.academicMerit.score = Math.min(45, Math.round(pts * 10) / 10);
+                        criteriaBreakdown.academicMerit.details = `Application GWA ${studentGwa.toFixed(2)} satisfies requirement (<= ${minCollegeGwa.toFixed(2)})`;
+                    } else {
+                        isStrictlyEligible = false;
+                        criteriaBreakdown.academicMerit.passed = false;
+                        criteriaBreakdown.academicMerit.score = Math.max(5, Math.round((30 - (studentGwa - minCollegeGwa) * 10) * 10) / 10);
+                        criteriaBreakdown.academicMerit.details = `Application GWA ${studentGwa.toFixed(2)} misses required cutoff (<= ${minCollegeGwa.toFixed(2)})`;
+                        disqualifications.push(`Academic GWA ${studentGwa.toFixed(2)} does not meet minimum requirement (<= ${minCollegeGwa.toFixed(2)})`);
+                    }
+                } else {
+                    if (studentGwa <= 1.25) criteriaBreakdown.academicMerit.score = 45;
+                    else if (studentGwa <= 1.50) criteriaBreakdown.academicMerit.score = 42;
+                    else if (studentGwa <= 1.75) criteriaBreakdown.academicMerit.score = 38;
+                    else if (studentGwa <= 2.00) criteriaBreakdown.academicMerit.score = 34;
+                    else if (studentGwa <= 2.50) criteriaBreakdown.academicMerit.score = 28;
+                    else criteriaBreakdown.academicMerit.score = 20;
+                    criteriaBreakdown.academicMerit.details = `Application GWA ${studentGwa.toFixed(2)} evaluated for merit (${gwaInfo.source})`;
+                }
+            } else {
+                // Percentage scale (75 - 100)
+                if (minHsAvg !== null) {
+                    if (studentGwa >= minHsAvg) {
+                        const ratio = Math.min(1, Math.max(0, (studentGwa - minHsAvg) / (100 - minHsAvg || 10)));
+                        criteriaBreakdown.academicMerit.score = Math.round((35 + ratio * 10) * 10) / 10;
+                        criteriaBreakdown.academicMerit.details = `Average ${studentGwa.toFixed(1)}% satisfies requirement (>= ${minHsAvg.toFixed(1)}%)`;
+                    } else {
+                        isStrictlyEligible = false;
+                        criteriaBreakdown.academicMerit.passed = false;
+                        criteriaBreakdown.academicMerit.score = 10;
+                        criteriaBreakdown.academicMerit.details = `Average ${studentGwa.toFixed(1)}% misses required cutoff (>= ${minHsAvg.toFixed(1)}%)`;
+                        disqualifications.push(`Average grade ${studentGwa.toFixed(1)}% does not meet minimum requirement (>= ${minHsAvg.toFixed(1)}%)`);
+                    }
+                } else {
+                    if (studentGwa >= 95) criteriaBreakdown.academicMerit.score = 45;
+                    else if (studentGwa >= 90) criteriaBreakdown.academicMerit.score = 41;
+                    else if (studentGwa >= 85) criteriaBreakdown.academicMerit.score = 36;
+                    else if (studentGwa >= 75) criteriaBreakdown.academicMerit.score = 28;
+                    criteriaBreakdown.academicMerit.details = `Average ${studentGwa.toFixed(1)}% evaluated for merit (${gwaInfo.source})`;
+                }
+            }
+        } else {
+            criteriaBreakdown.academicMerit.score = 30; // Provisional
+            criteriaBreakdown.academicMerit.details = 'Pending official grade verification';
+            flags.push('GWA awaiting official document extraction');
+        }
+
+        // 2. Program Alignment Evaluation (20 Pts)
+        const eligiblePrograms = Array.isArray(scholarship.eligibility_programs)
+            ? scholarship.eligibility_programs.filter(p => p && p !== 'All' && p !== 'Any' && String(p).trim().length > 0)
+            : [];
+
+        if (eligiblePrograms.length === 0) {
+            criteriaBreakdown.programMatch.score = 20;
+            criteriaBreakdown.programMatch.details = studentProgram ? `Open to all degree programs (${studentProgram})` : 'Open to all degree programs';
+        } else {
+            const matchesProgram = eligiblePrograms.some(p => {
+                const cleanP = p.trim().toLowerCase();
+                const cleanStud = studentProgram.toLowerCase();
+                return cleanStud.includes(cleanP) || cleanP.includes(cleanStud);
+            });
+
+            if (matchesProgram) {
+                criteriaBreakdown.programMatch.score = 20;
+                criteriaBreakdown.programMatch.details = `Degree course matches eligible programs: ${studentProgram}`;
+            } else {
+                criteriaBreakdown.programMatch.score = 0;
+                criteriaBreakdown.programMatch.passed = false;
+                isStrictlyEligible = false;
+                criteriaBreakdown.programMatch.details = `Course '${studentProgram || 'N/A'}' not in target degree programs`;
+                disqualifications.push(`Degree course (${studentProgram || 'N/A'}) does not match eligible programs`);
+            }
+        }
+
+        // 3. Year Level Alignment Evaluation (15 Pts)
+        const eligibleYears = Array.isArray(scholarship.eligibility_years)
+            ? scholarship.eligibility_years.filter(y => y && y !== 'All' && y !== 'Any' && String(y).trim().length > 0)
+            : [];
+
+        if (eligibleYears.length === 0) {
+            criteriaBreakdown.yearMatch.score = 15;
+            criteriaBreakdown.yearMatch.details = studentYear ? `Open to all levels (${studentYear})` : 'Open to all year levels';
+        } else {
+            const matchesYear = eligibleYears.some(y => {
+                const cleanY = y.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                const cleanStudY = studentYear.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return cleanStudY.includes(cleanY) || cleanY.includes(cleanStudY);
+            });
+
+            if (matchesYear) {
+                criteriaBreakdown.yearMatch.score = 15;
+                criteriaBreakdown.yearMatch.details = `Year level matches eligible cohorts: ${studentYear}`;
+            } else {
+                criteriaBreakdown.yearMatch.score = 0;
+                criteriaBreakdown.yearMatch.passed = false;
+                isStrictlyEligible = false;
+                criteriaBreakdown.yearMatch.details = `Year level '${studentYear || 'N/A'}' not in eligible cohorts`;
+                disqualifications.push(`Year level (${studentYear || 'N/A'}) does not match eligible cohorts`);
+            }
+        }
+
+        // 4. Document Completeness & OCR Verification (15 Pts)
+        const requiredDocs = Array.isArray(scholarship.required_documents)
+            ? scholarship.required_documents.filter(d => d && String(d).trim().length > 0)
+            : [];
+
+        if (requiredDocs.length === 0) {
+            criteriaBreakdown.documentCompleteness.score = 15;
+            criteriaBreakdown.documentCompleteness.details = 'No specific document upload required';
+        } else {
+            let attachedRequiredCount = 0;
+            let ocrVerifiedCount = 0;
+
+            requiredDocs.forEach(reqName => {
+                const cleanReq = reqName.toLowerCase().trim();
+                const found = submittedDocs.find(d => (d.name || '').toLowerCase().trim().includes(cleanReq) || cleanReq.includes((d.name || '').toLowerCase().trim()));
+                if (found && (found.file_url || found.url)) {
+                    attachedRequiredCount++;
+                    if (found.extracted_data && Object.keys(found.extracted_data).length > 0) {
+                        ocrVerifiedCount++;
+                    }
+                }
+            });
+
+            const docRatio = attachedRequiredCount / requiredDocs.length;
+            let docPts = docRatio * 12;
+            if (ocrVerifiedCount > 0) {
+                docPts += Math.min(3, (ocrVerifiedCount / requiredDocs.length) * 3);
+            }
+
+            criteriaBreakdown.documentCompleteness.score = Math.round(docPts * 10) / 10;
+            criteriaBreakdown.documentCompleteness.details = `${attachedRequiredCount} of ${requiredDocs.length} mandatory documents attached (${ocrVerifiedCount} AI verified)`;
+
+            if (docRatio < 1.0) {
+                flags.push(`Missing ${requiredDocs.length - attachedRequiredCount} required documents`);
+                if (docRatio < 0.5) {
+                    criteriaBreakdown.documentCompleteness.passed = false;
+                }
+            }
+        }
+
+        // 5. Submission Timeliness (5 Pts)
+        if (app.created_at && scholarship.start_date && scholarship.end_date) {
+            const start = new Date(scholarship.start_date).getTime();
+            const end = new Date(scholarship.end_date).getTime();
+            const applied = new Date(app.created_at).getTime();
+            const windowDuration = Math.max(1, end - start);
+            const elapsed = Math.max(0, applied - start);
+            const timeRatio = Math.min(1, elapsed / windowDuration);
+            const timePts = 5.0 - (timeRatio * 2.0);
+            criteriaBreakdown.timeliness.score = Math.max(2.5, Math.round(timePts * 10) / 10);
+            criteriaBreakdown.timeliness.details = `Applied promptly on ${appliedDateStr} at ${appliedTimeStr}`;
+        } else {
+            criteriaBreakdown.timeliness.score = 5.0;
+            criteriaBreakdown.timeliness.details = `Application received on ${appliedDateStr} at ${appliedTimeStr}`;
+        }
+
+        const totalScore = Math.min(100, Math.max(0, Math.round((
+            criteriaBreakdown.academicMerit.score +
+            criteriaBreakdown.programMatch.score +
+            criteriaBreakdown.yearMatch.score +
+            criteriaBreakdown.documentCompleteness.score +
+            criteriaBreakdown.timeliness.score
+        ) * 10) / 10));
+
+        let tier = 'qualified';
+        let recommendation = '';
+
+        if (!isStrictlyEligible) {
+            tier = 'ineligible';
+            recommendation = 'Does not meet mandatory educational criteria';
+        } else if (flags.length > 0 && flags.some(f => f.includes('Missing') || f.includes('awaiting'))) {
+            tier = 'conditional';
+            recommendation = 'Conditional candidate (Pending document or grade verification)';
+        } else {
+            tier = 'qualified';
+            recommendation = 'Meets all educational assistance requirements';
+        }
+
+        return {
+            applicant_id: app.id,
+            student_id: app.student_id,
+            student_number: app.profiles?.id_number || 'N/A',
+            first_name: app.profiles?.first_name || '',
+            middle_name: app.profiles?.middle_name || '',
+            last_name: app.profiles?.last_name || '',
+            full_name: `${app.profiles?.last_name || ''}, ${app.profiles?.first_name || ''} ${app.profiles?.middle_name || ''}`.trim().replace(/^,\s*|,\s*$/g, '') || 'Applicant',
+            email: app.profiles?.email || 'N/A',
+            contact_number: app.profiles?.contact_number || 'N/A',
+            gender: app.profiles?.gender || 'N/A',
+            program: studentProgram || 'N/A',
+            year_level: studentYear || 'N/A',
+            avatar_url: app.profiles?.avatar_url || null,
+            current_status: app.status,
+            created_at: app.created_at,
+            applied_date_str: appliedDateStr,
+            applied_time_str: appliedTimeStr,
+            gwa: studentGwa,
+            gwa_display: studentGwa !== null ? (studentGwa <= 5.0 ? studentGwa.toFixed(2) : studentGwa.toFixed(1) + '%') : 'N/A',
+            gwa_source: gwaInfo.source,
+            total_score: totalScore,
+            has_educational_criteria: true,
+            is_strictly_eligible: isStrictlyEligible,
+            disqualifications,
+            flags,
+            tier,
+            recommendation,
+            breakdown: criteriaBreakdown,
+            documents_count: submittedDocs.length,
+            form_responses: app.form_responses || {}
+        };
+    }
+
+    async function generateRankedShortlist() {
+        if (!activeScholarshipData) return;
+
+        const maxSlots = activeScholarshipData.slots === 'Open' || !activeScholarshipData.slots ? 999999 : parseInt(activeScholarshipData.slots, 10) || 0;
+        const hasCriteria = hasEducationalCriteria(activeScholarshipData);
+
+        // Attempt Backend API first, with seamless browser fallback
+        let serverData = null;
+        try {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:' || !window.location.hostname;
+            const apiUrl = isLocal
+                ? `http://localhost:3000/api/scholarships/${activeScholarshipData.id}/ranked-shortlist`
+                : `https://grantee-backend-n5f4.onrender.com/api/scholarships/${activeScholarshipData.id}/ranked-shortlist`;
+            
+            const resp = await fetch(apiUrl);
+            if (resp.ok) {
+                const json = await resp.json();
+                if (json && json.success && Array.isArray(json.shortlist)) {
+                    serverData = json;
+                }
+            }
+        } catch (e) {
+            // Server offline or network error; fallback to client computation
+        }
+
+        if (serverData) {
+            rankedShortlist = serverData.shortlist;
+            shortlistSummaryData = serverData.summary;
+        } else {
+            // Client-side Ranking Computation - Only pending applicants will be ranked
+            const pendingApps = (currentApplications || []).filter(a => normalizeApplicantStatus(a.status) === 'pending');
+            const totalApproved = (currentApplications || []).filter(a => normalizeApplicantStatus(a.status) === 'approved').length;
+            const availableSlots = maxSlots === 999999 ? 999999 : Math.max(0, maxSlots - totalApproved);
+
+            const candidates = pendingApps.map(app => evaluateCandidate(app, activeScholarshipData, availableSlots));
+
+            if (!hasCriteria) {
+                // === NO CRITERIA: Strictly rank by Date and Time Applied (First-Come, First-Served) ===
+                candidates.sort((a, b) => {
+                    const timeA = new Date(a.created_at).getTime();
+                    const timeB = new Date(b.created_at).getTime();
+                    if (timeA !== timeB) return timeA - timeB;
+                    return String(a.applicant_id).localeCompare(String(b.applicant_id));
+                });
+            } else {
+                // === HAS CRITERIA: Rank by eligibility, score, GWA, then submission time ===
+                candidates.sort((a, b) => {
+                    if (a.is_strictly_eligible !== b.is_strictly_eligible) {
+                        return a.is_strictly_eligible ? -1 : 1;
+                    }
+                    if (b.total_score !== a.total_score) {
+                        return b.total_score - a.total_score;
+                    }
+                    if (a.gwa !== null && b.gwa !== null) {
+                        if (a.gwa <= 5.0 && b.gwa <= 5.0) return a.gwa - b.gwa;
+                        return b.gwa - a.gwa;
+                    }
+                    if (a.gwa !== null && b.gwa === null) return -1;
+                    if (a.gwa === null && b.gwa !== null) return 1;
+
+                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                });
+            }
+
+            let slottedCount = 0;
+            candidates.forEach((cand, idx) => {
+                cand.rank = idx + 1;
+                if (cand.is_strictly_eligible && cand.tier !== 'ineligible') {
+                    if (slottedCount < availableSlots) {
+                        slottedCount++;
+                        cand.tier = 'slotted';
+                        cand.recommendation = !hasCriteria
+                            ? `Grantee Slot Reserved (Rank #${cand.rank} of ${maxSlots === 999999 ? 'Open' : availableSlots} available slots - Applied First-Come, First-Served on ${cand.applied_date_str || ''} at ${cand.applied_time_str || ''})`
+                            : `Grantee Slot Reserved (Rank #${cand.rank} of ${maxSlots === 999999 ? 'Open' : availableSlots} available slots - Score: ${cand.total_score}%)`;
+                        cand.is_slotted = true;
+                    } else {
+                        cand.tier = 'qualified';
+                        const queuePos = slottedCount - availableSlots + 1;
+                        cand.recommendation = !hasCriteria
+                            ? `Priority Runner-Up (Rank #${cand.rank}, Queue #${queuePos} - Applied First-Come, First-Served on ${cand.applied_date_str || ''} at ${cand.applied_time_str || ''})`
+                            : `Priority Runner-Up (Rank #${cand.rank}, Queue Position #${queuePos})`;
+                        cand.is_slotted = false;
+                    }
+                } else {
+                    cand.is_slotted = false;
+                }
+            });
+
+            const qualifiedCount = candidates.filter(c => c.is_strictly_eligible).length;
+            const slottedCandidates = candidates.filter(c => c.is_slotted);
+            const topShortlistCount = slottedCandidates.length;
+
+            const gwaSum = slottedCandidates.filter(c => c.gwa !== null && c.gwa <= 5.0).reduce((acc, c) => acc + c.gwa, 0);
+            const gwaCount = slottedCandidates.filter(c => c.gwa !== null && c.gwa <= 5.0).length;
+            const avgSlottedGwa = gwaCount > 0 ? (gwaSum / gwaCount).toFixed(2) : null;
+
+            const cutoffCandidate = slottedCandidates[slottedCandidates.length - 1];
+            const cutoffScore = cutoffCandidate ? cutoffCandidate.total_score : (candidates[0] ? candidates[0].total_score : 100);
+
+            rankedShortlist = candidates;
+            shortlistSummaryData = {
+                total_evaluated: candidates.length,
+                total_slots: activeScholarshipData.slots === 'Open' ? 'Open' : maxSlots,
+                available_slots: maxSlots === 999999 ? 'Open' : availableSlots,
+                already_approved: totalApproved,
+                qualified_candidates: qualifiedCount,
+                slotted_grantees: topShortlistCount,
+                runners_up: Math.max(0, qualifiedCount - topShortlistCount),
+                average_shortlist_gwa: avgSlottedGwa,
+                shortlist_cutoff_score: cutoffScore,
+                has_educational_criteria: hasCriteria,
+                ranking_method: hasCriteria ? 'Educational Criteria Scoring (100 Pts)' : 'Date & Time Applied (First-Come, First-Served)'
+            };
+        }
+
+        filteredShortlist = [...rankedShortlist];
+    }
+
+    function renderShortlistOverview() {
+        const container = document.getElementById('shortlist-overview-container');
+        if (!container || !activeScholarshipData) return;
+
+        const sch = activeScholarshipData;
+        const hasCriteria = hasEducationalCriteria(sch);
+        const providerName = sch.department || sch.category || 'General Administration';
+        const isProviderPrivate = (sch.category || '').toLowerCase().includes('private') || (sch.category || '').toLowerCase().includes('company');
+
+        const criteriaList = [];
+        if (!hasCriteria) {
+            criteriaList.push(`<span><i data-lucide="check-circle-2"></i> Criteria: <strong>Open / No Minimum GWA Required</strong></span>`);
+            criteriaList.push(`<span><i data-lucide="arrow-down-up"></i> Ranking Method: <strong>Date & Time Applied (First to Apply = Rank 1)</strong></span>`);
+            criteriaList.push(`<span><i data-lucide="users"></i> Slots: <strong>${sch.slots || 'Open'}</strong></span>`);
+        } else {
+            if (sch.min_college_gwa) criteriaList.push(`<span><i data-lucide="graduation-cap"></i> Min College GWA: <strong>${sch.min_college_gwa}</strong></span>`);
+            if (sch.min_hs_average) criteriaList.push(`<span><i data-lucide="award"></i> Min HS Avg: <strong>${sch.min_hs_average}%</strong></span>`);
+            if (sch.eligibility_years && sch.eligibility_years.length > 0) criteriaList.push(`<span><i data-lucide="calendar"></i> Cohorts: <strong>${sch.eligibility_years.join(', ')}</strong></span>`);
+            if (sch.eligibility_programs && sch.eligibility_programs.length > 0) {
+                const progText = sch.eligibility_programs.length === 1 ? sch.eligibility_programs[0] : `${sch.eligibility_programs.length} Eligible Degree Programs`;
+                criteriaList.push(`<span><i data-lucide="book-open"></i> Programs: <strong>${progText}</strong></span>`);
+            } else {
+                criteriaList.push(`<span><i data-lucide="book-open"></i> Programs: <strong>All Degrees</strong></span>`);
+            }
+            criteriaList.push(`<span><i data-lucide="users"></i> Slots: <strong>${sch.slots || 'Open'}</strong></span>`);
+        }
+
+        const summary = shortlistSummaryData || {
+            total_evaluated: rankedShortlist.length,
+            qualified_candidates: rankedShortlist.filter(c => c.is_strictly_eligible).length,
+            slotted_grantees: rankedShortlist.filter(c => c.tier === 'slotted').length,
+            shortlist_cutoff_score: rankedShortlist[0] ? rankedShortlist[0].total_score : 0,
+            average_shortlist_gwa: hasCriteria ? '1.25' : null
+        };
+
+        const pendingSlottedCount = rankedShortlist.filter(c => c.tier === 'slotted' && normalizeApplicantStatus(c.current_status) === 'pending').length;
+
+        container.innerHTML = `
+            <div class="shortlist-overview-card">
+                <div class="shortlist-header-row">
+                    <div class="shortlist-title-block">
+                        <div class="shortlist-provider-badge">
+                            <i data-lucide="${isProviderPrivate ? 'building-2' : 'landmark'}" style="width: 14px; height: 14px;"></i>
+                            <span>${isProviderPrivate ? 'Sponsoring Provider:' : 'Educational Assistance Provider:'} ${escapeHtml(providerName)}</span>
+                        </div>
+                        <h3 class="shortlist-heading">
+                            <span>${hasCriteria ? 'Merit-Ranked Shortlist Evaluation' : 'First-Come, First-Served (FCFS) Ranked Shortlist'}</span>
+                            <span class="badge-status badge-approved" style="font-size: 11.5px; padding: 3px 10px;">
+                                <i data-lucide="${hasCriteria ? 'shield-check' : 'clock'}" style="width: 13px; height: 13px;"></i>
+                                ${hasCriteria ? 'Verified Criteria Engine Active' : 'Date & Time Applied Ranking Active'}
+                            </span>
+                        </h3>
+                        <div class="shortlist-criteria-pills">
+                            ${criteriaList.map(c => `<div class="criteria-pill">${c}</div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="shortlist-actions-cluster">
+                        <button type="button" class="btn-outline" onclick="exportShortlist('pdf')" title="Export formatted PDF report for company providers and coordinators">
+                            <i data-lucide="file-text" style="width: 14px; height: 14px; color: #d97706;"></i>
+                            <span>Export Evaluation Report (PDF)</span>
+                        </button>
+                        <button type="button" class="btn-outline" onclick="exportShortlist('csv')" title="Export ranked shortlist as Excel spreadsheet">
+                            <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px; color: var(--moss-green);"></i>
+                            <span>Export CSV (Excel)</span>
+                        </button>
+                        ${pendingSlottedCount > 0 ? `
+                        <button type="button" class="btn-approve" onclick="batchApproveTopShortlist()" title="Approve all top-ranked slotted candidates in one action">
+                            <i data-lucide="check-check" style="width: 14px; height: 14px;"></i>
+                            <span>Batch Approve Slotted (${pendingSlottedCount})</span>
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="shortlist-stats-grid">
+                    <div class="shortlist-stat-box">
+                        <div class="stat-box-icon stat-icon-blue">
+                            <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <div class="stat-box-content">
+                            <span class="stat-box-label">Total Evaluated</span>
+                            <span class="stat-box-val">${summary.total_evaluated}</span>
+                        </div>
+                    </div>
+                    <div class="shortlist-stat-box">
+                        <div class="stat-box-icon stat-icon-green">
+                            <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <div class="stat-box-content">
+                            <span class="stat-box-label">Qualified Candidates</span>
+                            <span class="stat-box-val">${summary.qualified_candidates}</span>
+                        </div>
+                    </div>
+                    <div class="shortlist-stat-box">
+                        <div class="stat-box-icon stat-icon-gold">
+                            <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <div class="stat-box-content">
+                            <span class="stat-box-label">Slotted Grantees</span>
+                            <span class="stat-box-val">${summary.slotted_grantees}</span>
+                        </div>
+                    </div>
+                    <div class="shortlist-stat-box">
+                        <div class="stat-box-icon stat-icon-purple">
+                            <i data-lucide="${hasCriteria ? 'sparkles' : 'clock'}" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <div class="stat-box-content">
+                            <span class="stat-box-label">${hasCriteria ? (summary.average_shortlist_gwa ? 'Avg Shortlist GWA' : 'Top Cutoff Score') : 'Ranking Method'}</span>
+                            <span class="stat-box-val" style="font-size: ${hasCriteria ? '20px' : '15px'};">${hasCriteria ? (summary.average_shortlist_gwa || (summary.shortlist_cutoff_score + '%')) : 'Date & Time Applied (FCFS)'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    }
+
+    function renderShortlistFilters() {
+        const panel = document.getElementById('shortlist-filters-panel');
+        if (!panel) return;
+
+        // Collect unique programs & years from candidates
+        const programsSet = new Set();
+        const yearsSet = new Set();
+        rankedShortlist.forEach(c => {
+            if (c.program && c.program !== 'N/A') programsSet.add(c.program);
+            if (c.year_level && c.year_level !== 'N/A') yearsSet.add(c.year_level);
+        });
+
+        const slottedCount = rankedShortlist.filter(c => c.tier === 'slotted').length;
+        const qualifiedCount = rankedShortlist.filter(c => c.is_strictly_eligible).length;
+        const conditionalCount = rankedShortlist.filter(c => c.tier === 'conditional').length;
+        const ineligibleCount = rankedShortlist.filter(c => c.tier === 'ineligible').length;
+
+        panel.innerHTML = `
+            <div class="filter-tier-tabs">
+                <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.04em;">Shortlist Tiers:</span>
+                <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'all' ? 'active' : ''}" onclick="setShortlistTier('all')">
+                    All Evaluated <span class="tier-pill-count">${rankedShortlist.length}</span>
+                </button>
+                <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'slotted' ? 'active' : ''}" onclick="setShortlistTier('slotted')">
+                    <i data-lucide="award" style="width: 13px; height: 13px; color: #d97706;"></i>
+                    Top Slotted Grantees <span class="tier-pill-count">${slottedCount}</span>
+                </button>
+                <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'qualified' ? 'active' : ''}" onclick="setShortlistTier('qualified')">
+                    <i data-lucide="check-circle-2" style="width: 13px; height: 13px; color: var(--moss-green);"></i>
+                    All Qualified <span class="tier-pill-count">${qualifiedCount}</span>
+                </button>
+                <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'conditional' ? 'active' : ''}" onclick="setShortlistTier('conditional')">
+                    <i data-lucide="alert-triangle" style="width: 13px; height: 13px; color: #b45309;"></i>
+                    Conditional Review <span class="tier-pill-count">${conditionalCount}</span>
+                </button>
+                <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'ineligible' ? 'active' : ''}" onclick="setShortlistTier('ineligible')">
+                    <i data-lucide="x-circle" style="width: 13px; height: 13px; color: var(--danger-color);"></i>
+                    Ineligible <span class="tier-pill-count">${ineligibleCount}</span>
+                </button>
+            </div>
+
+            <div class="shortlist-controls-row">
+                <div class="shortlist-dropdowns-group">
+                    <select id="shortlist-gwa-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by GWA / Academic Standing">
+                        <option value="all" ${shortlistFilterGwa === 'all' ? 'selected' : ''}>🎓 All Academic Standings</option>
+                        <option value="highest_honors" ${shortlistFilterGwa === 'highest_honors' ? 'selected' : ''}>★ Highest Honors (1.00 – 1.25)</option>
+                        <option value="high_honors" ${shortlistFilterGwa === 'high_honors' ? 'selected' : ''}>★ High Honors (1.26 – 1.50)</option>
+                        <option value="honors" ${shortlistFilterGwa === 'honors' ? 'selected' : ''}>★ Honors (1.51 – 1.75)</option>
+                        <option value="good_standing" ${shortlistFilterGwa === 'good_standing' ? 'selected' : ''}>Good Standing (1.76 – 2.00)</option>
+                        <option value="pass" ${shortlistFilterGwa === 'pass' ? 'selected' : ''}>Passing (2.01+)</option>
+                    </select>
+
+                    <select id="shortlist-prog-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by Degree Program">
+                        <option value="all" ${shortlistFilterProgram === 'all' ? 'selected' : ''}>📚 All Degree Programs</option>
+                        ${Array.from(programsSet).sort().map(p => `<option value="${p}" ${shortlistFilterProgram === p ? 'selected' : ''}>${p}</option>`).join('')}
+                    </select>
+
+                    <select id="shortlist-year-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by Year Level">
+                        <option value="all" ${shortlistFilterYear === 'all' ? 'selected' : ''}>📅 All Year Levels</option>
+                        ${Array.from(yearsSet).sort().map(y => `<option value="${y}" ${shortlistFilterYear === y ? 'selected' : ''}>${y}</option>`).join('')}
+                    </select>
+
+                    <select id="shortlist-score-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by Qualification Score">
+                        <option value="0" ${shortlistFilterMinScore === 0 ? 'selected' : ''}>📊 All Scores</option>
+                        <option value="90" ${shortlistFilterMinScore === 90 ? 'selected' : ''}>Score ≥ 90% (Outstanding)</option>
+                        <option value="80" ${shortlistFilterMinScore === 80 ? 'selected' : ''}>Score ≥ 80% (Very Good)</option>
+                        <option value="70" ${shortlistFilterMinScore === 70 ? 'selected' : ''}>Score ≥ 70% (Satisfactory)</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="search-box" style="margin: 0; min-width: 240px;">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="shortlist-search-input" placeholder="Search candidate, ID, course..." value="${escapeHtml(shortlistSearchTerm)}" onkeyup="onShortlistSearch(this.value)">
+                    </div>
+                    <button type="button" class="btn-reset-filters" onclick="resetShortlistFilters()" title="Reset all filters">
+                        <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Reset
+                    </button>
+                </div>
+            </div>
+        `;
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    }
+
+    window.setShortlistTier = (tier) => {
+        shortlistFilterTier = tier;
+        renderShortlistFilters();
+        filterShortlist();
+    };
+
+    window.updateShortlistFilters = () => {
+        const gwaSel = document.getElementById('shortlist-gwa-filter');
+        const progSel = document.getElementById('shortlist-prog-filter');
+        const yearSel = document.getElementById('shortlist-year-filter');
+        const scoreSel = document.getElementById('shortlist-score-filter');
+
+        if (gwaSel) shortlistFilterGwa = gwaSel.value;
+        if (progSel) shortlistFilterProgram = progSel.value;
+        if (yearSel) shortlistFilterYear = yearSel.value;
+        if (scoreSel) shortlistFilterMinScore = parseFloat(scoreSel.value) || 0;
+
+        filterShortlist();
+    };
+
+    window.onShortlistSearch = (val) => {
+        shortlistSearchTerm = (val || '').trim().toLowerCase();
+        filterShortlist();
+    };
+
+    window.resetShortlistFilters = () => {
+        shortlistFilterTier = 'all';
+        shortlistFilterGwa = 'all';
+        shortlistFilterProgram = 'all';
+        shortlistFilterYear = 'all';
+        shortlistFilterMinScore = 0;
+        shortlistSearchTerm = '';
+        renderShortlistFilters();
+        filterShortlist();
+    };
+
+    function filterShortlist() {
+        filteredShortlist = rankedShortlist.filter(cand => {
+            // Tier Filter
+            if (shortlistFilterTier === 'slotted' && cand.tier !== 'slotted') return false;
+            if (shortlistFilterTier === 'qualified' && !cand.is_strictly_eligible) return false;
+            if (shortlistFilterTier === 'conditional' && cand.tier !== 'conditional') return false;
+            if (shortlistFilterTier === 'ineligible' && cand.tier !== 'ineligible') return false;
+
+            // GWA Filter
+            if (shortlistFilterGwa !== 'all') {
+                if (cand.gwa === null) return false;
+                if (cand.gwa <= 5.0) {
+                    if (shortlistFilterGwa === 'highest_honors' && cand.gwa > 1.25) return false;
+                    if (shortlistFilterGwa === 'high_honors' && (cand.gwa <= 1.25 || cand.gwa > 1.50)) return false;
+                    if (shortlistFilterGwa === 'honors' && (cand.gwa <= 1.50 || cand.gwa > 1.75)) return false;
+                    if (shortlistFilterGwa === 'good_standing' && (cand.gwa <= 1.75 || cand.gwa > 2.00)) return false;
+                    if (shortlistFilterGwa === 'pass' && cand.gwa <= 2.00) return false;
+                }
+            }
+
+            // Program Filter
+            if (shortlistFilterProgram !== 'all') {
+                if ((cand.program || '').toLowerCase() !== shortlistFilterProgram.toLowerCase()) return false;
+            }
+
+            // Year Level Filter
+            if (shortlistFilterYear !== 'all') {
+                if ((cand.year_level || '').toLowerCase() !== shortlistFilterYear.toLowerCase()) return false;
+            }
+
+            // Min Score Filter
+            if (shortlistFilterMinScore > 0) {
+                if (cand.total_score < shortlistFilterMinScore) return false;
+            }
+
+            // Search Term
+            if (shortlistSearchTerm) {
+                const matchName = cand.full_name.toLowerCase().includes(shortlistSearchTerm);
+                const matchId = cand.student_number.toLowerCase().includes(shortlistSearchTerm);
+                const matchEmail = cand.email.toLowerCase().includes(shortlistSearchTerm);
+                const matchProg = cand.program.toLowerCase().includes(shortlistSearchTerm);
+                if (!matchName && !matchId && !matchEmail && !matchProg) return false;
+            }
+
+            return true;
+        });
+
+        renderShortlistTable();
+    }
+
+    function renderShortlistTable() {
+        const thead = document.getElementById('applicants-table-thead');
+        if (thead) {
+            thead.innerHTML = `
+                <tr>
+                    <th style="width: 62px;">Rank</th>
+                    <th>Candidate Name & ID</th>
+                    <th>Program & Year</th>
+                    <th>Academic Merit (GWA)</th>
+                    <th>Qualification Score</th>
+                    <th>Shortlist Status & Recommendation</th>
+                    <th style="text-align: right;">Evaluation Actions</th>
+                </tr>
+            `;
+        }
+
+        const tbody = document.getElementById('applicants-tbody');
+        if (!tbody) return;
+
+        const hasCriteria = hasEducationalCriteria(activeScholarshipData);
+
+        const countLabel = document.getElementById('table-count-label');
+        if (countLabel) {
+            countLabel.innerText = `Showing ${filteredShortlist.length} of ${rankedShortlist.length} Shortlisted Candidates`;
+        }
+
+        const showingEntries = document.getElementById('showing-entries');
+        if (showingEntries) {
+            showingEntries.innerText = filteredShortlist.length > 0
+                ? `Showing 1 to ${filteredShortlist.length} of ${filteredShortlist.length} entries`
+                : 'Showing 0 entries';
+        }
+
+        if (filteredShortlist.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 48px 20px; color: var(--text-muted); font-size: 13.5px;">
+                        <i data-lucide="filter-x" style="width: 32px; height: 32px; color: var(--text-light); margin: 0 auto 10px auto; display: block;"></i>
+                        <strong style="color: var(--text-heading); display: block; font-size: 15px; margin-bottom: 4px;">No candidates match filter criteria</strong>
+                        Try clearing or relaxing your GWA, program, or tier filters to see more shortlisted students.
+                    </td>
+                </tr>
+            `;
+            if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            return;
+        }
+
+        tbody.innerHTML = '';
+        filteredShortlist.forEach((cand) => {
+            const tr = document.createElement('tr');
+
+            // Rank Badge
+            let rankBadgeClass = 'rank-standard';
+            let rankDisplay = `#${cand.rank}`;
+            if (cand.rank === 1) {
+                rankBadgeClass = 'rank-gold';
+                rankDisplay = '🥇 1';
+            } else if (cand.rank === 2) {
+                rankBadgeClass = 'rank-silver';
+                rankDisplay = '🥈 2';
+            } else if (cand.rank === 3) {
+                rankBadgeClass = 'rank-bronze';
+                rankDisplay = '🥉 3';
+            }
+
+            // GWA Tag
+            let gwaHighlightClass = '';
+            let honorTag = '';
+            if (cand.gwa !== null && cand.gwa <= 5.0) {
+                if (cand.gwa <= 1.25) {
+                    gwaHighlightClass = 'gwa-highest-honors';
+                    honorTag = '<span style="font-size:10px; color:#b45309; font-weight:700; display:block;">Highest Honors</span>';
+                } else if (cand.gwa <= 1.50) {
+                    gwaHighlightClass = 'gwa-high-honors';
+                    honorTag = '<span style="font-size:10px; color:var(--moss-green); font-weight:700; display:block;">High Honors</span>';
+                } else if (cand.gwa <= 1.75) {
+                    honorTag = '<span style="font-size:10px; color:var(--river-blue); font-weight:600; display:block;">Honors</span>';
+                }
+            }
+
+            // Score Meter Bar (for criteria) or FCFS Badge (for open programs)
+            let fillClass = 'fill-average';
+            let ratingTag = 'Good';
+            let ratingClass = 'rating-good';
+            if (cand.total_score >= 90) {
+                fillClass = 'fill-excellent';
+                ratingTag = 'Outstanding';
+                ratingClass = 'rating-excellent';
+            } else if (cand.total_score >= 80) {
+                fillClass = 'fill-good';
+                ratingTag = 'Very Good';
+                ratingClass = 'rating-very-good';
+            } else if (cand.total_score < 70) {
+                fillClass = 'fill-poor';
+                ratingTag = 'Review';
+                ratingClass = 'rating-poor';
+            }
+
+            // Tier Badge
+            let tierClass = 'tier-qualified';
+            let tierIcon = 'check-circle';
+            let tierTitle = 'Qualified Candidate';
+            if (cand.tier === 'slotted') {
+                tierClass = 'tier-slotted';
+                tierIcon = 'award';
+                tierTitle = 'Slotted Grantee';
+            } else if (cand.tier === 'conditional') {
+                tierClass = 'tier-conditional';
+                tierIcon = 'alert-triangle';
+                tierTitle = 'Conditional Review';
+            } else if (cand.tier === 'ineligible') {
+                tierClass = 'tier-ineligible';
+                tierIcon = 'x-circle';
+                tierTitle = 'Ineligible';
+            }
+
+            const initials = ((cand.first_name[0] || '') + (cand.last_name[0] || '')).toUpperCase() || 'A';
+            const avatarHtml = cand.avatar_url
+                ? `<img src="${cand.avatar_url}" alt="${cand.full_name}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerHTML='${initials}'">`
+                : `<div style="width: 34px; height: 34px; border-radius: 50%; background: var(--border-color); color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700;">${initials}</div>`;
+
+            // Evaluation actions
+            const normStatus = normalizeApplicantStatus(cand.current_status);
+            let actionButtonsHtml = `
+                <div style="display:flex; gap:6px; justify-content: flex-end; align-items: center;">
+                    <button type="button" class="btn-outline" onclick="openCriteriaScorecard('${cand.applicant_id}')" title="Inspect educational criteria match and score details" style="padding: 5px 10px; font-size: 12px;">
+                        <i data-lucide="award" style="width: 13px; height: 13px; color: #d97706;"></i> Scorecard
+                    </button>
+                    <button type="button" class="btn-outline" onclick="openApplicantModal('${cand.applicant_id}')" title="View submitted responses and document attachments" style="padding: 5px 10px; font-size: 12px;">
+                        <i data-lucide="file-text" style="width: 13px; height: 13px;"></i> Responses
+                    </button>
+            `;
+
+            if (normStatus === 'pending') {
+                actionButtonsHtml += `
+                    <button type="button" class="btn-approve" onclick="confirmUpdateStatus('${cand.applicant_id}', 'Approved', 'Approve')" title="Approve applicant" style="padding: 5px 10px; font-size: 12px;">
+                        <i data-lucide="check" style="width: 13px; height: 13px;"></i>
+                    </button>
+                    <button type="button" class="btn-reject" onclick="confirmUpdateStatus('${cand.applicant_id}', 'Rejected', 'Reject')" title="Reject applicant" style="padding: 5px 10px; font-size: 12px;">
+                        <i data-lucide="x" style="width: 13px; height: 13px;"></i>
+                    </button>
+                `;
+            } else if (normStatus === 'approved') {
+                actionButtonsHtml += `
+                    <span class="badge-status badge-approved" style="font-size: 11px; padding: 3px 8px;">
+                        <i data-lucide="check-circle-2" style="width: 11px; height: 11px;"></i> Approved
+                    </span>
+                `;
+            }
+
+            actionButtonsHtml += `</div>`;
+
+            // Column 4: GWA HTML
+            const gwaColHtml = cand.gwa !== null && cand.gwa <= 5.0
+                ? `
+                    <div class="gwa-highlight-pill ${gwaHighlightClass}">
+                        <i data-lucide="graduation-cap" style="width: 13px; height: 13px;"></i>
+                        <span>${cand.gwa_display}</span>
+                    </div>
+                    ${honorTag}
+                `
+                : `
+                    <div class="gwa-highlight-pill" style="background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.25);">
+                        <i data-lucide="${hasCriteria ? 'clock' : 'check'}" style="width: 13px; height: 13px;"></i>
+                        <span>${hasCriteria ? 'Pending OCR' : 'No Min GWA'}</span>
+                    </div>
+                    <span style="font-size:10px; color:var(--text-muted); font-weight:600; display:block;">${hasCriteria ? 'Awaiting Grade' : 'Open Program'}</span>
+                `;
+
+            // Column 5: Score / FCFS HTML
+            const scoreColHtml = (!hasCriteria || cand.has_educational_criteria === false)
+                ? `
+                    <div class="score-cell-container">
+                        <div class="score-cell-header">
+                            <span class="score-badge-val" style="font-size: 12px; color: var(--moss-green); font-weight: 700;">Rank #${cand.rank} (FCFS)</span>
+                            <span class="score-rating-pill rating-excellent">100% Eligible</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                            <i data-lucide="clock" style="width: 11px; height: 11px;"></i>
+                            <span>Applied: ${cand.applied_date_str || (cand.created_at ? new Date(cand.created_at).toLocaleDateString() : '')} ${cand.applied_time_str || ''}</span>
+                        </div>
+                    </div>
+                `
+                : `
+                    <div class="score-cell-container">
+                        <div class="score-cell-header">
+                            <span class="score-badge-val">${cand.total_score}%</span>
+                            <span class="score-rating-pill ${ratingClass}">${ratingTag}</span>
+                        </div>
+                        <div class="score-meter-bar">
+                            <div class="score-meter-fill ${fillClass}" style="width: ${cand.total_score}%;"></div>
+                        </div>
+                    </div>
+                `;
+
+            tr.innerHTML = `
+                <td>
+                    <div class="rank-badge ${rankBadgeClass}">${rankDisplay}</div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        ${avatarHtml}
+                        <div>
+                            <div style="color: var(--text-heading); font-weight: 700; font-size: 13.5px; cursor: pointer;" onclick="openCriteriaScorecard('${cand.applicant_id}')" title="Click to view scorecard">
+                                ${escapeHtml(cand.full_name)}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                                <span class="count-pill" style="font-size: 10.5px; padding: 2px 6px;">ID: ${escapeHtml(cand.student_number)}</span>
+                                <span>${escapeHtml(cand.email)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div style="color: var(--text-heading); font-size: 13px; font-weight: 600;">${escapeHtml(cand.program)}</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Cohort: ${escapeHtml(cand.year_level)}</div>
+                </td>
+                <td>${gwaColHtml}</td>
+                <td>${scoreColHtml}</td>
+                <td>
+                    <div class="tier-badge ${tierClass}">
+                        <i data-lucide="${tierIcon}" style="width: 12px; height: 12px;"></i>
+                        <span>${tierTitle}</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; max-width: 220px; line-height: 1.3;">
+                        ${escapeHtml(cand.recommendation)}
+                    </div>
+                </td>
+                <td>${actionButtonsHtml}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    }
+
+    // --- 8.6 CRITERIA SCORECARD & DETAILED BREAKDOWN MODAL ---
+    window.closeScorecardModal = () => {
+        const modal = document.getElementById('shortlist-scorecard-modal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.openCriteriaScorecard = (applicantId) => {
+        const cand = rankedShortlist.find(c => String(c.applicant_id) === String(applicantId));
+        if (!cand) {
+            showUIToast('error', 'Error', 'Candidate scorecard data not found.');
+            return;
+        }
+
+        const modal = document.getElementById('shortlist-scorecard-modal');
+        const modalName = document.getElementById('scorecard-applicant-name');
+        const modalMeta = document.getElementById('scorecard-applicant-meta');
+        const modalTier = document.getElementById('scorecard-tier-badge');
+        const modalBody = document.getElementById('scorecard-modal-body');
+        const modalRankText = document.getElementById('scorecard-rank-text');
+        const modalActions = document.getElementById('scorecard-action-buttons');
+
+        if (!modal || !modalBody) return;
+
+        if (modalName) modalName.innerText = cand.full_name;
+        if (modalMeta) modalMeta.innerText = `${cand.program} (${cand.year_level}) • Student ID: ${cand.student_number}`;
+
+        if (modalTier) {
+            let tierClass = 'tier-qualified';
+            let tierLabel = 'Qualified Candidate';
+            if (cand.tier === 'slotted') {
+                tierClass = 'tier-slotted';
+                tierLabel = 'Slotted Grantee (Slot Secured)';
+            } else if (cand.tier === 'conditional') {
+                tierClass = 'tier-conditional';
+                tierLabel = 'Conditional Candidate';
+            } else if (cand.tier === 'ineligible') {
+                tierClass = 'tier-ineligible';
+                tierLabel = 'Ineligible (Criteria Not Met)';
+            }
+            modalTier.className = `tier-badge ${tierClass}`;
+            modalTier.innerHTML = `<i data-lucide="${cand.tier === 'slotted' ? 'award' : (cand.is_strictly_eligible ? 'check-circle' : 'x-circle')}" style="width: 12px; height: 12px;"></i> ${tierLabel}`;
+        }
+
+        if (modalRankText) {
+            modalRankText.innerText = `Rank: #${cand.rank} of ${rankedShortlist.length} Evaluated Applicants`;
+        }
+
+        const b = cand.breakdown;
+        const sch = activeScholarshipData || {};
+        const providerName = sch.department || sch.category || 'Educational Assistance Sponsor';
+
+        let bodyHtml = `
+            <!-- Overall Score & Merit Header Gauge -->
+            <div class="scorecard-header-gauge">
+                <div class="scorecard-gauge-left">
+                    <div class="scorecard-circle-score">
+                        <span class="score-num">${cand.total_score}%</span>
+                        <span class="score-max">OVERALL</span>
+                    </div>
+                    <div>
+                        <div style="font-size: 15px; font-weight: 800; color: var(--text-heading); margin-bottom: 2px;">
+                            ${cand.tier === 'slotted' ? '🏆 Recommended for Immediate Grant Award' : (cand.is_strictly_eligible ? '⭐ Qualified for Grant Selection' : '⚠️ Action Required / Disqualified')}
+                        </div>
+                        <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.4;">
+                            ${escapeHtml(cand.recommendation)}
+                        </div>
+                        <div style="margin-top: 6px; font-size: 11.5px; color: var(--river-blue); font-weight: 600;">
+                            🏢 Sponsoring Provider: ${providerName}
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="count-pill" style="font-size: 13px; font-weight: 700; padding: 6px 14px;">
+                        Candidate Rank: #${cand.rank}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disqualification / Warning Alerts if present -->
+            ${cand.disqualifications && cand.disqualifications.length > 0 ? `
+                <div style="background: rgba(217, 72, 65, 0.08); border: 1px solid rgba(217, 72, 65, 0.25); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--danger-color); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <i data-lucide="alert-circle" style="width: 15px; height: 15px;"></i> Educational Criteria Disqualification
+                    </div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 12.5px; color: var(--text-main);">
+                        ${cand.disqualifications.map(d => `<li>${escapeHtml(d)}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+            <!-- Criteria-by-Criteria Score Breakdown List -->
+            <div class="modal-section-title" style="margin-bottom: 10px;">
+                <i data-lucide="sliders-horizontal"></i> Educational Criteria Score Breakdown (100 Pts Total)
+            </div>
+
+            <div class="criteria-list-container">
+                <!-- 1. Academic Merit -->
+                <div class="criterion-card-item">
+                    <div class="criterion-card-header">
+                        <div class="criterion-name-group">
+                            <i data-lucide="graduation-cap" style="width: 16px; height: 16px; color: var(--moss-green);"></i>
+                            <span>1. Academic Performance & Merit (Weight: 45 Pts)</span>
+                        </div>
+                        <div>
+                            <span class="criterion-passed-tag ${b.academicMerit.passed ? 'tag-pass' : 'tag-fail'}">
+                                ${b.academicMerit.passed ? '✓ Meets Requirement' : '✗ Misses Cutoff'} (${b.academicMerit.score} / 45 pts)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="criterion-details-desc">
+                        ${escapeHtml(b.academicMerit.details)}
+                    </div>
+                    <div class="criterion-score-progress">
+                        <div class="criterion-score-fill ${b.academicMerit.passed ? '' : 'fail-fill'}" style="width: ${(b.academicMerit.score / 45) * 100}%;"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Degree Program Alignment -->
+                <div class="criterion-card-item">
+                    <div class="criterion-card-header">
+                        <div class="criterion-name-group">
+                            <i data-lucide="book-open" style="width: 16px; height: 16px; color: var(--moss-green);"></i>
+                            <span>2. Degree Program Alignment (Weight: 20 Pts)</span>
+                        </div>
+                        <div>
+                            <span class="criterion-passed-tag ${b.programMatch.passed ? 'tag-pass' : 'tag-fail'}">
+                                ${b.programMatch.passed ? '✓ Course Match' : '✗ Program Ineligible'} (${b.programMatch.score} / 20 pts)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="criterion-details-desc">
+                        ${escapeHtml(b.programMatch.details)}
+                    </div>
+                    <div class="criterion-score-progress">
+                        <div class="criterion-score-fill ${b.programMatch.passed ? '' : 'fail-fill'}" style="width: ${(b.programMatch.score / 20) * 100}%;"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Year Level Alignment -->
+                <div class="criterion-card-item">
+                    <div class="criterion-card-header">
+                        <div class="criterion-name-group">
+                            <i data-lucide="calendar" style="width: 16px; height: 16px; color: var(--moss-green);"></i>
+                            <span>3. Year Level Cohort Alignment (Weight: 15 Pts)</span>
+                        </div>
+                        <div>
+                            <span class="criterion-passed-tag ${b.yearMatch.passed ? 'tag-pass' : 'tag-fail'}">
+                                ${b.yearMatch.passed ? '✓ Cohort Match' : '✗ Year Level Ineligible'} (${b.yearMatch.score} / 15 pts)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="criterion-details-desc">
+                        ${escapeHtml(b.yearMatch.details)}
+                    </div>
+                    <div class="criterion-score-progress">
+                        <div class="criterion-score-fill ${b.yearMatch.passed ? '' : 'fail-fill'}" style="width: ${(b.yearMatch.score / 15) * 100}%;"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Documents & Verification -->
+                <div class="criterion-card-item">
+                    <div class="criterion-card-header">
+                        <div class="criterion-name-group">
+                            <i data-lucide="file-check" style="width: 16px; height: 16px; color: var(--moss-green);"></i>
+                            <span>4. Required Documents Completeness & AI OCR (Weight: 15 Pts)</span>
+                        </div>
+                        <div>
+                            <span class="criterion-passed-tag ${b.documentCompleteness.passed ? 'tag-pass' : 'tag-fail'}">
+                                ${b.documentCompleteness.passed ? '✓ Verified Documents' : '⚠ Missing Requirements'} (${b.documentCompleteness.score} / 15 pts)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="criterion-details-desc">
+                        ${escapeHtml(b.documentCompleteness.details)}
+                    </div>
+                    <div class="criterion-score-progress">
+                        <div class="criterion-score-fill" style="width: ${(b.documentCompleteness.score / 15) * 100}%;"></div>
+                    </div>
+                </div>
+
+                <!-- 5. Submission Timeliness -->
+                <div class="criterion-card-item">
+                    <div class="criterion-card-header">
+                        <div class="criterion-name-group">
+                            <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--moss-green);"></i>
+                            <span>5. Application Submission Timeliness (Weight: 5 Pts)</span>
+                        </div>
+                        <div>
+                            <span class="criterion-passed-tag tag-pass">
+                                ✓ Timely Submission (${b.timeliness.score} / 5 pts)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="criterion-details-desc">
+                        ${escapeHtml(b.timeliness.details)}
+                    </div>
+                    <div class="criterion-score-progress">
+                        <div class="criterion-score-fill" style="width: ${(b.timeliness.score / 5) * 100}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider & Coordinator Evaluation Sign-off Preview -->
+            <div class="evaluation-signoff-card">
+                <div class="evaluation-signoff-header">
+                    <i data-lucide="file-signature" style="width: 15px; height: 15px; color: var(--moss-green);"></i>
+                    <span>Official Evaluation Audit Trail & Committee Sign-Off</span>
+                </div>
+                <div class="evaluation-signoff-grid">
+                    <div class="signoff-box">
+                        <strong>Evaluated By:</strong> Scholarship Coordinator
+                        <div style="font-size: 11px; margin-top: 2px;">Office of Student Affairs / Grant Management</div>
+                    </div>
+                    <div class="signoff-box">
+                        <strong>Reviewed & Endorsed By:</strong> ${providerName}
+                        <div style="font-size: 11px; margin-top: 2px;">Educational Assistance Sponsoring Representative</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        modalBody.innerHTML = bodyHtml;
+
+        // Modal Action Buttons
+        if (modalActions) {
+            let actionsHtml = `
+                <button type="button" class="btn-outline" onclick="openApplicantModal('${cand.applicant_id}')">
+                    <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> View Full Application Responses
+                </button>
+            `;
+
+            if (normalizeApplicantStatus(cand.current_status) === 'pending') {
+                actionsHtml += `
+                    <button type="button" class="btn-reject" onclick="closeScorecardModal(); confirmUpdateStatus('${cand.applicant_id}', 'Rejected', 'Reject')">
+                        <i data-lucide="x" style="width: 14px; height: 14px;"></i> Reject
+                    </button>
+                    <button type="button" class="btn-approve" onclick="closeScorecardModal(); confirmUpdateStatus('${cand.applicant_id}', 'Approved', 'Approve')">
+                        <i data-lucide="check" style="width: 14px; height: 14px;"></i> Approve as Grantee
+                    </button>
+                `;
+            } else {
+                actionsHtml += `
+                    <button type="button" class="btn-approve" onclick="closeScorecardModal()">
+                        <i data-lucide="check" style="width: 14px; height: 14px;"></i> Done
+                    </button>
+                `;
+            }
+
+            modalActions.innerHTML = actionsHtml;
+        }
+
+        modal.style.display = 'flex';
+
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    };
+
+    // --- 8.7 BATCH APPROVE TOP SHORTLIST ---
+    window.batchApproveTopShortlist = async () => {
+        const pendingSlotted = rankedShortlist.filter(c => c.tier === 'slotted' && normalizeApplicantStatus(c.current_status) === 'pending');
+
+        if (pendingSlotted.length === 0) {
+            showUIToast('info', 'All Slotted Approved', 'All top-ranked candidates within the program slots are already approved.');
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: `Approve All ${pendingSlotted.length} Slotted Candidates?`,
+            text: `This will grant approval to all ${pendingSlotted.length} top-ranked students who meet educational criteria and fit within the available slots.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1F3D2E',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: `Yes, Approve ${pendingSlotted.length} Candidates!`
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Processing Batch Approvals...',
+            text: 'Updating grantee records and reserving slots...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            const updatePromises = pendingSlotted.map(cand => 
+                window.supabaseClient
+                    .from('applications')
+                    .update({ status: 'Approved', remarks: `Approved via Ranked Shortlist Evaluation (Rank #${cand.rank}, Score: ${cand.total_score}%).` })
+                    .eq('id', cand.applicant_id)
+            );
+
+            await Promise.all(updatePromises);
+
+            await logSystemAction('Batch Approved Shortlist', `Approved ${pendingSlotted.length} slotted candidates for ${activeScholarshipData?.title || 'Scholarship'}`);
+
+            Swal.close();
+            showUIToast('success', 'Batch Approval Successful', `Successfully approved ${pendingSlotted.length} shortlisted grantees!`);
+            await loadApplicationsForActiveTab();
+        } catch (err) {
+            console.error("Batch Approval Error:", err);
+            Swal.close();
+            showUIToast('error', 'Error', 'Failed to batch approve candidates: ' + err.message);
+        }
+    };
+
+    // --- 8.8 EXPORT RANKED SHORTLIST (CSV AND PDF) ---
+    window.exportShortlist = async (targetFormat) => {
+        closeExportDropdown();
+
+        if (!rankedShortlist || rankedShortlist.length === 0) {
+            showUIToast('info', 'No Data', 'No candidates found to export in the ranked shortlist.');
+            return;
+        }
+
+        const candidatesToExport = filteredShortlist && filteredShortlist.length > 0 ? filteredShortlist : rankedShortlist;
+
+        let format = targetFormat;
+        if (!format) {
+            const { value: selectedFormat } = await Swal.fire({
+                title: 'Export Ranked Shortlist',
+                text: `Export ${candidatesToExport.length} ranked candidate records for evaluation:`,
+                icon: 'question',
+                input: 'select',
+                inputOptions: {
+                    'pdf': 'Official Evaluation Report (PDF with Sign-Off)',
+                    'csv': 'Ranked Shortlist Spreadsheet (CSV / Excel)'
+                },
+                inputPlaceholder: 'Select an export format',
+                showCancelButton: true,
+                confirmButtonColor: '#1F3D2E',
+                confirmButtonText: 'Export'
+            });
+            format = selectedFormat;
+        }
+
+        if (!format) return;
+
+        if (format === 'csv') {
+            exportShortlistToCSV(candidatesToExport);
+        } else if (format === 'pdf') {
+            exportShortlistToPDF(candidatesToExport);
+        }
+    };
+
+    function exportShortlistToCSV(candidatesToExport) {
+        let csv = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM
+        csv += "Rank,Student ID,Last Name,First Name,Middle Name,Degree Program,Year Level,GWA,Academic Merit (/45),Program Match (/20),Year Match (/15),Documents & OCR (/15),Timeliness (/5),Total Qualification Score (%),Shortlist Tier,Evaluation Recommendation,Current Status,Date Applied,Email,Contact Number\r\n";
+
+        candidatesToExport.forEach(cand => {
+            const b = cand.breakdown;
+            const appliedDate = cand.created_at ? new Date(cand.created_at).toLocaleDateString('en-US') : 'N/A';
+            const tierText = cand.tier === 'slotted' ? 'Top Slotted Grantee' : (cand.is_strictly_eligible ? 'Qualified Candidate' : (cand.tier === 'conditional' ? 'Conditional' : 'Ineligible'));
+
+            const row = [
+                cand.rank,
+                `"${sanitizeCsvValue(cand.student_number)}"`,
+                `"${sanitizeCsvValue(cand.last_name)}"`,
+                `"${sanitizeCsvValue(cand.first_name)}"`,
+                `"${sanitizeCsvValue(cand.middle_name)}"`,
+                `"${sanitizeCsvValue(cand.program)}"`,
+                `"${sanitizeCsvValue(cand.year_level)}"`,
+                `"${sanitizeCsvValue(cand.gwa_display)}"`,
+                b.academicMerit.score,
+                b.programMatch.score,
+                b.yearMatch.score,
+                b.documentCompleteness.score,
+                b.timeliness.score,
+                `${cand.total_score}%`,
+                `"${sanitizeCsvValue(tierText)}"`,
+                `"${sanitizeCsvValue(cand.recommendation)}"`,
+                `"${sanitizeCsvValue(getDisplayStatus(cand.current_status))}"`,
+                `"${sanitizeCsvValue(appliedDate)}"`,
+                `"${sanitizeCsvValue(cand.email)}"`,
+                `"${sanitizeCsvValue(cand.contact_number)}"`
+            ];
+            csv += row.join(',') + "\r\n";
+        });
+
+        const programName = sanitizeFilename(activeScholarshipData?.title || 'Scholarship');
+        const filename = `${programName}_Ranked_Shortlist_Evaluation_${Date.now()}.csv`;
+
+        const encodedUri = encodeURI(csv);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showUIToast('success', 'Export Complete', `Shortlist CSV exported successfully (${candidatesToExport.length} records).`);
+    }
+
+    function exportShortlistToPDF(candidatesToExport) {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            showUIToast('error', 'Missing Library', 'jsPDF is required to generate the PDF evaluation report.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape', 'pt', 'a4');
+
+        const sch = activeScholarshipData || {};
+        const schTitle = sch.title || 'Educational Assistance Program';
+        const providerName = sch.department || sch.category || 'General Administration';
+        const schoolName = currentAdminSchool?.name || 'Institution of Higher Education';
+
+        const summary = shortlistSummaryData || {
+            total_evaluated: candidatesToExport.length,
+            qualified_candidates: candidatesToExport.filter(c => c.is_strictly_eligible).length,
+            slotted_grantees: candidatesToExport.filter(c => c.tier === 'slotted').length,
+            average_shortlist_gwa: '1.25',
+            shortlist_cutoff_score: 85
+        };
+
+        // Header Styling
+        doc.setFillColor(31, 61, 46); // Forest shade
+        doc.rect(0, 0, 842, 65, 'F');
+
+        doc.setFontSize(16);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text("OFFICIAL RANKED SHORTLIST & EVALUATION REPORT", 40, 32);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(220, 230, 222);
+        doc.text(`Prepared for Sponsoring Company / Educational Assistance Provider & School Coordinator`, 40, 48);
+
+        // Document Metadata Block
+        doc.setFontSize(11);
+        doc.setTextColor(31, 61, 46);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Program: ${schTitle}`, 40, 85);
+        doc.text(`Institution: ${schoolName}`, 40, 100);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(70, 70, 70);
+        doc.text(`Educational Provider: ${providerName}`, 480, 85);
+        doc.text(`Evaluation Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, 480, 100);
+
+        // Executive Summary Metrics Box
+        doc.setFillColor(244, 246, 242);
+        doc.roundedRect(40, 112, 762, 38, 4, 4, 'F');
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(31, 61, 46);
+        doc.text(`Total Evaluated: ${summary.total_evaluated}`, 55, 134);
+        doc.text(`Available Slots: ${sch.slots || 'Open'}`, 210, 134);
+        doc.text(`Qualified Candidates: ${summary.qualified_candidates}`, 350, 134);
+        doc.text(`Slotted Grantees: ${summary.slotted_grantees}`, 510, 134);
+        doc.text(`Cutoff Score: ${summary.shortlist_cutoff_score}%`, 670, 134);
+
+        // Table Data
+        const tableColumn = ["Rank", "Student ID", "Candidate Full Name", "Degree Program & Cohort", "GWA", "Score (%)", "Shortlist Status", "Committee Recommendation"];
+        const tableRows = [];
+
+        candidatesToExport.forEach(cand => {
+            const progCohort = `${cand.program}\n(${cand.year_level})`;
+            const tierText = cand.tier === 'slotted' ? 'Top Slotted' : (cand.is_strictly_eligible ? 'Qualified' : (cand.tier === 'conditional' ? 'Conditional' : 'Ineligible'));
+
+            tableRows.push([
+                cand.rank === 1 ? '#1 (Gold)' : (cand.rank === 2 ? '#2 (Silver)' : (cand.rank === 3 ? '#3 (Bronze)' : `#${cand.rank}`)),
+                cand.student_number,
+                cand.full_name,
+                progCohort,
+                cand.gwa_display,
+                `${cand.total_score}%`,
+                tierText,
+                cand.recommendation
+            ]);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 160,
+            styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak' },
+            headStyles: { fillColor: [107, 127, 78], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [248, 250, 247] },
+            columnStyles: {
+                0: { cellWidth: 50, fontStyle: 'bold' },
+                1: { cellWidth: 70 },
+                2: { cellWidth: 120, fontStyle: 'bold' },
+                3: { cellWidth: 140 },
+                4: { cellWidth: 45, fontStyle: 'bold' },
+                5: { cellWidth: 55, fontStyle: 'bold' },
+                6: { cellWidth: 75 },
+                7: { cellWidth: 205 }
+            },
+            didDrawPage: (data) => {
+                // Footer
+                const pageNumber = doc.internal.getNumberOfPages();
+                doc.setFontSize(8);
+                doc.setTextColor(140);
+                doc.text(`Grantee Smart Scholarship Management System • Page ${data.pageNumber}`, 40, 580);
+            }
+        });
+
+        // Sign-off Block on the last page
+        const finalY = doc.lastAutoTable.finalY || 400;
+        let signY = finalY + 30;
+
+        if (signY > 500) {
+            doc.addPage();
+            signY = 60;
+        }
+
+        doc.setFontSize(9.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(31, 61, 46);
+        doc.text("COMMITTEE EVALUATION & APPROVAL ENDORSEMENT", 40, signY);
+
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100);
+        doc.text("We hereby certify that the students above have been evaluated against established criteria and ranked for grant allocation.", 40, signY + 14);
+
+        const sigLineY = signY + 50;
+
+        // Signature Line 1: Coordinator
+        doc.setDrawColor(180);
+        doc.line(40, sigLineY, 260, sigLineY);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(31, 61, 46);
+        doc.text("SCHOLARSHIP COORDINATOR", 40, sigLineY + 12);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100);
+        doc.text("Office of Student Financial Assistance", 40, sigLineY + 24);
+        doc.text("Date: ________________________", 40, sigLineY + 36);
+
+        // Signature Line 2: Sponsoring Provider
+        doc.line(480, sigLineY, 700, sigLineY);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(31, 61, 46);
+        doc.text("EDUCATIONAL ASSISTANCE PROVIDER", 480, sigLineY + 12);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100);
+        doc.text(`Authorized Representative (${providerName})`, 480, sigLineY + 24);
+        doc.text("Date: ________________________", 480, sigLineY + 36);
+
+        const programName = sanitizeFilename(sch.title || 'Scholarship');
+        const filename = `${programName}_Official_Shortlist_Evaluation_Report_${Date.now()}.pdf`;
+
+        doc.save(filename);
+        showUIToast('success', 'PDF Report Generated', `Official Evaluation Report downloaded successfully.`);
+    }
+
     // --- 9. EXPORT OPTIONS (CSV AND PDF) ---
     window.exportByStatus = async (targetStatus) => {
         const appsToExport = currentApplications.filter(app => {
@@ -2055,12 +3888,25 @@
         });
     }
 
+    const scorecardModal = document.getElementById('shortlist-scorecard-modal');
+    if (scorecardModal) {
+        scorecardModal.addEventListener('click', (e) => {
+            if (e.target.id === 'shortlist-scorecard-modal') {
+                closeScorecardModal();
+            }
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeExportDropdown();
             const modalEl = document.getElementById('applicant-modal');
             if (modalEl && modalEl.style.display === 'flex') {
                 closeApplicantModal();
+            }
+            const scorecardEl = document.getElementById('shortlist-scorecard-modal');
+            if (scorecardEl && scorecardEl.style.display === 'flex') {
+                closeScorecardModal();
             }
         }
     });

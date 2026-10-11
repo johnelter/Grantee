@@ -332,6 +332,62 @@ const finalizeLoginProcess = async (userId, submitBtn, originalBtnText) => {
             return;
         }
 
+        // --- INSTITUTIONAL SUBSCRIPTION & LICENSING VERIFICATION ---
+        let resolvedSchoolId = profile.school_id;
+        if (!resolvedSchoolId && profile.role !== 'admin' && profile.id_number) {
+            try {
+                const { data: masterlistRow } = await supabaseClient
+                    .from('enrolled_masterlist')
+                    .select('school_id')
+                    .eq('id_number', profile.id_number)
+                    .maybeSingle();
+                if (masterlistRow && masterlistRow.school_id) {
+                    resolvedSchoolId = masterlistRow.school_id;
+                }
+            } catch (e) {
+                console.warn("Could not resolve school from masterlist for student:", e);
+            }
+        }
+
+        if (resolvedSchoolId && window.SubscriptionClient) {
+            try {
+                const subCheck = await window.SubscriptionClient.checkAccess(resolvedSchoolId, true);
+
+                if (subCheck && !subCheck.allowed) {
+                    // Scenario A: STUDENT ACCOUNT ACCESS IS STRICTLY BLOCKED
+                    if (profile.role !== 'admin') {
+                        await supabaseClient.auth.signOut();
+                        if (submitBtn) {
+                            submitBtn.innerText = originalBtnText;
+                            submitBtn.disabled = false;
+                        }
+                        if (window.SubscriptionClient.showStudentLockoutUI) {
+                            window.SubscriptionClient.showStudentLockoutUI(subCheck.school_name, subCheck.reason);
+                        } else {
+                            showInlineAlert('error', 'Institutional License Suspended', `Access for ${subCheck.school_name || 'your institution'} is currently unavailable because the school's Grantee system subscription is unpaid or expired. Please contact your coordinator.`);
+                        }
+                        return;
+                    }
+
+                    // Scenario B: COORDINATOR ACCOUNT ACCESS IS BLOCKED FROM DASHBOARD -> SENT TO SUBSCRIPTION PORTAL
+                    if (profile.role === 'admin' || profile.role === 'coordinator') {
+                        if (submitBtn) {
+                            submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Opening Subscription Portal...';
+                            submitBtn.disabled = true;
+                            submitBtn.style.opacity = '0.8';
+                        }
+                        showToast('warning', 'License Renewal Required', 'Your institution subscription is currently inactive. You must process payment to access the dashboard.');
+                        setTimeout(() => {
+                            window.location.href = 'admin-subscription.html?expired=true';
+                        }, 600);
+                        return;
+                    }
+                }
+            } catch (subErr) {
+                console.warn("Subscription check failed during login, continuing with standard flow:", subErr);
+            }
+        }
+
         // Track Coordinator Login in Audit / Activity Logs
         if (profile.role === 'admin' || profile.role === 'coordinator') {
             try {

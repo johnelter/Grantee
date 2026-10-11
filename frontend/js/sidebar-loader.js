@@ -120,9 +120,76 @@ async function fetchAndCacheAdminProfile() {
             if (typeof lucide !== 'undefined' && lucide.createIcons) {
                 lucide.createIcons();
             }
+
+            // --- CHECK INSTITUTIONAL SUBSCRIPTION STATUS FOR COORDINATOR ---
+            if (profile.school_id && window.SubscriptionClient) {
+                try {
+                    const subCheck = await window.SubscriptionClient.checkAccess(profile.school_id);
+                    updateSidebarSubscriptionBadge(subCheck);
+
+                    const currentPage = (window.location.pathname.split('/').pop().split('?')[0] || 'admin-dashboard.html');
+                    if (!subCheck.allowed && currentPage !== 'admin-subscription.html') {
+                        console.warn('[SidebarLoader] School license is inactive/expired. Redirecting to billing...');
+                        window.location.replace('admin-subscription.html?expired=true');
+                        return;
+                    }
+                } catch (subErr) {
+                    console.warn('[SidebarLoader] Subscription status check error:', subErr);
+                }
+            }
         }
     } catch (err) {
         console.warn('Error fetching admin profile in sidebar-loader:', err);
+    }
+}
+
+// Ensure Subscription & License menu item exists in sidebar
+function ensureSubscriptionMenuItem() {
+    const sidebar = document.querySelector('#app-sidebar .sidebar-menu');
+    if (!sidebar || sidebar.querySelector('#sidebar-menu-subscription')) return;
+
+    const profileSettingsLink = sidebar.querySelector('a[href*="admin-profile-settings"]');
+    const subMenuItemHTML = `
+        <a href="admin-subscription.html" class="menu-item" id="sidebar-menu-subscription">
+            <span class="menu-icon"><svg class="lucide lucide-credit-card" xmlns="http://www.w3.org/2000/svg" width="20"
+                    height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="14" x="2" y="5" rx="2" />
+                    <line x1="2" x2="22" y1="10" y2="10" />
+                </svg></span> Subscription & License
+            <span class="sidebar-sub-badge" id="sidebar-sub-badge" style="display: none; margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px;"></span>
+        </a>
+    `;
+
+    if (profileSettingsLink) {
+        profileSettingsLink.insertAdjacentHTML('beforebegin', subMenuItemHTML);
+    } else {
+        sidebar.insertAdjacentHTML('beforeend', subMenuItemHTML);
+    }
+
+    if (window.lucide && lucide.createIcons) {
+        try { lucide.createIcons({ root: sidebar }); } catch (e) { lucide.createIcons(); }
+    }
+}
+
+function updateSidebarSubscriptionBadge(subCheck) {
+    const badge = document.getElementById('sidebar-sub-badge');
+    if (!badge) return;
+    if (!subCheck) {
+        badge.style.display = 'none';
+        return;
+    }
+    badge.style.display = 'inline-block';
+    if (subCheck.allowed) {
+        badge.innerText = 'Active';
+        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+        badge.style.color = '#10b981';
+        badge.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+    } else {
+        badge.innerText = 'Renewal Due';
+        badge.style.background = 'rgba(239, 68, 68, 0.15)';
+        badge.style.color = '#ef4444';
+        badge.style.border = '1px solid rgba(239, 68, 68, 0.3)';
     }
 }
 
@@ -131,12 +198,14 @@ async function loadAdminSidebar() {
     const sidebarContainer = document.getElementById('sidebar-container');
     if (!sidebarContainer) return;
 
+    ensureSubscriptionMenuItem();
     highlightActiveSidebarMenu();
     if (typeof lucide !== 'undefined' && lucide.createIcons) {
         lucide.createIcons();
     }
 
     if (sidebarContainer.querySelector('#app-sidebar')) {
+        ensureSubscriptionMenuItem();
         return; // Sidebar is embedded statically in HTML, zero reload!
     }
 
@@ -211,6 +280,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyAdminTheme(getAdminStoredTheme());
     hydrateAdminProfile(document);
 
+    // Ensure subscription client script is injected if not already present
+    if (!window.SubscriptionClient && !document.querySelector('script[src*="subscription-client.js"]')) {
+        const subScript = document.createElement('script');
+        subScript.src = 'js/subscription-client.js';
+        document.head.appendChild(subScript);
+    }
+
+    // Fast check on cached profile to prevent dashboard flicker if license expired
+    try {
+        const cached = sessionStorage.getItem('grantee_admin_profile');
+        if (cached) {
+            const p = JSON.parse(cached);
+            if (p.school_id && window.SubscriptionClient) {
+                window.SubscriptionClient.checkAccess(p.school_id).then(subCheck => {
+                    updateSidebarSubscriptionBadge(subCheck);
+                    const curPage = window.location.pathname.split('/').pop().split('?')[0] || 'admin-dashboard.html';
+                    if (!subCheck.allowed && curPage !== 'admin-subscription.html') {
+                        window.location.replace('admin-subscription.html?expired=true');
+                    }
+                });
+            }
+        }
+    } catch (e) {}
+
     // Background profile refresh
     setTimeout(() => {
         fetchAndCacheAdminProfile();
@@ -237,6 +330,7 @@ function highlightActiveSidebarMenu() {
         if (!linkHref) return;
         const linkBase = linkHref.split('?')[0].split('#')[0];
         if (linkBase === currentPath || 
+            (linkBase.includes('admin-subscription') && currentPath.includes('admin-subscription')) ||
             (linkBase.includes('admin-scholarships') && currentPath.includes('create-scholarship')) ||
             (linkBase.includes('admin-scholarships') && currentPath.includes('view-scholarship'))) {
             link.classList.add('active');

@@ -852,6 +852,181 @@ app.post('/api/admin/backups/restore', async (req, res) => {
     }
 });
 
+// ============================================================================
+// 13. INSTITUTIONAL SUBSCRIPTION & LICENSING SYSTEM
+// ============================================================================
+const subscriptionService = require('./subscriptionService');
+
+// Get available subscription plans
+app.get('/api/subscription/plans', (req, res) => {
+    res.status(200).json({ success: true, plans: subscriptionService.PLANS });
+});
+
+// Get current subscription status for an institution
+app.get('/api/subscription/status/:schoolId', async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const sub = await subscriptionService.getSubscriptionStatus(schoolId);
+        if (!sub) return res.status(404).json({ error: 'Institution not found.' });
+        res.status(200).json({ success: true, subscription: sub });
+    } catch (err) {
+        console.error('Subscription Status Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Lightweight access verification endpoint for auth guards (students & coordinators)
+app.get('/api/subscription/check/:schoolId', async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const check = await subscriptionService.checkSchoolAccess(schoolId);
+        res.status(200).json(check);
+    } catch (err) {
+        console.error('Subscription Check Error:', err);
+        res.status(500).json({ allowed: false, error: err.message });
+    }
+});
+
+// Process subscription payment from coordinator account
+app.post('/api/subscription/process-payment', async (req, res) => {
+    try {
+        const {
+            schoolId,
+            coordinatorId,
+            coordinatorName,
+            coordinatorEmail,
+            planCode,
+            paymentMethod,
+            referenceNumber,
+            amountPaid,
+            notes
+        } = req.body;
+
+        if (!schoolId) {
+            return res.status(400).json({ error: 'School ID is required.' });
+        }
+
+        const result = await subscriptionService.processPayment({
+            schoolId,
+            coordinatorId,
+            coordinatorName,
+            coordinatorEmail,
+            planCode,
+            paymentMethod,
+            referenceNumber,
+            amountPaid,
+            notes
+        });
+
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Process Payment Error:', err);
+        res.status(500).json({ error: err.message || 'Payment processing failed.' });
+    }
+});
+
+// Simulate status (active, expired, unpaid) for evaluation and instant testing
+app.post('/api/subscription/simulate-status', async (req, res) => {
+    try {
+        const { schoolId, status } = req.body;
+        if (!schoolId || !status) {
+            return res.status(400).json({ error: 'schoolId and status are required.' });
+        }
+
+        const result = await subscriptionService.simulateStatus(schoolId, status);
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Simulate Status Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get invoices history for a school
+app.get('/api/subscription/invoices/:schoolId', async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const sub = await subscriptionService.getSubscriptionStatus(schoolId);
+        res.status(200).json({
+            success: true,
+            school_id: schoolId,
+            school_name: sub?.school_name || 'Institution',
+            invoices: sub?.invoices || []
+        });
+    } catch (err) {
+        console.error('Invoices Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get payment gateway & receiving accounts configuration
+app.get('/api/subscription/payment-config', (req, res) => {
+    try {
+        const config = subscriptionService.getPaymentConfig();
+        res.status(200).json(config);
+    } catch (err) {
+        console.error('Payment Config Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Create PayMongo Checkout Session (GCash, Maya, Cards, GrabPay, Direct Bank)
+app.post('/api/subscription/create-checkout-session', async (req, res) => {
+    try {
+        const {
+            schoolId,
+            planCode,
+            coordinatorId,
+            coordinatorName,
+            coordinatorEmail,
+            successUrl,
+            cancelUrl
+        } = req.body;
+
+        if (!schoolId) {
+            return res.status(400).json({ error: 'schoolId is required.' });
+        }
+
+        const session = await subscriptionService.createPaymongoCheckoutSession({
+            schoolId,
+            planCode,
+            coordinatorId,
+            coordinatorName,
+            coordinatorEmail,
+            successUrl,
+            cancelUrl
+        });
+
+        res.status(200).json(session);
+    } catch (err) {
+        console.error('PayMongo Checkout Session Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify PayMongo Checkout Session upon Return
+app.get('/api/subscription/verify-checkout-session/:sessionId', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const result = await subscriptionService.verifyPaymongoSession(sessionId);
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Verify PayMongo Session Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PayMongo Webhook Handler (Automated Background Settlement)
+app.post('/api/subscription/webhook/paymongo', async (req, res) => {
+    try {
+        const result = await subscriptionService.handlePaymongoWebhook(req.body);
+        res.status(200).json({ received: true, result });
+    } catch (err) {
+        console.error('PayMongo Webhook Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`Grantee Master Backend running on port ${PORT}`);
 });

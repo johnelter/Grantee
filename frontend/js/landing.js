@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: 'scholarships-section', elem: document.getElementById('scholarships-section') },
         { id: 'about-section', elem: document.getElementById('about-section') },
         { id: 'how-it-works', elem: document.getElementById('how-it-works') },
+        { id: 'licensing-section', elem: document.getElementById('licensing-section') },
         { id: 'contact-section', elem: document.getElementById('contact-section') }
     ];
 
@@ -628,7 +629,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 3. SELECTION EVENT HANDLER ---
     if (schoolSelect) {
-        schoolSelect.addEventListener('change', (e) => {
+        schoolSelect.addEventListener('change', async (e) => {
             const schoolId = e.target.value;
             const schoolName = schoolSelect.options[schoolSelect.selectedIndex].text;
             
@@ -638,6 +639,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (scholarshipsSection) scholarshipsSection.classList.remove('hidden');
                 if (selectedSchoolTitle) selectedSchoolTitle.innerText = `Educational Assistance at ${schoolName}`;
+
+                // Check institutional subscription status
+                let subBanner = document.getElementById('landing-school-sub-banner');
+                if (window.SubscriptionClient) {
+                    try {
+                        const check = await window.SubscriptionClient.checkAccess(schoolId);
+                        if (!check.allowed) {
+                            if (!subBanner) {
+                                subBanner = document.createElement('div');
+                                subBanner.id = 'landing-school-sub-banner';
+                                subBanner.style.cssText = 'background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 14px 18px; margin: 16px 0 24px; color: #9f1239; font-size: 13.5px; line-height: 1.5; display: flex; align-items: center; gap: 10px;';
+                                selectedSchoolTitle.parentNode.insertBefore(subBanner, selectedSchoolTitle.nextSibling);
+                            }
+                            subBanner.innerHTML = `
+                                <i data-lucide="alert-octagon" style="width: 20px; height: 20px; color: #e11d48; flex-shrink: 0;"></i>
+                                <div>
+                                    <strong>Institutional License Inactive:</strong> Educational assistance applications for <strong>${schoolName}</strong> are temporarily paused until the institution's coordinator completes the license renewal.
+                                </div>
+                            `;
+                            subBanner.style.display = 'flex';
+                            if (window.lucide) lucide.createIcons();
+                        } else if (subBanner) {
+                            subBanner.style.display = 'none';
+                        }
+                    } catch (e) {
+                        if (subBanner) subBanner.style.display = 'none';
+                    }
+                }
 
                 fetchScholarshipsBySchool(schoolId);
                 

@@ -108,6 +108,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Success! Populate data
             studentData = data;
+
+            // Check School Subscription Status
+            if (studentData.school_id && window.SubscriptionClient) {
+                try {
+                    const subCheck = await window.SubscriptionClient.checkAccess(studentData.school_id);
+                    if (!subCheck.allowed) {
+                        idStatus.innerText = "❌ Institutional License Inactive.";
+                        idStatus.className = "status-msg msg-error";
+                        btnVerifyId.innerText = "Verify";
+                        btnVerifyId.disabled = false;
+                        btnVerifyId.classList.remove('disabled-style');
+                        if (window.SubscriptionClient.showStudentLockoutUI) {
+                            window.SubscriptionClient.showStudentLockoutUI(subCheck.school_name, subCheck.reason);
+                        } else {
+                            showCustomToast('error', 'Registration Suspended', `Registration for ${subCheck.school_name} is paused because the institution's license fee is unpaid.`);
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Subscription check error on register:', e);
+                }
+            }
+
             isIdVerified = true;
 
             idStatus.innerText = "✓ Student identity confirmed.";

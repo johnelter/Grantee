@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grantee - Institutional Subscription & Licensing</title>
+    <link rel="icon" type="image/png" href="assets/grantee_logo.png">
+    <link rel="shortcut icon" type="image/png" href="assets/grantee_logo.png">
+    <link rel="apple-touch-icon" href="assets/grantee_logo.png">
+
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS (Required for dynamic JS classes and badges) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- QRCode Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Global & Page CSS -->
+    <link rel="stylesheet" href="css/admin-global.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/admin-subscription.css">
+
+    <!-- Immediate Theme Application to Avoid Flash -->
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('grantee_admin_theme');
+                if (!theme) {
+                    var cached = sessionStorage.getItem('grantee_admin_profile');
+                    if (cached) {
+                        var profile = JSON.parse(cached);
+                        if (profile && profile.id) {
+                            theme = localStorage.getItem('grantee_admin_theme_' + profile.id);
+                        }
+                    }
+                }
+                if (!theme) theme = localStorage.getItem('grantee_theme') || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-layout">
+
+        <!-- STATIC EMBEDDED SIDEBAR -->
+        <div id="sidebar-container">
+            <aside class="sidebar" id="app-sidebar">
+                <div class="sidebar-brand">
+                    <img src="assets/grantee_logo.png" alt="Grantee Logo" class="logo-icon" style="border-radius: 8px;">
+                    <div>
+                        <h2>Grantee</h2>
+                        <span class="sub-brand">Educational Assistance Management</span>
+                    </div>
+                </div>
+                <nav class="sidebar-menu">
+                    <a href="admin-dashboard.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-home" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                                <path
+                                    d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            </svg></span> Dashboard
+                    </a>
+                    <a href="admin-scholarships.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-graduation-cap"
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path
+                                    d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+                                <path d="M22 10v6" />
+                                <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
+                            </svg></span> Educational Assistance
+                    </a>
+                    <a href="admin-applications.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-file-text" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+                                <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+                                <path d="M10 9H8" />
+                                <path d="M16 13H8" />
+                                <path d="M16 17H8" />
+                            </svg></span> Applications
+                    </a>
+                    <a href="admin-active-scholars.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-award" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                                <circle cx="12" cy="8" r="6" />
+                            </svg></span> Active Beneficiaries
+                    </a>
+                    <a href="admin-policies.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-clipboard-list"
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                                <path d="M12 11h4" />
+                                <path d="M12 16h4" />
+                                <path d="M8 11h.01" />
+                                <path d="M8 16h.01" />
+                            </svg></span> Assistance Policies
+                    </a>
+                    <a href="admin-students.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-users" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <circle cx="9" cy="7" r="4" />
+                            </svg></span> Enrolled Masterlist
+                    </a>
+                    <a href="admin-announcements.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-megaphone" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+                                <path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" />
+                                <path d="M8 6v8" />
+                            </svg></span> Announcements
+                    </a>
+                    <a href="admin-subscription.html" class="menu-item active" id="sidebar-menu-subscription">
+                        <span class="menu-icon"><svg class="lucide lucide-credit-card" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="20" height="14" x="2" y="5" rx="2" />
+                                <line x1="2" x2="22" y1="10" y2="10" />
+                            </svg></span> Subscription & License
+                        <span class="sidebar-sub-badge" id="sidebar-sub-badge" style="display: none; margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px;"></span>
+                    </a>
+                    <a href="admin-profile-settings.html" class="menu-item">
+                        <span class="menu-icon"><svg class="lucide lucide-settings" xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg></span> Profile Settings
+                    </a>
+                </nav>
+            </aside>
+            <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+
+            <!-- Top Header -->
+            <header class="top-header">
+                <!-- Titles Section -->
+                <div class="header-titles-wrapper">
+                    <div class="header-titles" id="header-titles-box">
+                        <h1 class="page-title">Institutional Licensing</h1>
+                        <p class="welcome-text">Manage institutional license tier, billing cycles, and system access.</p>
+                        <p id="admin-school-display" class="text-sm mt-1 font-medium flex items-center gap-1.5">
+                            <i data-lucide="school" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle;"></i>
+                            <span>Loading institution...</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Actions Section -->
+                <div class="header-actions">
+                    <!-- Theme Toggle -->
+                    <button class="btn-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle Theme">
+                        <i data-lucide="moon"></i>
+                    </button>
+
+                    <!-- Notifications Container -->
+                    <div id="notification-container" class="relative"></div>
+
+                    <!-- Profile Dropdown -->
+                    <div class="user-profile dropdown-toggle" id="profile-dropdown-toggle">
+                        <img id="header-avatar" src="assets/admin-avatar.png" alt="Profile" class="avatar-img"
+                            onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%2394a3b8%22><path d=%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22/></svg>'">
+                        <div class="profile-info">
+                            <strong id="header-name">Loading...</strong>
+                            <span id="header-role">Coordinator</span>
+                        </div>
+                        <span class="dropdown-arrow"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></span>
+
+                        <div class="profile-dropdown-menu" id="profile-menu">
+                            <a href="admin-profile-settings.html"><i data-lucide="user" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Profile Settings</a>
+                            <a href="admin-subscription.html" class="active"><i data-lucide="credit-card" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Subscription & License</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" id="dropdown-logout-btn" class="text-red logout-trigger" onclick="openLogoutModal(event)">
+                                <i data-lucide="log-out" style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Hamburger Button (Mobile Only) -->
+                    <button type="button" class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                        <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable Page Container -->
+            <div class="subscription-page-container">
+
+                <!-- Simulator Toolbar for Evaluation & Testing -->
+                <div class="simulator-card">
+                    <div class="simulator-info">
+                        <i data-lucide="flask-conical" style="color: var(--sub-primary); width: 18px; height: 18px;"></i>
+                        <span>Testing Controls (Demo & Evaluation):</span>
+                        <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">
+                            Test coordinator & student lockouts in 1 click
+                        </span>
+                    </div>
+                    <div class="simulator-actions">
+                        <button class="btn-sim btn-sim-expired" id="btn-sim-expired" title="Simulate expired subscription to test lockout">
+                            <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Simulate Expired (Test Lockout)
+                        </button>
+                        <button class="btn-sim btn-sim-unpaid" id="btn-sim-unpaid" title="Simulate unpaid license">
+                            <i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i> Simulate Unpaid
+                        </button>
+                        <button class="btn-sim btn-sim-active" id="btn-sim-active" title="Simulate active license to restore access">
+                            <i data-lucide="unlock" style="width: 14px; height: 14px;"></i> Simulate Active (Unlock System)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Page Header Title Block -->
+                <div class="sub-header-block">
+                    <div>
+                        <h2 class="sub-header-title">
+                            <i data-lucide="shield-check" style="color: #10b981; width: 30px; height: 30px;"></i>
+                            Institutional Subscription & Licensing
+                        </h2>
+                        <p class="sub-header-subtitle">
+                            Educational institutions pay a monthly or yearly fee processed through the coordinator's account to keep Grantee running over the long term.
+                        </p>
+                    </div>
+                    <div id="quick-renew-btn-wrapper" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="btn-bank-setup-guide" onclick="openBankSetupGuideModal()">
+                            <i data-lucide="landmark" style="width: 15px; height: 15px;"></i> Online Payment & Bank Payout Setup
+                        </button>
+                    </div>
+                </div>
+
+                <!-- License Status Hero Card -->
+                <div class="license-hero-card" id="license-hero-card">
+                    <div class="hero-main-row">
+                        <div class="hero-school-info">
+                            <div class="hero-school-icon">
+                                <i data-lucide="landmark"></i>
+                            </div>
+                            <div>
+                                <h3 class="hero-school-title" id="hero-school-title">Institution License</h3>
+                                <div class="hero-school-meta">
+                                    <span id="hero-status-pill" class="status-badge-pill status-badge-active">
+                                        <i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i> Active License
+                                    </span>
+                                    <span>•</span>
+                                    <span id="hero-plan-text"><i data-lucide="tag" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i> Yearly Institutional License</span>
+                                    <span>•</span>
+                                    <span id="hero-coordinator-text"><i data-lucide="user-check" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i> Coordinator: Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button id="btn-renew-hero" class="btn-select-plan btn-select-yearly" style="padding: 12px 24px;">
+                                <i data-lucide="credit-card" style="width: 16px; height: 16px;"></i>
+                                <span id="btn-renew-hero-label">Process License Payment</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Expiration Alert Box (Appears when Expired or Unpaid) -->
+                    <div id="hero-alert-banner" style="display: none;"></div>
+
+                    <!-- Metrics Grid -->
+                    <div class="hero-metrics-row">
+                        <div class="metric-pill-box">
+                            <div class="metric-pill-label">License Status</div>
+                            <div class="metric-pill-value" id="metric-status-val">Active</div>
+                        </div>
+                        <div class="metric-pill-box">
+                            <div class="metric-pill-label">Days Remaining</div>
+                            <div class="metric-pill-value" id="metric-days-val">-- days</div>
+                        </div>
+                        <div class="metric-pill-box">
+                            <div class="metric-pill-label">Valid Until</div>
+                            <div class="metric-pill-value" id="metric-expiry-val" style="font-size: 16px;">--</div>
+                        </div>
+                        <div class="metric-pill-box">
+                            <div class="metric-pill-label">Last Payment Reference</div>
+                            <div class="metric-pill-value" id="metric-ref-val" style="font-size: 15px; font-family: monospace;">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plans Selection Section -->
+                <div>
+                    <h3 class="plan-section-title">Select Licensing Plan</h3>
+                    <p class="plan-section-subtitle">
+                        Choose between monthly operational billing or the discounted annual institutional license.
+                    </p>
+
+                    <div class="plans-grid">
+                        <!-- Monthly Plan Card -->
+                        <div class="pricing-card" id="card-plan-monthly">
+                            <h4 class="plan-name">Monthly Institutional License</h4>
+                            <p class="plan-desc">Flexible month-to-month billing. Keep the system running with manageable monthly disbursements.</p>
+                            
+                            <div class="plan-price-wrapper">
+                                <span class="plan-currency">₱</span>
+                                <span class="plan-amount">2,499</span>
+                                <span class="plan-cycle">/ institution / month</span>
+                            </div>
+
+                            <ul class="plan-features-list">
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Full Coordinator Administrative Dashboard</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Unlimited Student Beneficiaries & Applications</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>AI OCR Document & Grade Verification Engine</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Automated Institutional Assistance Policy Rules</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Approaching Deadline Notifications & Masterlist Import</span>
+                                </li>
+                            </ul>
+
+                            <button class="btn-select-plan btn-select-monthly" onclick="openCheckoutModal('monthly')">
+                                <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                                <span>Choose Monthly Plan (₱2,499)</span>
+                            </button>
+                        </div>
+
+                        <!-- Yearly Plan Card (Recommended) -->
+                        <div class="pricing-card is-popular" id="card-plan-yearly">
+                            <div class="card-ribbon">⭐ Recommended (Save 17%)</div>
+                            <h4 class="plan-name">Yearly Institutional License</h4>
+                            <p class="plan-desc">Maximum peace of mind for the whole academic year. 2 months free institutional licensing savings.</p>
+                            
+                            <div class="plan-price-wrapper">
+                                <span class="plan-currency">₱</span>
+                                <span class="plan-amount">24,990</span>
+                                <span class="plan-cycle">/ institution / year</span>
+                            </div>
+
+                            <ul class="plan-features-list">
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span><strong>Everything in Monthly Plan</strong></span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span><strong>2 Months Free</strong> (Save ₱4,998 per academic year)</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Official Institutional Certificate of Grantee Licensing</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Automated Hourly Backups & Disaster Recovery Guarantee</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>Priority 24/7 Technical Onboarding & Support</span>
+                                </li>
+                                <li class="plan-feature-item">
+                                    <span class="plan-feature-icon"><i data-lucide="check" style="width: 12px; height: 12px;"></i></span>
+                                    <span>3-Year Guaranteed Institutional Price Lock</span>
+                                </li>
+                            </ul>
+
+                            <button class="btn-select-plan btn-select-yearly" onclick="openCheckoutModal('yearly')">
+                                <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #DCC8A3;"></i>
+                                <span>Choose Annual Plan (₱24,990)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing & Invoice History Table -->
+                <div class="invoices-section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main, #0f172a); margin-bottom: 4px;">
+                                <i data-lucide="receipt" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;"></i>
+                                Institutional Payment History & Invoices
+                            </h3>
+                            <p style="font-size: 13px; color: var(--text-muted, #64748b);">
+                                Official records of license payments processed for this institution.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="invoices-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Plan / License</th>
+                                    <th>Payment Method</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Payer Coordinator</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoices-tbody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                        Loading payment records...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- CHECKOUT / PAYMENT MODAL -->
+    <div id="checkout-modal" class="checkout-modal-overlay">
+        <div class="checkout-modal-card">
+            <button type="button" class="checkout-close-btn" onclick="closeCheckoutModal()">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+
+            <h3 class="checkout-title">Institutional License Checkout</h3>
+            <p class="checkout-subtitle">Process licensing payment through coordinator account to keep Grantee active.</p>
+
+            <!-- Order Summary -->
+            <div class="order-summary-box">
+                <div class="order-summary-row">
+                    <span>Institution:</span>
+                    <strong id="modal-summary-school">Loading...</strong>
+                </div>
+                <div class="order-summary-row">
+                    <span>Selected Plan:</span>
+                    <strong id="modal-summary-plan">Yearly Institutional License</strong>
+                </div>
+                <div class="order-summary-row">
+                    <span>Billing Frequency:</span>
+                    <strong id="modal-summary-cycle">Annual (365 Days)</strong>
+                </div>
+                <div class="order-summary-row">
+                    <span>Educational Tax Relief (0% VAT):</span>
+                    <span>₱0.00</span>
+                </div>
+                <div class="order-summary-row total-row">
+                    <span>Total Amount Due:</span>
+                    <span id="modal-summary-total" style="color: #1F3D2E;">₱24,990.00</span>
+                </div>
+            </div>
+
+            <!-- 1. FAST ONLINE GATEWAY (PAYMONGO REDIRECTION) -->
+            <div class="online-paymongo-box">
+                <div class="paymongo-header-row">
+                    <div>
+                        <strong style="color: #065f46; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="zap" style="width: 17px; height: 17px; color: #10b981;"></i>
+                            PayMongo Online Gateway (Instant Access)
+                        </strong>
+                        <span style="font-size: 12px; color: #047857;">
+                            Pay directly via GCash, Maya, Credit/Debit Card, or Online Banking. Automatic deposit to online bank account.
+                        </span>
+                    </div>
+                    <div class="paymongo-badges">
+                        <span class="pay-brand-pill brand-gcash">GCash</span>
+                        <span class="pay-brand-pill brand-maya">Maya</span>
+                        <span class="pay-brand-pill brand-card">Visa/Mastercard</span>
+                        <span class="pay-brand-pill brand-bank">Online Banking</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-paymongo-action" id="btn-paymongo-checkout" onclick="initiatePaymongoOnlineCheckout()">
+                    <i data-lucide="external-link" style="width: 17px; height: 17px;"></i>
+                    <span id="btn-paymongo-label">Proceed to Online Checkout (PayMongo)</span>
+                </button>
+            </div>
+
+            <div class="pay-divider-text">OR SETTLE DIRECTLY VIA VERIFIED INSTITUTIONAL ACCOUNTS</div>
+
+            <!-- 2. DIRECT SETTLEMENT VIA VERIFIED COMPANY ACCOUNTS -->
+            <label style="display: block; font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">
+                Select Direct Settlement Channel:
+            </label>
+            <div class="payment-methods-grid">
+                <div class="payment-method-tile selected" data-method="GCash" onclick="selectPaymentMethod('GCash')">
+                    <div class="payment-method-icon pm-gcash">G</div>
+                    <div>
+                        <div class="payment-method-label">GCash Corporate</div>
+                        <div class="payment-method-sub">Direct E-Wallet Transfer</div>
+                    </div>
+                </div>
+
+                <div class="payment-method-tile" data-method="Maya" onclick="selectPaymentMethod('Maya')">
+                    <div class="payment-method-icon pm-maya">M</div>
+                    <div>
+                        <div class="payment-method-label">Maya Business</div>
+                        <div class="payment-method-sub">QR Ph / Wallet Transfer</div>
+                    </div>
+                </div>
+
+                <div class="payment-method-tile" data-method="Bank Transfer" onclick="selectPaymentMethod('Bank Transfer')">
+                    <div class="payment-method-icon pm-bank"><i data-lucide="landmark" style="width: 18px; height: 18px;"></i></div>
+                    <div>
+                        <div class="payment-method-label">Institutional Bank Wire</div>
+                        <div class="payment-method-sub">Landbank / BDO / BPI</div>
+                    </div>
+                </div>
+
+                <div class="payment-method-tile" data-method="Card" onclick="selectPaymentMethod('Card')">
+                    <div class="payment-method-icon pm-card"><i data-lucide="credit-card" style="width: 18px; height: 18px;"></i></div>
+                    <div>
+                        <div class="payment-method-label">Corporate Card Auth</div>
+                        <div class="payment-method-sub">Visa / Mastercard / JCB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Payment Inputs & Verified Receiving Accounts Display -->
+            <div class="payment-inputs-area" id="payment-inputs-area">
+
+                <!-- Receiving Account Card Display -->
+                <div class="receiving-bank-card" id="receiving-account-card">
+                    <div class="bank-card-header">
+                        <span class="bank-name-label" id="disp-receiving-bank-title">
+                            <i data-lucide="building-2" style="width: 16px; height: 16px; color: #10b981;"></i>
+                            Receiving Merchant Account
+                        </span>
+                        <button type="button" class="copy-chip-btn" id="btn-copy-acc-num" onclick="copyReceivingAccountNumber()">
+                            <i data-lucide="copy" style="width: 13px; height: 13px;"></i> Copy Account #
+                        </button>
+                    </div>
+                    <div class="bank-acc-row">
+                        <span>Account Name:</span>
+                        <strong id="disp-receiving-acc-name">Grantee Educational Technologies Inc.</strong>
+                    </div>
+                    <div class="bank-acc-row">
+                        <span>Account Number / Mobile:</span>
+                        <span class="bank-acc-num" id="disp-receiving-acc-num">0917-123-4567</span>
+                    </div>
+                    <div class="bank-acc-row" id="disp-receiving-branch-row" style="display: none;">
+                        <span>Branch / Hub:</span>
+                        <span id="disp-receiving-branch">Institutional Hub</span>
+                    </div>
+                </div>
+
+                <!-- GCash / Maya Area -->
+                <div id="input-group-wallet">
+                    <div class="payment-field-group">
+                        <label class="payment-field-label" id="wallet-number-label">School / Coordinator GCash Mobile Number</label>
+                        <input type="tel" id="input-wallet-number" class="payment-field-input" placeholder="0917-123-4567" value="0917-555-8822">
+                    </div>
+                    <div class="payment-field-group">
+                        <label class="payment-field-label">GCash / Maya Transaction Reference No. (Ref #)</label>
+                        <input type="text" id="input-wallet-ref" class="payment-field-input" placeholder="e.g. 883920194821">
+                    </div>
+                </div>
+
+                <!-- Bank Transfer Area (Hidden by default) -->
+                <div id="input-group-bank" style="display: none;">
+                    <div class="payment-field-group">
+                        <label class="payment-field-label">Target Receiving Bank Account</label>
+                        <select class="payment-field-input" id="input-bank-select" onchange="onBankSelectChange()">
+                            <option value="Landbank">Landbank of the Philippines (Acct: 0912-3841-88)</option>
+                            <option value="BDO">BDO Unibank (Acct: 0048-2918-4921)</option>
+                            <option value="BPI">Bank of the Philippine Islands (Acct: 2841-9920-14)</option>
+                        </select>
+                    </div>
+                    <div class="payment-field-group">
+                        <label class="payment-field-label">Bank Deposit Slip / Advice of Check / PO Number</label>
+                        <input type="text" id="input-bank-ref" class="payment-field-input" placeholder="e.g. DEP-2026-99214">
+                    </div>
+                </div>
+
+                <!-- Card Area (Hidden by default) -->
+                <div id="input-group-card" style="display: none;">
+                    <div class="payment-field-group">
+                        <label class="payment-field-label">Corporate Card Number</label>
+                        <input type="text" id="input-card-number" class="payment-field-input" placeholder="4123 •••• •••• 8842" value="4123 5892 4810 8842">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                        <div class="payment-field-group">
+                            <label class="payment-field-label">Authorized Signatory Name</label>
+                            <input type="text" id="input-card-name" class="payment-field-input" placeholder="Coordinator Name">
+                        </div>
+                        <div class="payment-field-group">
+                            <label class="payment-field-label">Expiry / CVV</label>
+                            <input type="text" class="payment-field-input" placeholder="12/28 • 882" value="12/28 • 381">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complete Payment Action Button -->
+            <button type="button" class="btn-confirm-payment" id="btn-submit-payment" onclick="proceedToPaymentPortal()">
+                <span id="btn-submit-payment-label">Complete the payment</span>
+                <i data-lucide="arrow-right" style="width: 17px; height: 17px;"></i>
+            </button>
+            <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 10px;">
+                🔒 256-bit SSL Encrypted Transaction • Institutional VAT-Exempt Receipt Generated Instantly
+            </p>
+        </div>
+    </div>
+
+    <!-- GCASH / DIRECT PAYMENT PORTAL (AUTHENTIC GCASH QR SCREEN) -->
+    <div id="gcash-portal-modal" class="gcash-portal-overlay">
+        <div class="gcash-portal-card">
+            <!-- Blue Header with Black X Close Button and Centered GCash Logo -->
+            <div class="gcash-portal-header" id="gcash-portal-header">
+                <button type="button" class="gcash-portal-close" onclick="closeGcashPortalModal()" aria-label="Close GCash Portal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="gcash-portal-logo-wrapper">
+                    <!-- Crisp Official GCash Logo -->
+                    <svg id="gcash-logo-svg" viewBox="0 0 160 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height: 32px; width: auto;">
+                        <g transform="translate(4, 2)">
+                            <circle cx="16" cy="16" r="14.5" stroke="white" stroke-width="2.6" fill="none" />
+                            <path d="M19 12.5C18 11 16.5 10 14.2 10C10.5 10 7.8 12.8 7.8 16.5C7.8 20.2 10.5 23 14.2 23C17.5 23 19.8 20.8 20.2 17.5H14.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            <path d="M24.5 9.5C26.8 11.4 28.2 13.8 28.2 16.5C28.2 19.2 26.8 21.6 24.5 23.5" stroke="white" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+                            <path d="M28.5 6.5C31.8 9.2 33.8 12.6 33.8 16.5C33.8 20.4 31.8 23.8 28.5 26.5" stroke="white" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+                        </g>
+                        <text x="48" y="25.5" fill="white" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="800" letter-spacing="-0.5">GCash</text>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- White Card Inside Matching the Screenshot -->
+            <div class="gcash-portal-inner-card">
+                <h3 class="gcash-portal-title" id="gcash-portal-title">
+                    Securely complete the payment with your GCash app
+                </h3>
+
+                <!-- "Open in GCash" Action Button -->
+                <button type="button" class="btn-open-gcash-app" id="btn-open-gcash-app" onclick="handleOpenGcashAppClick()">
+                    Open in GCash
+                </button>
+
+                <p class="gcash-portal-subtitle" id="gcash-portal-subtitle">
+                    or Log in to GCash and scan this QR with the QR Scanner.
+                </p>
+
+                <!-- High-Definition Scannable QR Code Container -->
+                <div class="gcash-qr-container" id="gcash-qr-container">
+                    <!-- Dynamic scannable QR Code will be rendered here -->
+                </div>
+
+                <!-- Payment Details Box -->
+                <div class="gcash-payment-info-box">
+                    <div class="gcash-amount-row">
+                        <span style="font-size: 13px; color: #475569; font-weight: 600;">Amount Due:</span>
+                        <span id="gcash-modal-amount" style="font-size: 17px; font-weight: 800; color: #0057E7;">₱24,990.00</span>
+                    </div>
+                    <div class="gcash-meta-row">
+                        <span>Recipient GCash Name:</span>
+                        <strong id="gcash-modal-recipient" style="color: #1e293b;">John Elter Gelig</strong>
+                    </div>
+                    <div class="gcash-meta-row">
+                        <span>GCash Mobile No:</span>
+                        <strong id="gcash-modal-mobile" style="color: #0057E7; font-size: 12.5px;">09700551207</strong>
+                    </div>
+                    <div class="gcash-meta-row">
+                        <span>Plan Tier:</span>
+                        <span id="gcash-modal-plan" style="font-weight: 600; color: #1e293b;">Yearly License</span>
+                    </div>
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 700; color: #1e293b;">Exact Amount Paid (₱):</span>
+                        <input type="number" id="gcash-input-amount" step="0.01" style="width: 130px; padding: 5px 8px; font-size: 14px; font-weight: 800; color: #0057E7; border: 1.5px solid #cbd5e1; border-radius: 6px; text-align: right; background: #ffffff;">
+                    </div>
+                </div>
+
+                <!-- Reference Number Input & Verification Box -->
+                <div style="margin: 14px 0 16px 0; text-align: left; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 12px 14px;">
+                    <label for="gcash-input-ref" style="display: block; font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 5px;">
+                        <i data-lucide="receipt" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; color: #0057E7;"></i>
+                        Enter GCash Reference No. (from SMS / Receipt):
+                    </label>
+                    <input type="text" id="gcash-input-ref" placeholder="e.g. 8839201948210 (13 digits from your GCash receipt)" maxlength="24" style="width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; border-radius: 8px; border: 1.5px solid #94a3b8; background: #ffffff; color: #0f172a; box-sizing: border-box;">
+                    <span style="font-size: 11px; color: #64748b; margin-top: 5px; display: block;">
+                        ⚠️ Note: The system strictly validates the exact payment amount and reference number. Underpayments will be rejected.
+                    </span>
+                </div>
+
+                <!-- Complete / Verify Payment Trigger -->
+                <button type="button" class="btn-gcash-confirm-complete" id="btn-gcash-complete-submit" onclick="confirmGcashPaymentComplete()">
+                    <i data-lucide="check-circle" style="width: 17px; height: 17px;"></i>
+                    <span id="btn-gcash-complete-label">I Have Completed the Payment</span>
+                </button>
+
+                <p style="margin: 12px 0 0 0; font-size: 11px; color: #64748b; line-height: 1.4;">
+                    🔒 Instant verification • Official institutional VAT receipt generated automatically
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BANK ACCOUNT BINDING & SETUP GUIDE MODAL -->
+    <div id="bank-guide-modal" class="checkout-modal-overlay">
+        <div class="checkout-modal-card" style="max-width: 680px;">
+            <button type="button" class="checkout-close-btn" onclick="closeBankSetupGuideModal()">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(31, 61, 46, 0.1); color: #1F3D2E; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="landmark" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--text-heading, #0f172a);">
+                        Online Payment Gateway & Bank Payout Setup
+                    </h3>
+                    <span style="font-size: 13px; color: var(--text-muted, #64748b);">
+                        How school subscription payments are redirected directly to your real online bank account.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Flow Diagram Card -->
+            <div style="background: linear-gradient(135deg, rgba(31, 61, 46, 0.04) 0%, rgba(220, 200, 163, 0.15) 100%); border: 1px solid rgba(31, 61, 46, 0.15); border-radius: 14px; padding: 16px; margin-bottom: 20px;">
+                <strong style="display: block; font-size: 12px; text-transform: uppercase; color: #1F3D2E; letter-spacing: 0.5px; margin-bottom: 10px;">
+                    Fund Redirection Workflow:
+                </strong>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; font-size: 12px;">
+                    <div style="background: var(--card-bg, #ffffff); border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border-color, #e2e8f0);">
+                        <div style="font-size: 20px; margin-bottom: 4px;">🏫</div>
+                        <strong style="color: #0f172a; display: block;">1. School Pays</strong>
+                        <span style="color: #64748b; font-size: 11px;">Coordinator pays via GCash, Maya, Card, or Bank</span>
+                    </div>
+                    <div style="background: var(--card-bg, #ffffff); border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border-color, #e2e8f0);">
+                        <div style="font-size: 20px; margin-bottom: 4px;">⚡</div>
+                        <strong style="color: #059669; display: block;">2. Payment Gateway</strong>
+                        <span style="color: #64748b; font-size: 11px;">PayMongo settles funds & verifies transactions</span>
+                    </div>
+                    <div style="background: var(--card-bg, #ffffff); border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border-color, #e2e8f0);">
+                        <div style="font-size: 20px; margin-bottom: 4px;">🏦</div>
+                        <strong style="color: #1F3D2E; display: block;">3. Your Bank Account</strong>
+                        <span style="color: #64748b; font-size: 11px;">Direct deposit to Landbank, BDO, BPI, or UnionBank</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step by Step Setup Guide -->
+            <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-main, #334155);">
+                <h4 style="font-size: 15px; font-weight: 800; color: var(--text-heading, #0f172a); margin-bottom: 8px;">
+                    Step-by-Step Directions to Bind Your Real Account:
+                </h4>
+                <ol style="padding-left: 20px; margin: 0 0 20px 0; display: flex; flex-direction: column; gap: 10px;">
+                    <li>
+                        <strong>Create your Merchant Account on PayMongo:</strong><br>
+                        Register your organization at <a href="https://dashboard.paymongo.com" target="_blank" style="color: #10b981; font-weight: 700; text-decoration: underline;">dashboard.paymongo.com</a>.
+                    </li>
+                    <li>
+                        <strong>Link your Real Philippine Online Bank Account:</strong><br>
+                        In your PayMongo Dashboard, go to <strong>Settings → Payout Settings → Bank Accounts</strong>. Select your bank (Landbank, BDO, BPI, Metrobank, UnionBank) and enter your Account Holder Name and Account Number.
+                    </li>
+                    <li>
+                        <strong>Automatic Scheduled Payouts:</strong><br>
+                        PayMongo automatically deposits collected school licensing payments directly into your registered online bank account every scheduled payout cycle (via PESONet/InstaPay).
+                    </li>
+                    <li>
+                        <strong>Connect API Keys to Grantee:</strong><br>
+                        Copy your <code>Secret Key</code> (starts with <code>sk_live_</code> or <code>sk_test_</code>) and <code>Public Key</code> (starts with <code>pk_live_</code>) from PayMongo <strong>Developers → API Keys</strong>, and paste them into <code>backend-node/.env</code>.
+                    </li>
+                    <li>
+                        <strong>Direct Institutional Bank Transfer (0% Fee):</strong><br>
+                        You can also update your direct corporate receiving bank numbers in <code>backend-node/.env</code> (under <code>RECEIVING_BANK_1_ACCOUNT_NUMBER</code>) so schools wishing to wire directly via Landbank advice or check will see your exact corporate numbers!
+                    </li>
+                </ol>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn-confirm-payment" style="width: auto; padding: 10px 24px; font-size: 13px;" onclick="closeBankSetupGuideModal()">
+                    Got It, Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OFFICIAL RECEIPT MODAL -->
+    <div id="receipt-modal" class="checkout-modal-overlay">
+        <div class="checkout-modal-card" style="max-width: 540px;">
+            <button type="button" class="checkout-close-btn" onclick="closeReceiptModal()">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+
+            <div class="receipt-paper" id="receipt-printable-area">
+                <div class="receipt-stamp">PAID</div>
+                
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                    <img src="assets/grantee_logo.png" alt="Grantee" style="width: 36px; height: 36px; border-radius: 8px;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 18px; font-weight: 800; color: #1F3D2E;">Grantee Platform</h4>
+                        <span style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Official License Receipt</span>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; padding: 16px 0; margin-bottom: 16px; font-size: 13px; color: #475569; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Invoice Number:</span>
+                        <strong id="receipt-invoice-num" style="color: #0f172a; font-family: monospace;">INV-2026-0000</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Transaction Date:</span>
+                        <strong id="receipt-date" style="color: #0f172a;">--</strong>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Billed Institution:</span>
+                        <strong id="receipt-school" style="color: #0f172a;">--</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Processed By (Coordinator):</span>
+                        <strong id="receipt-coordinator" style="color: #0f172a;">--</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Payment Method:</span>
+                        <strong id="receipt-method" style="color: #0f172a;">--</strong>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; border-radius: 10px; padding: 14px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
+                        <span id="receipt-plan-name">Yearly Institutional License</span>
+                        <span id="receipt-amount" style="color: #1F3D2E;">₱24,990.00</span>
+                    </div>
+                    <div style="font-size: 12px; color: #64748b;" id="receipt-period">
+                        Coverage: Oct 11, 2026 - Oct 11, 2027
+                    </div>
+                </div>
+
+                <div style="text-align: center; font-size: 12px; color: #10b981; font-weight: 700;">
+                    ✓ Institutional System Access & Student Accounts Active
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button type="button" class="btn-receipt-view" style="flex: 1; padding: 12px; justify-content: center; font-size: 13px;" onclick="printReceipt()">
+                    <i data-lucide="printer"></i> Print Receipt
+                </button>
+                <button type="button" class="btn-confirm-payment" style="flex: 1; padding: 12px; justify-content: center; font-size: 13px;" onclick="goToAdminDashboard()">
+                    <i data-lucide="layout-dashboard"></i> Return to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGOUT MODAL -->
+    <div id="logout-modal" class="global-modal-overlay" style="display: none;" onclick="if(event.target===this)closeLogoutModal(event)">
+        <div class="global-modal-content">
+            <div class="global-modal-icon">
+                <i data-lucide="log-out"></i>
+            </div>
+            <h3>Logout</h3>
+            <p>Are you sure you want to log out of your coordinator account?</p>
+            <div class="global-modal-actions">
+                <button id="modal-cancel" class="global-btn-cancel" onclick="closeLogoutModal(event)">Cancel</button>
+                <button id="modal-confirm" class="global-btn-confirm" onclick="confirmGlobalLogout(event)">
+                    <i data-lucide="power" style="width: 16px; height: 16px;"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/subscription-client.js"></script>
+    <script src="js/sidebar-loader.js"></script>
+    <script src="js/components/admin-notifications.js"></script>
+    <script src="js/admin-subscription.js"></script>
+</body>
+
+</html>

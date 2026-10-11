@@ -56,15 +56,45 @@ async function fetchAndCacheStudentProfile() {
             let progName = profile.programs ? profile.programs.name : (profile.course_program || 'Student Program');
             let schoolName = profile.schools ? profile.schools.name : (profile.school_name || '');
             let avatarUrl = profile.avatar_url || 'assets/default-avatar.png';
+            let schoolId = profile.school_id;
+
+            // If school_id is missing from profile, check enrolled masterlist
+            if (!schoolId && profile.id_number) {
+                try {
+                    const { data: mData } = await window.supabaseClient
+                        .from('enrolled_masterlist')
+                        .select('school_id, schools(name)')
+                        .eq('id_number', profile.id_number)
+                        .maybeSingle();
+                    if (mData) {
+                        if (mData.school_id) schoolId = mData.school_id;
+                        if (mData.schools && mData.schools.name) schoolName = mData.schools.name;
+                    }
+                } catch (e) {}
+            }
 
             const profileData = {
                 id: studentId,
                 name: fullName,
                 program: progName,
                 school_name: schoolName,
+                school_id: schoolId,
                 avatar_url: avatarUrl
             };
             sessionStorage.setItem('grantee_student_profile', JSON.stringify(profileData));
+
+            // --- STRICT INSTITUTIONAL SUBSCRIPTION CHECK FOR STUDENTS ---
+            if (schoolId && window.SubscriptionClient) {
+                try {
+                    const subCheck = await window.SubscriptionClient.checkAccess(schoolId);
+                    if (subCheck && !subCheck.allowed) {
+                        window.SubscriptionClient.injectStudentLockWall(schoolName || subCheck.school_name);
+                        return;
+                    }
+                } catch (subErr) {
+                    console.warn('[StudentSidebarLoader] Subscription check error:', subErr);
+                }
+            }
 
             const nameEl = document.getElementById('header-name');
             const progEl = document.getElementById('header-program');
@@ -491,6 +521,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // Ensure subscription client is loaded
+    if (!window.SubscriptionClient && !document.querySelector('script[src*="subscription-client.js"]')) {
+        const subScript = document.createElement('script');
+        subScript.src = 'js/subscription-client.js';
+        document.head.appendChild(subScript);
+    }
+
+    // Immediate check of cached profile for instant lockout if expired
+    try {
+        const cachedStr = sessionStorage.getItem('grantee_student_profile');
+        if (cachedStr) {
+            const cachedP = JSON.parse(cachedStr);
+            if (cachedP && cachedP.school_id && window.SubscriptionClient) {
+                window.SubscriptionClient.checkAccess(cachedP.school_id).then(res => {
+                    if (res && !res.allowed) {
+                        window.SubscriptionClient.injectStudentLockWall(cachedP.school_name || res.school_name);
+                    }
+                });
+            }
+        }
+    } catch (e) {}
 
     // Fetch & cache latest student profile data in background
     fetchAndCacheStudentProfile();

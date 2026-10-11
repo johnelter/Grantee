@@ -115,6 +115,14 @@ async function runFullBackup(options = {}) {
             }
         }
 
+        // Backup local subscriptions store if exists
+        const subFilePath = path.join(__dirname, 'data', 'subscriptions.json');
+        if (fs.existsSync(subFilePath)) {
+            const subContent = fs.readFileSync(subFilePath, 'utf-8');
+            fs.writeFileSync(path.join(backupDir, 'subscriptions.json'), subContent, 'utf-8');
+            manifest.checksums['subscriptions.json'] = computeChecksum(subContent);
+        }
+
         // 2. BACKUP STORAGE DOCUMENTS (Recursive download from scholarship-docs bucket)
         console.log(`[BACKUP] Mirroring uploaded documents from Supabase Storage ('scholarship-docs')...`);
         await backupStorageBucket(docsDir, manifest);

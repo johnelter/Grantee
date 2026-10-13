@@ -3513,23 +3513,43 @@
     window.exportShortlist = async (targetFormat) => {
         closeExportDropdown();
 
+        // 1. Ensure rankedShortlist is loaded and populated
         if (!rankedShortlist || rankedShortlist.length === 0) {
-            showUIToast('info', 'No Data', 'No candidates found to export in the ranked shortlist.');
-            return;
+            Swal.fire({
+                title: 'Preparing Ranked Shortlist...',
+                text: 'Loading candidate evaluation scores and merit rankings...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            try {
+                await generateRankedShortlist();
+                Swal.close();
+            } catch (err) {
+                Swal.close();
+                console.error("Error generating shortlist for export:", err);
+            }
         }
 
-        const candidatesToExport = filteredShortlist && filteredShortlist.length > 0 ? filteredShortlist : rankedShortlist;
+        // Export all candidates who are on the ranked shortlist
+        const candidatesToExport = (rankedShortlist && rankedShortlist.length > 0)
+            ? rankedShortlist
+            : ((allEvaluatedShortlist && allEvaluatedShortlist.length > 0) ? allEvaluatedShortlist : []);
+
+        if (candidatesToExport.length === 0) {
+            showUIToast('info', 'No Data', 'No candidates found on the ranked shortlist for this educational assistance program.');
+            return;
+        }
 
         let format = targetFormat;
         if (!format) {
             const { value: selectedFormat } = await Swal.fire({
                 title: 'Export Ranked Shortlist',
-                text: `Export ${candidatesToExport.length} ranked candidate records for evaluation:`,
+                text: `Export all ${candidatesToExport.length} candidates on the ranked shortlist with their exact data:`,
                 icon: 'question',
                 input: 'select',
                 inputOptions: {
-                    'pdf': 'Official Evaluation Report (PDF with Sign-Off)',
-                    'csv': 'Ranked Shortlist Spreadsheet (CSV / Excel)'
+                    'csv': `Ranked Shortlist Spreadsheet (CSV / Excel) - ${candidatesToExport.length} candidates`,
+                    'pdf': `Official Evaluation Report (PDF with Sign-Off) - ${candidatesToExport.length} candidates`
                 },
                 inputPlaceholder: 'Select an export format',
                 showCancelButton: true,
@@ -3549,52 +3569,186 @@
     };
 
     function exportShortlistToCSV(candidatesToExport) {
-        let csv = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM
-        csv += "Rank,Student ID,Last Name,First Name,Middle Name,Degree Program,Year Level,GWA,Academic Merit (/45),Program Match (/20),Year Match (/15),Documents & OCR (/15),Timeliness (/5),Total Qualification Score (%),Shortlist Tier,Evaluation Recommendation,Current Status,Date Applied,Email,Contact Number\r\n";
+        // Guarantee all candidates who are on the ranked shortlist are exported
+        const candidatePool = (Array.isArray(candidatesToExport) && candidatesToExport.length > 0)
+            ? candidatesToExport
+            : ((rankedShortlist && rankedShortlist.length > 0) ? rankedShortlist : (allEvaluatedShortlist || []));
 
-        candidatesToExport.forEach(cand => {
-            const b = cand.breakdown;
-            const appliedDate = cand.created_at ? new Date(cand.created_at).toLocaleDateString('en-US') : 'N/A';
-            const tierText = cand.tier === 'slotted' ? 'Top Slotted Grantee' : (cand.is_strictly_eligible ? 'Qualified Candidate' : (cand.tier === 'conditional' ? 'Conditional' : 'Ineligible'));
+        if (!candidatePool || candidatePool.length === 0) {
+            showUIToast('info', 'No Data', 'No ranked shortlist candidates found to export.');
+            return;
+        }
 
-            const row = [
+        const sch = activeScholarshipData || {};
+        const programTitle = sch.title || 'Educational Assistance Program';
+        const providerName = sch.department || sch.category || 'General Administration';
+        const institutionName = currentAdminSchool?.name || 'Institution of Higher Education';
+
+        // Check if scholarship has custom application form questions
+        const schema = sch.form_fields || sch.form_schema || [];
+        const questionFields = Array.isArray(schema) ? schema.filter(f => f && f.type !== 'heading' && f.type !== 'text') : [];
+
+        let csvContent = "\uFEFF"; // UTF-8 BOM for Microsoft Excel compatibility
+
+        // Complete & Exact Headers
+        const headers = [
+            "Rank",
+            "Shortlist Cutoff Status",
+            "Shortlist Tier",
+            "Slot Allocation",
+            "Student ID",
+            "Full Name",
+            "Last Name",
+            "First Name",
+            "Middle Name",
+            "Gender",
+            "Email Address",
+            "Contact Number",
+            "Degree Program",
+            "Year Level",
+            "Numerical GWA",
+            "GWA Display",
+            "GWA Source",
+            "Academic Merit Score (/45)",
+            "Academic Merit Evaluation Details",
+            "Degree Program Match Score (/20)",
+            "Degree Program Evaluation Details",
+            "Year Level Cohort Score (/15)",
+            "Year Level Evaluation Details",
+            "Documents & AI OCR Score (/15)",
+            "Documents & OCR Evaluation Details",
+            "Submission Timeliness Score (/5)",
+            "Submission Timeliness Details",
+            "Total Qualification Score (%)",
+            "Strict Eligibility (Passed All Cutoffs)",
+            "Committee Recommendation",
+            "Evaluation Flags & Missing Requirements",
+            "Disqualification Remarks",
+            "Current Application Status",
+            "Date Applied",
+            "Time Applied",
+            "Submission Server Timestamp",
+            "Scholarship Program",
+            "Educational Assistance Provider",
+            "Institution / School"
+        ];
+
+        // Append custom question headers if configured
+        questionFields.forEach(q => {
+            const cleanLabel = (q.label || '').replace(/<[^>]*>?/gm, '').replace(/[\r\n]+/g, ' ').trim();
+            headers.push(`Form Response: ${cleanLabel}`);
+        });
+
+        csvContent += headers.map(h => `"${sanitizeCsvValue(h)}"`).join(",") + "\r\n";
+
+        // Candidate Rows with exact verified data
+        candidatePool.forEach(cand => {
+            const b = cand.breakdown || {};
+            const appliedDate = cand.applied_date_str || (cand.created_at ? new Date(cand.created_at).toLocaleDateString('en-US') : 'N/A');
+            const appliedTime = cand.applied_time_str || (cand.created_at ? new Date(cand.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A');
+            const createdTimestamp = cand.created_at || 'N/A';
+
+            let tierText = 'Qualified Candidate';
+            if (cand.tier === 'slotted') tierText = 'Top Slotted Grantee';
+            else if (cand.tier === 'cutoff' || !cand.is_shortlisted) tierText = 'Below 75% Cutoff';
+            else if (cand.tier === 'conditional') tierText = 'Conditional Review';
+            else if (cand.tier === 'ineligible' || !cand.is_strictly_eligible) tierText = 'Ineligible';
+
+            const slotText = cand.is_slotted ? 'Reserved Grantee Slot' : 'Waitlisted / Priority Runner-Up';
+            const cutoffStatus = cand.is_shortlisted ? 'Shortlisted (Top 75%)' : 'Below 75% Cutoff';
+            const strictEligText = cand.is_strictly_eligible ? 'Yes (Meets All Cutoffs)' : 'No (Missed Required Cutoffs)';
+
+            const flagsText = Array.isArray(cand.flags) && cand.flags.length > 0 ? cand.flags.join('; ') : 'None';
+            const disqText = Array.isArray(cand.disqualifications) && cand.disqualifications.length > 0 ? cand.disqualifications.join('; ') : 'None';
+
+            const acadScore = (b.academicMerit && b.academicMerit.score !== undefined) ? b.academicMerit.score : 'N/A';
+            const acadDetails = b.academicMerit?.details || '';
+
+            const progScore = (b.programMatch && b.programMatch.score !== undefined) ? b.programMatch.score : 'N/A';
+            const progDetails = b.programMatch?.details || '';
+
+            const yrScore = (b.yearMatch && b.yearMatch.score !== undefined) ? b.yearMatch.score : 'N/A';
+            const yrDetails = b.yearMatch?.details || '';
+
+            const docScore = (b.documentCompleteness && b.documentCompleteness.score !== undefined) ? b.documentCompleteness.score : 'N/A';
+            const docDetails = b.documentCompleteness?.details || '';
+
+            const timeScore = (b.timeliness && b.timeliness.score !== undefined) ? b.timeliness.score : 'N/A';
+            const timeDetails = b.timeliness?.details || '';
+
+            const gwaNum = (cand.gwa !== null && cand.gwa !== undefined) ? cand.gwa : 'N/A';
+
+            const rowData = [
                 cand.rank,
-                `"${sanitizeCsvValue(cand.student_number)}"`,
-                `"${sanitizeCsvValue(cand.last_name)}"`,
-                `"${sanitizeCsvValue(cand.first_name)}"`,
-                `"${sanitizeCsvValue(cand.middle_name)}"`,
-                `"${sanitizeCsvValue(cand.program)}"`,
-                `"${sanitizeCsvValue(cand.year_level)}"`,
-                `"${sanitizeCsvValue(cand.gwa_display)}"`,
-                b.academicMerit.score,
-                b.programMatch.score,
-                b.yearMatch.score,
-                b.documentCompleteness.score,
-                b.timeliness.score,
-                `${cand.total_score}%`,
-                `"${sanitizeCsvValue(tierText)}"`,
-                `"${sanitizeCsvValue(cand.recommendation)}"`,
-                `"${sanitizeCsvValue(getDisplayStatus(cand.current_status))}"`,
-                `"${sanitizeCsvValue(appliedDate)}"`,
-                `"${sanitizeCsvValue(cand.email)}"`,
-                `"${sanitizeCsvValue(cand.contact_number)}"`
+                cutoffStatus,
+                tierText,
+                slotText,
+                cand.student_number || 'N/A',
+                cand.full_name || 'Applicant',
+                cand.last_name || '',
+                cand.first_name || '',
+                cand.middle_name || '',
+                cand.gender || 'N/A',
+                cand.email || 'N/A',
+                cand.contact_number || 'N/A',
+                cand.program || 'N/A',
+                cand.year_level || 'N/A',
+                gwaNum,
+                cand.gwa_display || 'N/A',
+                cand.gwa_source || 'Application Form / OCR',
+                acadScore,
+                acadDetails,
+                progScore,
+                progDetails,
+                yrScore,
+                yrDetails,
+                docScore,
+                docDetails,
+                timeScore,
+                timeDetails,
+                `${cand.total_score !== undefined ? cand.total_score : 100}%`,
+                strictEligText,
+                cand.recommendation || '',
+                flagsText,
+                disqText,
+                getDisplayStatus(cand.current_status),
+                appliedDate,
+                appliedTime,
+                createdTimestamp,
+                programTitle,
+                providerName,
+                institutionName
             ];
-            csv += row.join(',') + "\r\n";
+
+            // Append custom form answers
+            questionFields.forEach(q => {
+                let answer = '';
+                if (cand.form_responses && Object.prototype.hasOwnProperty.call(cand.form_responses, q.label)) {
+                    answer = renderFormattedAnswer(cand.form_responses[q.label], q);
+                }
+                rowData.push(answer);
+            });
+
+            csvContent += rowData.map(val => `"${sanitizeCsvValue(val)}"`).join(",") + "\r\n";
         });
 
         const programName = sanitizeFilename(activeScholarshipData?.title || 'Scholarship');
         const filename = `${programName}_Ranked_Shortlist_Evaluation_${Date.now()}.csv`;
 
-        const encodedUri = encodeURI(csv);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
         link.setAttribute("download", filename);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
 
-        showUIToast('success', 'Export Complete', `Shortlist CSV exported successfully (${candidatesToExport.length} records).`);
+        showUIToast('success', 'Export Complete', `Successfully exported all ${candidatePool.length} shortlisted candidates with complete evaluation data.`);
     }
+
+    window.exportShortlistToCSV = exportShortlistToCSV;
 
     function exportShortlistToPDF(candidatesToExport) {
         if (!window.jspdf || !window.jspdf.jsPDF) {

@@ -531,45 +531,65 @@ const getRankedShortlist = async (req, res) => {
             });
         }
 
-        // 5. Assign Shortlist Ranks and Slot Recommendations
+        // 5. Calculate 75% Shortlist Cutoff & Assign Ranks and Slot Recommendations
+        // In accordance with shortlist policy, the ranked shortlist includes the top 75% of the pending applicant population.
+        const totalPending = evaluatedCandidates.length;
+        const shortlistCutoffCount = totalPending > 0 ? Math.max(1, Math.ceil(totalPending * 0.75)) : 0;
+
         let slottedCount = 0;
         evaluatedCandidates.forEach((candidate, idx) => {
             candidate.rank = idx + 1;
-            if (candidate.is_strictly_eligible && candidate.tier !== 'ineligible') {
-                if (slottedCount < availableSlots) {
-                    slottedCount++;
-                    candidate.tier = 'slotted';
-                    candidate.is_slotted = true;
-                    if (!hasCriteria) {
-                        candidate.recommendation = `Grantee Slot Reserved (Rank #${candidate.rank} of ${rawSlots === 999999 ? 'Open' : availableSlots} available slots - Applied First-Come, First-Served on ${candidate.applied_date_str} at ${candidate.applied_time_str})`;
+            candidate.is_shortlisted = idx < shortlistCutoffCount;
+            candidate.shortlist_cutoff_rank = shortlistCutoffCount;
+            candidate.total_pending = totalPending;
+            candidate.shortlist_percentage = 75;
+
+            if (candidate.is_shortlisted) {
+                if (candidate.is_strictly_eligible && candidate.tier !== 'ineligible') {
+                    if (slottedCount < availableSlots) {
+                        slottedCount++;
+                        candidate.tier = 'slotted';
+                        candidate.is_slotted = true;
+                        if (!hasCriteria) {
+                            candidate.recommendation = `Grantee Slot Reserved (Rank #${candidate.rank} of ${rawSlots === 999999 ? 'Open' : availableSlots} available slots - Applied First-Come, First-Served on ${candidate.applied_date_str} at ${candidate.applied_time_str})`;
+                        } else {
+                            candidate.recommendation = `Grantee Slot Reserved (Rank #${candidate.rank} of ${rawSlots === 999999 ? 'Open' : availableSlots} available slots - Score: ${candidate.total_score}%)`;
+                        }
                     } else {
-                        candidate.recommendation = `Grantee Slot Reserved (Rank #${candidate.rank} of ${rawSlots === 999999 ? 'Open' : availableSlots} available slots - Score: ${candidate.total_score}%)`;
+                        candidate.tier = 'qualified';
+                        candidate.is_slotted = false;
+                        const queuePos = slottedCount - availableSlots + 1;
+                        if (!hasCriteria) {
+                            candidate.recommendation = `Priority Runner-Up (Rank #${candidate.rank}, Queue #${queuePos} - Applied First-Come, First-Served on ${candidate.applied_date_str} at ${candidate.applied_time_str})`;
+                        } else {
+                            candidate.recommendation = `Priority Runner-Up (Rank #${candidate.rank}, Queue Position #${queuePos})`;
+                        }
                     }
                 } else {
-                    candidate.tier = 'qualified';
                     candidate.is_slotted = false;
-                    const queuePos = slottedCount - availableSlots + 1;
-                    if (!hasCriteria) {
-                        candidate.recommendation = `Priority Runner-Up (Rank #${candidate.rank}, Queue #${queuePos} - Applied First-Come, First-Served on ${candidate.applied_date_str} at ${candidate.applied_time_str})`;
-                    } else {
-                        candidate.recommendation = `Priority Runner-Up (Rank #${candidate.rank}, Queue Position #${queuePos})`;
-                    }
                 }
             } else {
+                // Beyond the 75% Shortlist Cutoff
+                candidate.tier = 'cutoff';
                 candidate.is_slotted = false;
+                candidate.recommendation = `Below 75% Cutoff (Rank #${candidate.rank} of ${totalPending} pending applicants - Fell outside the top 75% shortlist threshold of ${shortlistCutoffCount} candidates)`;
             }
         });
 
-        // 6. Calculate Summary Metrics for Providers and Coordinators
-        const qualifiedCount = evaluatedCandidates.filter(c => c.is_strictly_eligible).length;
-        const slottedCandidates = evaluatedCandidates.filter(c => c.is_slotted);
+        // 6. Partition into Shortlisted (Top 75%) and Unshortlisted
+        const shortlistedCandidates = evaluatedCandidates.filter(c => c.is_shortlisted);
+        const unshortlistedCandidates = evaluatedCandidates.filter(c => !c.is_shortlisted);
+
+        // 7. Calculate Summary Metrics for Providers and Coordinators
+        const qualifiedCount = shortlistedCandidates.filter(c => c.is_strictly_eligible).length;
+        const slottedCandidates = shortlistedCandidates.filter(c => c.is_slotted);
         const topShortlistCount = slottedCandidates.length;
 
         const gwaSum = slottedCandidates.filter(c => c.gwa !== null && c.gwa <= 5.0).reduce((acc, c) => acc + c.gwa, 0);
         const gwaCount = slottedCandidates.filter(c => c.gwa !== null && c.gwa <= 5.0).length;
         const avgSlottedGwa = gwaCount > 0 ? (gwaSum / gwaCount).toFixed(2) : null;
 
-        const cutoffCandidate = slottedCandidates[slottedCandidates.length - 1];
+        const cutoffCandidate = shortlistedCandidates[shortlistedCandidates.length - 1];
         const cutoffScore = cutoffCandidate ? cutoffCandidate.total_score : (evaluatedCandidates[0] ? evaluatedCandidates[0].total_score : 100);
 
         return res.status(200).json({
@@ -594,6 +614,11 @@ const getRankedShortlist = async (req, res) => {
             },
             summary: {
                 total_evaluated: evaluatedCandidates.length,
+                total_pending: totalPending,
+                shortlist_quota: shortlistCutoffCount,
+                shortlist_percentage: 75,
+                total_shortlisted: shortlistedCandidates.length,
+                unshortlisted_count: unshortlistedCandidates.length,
                 total_slots: scholarship.slots === 'Open' ? 'Open' : rawSlots,
                 available_slots: rawSlots === 999999 ? 'Open' : availableSlots,
                 already_approved: totalApproved,
@@ -602,10 +627,12 @@ const getRankedShortlist = async (req, res) => {
                 runners_up: Math.max(0, qualifiedCount - topShortlistCount),
                 average_shortlist_gwa: avgSlottedGwa,
                 shortlist_cutoff_score: cutoffScore,
+                shortlist_cutoff_rank: shortlistCutoffCount,
                 has_educational_criteria: hasCriteria,
                 ranking_method: hasCriteria ? 'Educational Criteria Scoring (100 Pts)' : 'Date & Time Applied (First-Come, First-Served)'
             },
-            shortlist: evaluatedCandidates
+            shortlist: shortlistedCandidates,
+            all_evaluated: evaluatedCandidates
         });
 
     } catch (err) {

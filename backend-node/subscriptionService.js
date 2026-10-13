@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const supabase = require('./supabaseClient');
@@ -7,6 +8,24 @@ const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'subscriptions.json');
 
 // Available Subscription / Licensing Plans for Educational Institutions
 const PLANS = [
+    {
+        id: 'plan_trial',
+        code: 'trial',
+        name: '14-Day Free Tier License',
+        billing_cycle: 'trial',
+        price_php: 0,
+        period_days: 14,
+        description: 'Complimentary 2-week free tier evaluation license for newly registered institutions.',
+        features: [
+            'Full Coordinator Administrative Dashboard',
+            'Unlimited Student Applications & Scholar Records',
+            'AI Document OCR & Fraud Detection Engine',
+            'Automated Assistance Policy & Matrix Rules',
+            'Real-Time Student Notifications & Approaching Deadlines',
+            'Enrolled Masterlist Import & Student Verification',
+            'Complimentary 14-Day System Evaluation'
+        ]
+    },
     {
         id: 'plan_monthly',
         code: 'monthly',
@@ -156,10 +175,13 @@ seedDefaultSubscriptionsIfEmpty();
 async function getSubscriptionStatus(schoolId) {
     if (!schoolId) return null;
 
+    // Self-healing: automatically reconcile any duplicate invoices from race conditions
+    cleanupDuplicateInvoices(schoolId);
+
     const store = readSubscriptionsStore();
     let record = store[schoolId];
 
-    // If not in store, attempt to fetch school name and create default
+    // If not in store, attempt to fetch school name and create default 2-week free tier
     if (!record) {
         let schoolName = 'Assigned Institution';
         try {
@@ -168,28 +190,44 @@ async function getSubscriptionStatus(schoolId) {
         } catch (e) {}
 
         const now = new Date();
-        const plan = PLANS[0];
-        const startDate = now;
-        const endDate = new Date(startDate.getTime() + plan.period_days * 24 * 60 * 60 * 1000);
+        const trialDays = 14; // 2 weeks free tier
+        const endDate = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
 
         record = {
             school_id: schoolId,
             school_name: schoolName,
             status: 'active',
-            plan_id: plan.id,
-            plan_code: plan.code,
-            plan_name: plan.name,
-            billing_cycle: plan.billing_cycle,
-            price_php: plan.price_php,
+            plan_id: 'plan_trial',
+            plan_code: 'trial',
+            plan_name: '14-Day Free Tier License',
+            billing_cycle: 'trial',
+            price_php: 0,
             currency: 'PHP',
-            current_period_start: startDate.toISOString(),
+            current_period_start: now.toISOString(),
             current_period_end: endDate.toISOString(),
-            last_payment_date: startDate.toISOString(),
-            last_payment_reference: `GRN-REF-${startDate.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-            last_payment_method: 'GCash',
-            last_paid_by_coordinator_name: 'School Scholarship Coordinator',
-            last_paid_by_coordinator_email: 'coordinator@school.edu.ph',
-            invoices: [],
+            last_payment_date: now.toISOString(),
+            last_payment_reference: `FREE-TIER-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`,
+            last_payment_method: 'Free Tier (14-Day Trial)',
+            last_paid_by_coordinator_name: 'System Provisioning',
+            last_paid_by_coordinator_email: 'admin@grantee.com',
+            invoices: [
+                {
+                    invoice_number: `INV-${now.getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+                    transaction_id: `TXN-${now.getTime()}-${Math.floor(100 + Math.random() * 900)}`,
+                    date: now.toISOString(),
+                    plan_name: '14-Day Free Tier License',
+                    plan_code: 'trial',
+                    billing_cycle: 'trial',
+                    amount_php: 0,
+                    status: 'Complimentary',
+                    payment_method: 'Free Tier (14-Day Trial)',
+                    reference_number: `FREE-TIER-${Math.floor(10000000 + Math.random() * 90000000)}`,
+                    paid_by_name: 'System Provisioning',
+                    paid_by_email: 'admin@grantee.com',
+                    period_covered: `${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                    notes: `Complimentary 2-week free tier license for ${schoolName}`
+                }
+            ],
             updated_at: now.toISOString()
         };
 
@@ -565,7 +603,7 @@ async function createPaymongoCheckoutSession({
     const amountInCentavos = plan.price_php * 100;
 
     const frontendBase = process.env.FRONTEND_URL || 'http://127.0.0.1:5500/frontend';
-    const defSuccess = `${frontendBase}/admin-subscription.html?payment=success&school_id=${schoolId}&session_id={CHECKOUT_SESSION_ID}`;
+    const defSuccess = `${frontendBase}/admin-subscription.html?payment=success&school_id=${schoolId}`;
     const defCancel = `${frontendBase}/admin-subscription.html?payment=cancelled&school_id=${schoolId}`;
 
     // Standard universally enabled payment methods on all PayMongo accounts (Cards, GCash, Maya)
@@ -636,6 +674,12 @@ async function createPaymongoCheckoutSession({
             const retryData = await retryRes.json();
             if (retryRes.ok) {
                 const sessionObj = retryData.data;
+                const cur = store[schoolId] || { school_id: schoolId };
+                cur.pending_paymongo_session_id = sessionObj.id;
+                cur.pending_plan_code = plan.code;
+                store[schoolId] = cur;
+                // Session cached in-memory; omitted disk writes during session creation to prevent Live Server auto-reloads
+
                 return {
                     configured: true,
                     success: true,
@@ -653,6 +697,12 @@ async function createPaymongoCheckoutSession({
     }
 
     const sessionObj = data.data;
+    const cur = store[schoolId] || { school_id: schoolId };
+    cur.pending_paymongo_session_id = sessionObj.id;
+    cur.pending_plan_code = plan.code;
+    store[schoolId] = cur;
+    // Session cached in-memory; omitted disk writes during session creation to prevent Live Server auto-reloads
+
     return {
         configured: true,
         success: true,
@@ -665,8 +715,27 @@ async function createPaymongoCheckoutSession({
 /**
  * 12. Verify PayMongo Checkout Session upon Return
  */
-async function verifyPaymongoSession(sessionId) {
-    if (!sessionId) throw new Error('sessionId is required');
+async function verifyPaymongoSession(sessionId, fallbackSchoolId) {
+    const store = readSubscriptionsStore();
+
+    // If sessionId is invalid, 'pending', or literally the placeholder string "{CHECKOUT_SESSION_ID}"
+    if (!sessionId || sessionId === 'pending' || sessionId === '{CHECKOUT_SESSION_ID}' || sessionId.includes('{')) {
+        if (fallbackSchoolId && store[fallbackSchoolId]?.pending_paymongo_session_id) {
+            sessionId = store[fallbackSchoolId].pending_paymongo_session_id;
+        } else {
+            // Find any school with a pending session
+            const foundSchool = Object.values(store).find(s => s && s.pending_paymongo_session_id);
+            if (foundSchool) {
+                sessionId = foundSchool.pending_paymongo_session_id;
+                if (!fallbackSchoolId) fallbackSchoolId = foundSchool.school_id;
+            }
+        }
+    }
+
+    if (!sessionId || sessionId === 'pending' || sessionId === '{CHECKOUT_SESSION_ID}' || sessionId.includes('{')) {
+        throw new Error('Valid checkout sessionId is required for PayMongo verification');
+    }
+
     const paymongoKey = process.env.PAYMONGO_SECRET_KEY;
     if (!paymongoKey) throw new Error('PAYMONGO_SECRET_KEY is not configured in backend-node/.env.');
 
@@ -687,65 +756,248 @@ async function verifyPaymongoSession(sessionId) {
     const sessionAttrs = data.data.attributes;
     const metadata = sessionAttrs.metadata || {};
     const payments = sessionAttrs.payments || [];
-    const isPaid = sessionAttrs.status === 'paid' || (payments.length > 0 && payments[0].attributes?.status === 'paid');
+    
+    // Robust payment detection for PayMongo (e-wallet, card, or payment intent)
+    const hasPaidPayment = Array.isArray(payments) && payments.some(p => p.attributes?.status === 'paid');
+    const paymentIntentSucceeded = sessionAttrs.payment_intent?.attributes?.status === 'succeeded';
+    const isPaidStatus = sessionAttrs.status === 'paid';
+    const hasPaidAt = Boolean(sessionAttrs.paid_at);
+    const isPaid = hasPaidPayment || paymentIntentSucceeded || isPaidStatus || hasPaidAt;
 
-    if (isPaid && metadata.school_id) {
-        const paymentObj = payments[0]?.attributes || {};
-        const paymentSource = paymentObj.source?.type ? paymentObj.source.type.toUpperCase() : 'ONLINE';
-        const referenceNumber = paymentObj.id || sessionId;
+    const targetSchoolId = metadata.school_id || fallbackSchoolId;
 
-        const result = await processPayment({
-            schoolId: metadata.school_id,
-            coordinatorId: metadata.coordinator_id,
-            coordinatorName: metadata.coordinator_name || sessionAttrs.billing?.name,
-            coordinatorEmail: metadata.coordinator_email || sessionAttrs.billing?.email,
-            planCode: metadata.plan_code || 'yearly',
-            paymentMethod: `PayMongo (${paymentSource})`,
-            referenceNumber: referenceNumber,
-            notes: `Verified PayMongo Checkout Session ${sessionId}`
+    if (isPaid && targetSchoolId) {
+        const paidPayment = (Array.isArray(payments) && payments.find(p => p.attributes?.status === 'paid')) || payments[0] || {};
+        const paymentObj = paidPayment?.attributes || {};
+        const paymentId = paidPayment?.id || paymentObj.id || '';
+        const paymentSource = paymentObj.source?.type 
+            ? paymentObj.source.type.toUpperCase() 
+            : (sessionAttrs.payment_intent?.attributes?.payment_method_allowed?.[0]?.toUpperCase() || 'ONLINE');
+
+        const settlementResult = await recordPaymongoSettlement({
+            schoolId: targetSchoolId,
+            sessionId: sessionId,
+            paymentId: paymentId,
+            paymentSource: paymentSource,
+            metadata: metadata,
+            billing: sessionAttrs.billing || {},
+            channel: 'redirect'
         });
 
         return {
             paid: true,
-            school_id: metadata.school_id,
-            result: result
+            already_recorded: settlementResult.already_recorded,
+            school_id: targetSchoolId,
+            result: settlementResult
         };
     }
 
     return {
         paid: false,
         status: sessionAttrs.status,
-        school_id: metadata.school_id
+        school_id: targetSchoolId
     };
 }
 
 /**
- * 13. PayMongo Webhook Event Handler
+ * 13. Shared Idempotent PayMongo Settlement Engine
+ * Ensures exactly ONE invoice and ONE period extension occurs regardless of whether
+ * Webhook or Frontend Redirect Return reaches the server first.
+ */
+async function recordPaymongoSettlement({
+    schoolId,
+    sessionId,
+    paymentId,
+    paymentSource = 'ONLINE',
+    metadata = {},
+    billing = {},
+    channel = 'redirect'
+}) {
+    if (!schoolId) throw new Error('schoolId is required for settlement');
+
+    const store = readSubscriptionsStore();
+    const currentSub = store[schoolId] || await getSubscriptionStatus(schoolId);
+
+    const cleanSessionId = sessionId || '';
+    const cleanPaymentId = paymentId || '';
+    const primaryRef = cleanPaymentId || cleanSessionId || `PAYMONGO-${Date.now()}`;
+
+    // IDEMPOTENCY CHECK:
+    // If an invoice already exists referencing this checkout session or payment ID, skip duplicate processing!
+    if (currentSub && Array.isArray(currentSub.invoices)) {
+        const existingInv = currentSub.invoices.find(inv => {
+            const invRef = (inv.reference_number || '').toLowerCase();
+            const invNotes = (inv.notes || '').toLowerCase();
+
+            const matchRef = (cleanPaymentId && invRef === cleanPaymentId.toLowerCase()) ||
+                             (cleanSessionId && invRef === cleanSessionId.toLowerCase()) ||
+                             (primaryRef && invRef === primaryRef.toLowerCase());
+
+            const matchNotes = (cleanSessionId && invNotes.includes(cleanSessionId.toLowerCase())) ||
+                               (cleanPaymentId && invNotes.includes(cleanPaymentId.toLowerCase()));
+
+            return matchRef || matchNotes;
+        });
+
+        if (existingInv) {
+            console.log(`[SubscriptionService] PayMongo transaction [Session: ${cleanSessionId}, Payment: ${cleanPaymentId}] already recorded in invoice ${existingInv.invoice_number}. Skipping duplicate from ${channel}.`);
+
+            // Clear pending session
+            if (store[schoolId]?.pending_paymongo_session_id === cleanSessionId) {
+                delete store[schoolId].pending_paymongo_session_id;
+                delete store[schoolId].pending_plan_code;
+                writeSubscriptionsStore(store);
+            }
+
+            return {
+                already_recorded: true,
+                success: true,
+                message: 'Payment verified and already recorded in subscription history.',
+                subscription: currentSub,
+                invoice: existingInv
+            };
+        }
+    }
+
+    // Process single payment settlement with unified paymentMethod label
+    const formattedPaymentMethod = `PayMongo (${paymentSource.toUpperCase()})`;
+    const planCode = metadata.plan_code || store[schoolId]?.pending_plan_code || 'yearly';
+
+    const result = await processPayment({
+        schoolId: schoolId,
+        coordinatorId: metadata.coordinator_id,
+        coordinatorName: metadata.coordinator_name || billing?.name,
+        coordinatorEmail: metadata.coordinator_email || billing?.email,
+        planCode: planCode,
+        paymentMethod: formattedPaymentMethod,
+        referenceNumber: primaryRef,
+        notes: `Verified PayMongo Checkout Session ${cleanSessionId} [Payment: ${cleanPaymentId || 'N/A'}]`
+    });
+
+    // Clear pending session tracker
+    if (store[schoolId]?.pending_paymongo_session_id) {
+        delete store[schoolId].pending_paymongo_session_id;
+        delete store[schoolId].pending_plan_code;
+        writeSubscriptionsStore(store);
+    }
+
+    return {
+        already_recorded: false,
+        success: true,
+        ...result
+    };
+}
+
+/**
+ * 14. PayMongo Webhook Event Handler
  */
 async function handlePaymongoWebhook(eventBody) {
     const eventType = eventBody?.data?.attributes?.type;
     const eventData = eventBody?.data?.attributes?.data;
 
     if (eventType === 'checkout_session.payment.paid') {
-        const sessionAttrs = eventData.attributes;
+        const sessionId = eventData?.id || '';
+        const sessionAttrs = eventData?.attributes || {};
         const metadata = sessionAttrs.metadata || {};
         const payments = sessionAttrs.payments || [];
-        const paymentObj = payments[0]?.attributes || {};
+        const paidPayment = (Array.isArray(payments) && payments.find(p => p.attributes?.status === 'paid')) || payments[0] || {};
+        const paymentObj = paidPayment?.attributes || {};
+        const paymentId = paidPayment?.id || paymentObj.id || '';
+        const paymentSource = (paymentObj.source?.type || 'ONLINE').toUpperCase();
 
-        if (metadata.school_id) {
-            return await processPayment({
-                schoolId: metadata.school_id,
-                coordinatorId: metadata.coordinator_id,
-                coordinatorName: metadata.coordinator_name || sessionAttrs.billing?.name,
-                coordinatorEmail: metadata.coordinator_email || sessionAttrs.billing?.email,
-                planCode: metadata.plan_code || 'yearly',
-                paymentMethod: `PayMongo Webhook (${(paymentObj.source?.type || 'E-WALLET').toUpperCase()})`,
-                referenceNumber: paymentObj.id || sessionAttrs.id,
-                notes: 'Settled via PayMongo Webhook'
+        const schoolId = metadata.school_id;
+        if (schoolId) {
+            const settlementResult = await recordPaymongoSettlement({
+                schoolId: schoolId,
+                sessionId: sessionId,
+                paymentId: paymentId,
+                paymentSource: paymentSource,
+                metadata: metadata,
+                billing: sessionAttrs.billing || {},
+                channel: 'webhook'
             });
+
+            return { received: true, result: settlementResult };
         }
     }
     return { received: true };
+}
+
+/**
+ * 15. Automatically clean up duplicate invoices and correct credited duration
+ */
+function cleanupDuplicateInvoices(schoolId) {
+    const store = readSubscriptionsStore();
+    const sub = store[schoolId];
+    if (!sub || !Array.isArray(sub.invoices) || sub.invoices.length < 2) return null;
+
+    let modified = false;
+    const keptInvoices = [];
+    let extraCyclesDeducted = 0;
+    const dedupePlanCode = sub.plan_code || 'monthly';
+    const plan = PLANS.find(p => p.code === dedupePlanCode) || PLANS[0];
+
+    for (let i = 0; i < sub.invoices.length; i++) {
+        const inv = sub.invoices[i];
+        let isDuplicate = false;
+
+        for (const kept of keptInvoices) {
+            const timeDiff = Math.abs(new Date(inv.date).getTime() - new Date(kept.date).getTime());
+
+            // Case 1: Exact same reference number
+            const sameRef = inv.reference_number && kept.reference_number &&
+                inv.reference_number.toLowerCase() === kept.reference_number.toLowerCase();
+
+            // Case 2: Cross session match between notes and reference
+            const crossSessionMatch = Boolean(
+                (inv.notes && kept.reference_number && inv.notes.includes(kept.reference_number)) ||
+                (kept.notes && inv.reference_number && kept.notes.includes(inv.reference_number))
+            );
+
+            // Case 3: Pair of PayMongo webhook and redirect within 60 seconds
+            const isPaymongoRace = (
+                timeDiff < 60000 &&
+                inv.amount_php === kept.amount_php &&
+                ((inv.payment_method?.includes('PayMongo') && kept.payment_method?.includes('PayMongo')) ||
+                 (inv.notes?.includes('PayMongo') && kept.notes?.includes('PayMongo')))
+            );
+
+            if (sameRef || crossSessionMatch || isPaymongoRace) {
+                isDuplicate = true;
+                extraCyclesDeducted++;
+                console.log(`[SubscriptionService] Removing duplicate invoice ${inv.invoice_number} (duplicates ${kept.invoice_number})`);
+                break;
+            }
+        }
+
+        if (!isDuplicate) {
+            keptInvoices.push(inv);
+        } else {
+            modified = true;
+        }
+    }
+
+    if (modified) {
+        let adjustedEnd = new Date(sub.current_period_end);
+        const msToDeduct = extraCyclesDeducted * plan.period_days * 24 * 60 * 60 * 1000;
+        adjustedEnd = new Date(adjustedEnd.getTime() - msToDeduct);
+
+        sub.invoices = keptInvoices;
+        sub.current_period_end = adjustedEnd.toISOString();
+        sub.updated_at = new Date().toISOString();
+        store[schoolId] = sub;
+        writeSubscriptionsStore(store);
+
+        console.log(`[SubscriptionService] Cleanup complete for ${sub.school_name}. Removed ${extraCyclesDeducted} duplicate invoice(s), adjusted period end to ${adjustedEnd.toISOString()}`);
+        return {
+            cleaned: true,
+            school_id: schoolId,
+            removed_count: extraCyclesDeducted,
+            new_period_end: adjustedEnd.toISOString()
+        };
+    }
+
+    return { cleaned: false, school_id: schoolId };
 }
 
 module.exports = {
@@ -758,6 +1010,8 @@ module.exports = {
     getPaymentConfig,
     createPaymongoCheckoutSession,
     verifyPaymongoSession,
-    handlePaymongoWebhook
+    handlePaymongoWebhook,
+    recordPaymongoSettlement,
+    cleanupDuplicateInvoices
 };
 

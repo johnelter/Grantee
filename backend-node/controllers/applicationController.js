@@ -262,6 +262,157 @@ const submitApplication = async (req, res) => {
     }
 };
 
+/**
+ * Atomic Slot Extension & Waitlist Promotion Handler
+ * Increases capacity under lock and automatically promotes waitlisted applicants
+ * to 'Pending' in strict FIFO order up to the added slot count.
+ */
+const extendScholarshipSlots = async (req, res) => {
+    const { scholarshipId } = req.params;
+    const { additionalSlots } = req.body;
+
+    const addedSlots = parseInt(additionalSlots, 10);
+    if (!scholarshipId || isNaN(addedSlots) || addedSlots <= 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'scholarshipId and a positive additionalSlots number are required.'
+        });
+    }
+
+    const releaseLock = await acquireScholarshipLock(scholarshipId);
+
+    try {
+        const serverTimestamp = new Date().toISOString();
+
+        // 1. Fetch current scholarship
+        const { data: scholarship, error: schError } = await supabase
+            .from('scholarships')
+            .select('*')
+            .eq('id', scholarshipId)
+            .single();
+
+        if (schError || !scholarship) {
+            return res.status(404).json({
+                success: false,
+                error: 'Scholarship not found.'
+            });
+        }
+
+        const isUnlimited = scholarship.slots === 'Open' || !scholarship.slots || String(scholarship.slots).toLowerCase() === 'open';
+
+        // Fetch current active apps to determine occupied count
+        const { data: initialActiveApps } = await supabase
+            .from('applications')
+            .select('id, status')
+            .eq('scholarship_id', scholarshipId);
+
+        const currentOccupiedCount = (initialActiveApps || []).filter(a => {
+            const st = (a.status || '').toLowerCase().trim();
+            return !['rejected', 'declined', 'revoked', 'withdrawn', 'draft', 'waitlisted'].includes(st);
+        }).length;
+
+        const currentSlots = isUnlimited ? currentOccupiedCount : (parseInt(scholarship.slots, 10) || 0);
+        const newTotalSlots = currentSlots + addedSlots;
+
+        // 2. Fetch Waitlisted applicants ordered by created_at ASC (FIFO)
+        const { data: waitlistedApps, error: waitlistError } = await supabase
+            .from('applications')
+            .select('id, student_id, status, created_at, remarks')
+            .eq('scholarship_id', scholarshipId)
+            .ilike('status', '%waitlist%')
+            .order('created_at', { ascending: true });
+
+        if (waitlistError) throw waitlistError;
+
+        const waitlistCount = (waitlistedApps || []).length;
+        const promotedCount = Math.min(waitlistCount, addedSlots);
+        const appsToPromote = (waitlistedApps || []).slice(0, promotedCount);
+
+        const promotedIds = [];
+        for (const app of appsToPromote) {
+            const oldRemarks = app.remarks || '';
+            const promotionRemark = `Promoted from Waitlist to Pending due to slot extension (+${addedSlots} slots) on ${new Date().toLocaleString('en-US')}.`;
+            const newRemarks = oldRemarks ? `${oldRemarks} | ${promotionRemark}` : promotionRemark;
+
+            const { error: updErr } = await supabase
+                .from('applications')
+                .update({
+                    status: 'Pending',
+                    remarks: newRemarks
+                })
+                .eq('id', app.id);
+
+            if (!updErr) {
+                promotedIds.push(app.id);
+
+                // Notify student
+                sendNotification({
+                    userId: app.student_id,
+                    eventType: 'applications',
+                    subject: 'Application Slot Available - Under Review!',
+                    message: `Good news! Additional slots opened for ${scholarship.title}. Your application has been moved from the Waitlist to Active Review.`,
+                    htmlContent: `
+                        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
+                            <h2 style="color: #1F3D2E; margin-top: 0;">Application Promoted from Waitlist</h2>
+                            <p>Good news! Application slots for <strong>${scholarship.title}</strong> have been extended.</p>
+                            <p>Your application was covered by the newly added slots and has automatically been moved from the Waitlist to <strong>Under Review (Pending Evaluation)</strong>.</p>
+                        </div>
+                    `,
+                    sendEmail: true,
+                    sendInApp: true
+                }).catch(err => console.error("Notification error:", err));
+            }
+        }
+
+        // 3. Recalculate Available Slots
+        const { data: allActiveApps } = await supabase
+            .from('applications')
+            .select('id, status')
+            .eq('scholarship_id', scholarshipId);
+
+        const occupiedCount = (allActiveApps || []).filter(a => {
+            const st = (a.status || '').toLowerCase().trim();
+            return !['rejected', 'declined', 'revoked', 'withdrawn', 'draft', 'waitlisted'].includes(st);
+        }).length;
+
+        const newAvailableSlots = Math.max(0, newTotalSlots - occupiedCount);
+
+        // 4. Update scholarship
+        const { error: updSchErr } = await supabase
+            .from('scholarships')
+            .update({
+                slots: String(newTotalSlots),
+                available_slots: newAvailableSlots,
+                updated_at: serverTimestamp
+            })
+            .eq('id', scholarshipId);
+
+        if (updSchErr) throw updSchErr;
+
+        return res.status(200).json({
+            success: true,
+            message: `Slots extended successfully. Total slots: ${newTotalSlots}. Promoted: ${promotedIds.length}.`,
+            oldSlots: currentSlots,
+            newSlots: newTotalSlots,
+            addedSlots,
+            promotedCount: promotedIds.length,
+            promotedApplicantIds: promotedIds,
+            remainingWaitlist: Math.max(0, waitlistCount - promotedCount),
+            newAvailableSlots
+        });
+
+    } catch (err) {
+        console.error('Extend slots error:', err);
+        return res.status(500).json({
+            success: false,
+            error: err.message || 'Failed to extend scholarship slots.'
+        });
+    } finally {
+        releaseLock();
+    }
+};
+
 module.exports = {
-    submitApplication
+    submitApplication,
+    extendScholarshipSlots
 };

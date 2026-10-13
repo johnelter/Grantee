@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "create-school": "npm --prefix backend-node run create-school",
+    "create-coordinator": "npm --prefix backend-node run create-coordinator"
+  },
   "dependencies": {
     "@getbrevo/brevo": "^6.0.2",
     "@google/generative-ai": "^0.24.1",

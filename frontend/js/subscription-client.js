@@ -13,24 +13,44 @@
     const CACHE_TTL_MS = 30 * 1000; // 30 seconds fresh cache for rapid response
 
     function getBackendEndpoints(path) {
-        const isLocal = window.location.hostname === 'localhost' ||
-                        window.location.hostname === '127.0.0.1' ||
+        const hostname = window.location.hostname || 'localhost';
+        const isLocal = hostname === 'localhost' ||
+                        hostname === '127.0.0.1' ||
+                        hostname === '0.0.0.0' ||
+                        hostname.startsWith('192.168.') ||
+                        hostname.startsWith('10.') ||
                         window.location.protocol === 'file:';
 
-        const localUrl = `http://localhost:3000${path}`;
-        const prodUrl = `https://grantee-backend-n5f4.onrender.com${path}`;
+        const endpoints = [];
 
-        return isLocal ? [localUrl, prodUrl] : [prodUrl, localUrl];
+        if (isLocal) {
+            // Priority order for local development to prevent 127.0.0.1 vs localhost drops
+            if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+                endpoints.push(`http://${hostname}:3000${path}`);
+            }
+            endpoints.push(`http://127.0.0.1:3000${path}`);
+            endpoints.push(`http://localhost:3000${path}`);
+            endpoints.push(`https://grantee-backend-n5f4.onrender.com${path}`);
+        } else {
+            endpoints.push(`https://grantee-backend-n5f4.onrender.com${path}`);
+            endpoints.push(`http://127.0.0.1:3000${path}`);
+            endpoints.push(`http://localhost:3000${path}`);
+        }
+
+        return endpoints;
     }
 
     async function fetchWithFallback(path, options = {}) {
         const endpoints = getBackendEndpoints(path);
         let lastErr = null;
-        // Allow up to 45 seconds for checkout creation/payments to survive Render free tier cold starts
-        const timeoutMs = options.timeoutMs || (path.includes('checkout') || path.includes('payment') ? 45000 : 15000);
 
         for (const url of endpoints) {
             try {
+                const isLocalUrl = url.includes('localhost') || url.includes('127.0.0.1') || url.includes(':3000');
+                // Local server responds quickly (3.5s timeout is ample if running, fails fast to Render if not)
+                // Render cloud endpoint gets up to 60s to survive free-tier cold starts
+                const timeoutMs = options.timeoutMs || (isLocalUrl ? 3500 : 60000);
+
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -257,9 +277,11 @@
         /**
          * Verify session upon redirect
          */
-        async verifyCheckoutSession(sessionId) {
+        async verifyCheckoutSession(sessionId, schoolId) {
             try {
-                return await fetchWithFallback(`/api/subscription/verify-checkout-session/${sessionId}`);
+                const cleanSessionId = (sessionId && !sessionId.includes('{')) ? sessionId : 'pending';
+                const query = schoolId ? `?school_id=${encodeURIComponent(schoolId)}` : '';
+                return await fetchWithFallback(`/api/subscription/verify-checkout-session/${encodeURIComponent(cleanSessionId)}${query}`);
             } catch (err) {
                 console.error('[SubscriptionClient] Verify session error:', err);
                 throw err;

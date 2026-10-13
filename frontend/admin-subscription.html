@@ -254,11 +254,6 @@
                             Educational institutions pay a monthly or yearly fee processed through the coordinator's account to keep Grantee running over the long term.
                         </p>
                     </div>
-                    <div id="quick-renew-btn-wrapper" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <button type="button" class="btn-bank-setup-guide" onclick="openBankSetupGuideModal()">
-                            <i data-lucide="landmark" style="width: 15px; height: 15px;"></i> Online Payment & Bank Payout Setup
-                        </button>
-                    </div>
                 </div>
 
                 <!-- License Status Hero Card -->
@@ -486,16 +481,16 @@
                 </div>
             </div>
 
-            <!-- 1. FAST ONLINE GATEWAY (PAYMONGO REDIRECTION) -->
+            <!-- FAST ONLINE GATEWAY (PAYMONGO CHECKOUT) -->
             <div class="online-paymongo-box">
                 <div class="paymongo-header-row">
                     <div>
-                        <strong style="color: #065f46; font-size: 14.5px; display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="zap" style="width: 17px; height: 17px; color: #10b981;"></i>
-                            PayMongo Online Gateway (Instant Access)
+                        <strong style="color: #065f46; font-size: 15px; display: flex; align-items: center; gap: 7px;">
+                            <i data-lucide="shield-check" style="width: 19px; height: 19px; color: #10b981;"></i>
+                            PayMongo Certified Gateway
                         </strong>
-                        <span style="font-size: 12px; color: #047857;">
-                            Pay directly via GCash, Maya, Credit/Debit Card, or Online Banking. Automatic deposit to online bank account.
+                        <span style="font-size: 12.5px; color: #047857; display: block; margin-top: 2px;">
+                            Seamless institutional checkout. Supports GCash, Maya, Visa/Mastercard, and Online Banking.
                         </span>
                     </div>
                     <div class="paymongo-badges">
@@ -505,319 +500,45 @@
                         <span class="pay-brand-pill brand-bank">Online Banking</span>
                     </div>
                 </div>
-                <button type="button" class="btn-paymongo-action" id="btn-paymongo-checkout" onclick="initiatePaymongoOnlineCheckout()">
-                    <i data-lucide="external-link" style="width: 17px; height: 17px;"></i>
-                    <span id="btn-paymongo-label">Proceed to Online Checkout (PayMongo)</span>
+
+                <div class="paymongo-features-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 6px 0; font-size: 12px; color: #334155;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: #10b981;"></i>
+                        <span>Instant Auto-Activation</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: #10b981;"></i>
+                        <span>Zero Manual Ref # Needed</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: #10b981;"></i>
+                        <span>Official Electronic VAT Receipt</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: #10b981;"></i>
+                        <span>PCI-DSS Level 1 Encrypted</span>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-paymongo-action" id="btn-paymongo-checkout" onclick="initiatePaymongoOnlineCheckout(event)">
+                    <i data-lucide="lock" style="width: 17px; height: 17px;"></i>
+                    <span id="btn-paymongo-label">Proceed to Secure Checkout with PayMongo</span>
+                    <i data-lucide="arrow-right" style="width: 17px; height: 17px;"></i>
                 </button>
             </div>
 
-            <div class="pay-divider-text">OR SETTLE DIRECTLY VIA VERIFIED INSTITUTIONAL ACCOUNTS</div>
-
-            <!-- 2. DIRECT SETTLEMENT VIA VERIFIED COMPANY ACCOUNTS -->
-            <label style="display: block; font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">
-                Select Direct Settlement Channel:
-            </label>
-            <div class="payment-methods-grid">
-                <div class="payment-method-tile selected" data-method="GCash" onclick="selectPaymentMethod('GCash')">
-                    <div class="payment-method-icon pm-gcash">G</div>
-                    <div>
-                        <div class="payment-method-label">GCash Corporate</div>
-                        <div class="payment-method-sub">Direct E-Wallet Transfer</div>
-                    </div>
-                </div>
-
-                <div class="payment-method-tile" data-method="Maya" onclick="selectPaymentMethod('Maya')">
-                    <div class="payment-method-icon pm-maya">M</div>
-                    <div>
-                        <div class="payment-method-label">Maya Business</div>
-                        <div class="payment-method-sub">QR Ph / Wallet Transfer</div>
-                    </div>
-                </div>
-
-                <div class="payment-method-tile" data-method="Bank Transfer" onclick="selectPaymentMethod('Bank Transfer')">
-                    <div class="payment-method-icon pm-bank"><i data-lucide="landmark" style="width: 18px; height: 18px;"></i></div>
-                    <div>
-                        <div class="payment-method-label">Institutional Bank Wire</div>
-                        <div class="payment-method-sub">Landbank / BDO / BPI</div>
-                    </div>
-                </div>
-
-                <div class="payment-method-tile" data-method="Card" onclick="selectPaymentMethod('Card')">
-                    <div class="payment-method-icon pm-card"><i data-lucide="credit-card" style="width: 18px; height: 18px;"></i></div>
-                    <div>
-                        <div class="payment-method-label">Corporate Card Auth</div>
-                        <div class="payment-method-sub">Visa / Mastercard / JCB</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dynamic Payment Inputs & Verified Receiving Accounts Display -->
-            <div class="payment-inputs-area" id="payment-inputs-area">
-
-                <!-- Receiving Account Card Display -->
-                <div class="receiving-bank-card" id="receiving-account-card">
-                    <div class="bank-card-header">
-                        <span class="bank-name-label" id="disp-receiving-bank-title">
-                            <i data-lucide="building-2" style="width: 16px; height: 16px; color: #10b981;"></i>
-                            Receiving Merchant Account
-                        </span>
-                        <button type="button" class="copy-chip-btn" id="btn-copy-acc-num" onclick="copyReceivingAccountNumber()">
-                            <i data-lucide="copy" style="width: 13px; height: 13px;"></i> Copy Account #
-                        </button>
-                    </div>
-                    <div class="bank-acc-row">
-                        <span>Account Name:</span>
-                        <strong id="disp-receiving-acc-name">Grantee Educational Technologies Inc.</strong>
-                    </div>
-                    <div class="bank-acc-row">
-                        <span>Account Number / Mobile:</span>
-                        <span class="bank-acc-num" id="disp-receiving-acc-num">0917-123-4567</span>
-                    </div>
-                    <div class="bank-acc-row" id="disp-receiving-branch-row" style="display: none;">
-                        <span>Branch / Hub:</span>
-                        <span id="disp-receiving-branch">Institutional Hub</span>
-                    </div>
-                </div>
-
-                <!-- GCash / Maya Area -->
-                <div id="input-group-wallet">
-                    <div class="payment-field-group">
-                        <label class="payment-field-label" id="wallet-number-label">School / Coordinator GCash Mobile Number</label>
-                        <input type="tel" id="input-wallet-number" class="payment-field-input" placeholder="0917-123-4567" value="0917-555-8822">
-                    </div>
-                    <div class="payment-field-group">
-                        <label class="payment-field-label">GCash / Maya Transaction Reference No. (Ref #)</label>
-                        <input type="text" id="input-wallet-ref" class="payment-field-input" placeholder="e.g. 883920194821">
-                    </div>
-                </div>
-
-                <!-- Bank Transfer Area (Hidden by default) -->
-                <div id="input-group-bank" style="display: none;">
-                    <div class="payment-field-group">
-                        <label class="payment-field-label">Target Receiving Bank Account</label>
-                        <select class="payment-field-input" id="input-bank-select" onchange="onBankSelectChange()">
-                            <option value="Landbank">Landbank of the Philippines (Acct: 0912-3841-88)</option>
-                            <option value="BDO">BDO Unibank (Acct: 0048-2918-4921)</option>
-                            <option value="BPI">Bank of the Philippine Islands (Acct: 2841-9920-14)</option>
-                        </select>
-                    </div>
-                    <div class="payment-field-group">
-                        <label class="payment-field-label">Bank Deposit Slip / Advice of Check / PO Number</label>
-                        <input type="text" id="input-bank-ref" class="payment-field-input" placeholder="e.g. DEP-2026-99214">
-                    </div>
-                </div>
-
-                <!-- Card Area (Hidden by default) -->
-                <div id="input-group-card" style="display: none;">
-                    <div class="payment-field-group">
-                        <label class="payment-field-label">Corporate Card Number</label>
-                        <input type="text" id="input-card-number" class="payment-field-input" placeholder="4123 •••• •••• 8842" value="4123 5892 4810 8842">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
-                        <div class="payment-field-group">
-                            <label class="payment-field-label">Authorized Signatory Name</label>
-                            <input type="text" id="input-card-name" class="payment-field-input" placeholder="Coordinator Name">
-                        </div>
-                        <div class="payment-field-group">
-                            <label class="payment-field-label">Expiry / CVV</label>
-                            <input type="text" class="payment-field-input" placeholder="12/28 • 882" value="12/28 • 381">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Complete Payment Action Button -->
-            <button type="button" class="btn-confirm-payment" id="btn-submit-payment" onclick="proceedToPaymentPortal()">
-                <span id="btn-submit-payment-label">Complete the payment</span>
-                <i data-lucide="arrow-right" style="width: 17px; height: 17px;"></i>
-            </button>
-            <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 10px;">
+            <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 14px; margin-bottom: 0;">
                 🔒 256-bit SSL Encrypted Transaction • Institutional VAT-Exempt Receipt Generated Instantly
             </p>
         </div>
     </div>
 
-    <!-- GCASH / DIRECT PAYMENT PORTAL (AUTHENTIC GCASH QR SCREEN) -->
-    <div id="gcash-portal-modal" class="gcash-portal-overlay">
-        <div class="gcash-portal-card">
-            <!-- Blue Header with Black X Close Button and Centered GCash Logo -->
-            <div class="gcash-portal-header" id="gcash-portal-header">
-                <button type="button" class="gcash-portal-close" onclick="closeGcashPortalModal()" aria-label="Close GCash Portal">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-                <div class="gcash-portal-logo-wrapper">
-                    <!-- Crisp Official GCash Logo -->
-                    <svg id="gcash-logo-svg" viewBox="0 0 160 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height: 32px; width: auto;">
-                        <g transform="translate(4, 2)">
-                            <circle cx="16" cy="16" r="14.5" stroke="white" stroke-width="2.6" fill="none" />
-                            <path d="M19 12.5C18 11 16.5 10 14.2 10C10.5 10 7.8 12.8 7.8 16.5C7.8 20.2 10.5 23 14.2 23C17.5 23 19.8 20.8 20.2 17.5H14.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                            <path d="M24.5 9.5C26.8 11.4 28.2 13.8 28.2 16.5C28.2 19.2 26.8 21.6 24.5 23.5" stroke="white" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-                            <path d="M28.5 6.5C31.8 9.2 33.8 12.6 33.8 16.5C33.8 20.4 31.8 23.8 28.5 26.5" stroke="white" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-                        </g>
-                        <text x="48" y="25.5" fill="white" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="800" letter-spacing="-0.5">GCash</text>
-                    </svg>
-                </div>
-            </div>
-
-            <!-- White Card Inside Matching the Screenshot -->
-            <div class="gcash-portal-inner-card">
-                <h3 class="gcash-portal-title" id="gcash-portal-title">
-                    Securely complete the payment with your GCash app
-                </h3>
-
-                <!-- "Open in GCash" Action Button -->
-                <button type="button" class="btn-open-gcash-app" id="btn-open-gcash-app" onclick="handleOpenGcashAppClick()">
-                    Open in GCash
-                </button>
-
-                <p class="gcash-portal-subtitle" id="gcash-portal-subtitle">
-                    or Log in to GCash and scan this QR with the QR Scanner.
-                </p>
-
-                <!-- High-Definition Scannable QR Code Container -->
-                <div class="gcash-qr-container" id="gcash-qr-container">
-                    <!-- Dynamic scannable QR Code will be rendered here -->
-                </div>
-
-                <!-- Payment Details Box -->
-                <div class="gcash-payment-info-box">
-                    <div class="gcash-amount-row">
-                        <span style="font-size: 13px; color: #475569; font-weight: 600;">Amount Due:</span>
-                        <span id="gcash-modal-amount" style="font-size: 17px; font-weight: 800; color: #0057E7;">₱24,990.00</span>
-                    </div>
-                    <div class="gcash-meta-row">
-                        <span>Recipient GCash Name:</span>
-                        <strong id="gcash-modal-recipient" style="color: #1e293b;">John Elter Gelig</strong>
-                    </div>
-                    <div class="gcash-meta-row">
-                        <span>GCash Mobile No:</span>
-                        <strong id="gcash-modal-mobile" style="color: #0057E7; font-size: 12.5px;">09700551207</strong>
-                    </div>
-                    <div class="gcash-meta-row">
-                        <span>Plan Tier:</span>
-                        <span id="gcash-modal-plan" style="font-weight: 600; color: #1e293b;">Yearly License</span>
-                    </div>
-                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 700; color: #1e293b;">Exact Amount Paid (₱):</span>
-                        <input type="number" id="gcash-input-amount" step="0.01" style="width: 130px; padding: 5px 8px; font-size: 14px; font-weight: 800; color: #0057E7; border: 1.5px solid #cbd5e1; border-radius: 6px; text-align: right; background: #ffffff;">
-                    </div>
-                </div>
-
-                <!-- Reference Number Input & Verification Box -->
-                <div style="margin: 14px 0 16px 0; text-align: left; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 12px 14px;">
-                    <label for="gcash-input-ref" style="display: block; font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 5px;">
-                        <i data-lucide="receipt" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; color: #0057E7;"></i>
-                        Enter GCash Reference No. (from SMS / Receipt):
-                    </label>
-                    <input type="text" id="gcash-input-ref" placeholder="e.g. 8839201948210 (13 digits from your GCash receipt)" maxlength="24" style="width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; border-radius: 8px; border: 1.5px solid #94a3b8; background: #ffffff; color: #0f172a; box-sizing: border-box;">
-                    <span style="font-size: 11px; color: #64748b; margin-top: 5px; display: block;">
-                        ⚠️ Note: The system strictly validates the exact payment amount and reference number. Underpayments will be rejected.
-                    </span>
-                </div>
-
-                <!-- Complete / Verify Payment Trigger -->
-                <button type="button" class="btn-gcash-confirm-complete" id="btn-gcash-complete-submit" onclick="confirmGcashPaymentComplete()">
-                    <i data-lucide="check-circle" style="width: 17px; height: 17px;"></i>
-                    <span id="btn-gcash-complete-label">I Have Completed the Payment</span>
-                </button>
-
-                <p style="margin: 12px 0 0 0; font-size: 11px; color: #64748b; line-height: 1.4;">
-                    🔒 Instant verification • Official institutional VAT receipt generated automatically
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- BANK ACCOUNT BINDING & SETUP GUIDE MODAL -->
-    <div id="bank-guide-modal" class="checkout-modal-overlay">
-        <div class="checkout-modal-card" style="max-width: 680px;">
-            <button type="button" class="checkout-close-btn" onclick="closeBankSetupGuideModal()">
-                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-            </button>
-
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(31, 61, 46, 0.1); color: #1F3D2E; display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="landmark" style="width: 24px; height: 24px;"></i>
-                </div>
-                <div>
-                    <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--text-heading, #0f172a);">
-                        Online Payment Gateway & Bank Payout Setup
-                    </h3>
-                    <span style="font-size: 13px; color: var(--text-muted, #64748b);">
-                        How school subscription payments are redirected directly to your real online bank account.
-                    </span>
-                </div>
-            </div>
-
-            <!-- Flow Diagram Card -->
-            <div style="background: linear-gradient(135deg, rgba(31, 61, 46, 0.04) 0%, rgba(220, 200, 163, 0.15) 100%); border: 1px solid rgba(31, 61, 46, 0.15); border-radius: 14px; padding: 16px; margin-bottom: 20px;">
-                <strong style="display: block; font-size: 12px; text-transform: uppercase; color: #1F3D2E; letter-spacing: 0.5px; margin-bottom: 10px;">
-                    Fund Redirection Workflow:
-                </strong>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; font-size: 12px;">
-                    <div style="background: var(--card-bg, #ffffff); border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border-color, #e2e8f0);">
-                        <div style="font-size: 20px; margin-bottom: 4px;">🏫</div>
-                        <strong style="color: #0f172a; display: block;">1. School Pays</strong>
-                        <span style="color: #64748b; font-size: 11px;">Coordinator pays via GCash, Maya, Card, or Bank</span>
-                    </div>
-                    <div style="background: var(--card-bg, #ffffff); border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border-color, #e2e8f0);">
-                        <div style="font-size: 20px; margin-bottom: 4px;">⚡</div>
-                        <strong style="color: #059669; display: block;">2. Payment Gateway</strong>
-                        <span style="color: #64748b; font-size: 11px;">PayMongo settles funds & verifies transactions</span>
-                    </div>
-                    <div style="background: var(--card-bg, #ffffff); border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border-color, #e2e8f0);">
-                        <div style="font-size: 20px; margin-bottom: 4px;">🏦</div>
-                        <strong style="color: #1F3D2E; display: block;">3. Your Bank Account</strong>
-                        <span style="color: #64748b; font-size: 11px;">Direct deposit to Landbank, BDO, BPI, or UnionBank</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step by Step Setup Guide -->
-            <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-main, #334155);">
-                <h4 style="font-size: 15px; font-weight: 800; color: var(--text-heading, #0f172a); margin-bottom: 8px;">
-                    Step-by-Step Directions to Bind Your Real Account:
-                </h4>
-                <ol style="padding-left: 20px; margin: 0 0 20px 0; display: flex; flex-direction: column; gap: 10px;">
-                    <li>
-                        <strong>Create your Merchant Account on PayMongo:</strong><br>
-                        Register your organization at <a href="https://dashboard.paymongo.com" target="_blank" style="color: #10b981; font-weight: 700; text-decoration: underline;">dashboard.paymongo.com</a>.
-                    </li>
-                    <li>
-                        <strong>Link your Real Philippine Online Bank Account:</strong><br>
-                        In your PayMongo Dashboard, go to <strong>Settings → Payout Settings → Bank Accounts</strong>. Select your bank (Landbank, BDO, BPI, Metrobank, UnionBank) and enter your Account Holder Name and Account Number.
-                    </li>
-                    <li>
-                        <strong>Automatic Scheduled Payouts:</strong><br>
-                        PayMongo automatically deposits collected school licensing payments directly into your registered online bank account every scheduled payout cycle (via PESONet/InstaPay).
-                    </li>
-                    <li>
-                        <strong>Connect API Keys to Grantee:</strong><br>
-                        Copy your <code>Secret Key</code> (starts with <code>sk_live_</code> or <code>sk_test_</code>) and <code>Public Key</code> (starts with <code>pk_live_</code>) from PayMongo <strong>Developers → API Keys</strong>, and paste them into <code>backend-node/.env</code>.
-                    </li>
-                    <li>
-                        <strong>Direct Institutional Bank Transfer (0% Fee):</strong><br>
-                        You can also update your direct corporate receiving bank numbers in <code>backend-node/.env</code> (under <code>RECEIVING_BANK_1_ACCOUNT_NUMBER</code>) so schools wishing to wire directly via Landbank advice or check will see your exact corporate numbers!
-                    </li>
-                </ol>
-            </div>
-
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn-confirm-payment" style="width: auto; padding: 10px 24px; font-size: 13px;" onclick="closeBankSetupGuideModal()">
-                    Got It, Close
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- OFFICIAL RECEIPT MODAL -->
-    <div id="receipt-modal" class="checkout-modal-overlay">
-        <div class="checkout-modal-card" style="max-width: 540px;">
-            <button type="button" class="checkout-close-btn" onclick="closeReceiptModal()">
-                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+    <div id="receipt-modal" class="checkout-modal-overlay" onclick="if(event.target===this)closeReceiptModal()">
+        <div class="checkout-modal-card" style="max-width: 540px; position: relative;">
+            <button type="button" class="checkout-close-btn receipt-modal-close-btn" onclick="closeReceiptModal()" aria-label="Close Receipt Modal" title="Close Receipt">
+                <i class="fa-solid fa-xmark"></i>
             </button>
 
             <div class="receipt-paper" id="receipt-printable-area">
@@ -900,10 +621,10 @@
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/subscription-client.js"></script>
+    <script src="js/subscription-client.js?v=20261013_4"></script>
     <script src="js/sidebar-loader.js"></script>
     <script src="js/components/admin-notifications.js"></script>
-    <script src="js/admin-subscription.js"></script>
+    <script src="js/admin-subscription.js?v=20261013_4"></script>
 </body>
 
 </html>

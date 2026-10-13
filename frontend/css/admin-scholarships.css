@@ -2747,10 +2747,21 @@ body.dark-theme .filter-select {
     border-bottom-left-radius: 10px;
 }
 
-.custom-ui-toast.toast-success .toast-left-bar { background-color: #22c55e; }
-.custom-ui-toast.toast-error .toast-left-bar   { background-color: #ef4444; }
-.custom-ui-toast.toast-info .toast-left-bar    { background-color: #3b82f6; }
-.custom-ui-toast.toast-warning .toast-left-bar { background-color: #f59e0b; }
+.custom-ui-toast.toast-success .toast-left-bar {
+    background-color: #22c55e;
+}
+
+.custom-ui-toast.toast-error .toast-left-bar {
+    background-color: #ef4444;
+}
+
+.custom-ui-toast.toast-info .toast-left-bar {
+    background-color: #3b82f6;
+}
+
+.custom-ui-toast.toast-warning .toast-left-bar {
+    background-color: #f59e0b;
+}
 
 /* Circular Icon Badge */
 .custom-ui-toast .toast-icon-wrapper {
@@ -2772,10 +2783,21 @@ body.dark-theme .filter-select {
     height: 18px;
 }
 
-.custom-ui-toast.toast-success .toast-icon-wrapper { background-color: #22c55e; }
-.custom-ui-toast.toast-error .toast-icon-wrapper   { background-color: #ef4444; }
-.custom-ui-toast.toast-info .toast-icon-wrapper    { background-color: #3b82f6; }
-.custom-ui-toast.toast-warning .toast-icon-wrapper { background-color: #f59e0b; }
+.custom-ui-toast.toast-success .toast-icon-wrapper {
+    background-color: #22c55e;
+}
+
+.custom-ui-toast.toast-error .toast-icon-wrapper {
+    background-color: #ef4444;
+}
+
+.custom-ui-toast.toast-info .toast-icon-wrapper {
+    background-color: #3b82f6;
+}
+
+.custom-ui-toast.toast-warning .toast-icon-wrapper {
+    background-color: #f59e0b;
+}
 
 /* Content Text */
 .custom-ui-toast .toast-details {
@@ -4007,5 +4029,104 @@ span.flatpickr-weekday {
     .deadline-modal-body,
     .applicants-modal-footer {
         padding: 16px;
+    }
+}
+
+/* ==========================================================================
+   EXTEND APPLICATION SLOTS MODAL & QUICK BUTTONS
+   ========================================================================== */
+.icon-slots-gradient {
+    background: linear-gradient(135deg, #1F3D2E 0%, #3B7A57 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 12px rgba(31, 61, 46, 0.28) !important;
+}
+
+.slots-module-badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    background-color: rgba(59, 122, 87, 0.12);
+    color: var(--moss-green);
+    border: 1px solid rgba(59, 122, 87, 0.25);
+    display: inline-block;
+}
+
+.btn-quick-extend-slots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2.5px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid rgba(107, 127, 78, 0.35);
+    background: rgba(107, 127, 78, 0.08);
+    color: var(--moss-green);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: 1.3;
+    margin-top: 4px;
+}
+
+.btn-quick-extend-slots svg,
+.btn-quick-extend-slots i {
+    width: 11px;
+    height: 11px;
+}
+
+.btn-quick-extend-slots:hover {
+    background: var(--moss-green);
+    color: #FFFFFF;
+    border-color: var(--moss-green);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(107, 127, 78, 0.28);
+}
+
+.btn-stat-modal-extend-slots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(107, 127, 78, 0.12);
+    color: var(--moss-green);
+    border: 1px solid rgba(107, 127, 78, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-stat-modal-extend-slots:hover {
+    background: var(--moss-green);
+    color: #FFFFFF;
+    border-color: var(--moss-green);
+    transform: translateY(-1px);
+}
+
+.slots-presets-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+}
+
+.slots-current-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+}
+
+@media (max-width: 768px) {
+    .slots-current-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .slots-presets-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .slots-current-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .slots-presets-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
     }
 }

@@ -678,6 +678,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // --- REALTIME APPLICATION STATUS SYNC ---
+    let refreshDebounceTimer = null;
+    function triggerRealtimeSync() {
+        if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
+        refreshDebounceTimer = setTimeout(() => {
+            loadMyApplications(true);
+        }, 300);
+    }
+
+    if (window.supabaseClient) {
+        const studentAppsChannel = window.supabaseClient
+            .channel(`student-my-apps-${studentId}-${Date.now()}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'applications',
+                    filter: `student_id=eq.${studentId}`
+                },
+                () => {
+                    triggerRealtimeSync();
+                }
+            )
+            .subscribe();
+
+        window.addEventListener('beforeunload', () => {
+            try { window.supabaseClient.removeChannel(studentAppsChannel); } catch (e) {}
+        });
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            triggerRealtimeSync();
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        triggerRealtimeSync();
+    });
+
     // Boot
     loadMyApplications();
 });

@@ -354,6 +354,15 @@
 
             allScholarships = (rawData || []).map(sch => {
                 const nonDraftApps = sch.applications ? sch.applications.filter(a => (a.status || '').toLowerCase() !== 'draft') : [];
+                const waitlistedApps = nonDraftApps.filter(a => (a.status || '').toLowerCase().trim() === 'waitlisted');
+                const waitlistCount = waitlistedApps.length;
+
+                // Occupied count: all active non-rejected, non-withdrawn, non-waitlisted applications
+                const occupiedApps = nonDraftApps.filter(a => {
+                    const st = (a.status || '').toLowerCase().trim();
+                    return !['rejected', 'declined', 'revoked', 'withdrawn', 'draft', 'waitlisted'].includes(st);
+                });
+                const occupiedCount = occupiedApps.length;
                 const totalAppsCount = nonDraftApps.length;
 
                 let isUnlimited = sch.slots === 'Open' || !sch.slots || String(sch.slots).toLowerCase() === 'open';
@@ -361,18 +370,19 @@
 
                 if (!isUnlimited) {
                     const totalSlots = parseInt(sch.slots, 10) || 0;
-                    remaining = Math.max(0, totalSlots - totalAppsCount);
+                    remaining = Math.max(0, totalSlots - occupiedCount);
                     if (sch.available_slots !== remaining) {
-                        window.supabaseClient.from('scholarships').update({ available_slots: remaining }).eq('id', sch.id).then(() => {}).catch(() => {});
+                        window.supabaseClient.from('scholarships').update({ available_slots: remaining }).eq('id', sch.id).then(() => { }).catch(() => { });
                     }
                 }
 
                 return {
                     ...sch,
                     applications_count: totalAppsCount,
-                    occupied_count: totalAppsCount,
+                    occupied_count: occupiedCount,
+                    waitlist_count: waitlistCount,
                     passed_count: totalAppsCount,
-                    approved_count: totalAppsCount,
+                    approved_count: occupiedCount,
                     remaining_slots: remaining,
                     available_slots: remaining,
                     is_unlimited: isUnlimited,
@@ -493,6 +503,15 @@
                 <td class="sch-col-apps" style="text-align: center;">
                     <div style="font-weight: 700; color: var(--text-heading); font-size: 13px;">${appCount} ${appLabel}</div>
                     ${slotsDisplay}
+                    ${sch.waitlist_count > 0 ? `<div style="font-size:11px; margin-top:2px; font-weight:700; color:#d97706; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="list-ordered" style="width:11px; height:11px;"></i> ${sch.waitlist_count} Waitlisted</div>` : ''}
+                    ${!sch.is_unlimited ? `
+                    <div>
+                        <button type="button" class="btn-quick-extend-slots" data-id="${sch.id}" title="Extend Application Slots">
+                            <i data-lucide="user-plus"></i>
+                            <span>Extend Slots</span>
+                        </button>
+                    </div>
+                    ` : ''}
                 </td>
                 <td class="sch-col-actions" style="text-align: center;">
                     <div class="action-buttons-group">
@@ -658,8 +677,15 @@
                         <div class="preview-info-label">Semester</div>
                         <div class="preview-info-value">${escapeHtml(sch.semester || 'N/A')}</div>
 
-                        <div class="preview-info-label">Available / Remaining Slots</div>
-                        <div class="preview-info-value">${sch.is_unlimited ? 'Unlimited Slots' : (sch.remaining_slots === 0 ? '<span style="color:var(--danger-color); font-weight:700;">FULL (0/' + sch.slots + ' Left)</span>' : sch.remaining_slots + ' / ' + sch.slots + ' Slots Left')}</div>
+                        <div class="preview-info-label" style="display:flex; align-items:center; justify-content:space-between;">
+                            <span>Available / Remaining Slots</span>
+                            ${!sch.is_unlimited ? `
+                            <button type="button" class="preview-extend-btn-tag" onclick="Swal.close(); openExtendSlotsModal('${sch.id}');" title="Extend application slots">
+                                <i data-lucide="user-plus" style="width: 12px; height: 12px;"></i> Extend Slots
+                            </button>
+                            ` : ''}
+                        </div>
+                        <div class="preview-info-value">${sch.is_unlimited ? 'Unlimited Slots' : (sch.remaining_slots === 0 ? '<span style="color:var(--danger-color); font-weight:700;">FULL (0/' + sch.slots + ' Left)</span>' : sch.remaining_slots + ' / ' + sch.slots + ' Slots Left')}${sch.waitlist_count > 0 ? `<div style="font-size: 11.5px; color: #d97706; font-weight: 700; margin-top: 3px;">• ${sch.waitlist_count} applicant(s) waitlisted in queue</div>` : ''}</div>
 
                         <div class="preview-info-label">School Year</div>
                         <div class="preview-info-value">${escapeHtml(sch.school_year || 'N/A')}</div>
@@ -791,6 +817,8 @@
             window.location.href = `create-scholarship.html?id=${scholarshipId}`;
         } else if (btn.classList.contains('action-deadline') || btn.classList.contains('btn-quick-edit-deadline')) {
             if (scholarshipId) openExtendDeadlineModal(scholarshipId);
+        } else if (btn.classList.contains('btn-quick-extend-slots')) {
+            if (scholarshipId) openExtendSlotsModal(scholarshipId);
         } else if (btn.classList.contains('action-view')) {
             if (targetScholarship) showPreviewModal(targetScholarship);
         } else if (btn.classList.contains('action-delete')) {
@@ -869,10 +897,10 @@
 
         // Populate Program Info Card
         document.getElementById('edit-deadline-sch-id').value = sch.id;
-        
+
         const titleEl = document.getElementById('deadline-program-title');
         if (titleEl) titleEl.innerText = sch.title || 'Untitled Program';
-        
+
         const tagsContainer = document.getElementById('deadline-program-tags-container');
         if (tagsContainer) {
             tagsContainer.innerHTML = `${getTypeBadge(sch.category)} ${getScholarshipTypeBadge(sch.scholarship_type)} ${getStatusHTML(sch.dynamic_status)}`;
@@ -884,7 +912,7 @@
         if (sch.semester) termParts.push(sch.semester);
         if (sch.school_year) termParts.push(`SY ${sch.school_year}`);
         const termStr = termParts.join(' • ') || 'Academic Year';
-        
+
         const termEl = document.getElementById('deadline-program-term');
         if (termEl) termEl.innerText = termStr;
 
@@ -1058,7 +1086,7 @@
         }
 
         let summaryHtml = `<div><strong>Extension Summary:</strong> Deadline will be set to <strong>${formatDate(newDeadlineStr)}</strong> (${diffText}).</div>`;
-        
+
         if (isReactivating) {
             summaryHtml += `<div style="margin-top: 4px; font-size: 12px; color: var(--moss-green); font-weight: 600;">
                 <i data-lucide="sparkles" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle;"></i>
@@ -1216,11 +1244,458 @@
         });
     }
 
+    const extendSlotsModalEl = document.getElementById('extend-slots-modal');
+    if (extendSlotsModalEl) {
+        extendSlotsModalEl.addEventListener('click', (e) => {
+            if (e.target === extendSlotsModalEl) {
+                closeExtendSlotsModal();
+            }
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const em = document.getElementById('extend-deadline-modal');
             if (em && em.classList.contains('show')) {
                 closeExtendDeadlineModal();
+            }
+            const sm = document.getElementById('extend-slots-modal');
+            if (sm && sm.classList.contains('show')) {
+                closeExtendSlotsModal();
+            }
+        }
+    });
+
+    // ==========================================
+    // 6C. EXTEND APPLICATION SLOTS MODAL & LOGIC
+    // ==========================================
+    let activeWaitlistedApps = [];
+    let activeExtendScholarship = null;
+
+    window.openExtendSlotsModal = async (scholarshipId) => {
+        const sch = allScholarships.find(s => s.id == scholarshipId);
+        if (!sch) {
+            showUIToast('error', 'Error', 'Educational assistance program not found.');
+            return;
+        }
+
+        activeExtendScholarship = sch;
+
+        const modal = document.getElementById('extend-slots-modal');
+        if (!modal) return;
+
+        // Populate basic info
+        const idInput = document.getElementById('edit-slots-sch-id');
+        if (idInput) idInput.value = sch.id;
+
+        const titleEl = document.getElementById('slots-program-title');
+        if (titleEl) titleEl.innerText = sch.title || 'Educational Assistance Program';
+
+        const tagsContainer = document.getElementById('slots-program-tags-container');
+        if (tagsContainer) {
+            tagsContainer.innerHTML = `
+                ${getTypeBadge(sch.category)}
+                ${getScholarshipTypeBadge(sch.scholarship_type)}
+                ${getStatusHTML(sch.dynamic_status)}
+            `;
+        }
+
+        const termEl = document.getElementById('slots-program-term');
+        if (termEl) {
+            const termParts = [];
+            if (sch.semester) termParts.push(sch.semester);
+            if (sch.school_year) termParts.push(`SY ${sch.school_year}`);
+            termEl.innerText = termParts.join(' • ') || 'All Academic Terms';
+        }
+
+        const totalSlotsEl = document.getElementById('slots-current-total');
+        if (totalSlotsEl) {
+            totalSlotsEl.innerText = sch.is_unlimited ? 'Unlimited' : `${sch.slots || 0} Slots`;
+        }
+
+        const occupiedEl = document.getElementById('slots-current-occupied');
+        if (occupiedEl) {
+            occupiedEl.innerText = `${sch.occupied_count || 0} Taken`;
+        }
+
+        const waitlistEl = document.getElementById('slots-current-waitlist');
+        if (waitlistEl) {
+            waitlistEl.innerText = 'Loading...';
+        }
+
+        // Fetch fresh waitlisted applicants from Supabase for this scholarship
+        try {
+            const { data: waitlistedApps, error: waitlistErr } = await window.supabaseClient
+                .from('applications')
+                .select('id, student_id, status, created_at, profiles(first_name, last_name, id_number)')
+                .eq('scholarship_id', sch.id)
+                .ilike('status', 'waitlisted')
+                .order('created_at', { ascending: true });
+
+            if (!waitlistErr && waitlistedApps) {
+                activeWaitlistedApps = waitlistedApps;
+            } else {
+                activeWaitlistedApps = [];
+            }
+        } catch (err) {
+            console.warn('Error fetching waitlisted applicants:', err);
+            activeWaitlistedApps = [];
+        }
+
+        const waitlistCount = activeWaitlistedApps.length;
+        if (waitlistEl) {
+            waitlistEl.innerText = `${waitlistCount} in Queue`;
+        }
+
+        // Default additional slots to waitlist count (if > 0) or 5
+        const slotsInput = document.getElementById('edit-additional-slots');
+        if (slotsInput) {
+            slotsInput.value = waitlistCount > 0 ? waitlistCount : 5;
+        }
+
+        updateSlotsPreview();
+
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => {
+            modal.classList.add('show');
+            if (slotsInput) slotsInput.focus();
+        });
+
+        if (window.lucide) lucide.createIcons();
+    };
+
+    window.closeExtendSlotsModal = () => {
+        const modal = document.getElementById('extend-slots-modal');
+        if (!modal) return;
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            activeWaitlistedApps = [];
+            activeExtendScholarship = null;
+        }, 200);
+    };
+
+    window.updateSlotsPreview = () => {
+        if (!activeExtendScholarship) return;
+        const sch = activeExtendScholarship;
+        const slotsInput = document.getElementById('edit-additional-slots');
+        const previewBanner = document.getElementById('slots-preview-banner');
+        if (!slotsInput || !previewBanner) return;
+
+        const additionalSlots = parseInt(slotsInput.value, 10);
+        if (isNaN(additionalSlots) || additionalSlots <= 0) {
+            previewBanner.innerHTML = `
+                <div class="flex items-start gap-2.5">
+                    <i data-lucide="alert-circle" style="width: 18px; height: 18px; color: var(--danger-color); flex-shrink: 0; margin-top: 2px;"></i>
+                    <div style="font-size: 13px; line-height: 1.5; color: var(--danger-color);">
+                        Please enter a positive number of slots to extend (minimum 1).
+                    </div>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        const currentSlots = parseInt(sch.slots, 10) || 0;
+        const newTotalSlots = currentSlots + additionalSlots;
+        const waitlistCount = activeWaitlistedApps.length;
+        const promotedCount = Math.min(waitlistCount, additionalSlots);
+        const remainingWaitlist = Math.max(0, waitlistCount - promotedCount);
+        const currentOccupied = sch.occupied_count || 0;
+        const newOccupied = currentOccupied + promotedCount;
+        const newAvailable = Math.max(0, newTotalSlots - newOccupied);
+
+        // Build list preview of candidates promoted
+        let candidateListHtml = '';
+        if (promotedCount > 0) {
+            const topPromoted = activeWaitlistedApps.slice(0, Math.min(3, promotedCount)).map((app, idx) => {
+                const name = app.profiles ? `${app.profiles.first_name || ''} ${app.profiles.last_name || ''}`.trim() : 'Applicant';
+                const idNum = app.profiles?.id_number ? `(${app.profiles.id_number})` : '';
+                return `<b>#${idx + 1}</b> ${escapeHtml(name)} ${idNum}`;
+            }).join(', ');
+
+            candidateListHtml = `
+                <div style="margin-top: 6px; font-size: 12px; color: var(--text-muted); background: rgba(34, 197, 94, 0.08); border-radius: 6px; padding: 6px 10px;">
+                    <i data-lucide="user-check" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle; color: #15803d;"></i>
+                    <b>First in line to be promoted:</b> ${candidateListHtml}${promotedCount > 3 ? ` <i>and ${promotedCount - 3} more</i>` : ''}
+                </div>
+            `;
+        }
+
+        previewBanner.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-heading);">Capacity Change:</span>
+                    <span style="font-size: 13.5px; font-weight: 800; color: var(--moss-green);">
+                        ${currentSlots} Slots &rarr; ${newTotalSlots} Slots (+${additionalSlots})
+                    </span>
+                </div>
+
+                ${waitlistCount > 0 ? `
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #b45309; font-size: 13px;">
+                        <i data-lucide="sparkles" style="width: 14px; height: 14px; color: #d97706;"></i>
+                        <span>${promotedCount} Waitlisted Applicant(s) Automatically Promoted to Pending</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+                        These applicants will automatically move to <b>Pending Evaluation</b> on the Applications page in strict order of submission!
+                    </div>
+                    ${candidateListHtml}
+                    ${remainingWaitlist > 0 ? `
+                        <div style="margin-top: 5px; font-size: 11.5px; color: #b45309; font-weight: 600;">
+                            &bull; ${remainingWaitlist} applicant(s) will remain in the waitlist queue.
+                        </div>
+                    ` : `
+                        <div style="margin-top: 5px; font-size: 11.5px; color: #15803d; font-weight: 600;">
+                            &bull; All waitlisted applicants are covered and will be promoted!
+                        </div>
+                    `}
+                    ${newAvailable > 0 ? `
+                        <div style="margin-top: 3px; font-size: 11.5px; color: var(--moss-green); font-weight: 600;">
+                            &bull; ${newAvailable} remaining slot(s) will be available for new student applications.
+                        </div>
+                    ` : ''}
+                </div>
+                ` : `
+                <div style="background: rgba(59, 122, 87, 0.08); border: 1px solid rgba(59, 122, 87, 0.2); border-radius: 8px; padding: 10px 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--moss-green); font-size: 13px;">
+                        <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                        <span>No Waitlisted Applicants in Queue</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+                        All +${additionalSlots} added slots will immediately be available for students to apply online.
+                    </div>
+                </div>
+                `}
+            </div>
+        `;
+
+        if (window.lucide) lucide.createIcons();
+    };
+
+    window.saveExtendedSlots = async () => {
+        const schId = document.getElementById('edit-slots-sch-id')?.value;
+        const targetScholarship = allScholarships.find(s => s.id == schId);
+        if (!targetScholarship) {
+            showUIToast('error', 'Error', 'Program not found.');
+            return;
+        }
+
+        const slotsInput = document.getElementById('edit-additional-slots');
+        const addedSlots = parseInt(slotsInput?.value, 10);
+
+        if (isNaN(addedSlots) || addedSlots <= 0) {
+            showUIToast('warning', 'Invalid Slots', 'Please enter a valid number of slots (at least 1).');
+            return;
+        }
+
+        const saveBtn = document.getElementById('btn-save-slots');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<i data-lucide="loader-2" class="animate-spin" style="width: 15px; height: 15px;"></i> Extending Slots...`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        try {
+            let apiSucceeded = false;
+            let promotedCount = 0;
+            let newTotalSlots = (parseInt(targetScholarship.slots, 10) || 0) + addedSlots;
+
+            // 1. Try calling the backend endpoint first
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const endpoints = isLocal
+                ? [`http://localhost:3000/api/scholarships/${schId}/extend-slots`, `https://grantee-backend-n5f4.onrender.com/api/scholarships/${schId}/extend-slots`]
+                : [`https://grantee-backend-n5f4.onrender.com/api/scholarships/${schId}/extend-slots`, `http://localhost:3000/api/scholarships/${schId}/extend-slots`];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ additionalSlots: addedSlots }),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            apiSucceeded = true;
+                            promotedCount = data.promotedCount || 0;
+                            newTotalSlots = data.newSlots || newTotalSlots;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    // Try next endpoint or fallback
+                }
+            }
+
+            // 2. Client-side fallback via Supabase if backend was offline or unreachable
+            if (!apiSucceeded) {
+                // Fetch scholarship fresh
+                const { data: freshSch, error: schError } = await window.supabaseClient
+                    .from('scholarships')
+                    .select('*')
+                    .eq('id', schId)
+                    .single();
+
+                if (schError || !freshSch) throw (schError || new Error('Scholarship not found'));
+
+                const currentSlots = parseInt(freshSch.slots, 10) || 0;
+                newTotalSlots = currentSlots + addedSlots;
+
+                // Fetch Waitlisted applicants ordered by created_at ASC (FIFO)
+                const { data: waitlistedApps, error: waitlistErr } = await window.supabaseClient
+                    .from('applications')
+                    .select('id, student_id, status, created_at, remarks')
+                    .eq('scholarship_id', schId)
+                    .ilike('status', 'waitlisted')
+                    .order('created_at', { ascending: true });
+
+                if (waitlistErr) throw waitlistErr;
+
+                const waitlistTotal = (waitlistedApps || []).length;
+                promotedCount = Math.min(waitlistTotal, addedSlots);
+                const appsToPromote = (waitlistedApps || []).slice(0, promotedCount);
+
+                for (const app of appsToPromote) {
+                    const oldRemarks = app.remarks || '';
+                    const promoRemark = `Promoted from Waitlist to Pending due to slot extension (+${addedSlots} slots) on ${new Date().toLocaleString('en-US')}.`;
+                    const newRemarks = oldRemarks ? `${oldRemarks} | ${promoRemark}` : promoRemark;
+
+                    await window.supabaseClient
+                        .from('applications')
+                        .update({
+                            status: 'Pending',
+                            remarks: newRemarks
+                        })
+                        .eq('id', app.id);
+
+                    // Send dispatch notification if available
+                    try {
+                        fetch('https://grantee-backend-n5f4.onrender.com/api/dispatch-notification', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userIds: [app.student_id],
+                                eventType: 'applications',
+                                subject: 'Application Slot Available - Under Review!',
+                                message: `Good news! Additional slots opened for ${freshSch.title}. Your application has been moved from the Waitlist to Active Review.`
+                            })
+                        }).catch(() => {});
+                    } catch (e) {}
+                }
+
+                // Recalculate occupied & available slots
+                const { data: allActiveApps } = await window.supabaseClient
+                    .from('applications')
+                    .select('id, status')
+                    .eq('scholarship_id', schId);
+
+                const occupiedCount = (allActiveApps || []).filter(a => {
+                    const st = (a.status || '').toLowerCase().trim();
+                    return !['rejected', 'declined', 'revoked', 'withdrawn', 'draft', 'waitlisted'].includes(st);
+                }).length;
+
+                const newAvailableSlots = Math.max(0, newTotalSlots - occupiedCount);
+
+                // Update scholarship in DB
+                const { error: updErr } = await window.supabaseClient
+                    .from('scholarships')
+                    .update({
+                        slots: String(newTotalSlots),
+                        available_slots: newAvailableSlots,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', schId);
+
+                if (updErr) throw updErr;
+
+                // Audit log
+                try {
+                    await window.supabaseClient.from('audit_logs').insert([{
+                        admin_id: adminId,
+                        school_id: currentAdminSchoolId,
+                        action: 'Educational Assistance slots extended',
+                        module: 'Scholarships',
+                        details: JSON.stringify({
+                            scholarship_id: schId,
+                            title: freshSch.title,
+                            old_slots: currentSlots,
+                            new_slots: newTotalSlots,
+                            added_slots: addedSlots,
+                            promoted_count: promotedCount
+                        })
+                    }]);
+                } catch (e) {
+                    console.warn('Audit log error:', e);
+                }
+            }
+
+            // Close modal
+            closeExtendSlotsModal();
+
+            // Refresh scholarships list silently
+            await loadScholarships(true);
+
+            // Show congratulatory notification
+            Swal.fire({
+                title: 'Slots Extended Successfully!',
+                html: `
+                    <div style="text-align: left; font-size: 13.5px; line-height: 1.6; color: var(--text-main);">
+                        <p style="margin-bottom: 10px;">
+                            Successfully added <b>+${addedSlots} slots</b> to <b>${escapeHtml(targetScholarship.title)}</b>.<br>
+                            New total capacity is <b>${newTotalSlots} slots</b>.
+                        </p>
+                        ${promotedCount > 0 ? `
+                        <div style="background: rgba(34, 197, 94, 0.12); border: 1.5px solid rgba(34, 197, 94, 0.35); border-radius: 10px; padding: 12px 14px; margin-top: 10px; color: #15803d;">
+                            <div style="display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13.5px;">
+                                <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+                                <span>${promotedCount} Waitlisted Applicant(s) Automatically Promoted!</span>
+                            </div>
+                            <div style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
+                                Their status is now <b>Pending Evaluation</b> on the Applications page, covered by the newly extended slots.
+                            </div>
+                        </div>
+                        ` : `
+                        <div style="background: rgba(59, 122, 87, 0.08); border: 1px solid rgba(59, 122, 87, 0.25); border-radius: 8px; padding: 10px 12px; margin-top: 10px; color: var(--moss-green); font-size: 12.5px;">
+                            The newly added slots are now immediately open for student applications.
+                        </div>
+                        `}
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Great, Understood',
+                confirmButtonColor: 'var(--moss-green, #6B7F4E)'
+            });
+
+            if (window.lucide) lucide.createIcons();
+
+        } catch (error) {
+            console.error('Error saving slot extension:', error);
+            showUIToast('error', 'Error', error.message || 'Failed to extend application slots.');
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `<i data-lucide="check" style="width: 15px; height: 15px;"></i> Save & Extend Slots`;
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+    };
+
+    // Slots preset buttons event delegation
+    document.addEventListener('click', (e) => {
+        const slotsPresetBtn = e.target.closest('.btn-slots-preset');
+        if (slotsPresetBtn) {
+            const added = parseInt(slotsPresetBtn.getAttribute('data-slots'), 10);
+            const input = document.getElementById('edit-additional-slots');
+            if (input && !isNaN(added)) {
+                input.value = added;
+                updateSlotsPreview();
             }
         }
     });
@@ -1560,6 +2035,7 @@
                     <td>
                         <div style="font-weight: 700; color: var(--text-heading); font-size: 12.5px;">${appCount} ${appLabel}</div>
                         ${slotsDisplay}
+                        ${sch.waitlist_count > 0 ? `<div style="font-size:11px; margin-top:2px; font-weight:700; color:#d97706;">${sch.waitlist_count} Waitlisted</div>` : ''}
                     </td>
                     <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
                         <div class="flex items-center gap-1.5">
@@ -1570,6 +2046,12 @@
                     <td>${getStatusHTML(sch.dynamic_status)}</td>
                     <td style="text-align: right; white-space: nowrap;">
                         <div style="display: inline-flex; align-items: center; gap: 6px;">
+                            ${!sch.is_unlimited ? `
+                            <button type="button" class="btn-stat-modal-extend-slots" onclick="openExtendSlotsModal('${sch.id}')" title="Extend Application Slots">
+                                <i data-lucide="user-plus" style="width: 13px; height: 13px;"></i>
+                                <span>+ Slots</span>
+                            </button>
+                            ` : ''}
                             <button type="button" class="btn-stat-modal-extend" onclick="openExtendDeadlineModal('${sch.id}')" title="Extend Deadline">
                                 <i data-lucide="calendar-plus" style="width: 13px; height: 13px;"></i>
                                 <span>Extend</span>

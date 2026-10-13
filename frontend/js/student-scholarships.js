@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const nonDraftApps = (sch.applications || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
                         const occupiedApps = nonDraftApps.filter(app => {
                             const st = (app.status || '').toLowerCase().trim();
-                            return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn';
+                            return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn' && st !== 'waitlisted';
                         });
                         remainingSlots = Math.max(0, totalSlots - occupiedApps.length);
                     }
@@ -704,6 +704,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     action: 'apply',
                     title: '',
                     msg: ''
+                };
+            }
+            if (stat.toLowerCase() === 'waitlisted') {
+                return {
+                    text: 'Waitlisted',
+                    icon: 'list-ordered',
+                    class: 'btn-warning',
+                    action: 'view',
+                    title: 'Application Waitlisted',
+                    msg: `You are currently on the Waitlist for <b>${sch.title}</b>. When application slots are extended, waitlisted students are automatically promoted to Pending in order of submission!`
+                };
+            }
+            if (['pending', 'under review', 'submitted'].includes(stat.toLowerCase())) {
+                return {
+                    text: 'Under Review',
+                    icon: 'clock',
+                    class: 'btn-disabled',
+                    action: 'restricted',
+                    title: 'Application Under Review',
+                    msg: `Your application for <b>${sch.title}</b> is currently under active evaluation. You can track progress under My Applications.`
                 };
             }
             return {

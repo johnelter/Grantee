@@ -292,7 +292,8 @@
                                 <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
                                     <button type="button" class="export-option-btn" onclick="exportShortlist('pdf')"
                                         role="menuitem">
-                                        <div class="export-option-icon" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35);">
+                                        <div class="export-option-icon"
+                                            style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35);">
                                             <i data-lucide="award"></i>
                                         </div>
                                         <div class="export-option-text">
@@ -302,7 +303,8 @@
                                     </button>
                                     <button type="button" class="export-option-btn" onclick="exportShortlist('csv')"
                                         role="menuitem">
-                                        <div class="export-option-icon" style="background: rgba(107, 127, 78, 0.15); color: var(--moss-green); border: 1px solid rgba(107, 127, 78, 0.35);">
+                                        <div class="export-option-icon"
+                                            style="background: rgba(107, 127, 78, 0.15); color: var(--moss-green); border: 1px solid rgba(107, 127, 78, 0.35);">
                                             <i data-lucide="file-spreadsheet"></i>
                                         </div>
                                         <div class="export-option-text">
@@ -354,8 +356,8 @@
                                             <small>Approved and selected scholars</small>
                                         </div>
                                     </button>
-                                    <button type="button" class="export-option-btn" onclick="exportByStatus('Waitlisted')"
-                                        role="menuitem">
+                                    <button type="button" class="export-option-btn"
+                                        onclick="exportByStatus('Waitlisted')" role="menuitem">
                                         <div class="export-option-icon"
                                             style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3);">
                                             <i data-lucide="list-ordered"></i>
@@ -382,7 +384,8 @@
                     </div>
 
                     <div class="tabs-container">
-                        <button class="tab-btn tab-btn-shortlist" id="tab-btn-shortlist" onclick="switchTab('Shortlist')">
+                        <button class="tab-btn tab-btn-shortlist" id="tab-btn-shortlist"
+                            onclick="switchTab('Shortlist')">
                             <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i>
                             <span>Ranked Shortlist</span>
                             <span class="tab-badge-count tab-badge-shortlist" id="tab-count-shortlist">0</span>
@@ -521,20 +524,22 @@
             <!-- Modal Header -->
             <div class="modal-header">
                 <div class="modal-header-info">
-                    <div class="modal-header-icon" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.35);">
+                    <div class="modal-header-icon"
+                        style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.35);">
                         <i data-lucide="award" style="width: 22px; height: 22px; color: #d97706;"></i>
                     </div>
                     <div>
                         <h3 id="scorecard-applicant-name" class="modal-title">Candidate Qualification Scorecard</h3>
-                        <p id="scorecard-applicant-meta" class="modal-subtitle">Comprehensive Educational Criteria Evaluation & Merit Ranking</p>
+                        <p id="scorecard-applicant-meta" class="modal-subtitle">Comprehensive Educational Criteria
+                            Evaluation & Merit Ranking</p>
                     </div>
                 </div>
                 <div class="modal-header-actions">
                     <span id="scorecard-tier-badge" class="tier-badge tier-slotted">
                         <i data-lucide="star" style="width: 12px; height: 12px;"></i> Slotted Grantee
                     </span>
-                    <button type="button" class="modal-close-btn" id="scorecard-close-btn" onclick="closeScorecardModal()"
-                        aria-label="Close modal" title="Close">
+                    <button type="button" class="modal-close-btn" id="scorecard-close-btn"
+                        onclick="closeScorecardModal()" aria-label="Close modal" title="Close">
                         <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>

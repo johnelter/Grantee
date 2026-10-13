@@ -187,7 +187,9 @@
       }
     ],
     "updated_at": "2026-10-11T12:36:53.838Z",
-    "last_paid_by_coordinator_id": "3e08809f-c15a-47c0-82c0-8e0369e13272"
+    "last_paid_by_coordinator_id": "3e08809f-c15a-47c0-82c0-8e0369e13272",
+    "pending_paymongo_session_id": "cs_4bc1dc3f7a02f4063553d0c0",
+    "pending_plan_code": "monthly"
   },
   "8faafd1b-f016-45bf-a8e1-d811aaabc82f": {
     "school_id": "8faafd1b-f016-45bf-a8e1-d811aaabc82f",
@@ -303,5 +305,84 @@
     "last_paid_by_coordinator_email": "coordinator@school.edu.ph",
     "invoices": [],
     "updated_at": "2026-10-11T12:50:02.071Z"
+  },
+  "SCH-001": {
+    "school_id": "SCH-001",
+    "pending_paymongo_session_id": "cs_c29b3430ef56d523e66d9e6b",
+    "pending_plan_code": "yearly"
+  },
+  "5ba6df2a-2f2f-4560-bd38-2f6995abf218": {
+    "school_id": "5ba6df2a-2f2f-4560-bd38-2f6995abf218",
+    "school_name": "Temporary Test School",
+    "status": "active",
+    "plan_id": "plan_monthly",
+    "plan_code": "monthly",
+    "plan_name": "Monthly Institutional License",
+    "billing_cycle": "monthly",
+    "price_php": 2499,
+    "currency": "PHP",
+    "current_period_start": "2026-10-13T09:53:21.216Z",
+    "current_period_end": "2026-11-12T09:53:21.216Z",
+    "last_payment_date": "2026-10-13T09:53:21.216Z",
+    "last_payment_reference": "INIT-REG-202610-8228",
+    "last_payment_method": "Initial Administrative Provision",
+    "last_paid_by_coordinator_name": "System Administrator",
+    "last_paid_by_coordinator_email": "admin@grantee.com",
+    "invoices": [
+      {
+        "invoice_number": "INV-2026-46275",
+        "transaction_id": "TXN-1791885201216-420",
+        "date": "2026-10-13T09:53:21.216Z",
+        "plan_name": "Monthly Institutional License",
+        "plan_code": "monthly",
+        "billing_cycle": "monthly",
+        "amount_php": 2499,
+        "status": "Paid",
+        "payment_method": "Initial Administrative Provision",
+        "reference_number": "INIT-10600420",
+        "paid_by_name": "System Administrator",
+        "paid_by_email": "admin@grantee.com",
+        "period_covered": "Oct 13, 2026 - Nov 12, 2026",
+        "notes": "Initial provisioning for Temporary Test School"
+      }
+    ],
+    "updated_at": "2026-10-13T09:53:21.216Z"
+  },
+  "b8e946b5-1e35-4dff-afea-29de92b5ef28": {
+    "school_id": "b8e946b5-1e35-4dff-afea-29de92b5ef28",
+    "school_name": "Felipe R. Verallo Memorial Foundation College",
+    "status": "active",
+    "plan_id": "plan_trial",
+    "plan_code": "trial",
+    "plan_name": "14-Day Free Tier License",
+    "billing_cycle": "trial",
+    "price_php": 0,
+    "currency": "PHP",
+    "current_period_start": "2026-10-13T10:06:31.521Z",
+    "current_period_end": "2026-10-27T10:06:31.521Z",
+    "last_payment_date": "2026-10-13T10:06:31.521Z",
+    "last_payment_reference": "FREE-TIER-202610-14D",
+    "last_payment_method": "Free Tier (14-Day Evaluation)",
+    "last_paid_by_coordinator_name": "Grantee System Provisioning",
+    "last_paid_by_coordinator_email": "admin@grantee.com",
+    "invoices": [
+      {
+        "invoice_number": "INV-2026-22296",
+        "transaction_id": "TXN-1791885464731-582",
+        "date": "2026-10-13T10:06:31.521Z",
+        "plan_name": "14-Day Free Tier License",
+        "plan_code": "trial",
+        "billing_cycle": "trial",
+        "amount_php": 0,
+        "status": "Complimentary",
+        "payment_method": "Free Tier (14-Day Evaluation)",
+        "reference_number": "FREE-TRIAL-38856416",
+        "paid_by_name": "Grantee System Provisioning",
+        "paid_by_email": "admin@grantee.com",
+        "period_covered": "Oct 13, 2026 - Oct 27, 2026",
+        "notes": "Complimentary 2-week free tier license for Felipe R. Verallo Memorial Foundation College"
+      }
+    ],
+    "updated_at": "2026-10-13T10:06:31.521Z"
   }
 }

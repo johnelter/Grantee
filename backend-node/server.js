@@ -11,7 +11,7 @@ const { handleStudentChat } = require('./aiAssistantService');
 
 // --- NEW CONTROLLER IMPORTS ---
 const { createAnnouncement } = require('./controllers/announcementController');
-const { submitApplication } = require('./controllers/applicationController');
+const { submitApplication, extendScholarshipSlots } = require('./controllers/applicationController');
 const { getRankedShortlist } = require('./controllers/shortlistController');
 
 const app = express();
@@ -19,6 +19,15 @@ const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARE ---
 app.use(cors());
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 app.use(express.json());
 
 // Set up Multer to store uploaded files in memory temporarily
@@ -381,6 +390,11 @@ app.post('/api/student/submit-application', submitApplication);
 // 8.6 EDUCATIONAL PROVIDERS & COORDINATORS: RANKED SHORTLIST EVALUATION
 // ============================================================================
 app.get('/api/scholarships/:scholarshipId/ranked-shortlist', getRankedShortlist);
+
+// ============================================================================
+// 8.7 COORDINATOR: EXTEND APPLICATION SLOTS & WAITLIST PROMOTION
+// ============================================================================
+app.post('/api/scholarships/:scholarshipId/extend-slots', extendScholarshipSlots);
 
 
 
@@ -978,6 +992,7 @@ app.get('/api/subscription/payment-config', (req, res) => {
 
 // Create PayMongo Checkout Session (GCash, Maya, Cards, GrabPay, Direct Bank)
 app.post('/api/subscription/create-checkout-session', async (req, res) => {
+    console.log('[API] /api/subscription/create-checkout-session called. Body:', JSON.stringify(req.body));
     try {
         const {
             schoolId,
@@ -990,6 +1005,7 @@ app.post('/api/subscription/create-checkout-session', async (req, res) => {
         } = req.body;
 
         if (!schoolId) {
+            console.warn('[API] Missing schoolId in create-checkout-session');
             return res.status(400).json({ error: 'schoolId is required.' });
         }
 
@@ -1003,6 +1019,7 @@ app.post('/api/subscription/create-checkout-session', async (req, res) => {
             cancelUrl
         });
 
+        console.log('[API] PayMongo Checkout Session created successfully! URL:', session.checkout_url);
         res.status(200).json(session);
     } catch (err) {
         console.error('PayMongo Checkout Session Error:', err);
@@ -1014,7 +1031,8 @@ app.post('/api/subscription/create-checkout-session', async (req, res) => {
 app.get('/api/subscription/verify-checkout-session/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const result = await subscriptionService.verifyPaymongoSession(sessionId);
+        const { school_id } = req.query;
+        const result = await subscriptionService.verifyPaymongoSession(sessionId, school_id);
         res.status(200).json(result);
     } catch (err) {
         console.error('Verify PayMongo Session Error:', err);
@@ -1033,6 +1051,18 @@ app.post('/api/subscription/webhook/paymongo', async (req, res) => {
     }
 });
 
+
+// Clean up any historical duplicate invoices
+app.post('/api/subscription/cleanup-duplicates/:schoolId', async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const result = subscriptionService.cleanupDuplicateInvoices(schoolId);
+        res.status(200).json(result || { cleaned: false, schoolId });
+    } catch (err) {
+        console.error('Cleanup duplicates error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Grantee Master Backend running on port ${PORT}`);

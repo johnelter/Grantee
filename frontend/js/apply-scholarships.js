@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const nonDraftApps = (sch.applications || []).filter(a => (a.status || '').toLowerCase() !== 'draft');
                     const occupiedApps = nonDraftApps.filter(app => {
                         const st = (app.status || '').toLowerCase().trim();
-                        return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn';
+                        return st !== 'rejected' && st !== 'declined' && st !== 'revoked' && st !== 'withdrawn' && st !== 'waitlisted';
                     });
                     remainingSlots = Math.max(0, totalSlots - occupiedApps.length);
                 }
@@ -910,7 +910,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         const errJson = await response.json();
                         if (errJson && errJson.error) errMessage = errJson.error;
-                    } catch (_) {}
+                    } catch (_) { }
                 } else if (lastFetchError) {
                     errMessage = `Network error: Could not reach the backend server (${lastFetchError.message || 'Connection failed'}).`;
                 }
@@ -1277,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(notifPayload)
-                    }).catch(() => {});
+                    }).catch(() => { });
 
                 } else {
                     // Slots full: Place on Waitlist
@@ -1322,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             message: `New application received from ${studentFullName} for ${currentScholarship?.title || 'Educational Assistance'}.`,
                             resourceId: scholarshipId
                         })
-                    }).catch(() => {});
+                    }).catch(() => { });
                 }
             }
 

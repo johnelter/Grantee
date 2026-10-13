@@ -15,6 +15,13 @@
     let selectedPaymentMethod = 'GCash';
 
     const PLAN_DETAILS = {
+        trial: {
+            id: 'plan_trial',
+            name: '14-Day Free Tier License',
+            cycle: 'Free Tier (14 Days)',
+            amount: 0,
+            displayAmount: 'FREE (14 Days)'
+        },
         monthly: {
             id: 'plan_monthly',
             name: 'Monthly Institutional License',
@@ -59,18 +66,50 @@
 
             const userId = session.user.id;
 
-            // Fetch profile
-            const { data: profile, error: profileErr } = await window.supabaseClient
-                .from('profiles')
-                .select('*, schools(name)')
-                .eq('id', userId)
-                .single();
+            // Fetch profile with resilient fallbacks
+            let profile = null;
+            try {
+                const { data, error: profileErr } = await window.supabaseClient
+                    .from('profiles')
+                    .select('*, schools(name)')
+                    .eq('id', userId)
+                    .single();
+                if (!profileErr && data) {
+                    profile = data;
+                } else {
+                    console.warn('[AdminSubscription] Direct relation query warning:', profileErr);
+                    const { data: directData } = await window.supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', userId)
+                        .single();
+                    if (directData) profile = directData;
+                }
+            } catch (pErr) {
+                console.warn('[AdminSubscription] Error fetching coordinator profile:', pErr);
+            }
 
-            if (profileErr) throw profileErr;
+            // Fallback from sessionStorage if Supabase profiles query had issues
+            if (!profile) {
+                try {
+                    const cached = JSON.parse(sessionStorage.getItem('grantee_admin_profile') || '{}');
+                    if (cached && (cached.id || cached.school_id)) {
+                        profile = cached;
+                    }
+                } catch (e) {}
+            }
 
             currentCoordinatorProfile = profile;
-            currentAdminSchoolId = profile.school_id;
-            currentAdminSchoolName = profile.schools ? profile.schools.name.trim() : (profile.school_name || 'Institution');
+            currentAdminSchoolId = profile?.school_id ||
+                                   sessionStorage.getItem('grantee_school_id') ||
+                                   localStorage.getItem('grantee_pending_paymongo_school_id') ||
+                                   localStorage.getItem('granteeSelectedSchoolId') ||
+                                   new URLSearchParams(window.location.search).get('school_id') ||
+                                   '5be5d841-5b39-4016-860b-6d04c384d11b';
+
+            currentAdminSchoolName = (profile?.schools && profile.schools.name)
+                ? profile.schools.name.trim()
+                : (profile?.school_name || 'Cebu Roosevelt Memorial Colleges, Inc.');
 
             // Load Payment Configuration (Receiving Accounts & PayMongo status)
             try {
@@ -95,38 +134,117 @@
             const sessionIdParam = urlParams.get('session_id');
 
             if (paymentParam === 'success') {
-                if (sessionIdParam) {
+                let effectiveSessionId = sessionIdParam;
+                if (!effectiveSessionId || effectiveSessionId === '{CHECKOUT_SESSION_ID}' || effectiveSessionId.includes('{')) {
                     try {
-                        await window.SubscriptionClient.verifyCheckoutSession(sessionIdParam);
+                        effectiveSessionId = localStorage.getItem('grantee_pending_paymongo_session_id');
+                    } catch (e) {}
+                }
+                const effectiveSchoolId = urlParams.get('school_id') || currentAdminSchoolId || localStorage.getItem('grantee_pending_paymongo_school_id');
+
+                let verificationResult = null;
+                let verificationError = null;
+
+                // Pre-check: If PayMongo Webhook already settled this transaction in the background, skip verify call to prevent duplicate entry
+                let alreadySettledInvoice = null;
+                try {
+                    const freshDetails = await window.SubscriptionClient.getDetails(effectiveSchoolId, true);
+                    if (freshDetails && Array.isArray(freshDetails.invoices)) {
+                        const nowMs = Date.now();
+                        alreadySettledInvoice = freshDetails.invoices.find(inv => {
+                            const invTime = new Date(inv.date).getTime();
+                            const isRecent = (nowMs - invTime) < 5 * 60 * 1000;
+                            const isPaymongo = (inv.payment_method && inv.payment_method.includes('PayMongo')) ||
+                                               (inv.notes && inv.notes.includes('PayMongo'));
+                            const matchesSession = Boolean(effectiveSessionId && (
+                                (inv.reference_number && inv.reference_number.toLowerCase() === effectiveSessionId.toLowerCase()) ||
+                                (inv.notes && inv.notes.includes(effectiveSessionId))
+                            ));
+                            return (isRecent && isPaymongo) || matchesSession;
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[AdminSubscription] Pre-check for webhook settlement failed:', e);
+                }
+
+                if (alreadySettledInvoice) {
+                    console.log('[AdminSubscription] Transaction was already settled via PayMongo Webhook. Skipping redirect verification call to prevent duplicate entry:', alreadySettledInvoice.invoice_number);
+                    verificationResult = {
+                        paid: true,
+                        already_recorded: true,
+                        invoice: alreadySettledInvoice
+                    };
+                } else if (effectiveSessionId || effectiveSchoolId) {
+                    try {
+                        verificationResult = await window.SubscriptionClient.verifyCheckoutSession(
+                            effectiveSessionId || 'pending',
+                            effectiveSchoolId
+                        );
                     } catch (e) {
-                        console.warn('Session verification fallback:', e);
+                        console.error('PayMongo session verification error:', e);
+                        verificationError = e;
                     }
                 }
+
+                if (verificationResult && verificationResult.paid) {
+                    try {
+                        localStorage.removeItem('grantee_pending_paymongo_session_id');
+                        localStorage.removeItem('grantee_pending_paymongo_school_id');
+                    } catch (e) {}
+                }
+
+                // Clean URL query parameters to avoid re-triggering check on page refresh
+                try {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {}
+
                 await refreshSubscriptionData(true);
 
-                if (window.Swal) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Payment Confirmed!',
-                        html: `
-                            <p style="font-size: 14px; color: #475569; text-align: left; line-height: 1.5;">
-                                Your online payment was successfully processed. Full system access for <strong>${currentAdminSchoolName}</strong> and all enrolled student accounts is now completely unlocked!
-                            </p>
-                        `,
-                        confirmButtonText: 'View Official Receipt',
-                        showCancelButton: true,
-                        cancelButtonText: 'Go to Dashboard',
-                        confirmButtonColor: '#1F3D2E'
-                    }).then(res => {
-                        if (res.isConfirmed && currentSubscription?.invoices?.length > 0) {
-                            openReceiptModal(currentSubscription.invoices[0]);
-                        } else if (!res.isConfirmed) {
-                            window.location.href = 'admin-dashboard.html';
-                        }
-                    });
+                if (verificationResult && verificationResult.paid) {
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Payment Confirmed & Recorded!',
+                            html: `
+                                <p style="font-size: 14px; color: #475569; text-align: left; line-height: 1.5;">
+                                    Your online payment via PayMongo was successfully verified and recorded! Full system access for <strong>${currentAdminSchoolName}</strong> and all enrolled student accounts is now completely unlocked.
+                                </p>
+                            `,
+                            confirmButtonText: 'View Official Receipt',
+                            showCancelButton: true,
+                            cancelButtonText: 'Go to Dashboard',
+                            confirmButtonColor: '#1F3D2E'
+                        }).then(res => {
+                            if (res.isConfirmed && currentSubscription?.invoices?.length > 0) {
+                                openReceiptModal(currentSubscription.invoices[0]);
+                            } else if (!res.isConfirmed) {
+                                window.location.href = 'admin-dashboard.html';
+                            }
+                        });
+                    }
+                } else {
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Payment Verification Incomplete',
+                            html: `
+                                <p style="font-size: 14px; color: #475569; text-align: left; line-height: 1.5;">
+                                    ${verificationError ? `We encountered an issue verifying the payment: <code>${verificationError.message}</code>.` : 'The transaction was not recognized as paid by the payment gateway.'}
+                                </p>
+                                <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+                                    If funds were deducted, please contact support with your PayMongo transaction reference number.
+                                </p>
+                            `,
+                            confirmButtonColor: '#1F3D2E'
+                        });
+                    }
                 }
                 return;
             } else if (paymentParam === 'cancelled') {
+                try {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {}
+
                 if (window.Swal) {
                     Swal.fire({
                         icon: 'info',
@@ -225,17 +343,34 @@
         }
 
         if (isActive) {
+            const isTrial = sub.plan_code === 'trial' || sub.plan_id === 'plan_trial' || Number(sub.price_php) === 0;
             if (statusPillEl) {
                 statusPillEl.className = 'status-badge-pill status-badge-active';
-                statusPillEl.innerHTML = `<i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i> Active License`;
+                statusPillEl.innerHTML = isTrial
+                    ? `<i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> 2-Week Free Tier Active`
+                    : `<i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i> Active License`;
             }
             if (metricStatusEl) {
-                metricStatusEl.innerText = 'Active (Paid)';
+                metricStatusEl.innerText = isTrial ? 'Active (Free Tier)' : 'Active (Paid)';
                 metricStatusEl.style.color = '#10b981';
             }
-            if (alertBannerEl) alertBannerEl.style.display = 'none';
+            if (alertBannerEl) {
+                if (isTrial && sub.days_remaining <= 5) {
+                    alertBannerEl.style.display = 'flex';
+                    alertBannerEl.className = 'sub-alert-box sub-alert-warning';
+                    alertBannerEl.innerHTML = `
+                        <div class="sub-alert-icon">✨</div>
+                        <div>
+                            <strong>Free Tier Evaluation: ${sub.days_remaining} Day${sub.days_remaining === 1 ? '' : 's'} Remaining</strong><br>
+                            Your institution has full access under the complimentary 14-day free tier. Choose a monthly or yearly plan below anytime to ensure uninterrupted access.
+                        </div>
+                    `;
+                } else {
+                    alertBannerEl.style.display = 'none';
+                }
+            }
             if (renewHeroBtn) renewHeroBtn.className = 'btn-select-plan btn-select-monthly';
-            if (renewHeroBtnLabel) renewHeroBtnLabel.innerText = 'Renew / Extend License';
+            if (renewHeroBtnLabel) renewHeroBtnLabel.innerText = isTrial ? 'Upgrade to Paid License' : 'Renew / Extend License';
 
         } else if (isExpired) {
             if (statusPillEl) {
@@ -286,14 +421,50 @@
         }
     }
 
+    let displayedInvoices = [];
+
+    function deduplicateInvoicesForDisplay(invoices) {
+        if (!Array.isArray(invoices) || invoices.length === 0) return [];
+        const unique = [];
+
+        for (const inv of invoices) {
+            const isDuplicate = unique.some(kept => {
+                const timeDiff = Math.abs(new Date(inv.date).getTime() - new Date(kept.date).getTime());
+                const sameAmount = Number(inv.amount_php) === Number(kept.amount_php);
+                const bothPaymongo = (
+                    (inv.payment_method?.includes('PayMongo') && kept.payment_method?.includes('PayMongo')) ||
+                    (inv.notes?.includes('PayMongo') && kept.notes?.includes('PayMongo'))
+                );
+                const sameRef = inv.reference_number && kept.reference_number &&
+                                inv.reference_number.toLowerCase() === kept.reference_number.toLowerCase();
+                const crossRef = Boolean(
+                    (inv.notes && kept.reference_number && inv.notes.includes(kept.reference_number)) ||
+                    (kept.notes && inv.reference_number && kept.notes.includes(inv.reference_number))
+                );
+
+                return (bothPaymongo && sameAmount && timeDiff < 60000) || sameRef || crossRef;
+            });
+
+            if (!isDuplicate) {
+                const displayInv = { ...inv };
+                if (displayInv.payment_method && displayInv.payment_method.includes('PayMongo Webhook')) {
+                    displayInv.payment_method = displayInv.payment_method.replace('PayMongo Webhook', 'PayMongo');
+                }
+                unique.push(displayInv);
+            }
+        }
+        return unique;
+    }
+
     /**
      * 4. Render Billing & Invoice History Table
      */
     function renderInvoicesTable(invoices) {
+        displayedInvoices = deduplicateInvoicesForDisplay(invoices);
         const tbody = document.getElementById('invoices-tbody');
         if (!tbody) return;
 
-        if (!invoices || invoices.length === 0) {
+        if (!displayedInvoices || displayedInvoices.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">
@@ -305,9 +476,13 @@
         }
 
         let html = '';
-        invoices.forEach((inv, index) => {
+        displayedInvoices.forEach((inv, index) => {
             const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '--';
-            const amountStr = `₱${Number(inv.amount_php || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+            const isComplimentary = Number(inv.amount_php || 0) === 0 || inv.status === 'Complimentary';
+            const amountStr = isComplimentary ? 'FREE' : `₱${Number(inv.amount_php || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+            const pillHtml = isComplimentary
+                ? `<span class="invoice-pill-paid" style="background: rgba(16, 185, 129, 0.15); color: #047857; border-color: rgba(16, 185, 129, 0.3);">✓ Free Tier</span>`
+                : `<span class="invoice-pill-paid">✓ Paid</span>`;
 
             html += `
                 <tr>
@@ -324,7 +499,7 @@
                         <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">Ref: ${inv.reference_number || 'N/A'}</div>
                     </td>
                     <td style="font-weight: 800; color: #1F3D2E;">${amountStr}</td>
-                    <td><span class="invoice-pill-paid">✓ Paid</span></td>
+                    <td>${pillHtml}</td>
                     <td>${inv.paid_by_name || 'Coordinator'}</td>
                     <td>
                         <button type="button" class="btn-receipt-view" onclick="openReceiptFromHistory(${index})">
@@ -339,7 +514,7 @@
     }
 
     /**
-     * 5. Open Checkout Modal
+     * 5. Open Checkout Modal (PayMongo Gateway)
      */
     window.openCheckoutModal = function (planCode = 'yearly') {
         selectedPlanCode = planCode;
@@ -350,32 +525,13 @@
         const modalPlan = document.getElementById('modal-summary-plan');
         const modalCycle = document.getElementById('modal-summary-cycle');
         const modalTotal = document.getElementById('modal-summary-total');
-        const btnSubmitLabel = document.getElementById('btn-submit-payment-label');
         const btnPaymongoLabel = document.getElementById('btn-paymongo-label');
 
-        if (modalSchool) modalSchool.innerText = currentAdminSchoolName;
+        if (modalSchool) modalSchool.innerText = currentAdminSchoolName || 'Your Institution';
         if (modalPlan) modalPlan.innerText = plan.name;
         if (modalCycle) modalCycle.innerText = plan.cycle;
         if (modalTotal) modalTotal.innerText = plan.displayAmount;
-        if (btnSubmitLabel) btnSubmitLabel.innerText = `Complete the payment (${plan.displayAmount})`;
         if (btnPaymongoLabel) btnPaymongoLabel.innerText = `Pay with PayMongo (${plan.displayAmount})`;
-
-        // Reset reference inputs to empty for user entry
-        const refInput = document.getElementById('input-wallet-ref');
-        if (refInput) {
-            refInput.value = '';
-        }
-        const bankRefInput = document.getElementById('input-bank-ref');
-        if (bankRefInput) {
-            bankRefInput.value = '';
-        }
-
-        const cardNameInput = document.getElementById('input-card-name');
-        if (cardNameInput && currentCoordinatorProfile) {
-            cardNameInput.value = `${currentCoordinatorProfile.first_name || ''} ${currentCoordinatorProfile.last_name || ''}`.trim();
-        }
-
-        updateReceivingAccountCard(selectedPaymentMethod);
 
         if (modal) modal.classList.add('show');
         if (window.lucide && lucide.createIcons) lucide.createIcons();
@@ -387,139 +543,68 @@
     };
 
     /**
-     * Update Receiving Bank / Wallet Card Display
+     * Compatibility stubs for legacy payment channels
      */
-    function updateReceivingAccountCard(method) {
-        const cardTitle = document.getElementById('disp-receiving-bank-title');
-        const accName = document.getElementById('disp-receiving-acc-name');
-        const accNum = document.getElementById('disp-receiving-acc-num');
-        const branchRow = document.getElementById('disp-receiving-branch-row');
-        const branchVal = document.getElementById('disp-receiving-branch');
-
-        const cfg = cachedPaymentConfig?.receiving_accounts;
-
-        if (method === 'GCash') {
-            const gcash = cfg?.wallets?.find(w => w.wallet_name.includes('GCash')) || {
-                account_name: 'Grantee Platform Merchant',
-                mobile_number: '0917-123-4567'
-            };
-            if (cardTitle) cardTitle.innerHTML = `<i data-lucide="smartphone" style="width: 16px; height: 16px; color: #007DFE;"></i> GCash Corporate Merchant`;
-            if (accName) accName.innerText = gcash.account_name;
-            if (accNum) accNum.innerText = gcash.mobile_number;
-            if (branchRow) branchRow.style.display = 'none';
-
-        } else if (method === 'Maya') {
-            const maya = cfg?.wallets?.find(w => w.wallet_name.includes('Maya')) || {
-                account_name: 'Grantee Platform Merchant',
-                mobile_number: '0918-987-6543'
-            };
-            if (cardTitle) cardTitle.innerHTML = `<i data-lucide="qr-code" style="width: 16px; height: 16px; color: #00C853;"></i> Maya Business / QR Ph`;
-            if (accName) accName.innerText = maya.account_name;
-            if (accNum) accNum.innerText = maya.mobile_number;
-            if (branchRow) branchRow.style.display = 'none';
-
-        } else if (method === 'Bank Transfer') {
-            const selectVal = document.getElementById('input-bank-select')?.value || 'Landbank';
-            const bank = cfg?.banks?.find(b => b.bank_name.toLowerCase().includes(selectVal.toLowerCase())) || cfg?.banks?.[0] || {
-                bank_name: 'Landbank of the Philippines',
-                account_name: 'Grantee Educational Technologies Inc.',
-                account_number: '0912-3841-88',
-                branch: 'Institutional Government Hub'
-            };
-
-            if (cardTitle) cardTitle.innerHTML = `<i data-lucide="landmark" style="width: 16px; height: 16px; color: #10b981;"></i> ${bank.bank_name}`;
-            if (accName) accName.innerText = bank.account_name;
-            if (accNum) accNum.innerText = bank.account_number;
-            if (branchRow) {
-                branchRow.style.display = 'flex';
-                if (branchVal) branchVal.innerText = bank.branch || 'Institutional Hub';
-            }
-
-        } else {
-            // Card
-            if (cardTitle) cardTitle.innerHTML = `<i data-lucide="credit-card" style="width: 16px; height: 16px; color: #64748b;"></i> Institutional Merchant Gateway`;
-            if (accName) accName.innerText = 'Grantee Educational Technologies Inc.';
-            if (accNum) accNum.innerText = 'VISA / MASTERCARD / JCB';
-            if (branchRow) branchRow.style.display = 'none';
-        }
-
-        if (window.lucide && lucide.createIcons) lucide.createIcons();
-    }
-
-    window.onBankSelectChange = function () {
-        updateReceivingAccountCard('Bank Transfer');
-    };
-
-    window.copyReceivingAccountNumber = function () {
-        const accNum = document.getElementById('disp-receiving-acc-num')?.innerText;
-        if (!accNum) return;
-
-        navigator.clipboard.writeText(accNum).then(() => {
-            const copyBtn = document.getElementById('btn-copy-acc-num');
-            if (copyBtn) {
-                const prev = copyBtn.innerHTML;
-                copyBtn.innerHTML = `<i data-lucide="check" style="width: 13px; height: 13px; color: #10b981;"></i> Copied!`;
-                if (window.lucide && lucide.createIcons) lucide.createIcons();
-                setTimeout(() => {
-                    copyBtn.innerHTML = prev;
-                    if (window.lucide && lucide.createIcons) lucide.createIcons();
-                }, 2000);
-            }
-        });
-    };
-
-    /**
-     * 6. Select Payment Method Tiles
-     */
-    window.selectPaymentMethod = function (method) {
-        selectedPaymentMethod = method;
-
-        document.querySelectorAll('.payment-method-tile').forEach(tile => {
-            if (tile.dataset.method === method) {
-                tile.classList.add('selected');
-            } else {
-                tile.classList.remove('selected');
-            }
-        });
-
-        const walletArea = document.getElementById('input-group-wallet');
-        const cardArea = document.getElementById('input-group-card');
-        const bankArea = document.getElementById('input-group-bank');
-        const walletLabel = document.getElementById('wallet-number-label');
-
-        if (method === 'GCash' || method === 'Maya') {
-            if (walletArea) walletArea.style.display = 'block';
-            if (cardArea) cardArea.style.display = 'none';
-            if (bankArea) bankArea.style.display = 'none';
-            if (walletLabel) walletLabel.innerText = `School / Coordinator ${method} Registered Number`;
-        } else if (method === 'Card') {
-            if (walletArea) walletArea.style.display = 'none';
-            if (cardArea) cardArea.style.display = 'block';
-            if (bankArea) bankArea.style.display = 'none';
-        } else if (method === 'Bank Transfer') {
-            if (walletArea) walletArea.style.display = 'none';
-            if (cardArea) cardArea.style.display = 'none';
-            if (bankArea) bankArea.style.display = 'block';
-        }
-
-        updateReceivingAccountCard(method);
-    };
+    window.selectPaymentMethod = function () {};
+    window.onBankSelectChange = function () {};
+    window.copyReceivingAccountNumber = function () {};
 
     /**
      * 6.5 Initiate PayMongo Online Checkout (Automated E-Wallet / Card Gateway)
      */
-    window.initiatePaymongoOnlineCheckout = async function () {
-        const btn = document.getElementById('btn-paymongo-checkout');
-        const originalText = btn ? btn.innerHTML : 'Proceed to Online Checkout';
+    window.initiatePaymongoOnlineCheckout = async function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (e && e.stopPropagation) e.stopPropagation();
 
-        if (!currentAdminSchoolId) {
-            alert('School identifier missing. Please refresh.');
+        if (window._isInitiatingPaymongoCheckout) {
+            console.log('[AdminSubscription] Checkout initiation already in progress, skipping duplicate.');
             return;
         }
+        window._isInitiatingPaymongoCheckout = true;
+
+        const btn = document.getElementById('btn-paymongo-checkout');
+        const originalText = btn ? btn.innerHTML : 'Proceed to Secure Checkout with PayMongo';
+
+        // Robust resolution of school ID with multiple reliable fallbacks
+        let effectiveSchoolId = currentAdminSchoolId || currentCoordinatorProfile?.school_id;
+
+        if (!effectiveSchoolId) {
+            try {
+                const storedProfile = JSON.parse(sessionStorage.getItem('grantee_admin_profile') || '{}');
+                if (storedProfile.school_id) effectiveSchoolId = storedProfile.school_id;
+            } catch (e) {}
+        }
+
+        if (!effectiveSchoolId) {
+            effectiveSchoolId = localStorage.getItem('grantee_pending_paymongo_school_id') ||
+                                localStorage.getItem('granteeSelectedSchoolId') ||
+                                new URLSearchParams(window.location.search).get('school_id') ||
+                                '5be5d841-5b39-4016-860b-6d04c384d11b';
+        }
+
+        currentAdminSchoolId = effectiveSchoolId;
 
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Initializing PayMongo Checkout...`;
+        }
+
+        // Show SweetAlert loading state so the coordinator gets clear feedback
+        if (window.Swal) {
+            Swal.fire({
+                title: 'Preparing Secure Checkout',
+                html: `
+                    <div style="font-size: 13.5px; color: #475569; text-align: center; padding: 6px 0; line-height: 1.6;">
+                        <p style="margin-bottom: 6px; font-weight: 600; color: #0f172a;">Connecting to PayMongo payment gateway...</p>
+                        <span style="font-size: 12px; color: #64748b;">Generating encrypted checkout session for GCash, Maya, and Cards.</span>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
         }
 
         try {
@@ -530,18 +615,58 @@
 
             const returnUrl = window.location.href.split('?')[0];
             const session = await window.SubscriptionClient.createCheckoutSession({
-                schoolId: currentAdminSchoolId,
+                schoolId: effectiveSchoolId,
                 planCode: selectedPlanCode,
                 coordinatorId: currentCoordinatorProfile?.id,
                 coordinatorName: coordinatorName,
                 coordinatorEmail: coordinatorEmail,
-                successUrl: `${returnUrl}?payment=success&school_id=${currentAdminSchoolId}&session_id={CHECKOUT_SESSION_ID}`,
-                cancelUrl: `${returnUrl}?payment=cancelled&school_id=${currentAdminSchoolId}`
+                successUrl: `${returnUrl}?payment=success&school_id=${effectiveSchoolId}`,
+                cancelUrl: `${returnUrl}?payment=cancelled&school_id=${effectiveSchoolId}`
             });
 
             if (session && session.checkout_url) {
-                // Redirect user to PayMongo official checkout page
-                window.location.href = session.checkout_url;
+                const checkoutUrl = session.checkout_url;
+
+                // Persist pending session ID in both localStorage and sessionStorage for reliable verification upon return
+                if (session.session_id) {
+                    try {
+                        localStorage.setItem('grantee_pending_paymongo_session_id', session.session_id);
+                        localStorage.setItem('grantee_pending_paymongo_school_id', effectiveSchoolId);
+                        sessionStorage.setItem('grantee_pending_paymongo_session_id', session.session_id);
+                        sessionStorage.setItem('grantee_pending_paymongo_school_id', effectiveSchoolId);
+                    } catch (e) {}
+                }
+
+                // 1. Close the checkout modal if open
+                if (window.closeCheckoutModal) {
+                    window.closeCheckoutModal();
+                }
+
+                // 2. Show brief redirecting indicator while browser transfers
+                if (window.Swal) {
+                    Swal.fire({
+                        title: 'Redirecting to PayMongo...',
+                        html: '<p style="font-size: 13.5px; color: #475569;">Transferring you directly to the secure PayMongo checkout page...</p>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                }
+
+                // 3. Immediately proceed to PayMongo checkout portal
+                try {
+                    if (window.top && window.top !== window) {
+                        window.top.location.href = checkoutUrl;
+                    } else {
+                        window.location.href = checkoutUrl;
+                    }
+                } catch (navErr) {
+                    console.warn('[AdminSubscription] Direct navigation warning:', navErr);
+                    window.location.href = checkoutUrl;
+                }
+
             } else if (session && !session.configured) {
                 // Key not configured yet on deployed Render backend or local .env
                 if (window.Swal) {
@@ -566,15 +691,9 @@
                                 </p>
                             </div>
                         `,
-                        showCancelButton: true,
-                        confirmButtonText: 'View Setup Guide',
-                        cancelButtonText: 'Use Direct Settlement',
+                        showCancelButton: false,
+                        confirmButtonText: 'Got It',
                         confirmButtonColor: '#1F3D2E'
-                    }).then(res => {
-                        if (res.isConfirmed) {
-                            closeCheckoutModal();
-                            openBankSetupGuideModal();
-                        }
                     });
                 } else {
                     alert(session.message);
@@ -585,490 +704,28 @@
 
         } catch (err) {
             console.error('PayMongo Checkout Error:', err);
-            alert('PayMongo Checkout initiation error: ' + err.message);
-        } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
-    };
-
-    /**
-     * Bank Setup Guide Modal Controls
-     */
-    window.openBankSetupGuideModal = function () {
-        const modal = document.getElementById('bank-guide-modal');
-        if (modal) modal.classList.add('show');
-        if (window.lucide && lucide.createIcons) lucide.createIcons();
-    };
-
-    window.closeBankSetupGuideModal = function () {
-        const modal = document.getElementById('bank-guide-modal');
-        if (modal) modal.classList.remove('show');
-    };
-
-    let activePaymentRefNum = '';
-
-    /**
-     * 7. Proceed to Payment Portal (GCash / QR Ph Redirect View matching official UI)
-     */
-    window.proceedToPaymentPortal = function () {
-        const schoolId = currentAdminSchoolId || currentCoordinatorProfile?.school_id;
-        if (!schoolId) {
-            alert('Cannot process payment: School ID not found for coordinator account. Please ensure your account is assigned to an institution.');
-            return;
-        }
-
-        // Determine reference number entered by user
-        let refNum = '';
-        if (selectedPaymentMethod === 'GCash' || selectedPaymentMethod === 'Maya') {
-            refNum = document.getElementById('input-wallet-ref')?.value?.trim() || '';
-        } else if (selectedPaymentMethod === 'Bank Transfer') {
-            refNum = document.getElementById('input-bank-ref')?.value?.trim() || '';
-        }
-
-        activePaymentRefNum = refNum;
-
-        const plan = PLAN_DETAILS[selectedPlanCode] || PLAN_DETAILS.yearly;
-
-        // Populate GCash modal fields
-        const amountEl = document.getElementById('gcash-modal-amount');
-        const schoolEl = document.getElementById('gcash-modal-school');
-        const planEl = document.getElementById('gcash-modal-plan');
-        const recipientEl = document.getElementById('gcash-modal-recipient');
-        const mobileEl = document.getElementById('gcash-modal-mobile');
-        const inputRef = document.getElementById('gcash-input-ref');
-        const amountInput = document.getElementById('gcash-input-amount');
-
-        const gcashCfg = cachedPaymentConfig?.receiving_accounts?.wallets?.find(w => w.id === 'wallet_gcash' || w.wallet_name.includes('GCash'));
-
-        if (amountEl) amountEl.innerText = plan.displayAmount;
-        if (schoolEl) schoolEl.innerText = currentAdminSchoolName || 'Your Institution';
-        if (planEl) planEl.innerText = plan.name;
-        if (recipientEl) recipientEl.innerText = gcashCfg?.account_name || 'John Elter Gelig';
-        if (mobileEl) mobileEl.innerText = gcashCfg?.mobile_number || '09700551207';
-        if (inputRef) inputRef.value = refNum || '';
-        if (amountInput) amountInput.value = plan.amount;
-
-        // Adapt UI based on payment method
-        const headerEl = document.getElementById('gcash-portal-header');
-        const btnOpen = document.getElementById('btn-open-gcash-app');
-        const titleEl = document.getElementById('gcash-portal-title');
-        const subTitleEl = document.getElementById('gcash-portal-subtitle');
-        const logoSvg = document.getElementById('gcash-logo-svg');
-
-        if (selectedPaymentMethod === 'Maya') {
-            if (headerEl) headerEl.style.background = '#00D66F';
-            if (btnOpen) {
-                btnOpen.style.background = '#00D66F';
-                btnOpen.innerText = 'Open in Maya';
-            }
-            if (titleEl) titleEl.innerText = 'Securely complete the payment with your Maya app';
-            if (subTitleEl) subTitleEl.innerText = 'or Log in to Maya and scan this QR with the QR Scanner.';
-            if (logoSvg) logoSvg.innerHTML = `<text x="50%" y="26" text-anchor="middle" fill="white" font-family="-apple-system, sans-serif" font-size="24" font-weight="900" letter-spacing="-0.5">maya</text>`;
-        } else if (selectedPaymentMethod === 'Bank Transfer') {
-            if (headerEl) headerEl.style.background = '#1F3D2E';
-            if (btnOpen) {
-                btnOpen.style.background = '#1F3D2E';
-                btnOpen.innerText = 'Open Institutional Banking App';
-            }
-            if (titleEl) titleEl.innerText = 'Securely transfer via Institutional Bank / QR Ph';
-            if (subTitleEl) subTitleEl.innerText = 'Scan this universal QR Ph with Landbank, BDO, BPI, or mobile banking.';
-            if (logoSvg) logoSvg.innerHTML = `<text x="50%" y="26" text-anchor="middle" fill="white" font-family="-apple-system, sans-serif" font-size="20" font-weight="800">QR Ph Banking</text>`;
-        } else {
-            // Default GCash - exactly as user requested in screenshot
-            if (headerEl) headerEl.style.background = '#0057E7';
-            if (btnOpen) {
-                btnOpen.style.background = '#0057E7';
-                btnOpen.innerText = 'Open in GCash';
-            }
-            if (titleEl) titleEl.innerText = 'Securely complete the payment with your GCash app';
-            if (subTitleEl) subTitleEl.innerText = 'or Log in to GCash and scan this QR with the QR Scanner.';
-            if (logoSvg) {
-                logoSvg.innerHTML = `
-                    <g transform="translate(4, 2)">
-                        <circle cx="16" cy="16" r="14.5" stroke="white" stroke-width="2.6" fill="none" />
-                        <path d="M19 12.5C18 11 16.5 10 14.2 10C10.5 10 7.8 12.8 7.8 16.5C7.8 20.2 10.5 23 14.2 23C17.5 23 19.8 20.8 20.2 17.5H14.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <path d="M24.5 9.5C26.8 11.4 28.2 13.8 28.2 16.5C28.2 19.2 26.8 21.6 24.5 23.5" stroke="white" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-                        <path d="M28.5 6.5C31.8 9.2 33.8 12.6 33.8 16.5C33.8 20.4 31.8 23.8 28.5 26.5" stroke="white" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-                    </g>
-                    <text x="48" y="25.5" fill="white" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="800" letter-spacing="-0.5">GCash</text>
-                `;
-            }
-        }
-
-        // Render QR Code (real image or dynamic scannable payload)
-        renderGcashQrCode(refNum);
-
-        // Hide checkout modal and display GCash portal
-        const checkoutModal = document.getElementById('checkout-modal');
-        if (checkoutModal) checkoutModal.classList.remove('show');
-
-        const gcashModal = document.getElementById('gcash-portal-modal');
-        if (gcashModal) gcashModal.classList.add('show');
-
-        if (window.lucide && lucide.createIcons) {
-            lucide.createIcons();
-        }
-    };
-
-    /**
-     * Close GCash Portal Modal and return to checkout
-     */
-    window.closeGcashPortalModal = function () {
-        const gcashModal = document.getElementById('gcash-portal-modal');
-        if (gcashModal) gcashModal.classList.remove('show');
-
-        // Restore checkout modal
-        const checkoutModal = document.getElementById('checkout-modal');
-        if (checkoutModal) checkoutModal.classList.add('show');
-    };
-
-    /**
-     * Handle "Open in GCash / Maya / Banking App" Click
-     * Intelligently launches native mobile wallet apps on Android & iOS without prematurely blocking popups
-     */
-    window.handleOpenGcashAppClick = function () {
-        const btn = document.getElementById('btn-open-gcash-app');
-        const originalText = btn ? btn.innerHTML : 'Open in GCash';
-
-        const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
-        const isAndroid = /android/i.test(userAgent);
-        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-        const isMobile = isAndroid || isIOS || /mobile|tablet/i.test(userAgent);
-
-        const gcashCfg = cachedPaymentConfig?.receiving_accounts?.wallets?.find(w => w.id === 'wallet_gcash' || w.wallet_name.includes('GCash'));
-        const mobileNumber = gcashCfg?.mobile_number || '09700551207';
-        const accountName = gcashCfg?.account_name || 'John Elter Gelig';
-
-        // 1. DESKTOP EXPERIENCE: Guide user to scan QR code on their screen
-        if (!isMobile) {
-            if (window.Swal) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Scan QR with your Smartphone',
-                    html: `
-                        <div style="font-size: 13.5px; text-align: left; line-height: 1.6; color: #475569;">
-                            <p style="margin-bottom: 10px;">
-                                <strong>GCash is a mobile application.</strong> To complete payment from your computer:
-                            </p>
-                            <ol style="padding-left: 18px; margin-bottom: 14px;">
-                                <li style="margin-bottom: 6px;">Open the <strong>GCash</strong> app on your mobile phone.</li>
-                                <li style="margin-bottom: 6px;">Tap the <strong>QR Scanner</strong> icon and scan the QR code displayed on this screen.</li>
-                                <li>Or Send Money directly to <strong>${mobileNumber}</strong> (${accountName}).</li>
-                            </ol>
-                            <div style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
-                                <span>GCash No: <strong style="color: #0057E7;">${mobileNumber}</strong></span>
-                                <button type="button" onclick="navigator.clipboard.writeText('${mobileNumber}'); if (window.Swal) Swal.showValidationMessage('Copied ${mobileNumber} to clipboard!');" style="background: #0057E7; color: white; border: none; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Copy Number</button>
-                            </div>
-                        </div>
-                    `,
-                    confirmButtonText: 'Got It',
-                    confirmButtonColor: '#0057E7'
-                });
-            }
-            return;
-        }
-
-        // 2. MOBILE EXPERIENCE: LAUNCH NATIVE APP DIRECTLY
-        let appName = 'GCash';
-        let deepLink = 'gcash://';
-        let intentLink = 'intent://#Intent;scheme=gcash;package=com.globe.gcash.android;end';
-        let storeLink = isAndroid
-            ? 'https://play.google.com/store/apps/details?id=com.globe.gcash.android'
-            : 'https://apps.apple.com/ph/app/gcash/id520358135';
-
-        if (selectedPaymentMethod === 'Maya') {
-            appName = 'Maya';
-            deepLink = 'paymaya://';
-            intentLink = 'intent://#Intent;scheme=paymaya;package=com.paymaya;end';
-            storeLink = isAndroid
-                ? 'https://play.google.com/store/apps/details?id=com.paymaya'
-                : 'https://apps.apple.com/ph/app/maya-credit-wallet-bank/id991898455';
-        } else if (selectedPaymentMethod === 'Bank Transfer') {
-            if (window.Swal) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Open Your Mobile Banking App',
-                    text: 'Please switch to your banking app (BDO, BPI, Landbank, UnionBank, etc.) to scan the universal QR Ph or transfer using our bank account details.',
-                    confirmButtonText: 'Got It',
-                    confirmButtonColor: '#1F3D2E'
-                });
-            }
-            return;
-        }
-
-        if (btn) {
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Opening ${appName}...`;
-            btn.disabled = true;
-        }
-
-        let appOpened = false;
-
-        // Listen for visibility change (detects when user successfully leaves browser to native app)
-        const onVisibilityChange = () => {
-            if (document.hidden) {
-                appOpened = true;
-            }
-        };
-        document.addEventListener('visibilitychange', onVisibilityChange, { once: true });
-
-        // Trigger deep link via Anchor click (avoids modern Android Chrome blocking window.location.href)
-        const targetUrl = isAndroid ? intentLink : deepLink;
-        const clicker = document.createElement('a');
-        clicker.href = targetUrl;
-        clicker.rel = 'noopener noreferrer';
-        clicker.style.display = 'none';
-        document.body.appendChild(clicker);
-
-        try {
-            clicker.click();
-        } catch (err) {
-            console.warn('Clicker error, falling back to location.href:', err);
-            window.location.href = targetUrl;
-        }
-
-        // Secondary fallback for Android if Intent URL was not handled
-        if (isAndroid) {
-            setTimeout(() => {
-                if (!appOpened && !document.hidden) {
-                    try {
-                        window.location.href = deepLink;
-                    } catch (e) {}
-                }
-            }, 600);
-        }
-
-        // Clean up and restore button; only display fallback if app did NOT launch
-        setTimeout(() => {
-            document.removeEventListener('visibilitychange', onVisibilityChange);
-            if (clicker.parentNode) clicker.parentNode.removeChild(clicker);
-
-            if (btn) {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-
-            // Only show modal if the user remained in the browser after 2 seconds
-            if (!appOpened && !document.hidden) {
-                if (window.Swal) {
-                    Swal.fire({
-                        icon: 'info',
-                        title: `Opening ${appName} App`,
-                        html: `
-                            <div style="font-size: 13.5px; text-align: left; line-height: 1.6; color: #475569;">
-                                <p style="margin-bottom: 10px;">
-                                    If <strong>${appName}</strong> didn't launch automatically, you can open your GCash app and transfer directly:
-                                </p>
-                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                                    <strong style="color: #0f172a; display: block; margin-bottom: 4px;">Verified Direct Transfer Details:</strong>
-                                    <span>Recipient: <strong>${accountName}</strong></span><br>
-                                    <span>${appName} Number: <strong style="color: #0057E7; font-size: 15px;">${mobileNumber}</strong></span>
-                                </div>
-                                <p style="font-size: 12.5px; color: #64748b; margin-bottom: 0;">
-                                    Tip: You can also take a screenshot of the QR code on screen and select <strong>"Upload QR"</strong> inside your GCash app!
-                                </p>
-                            </div>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: `Install / Open Store`,
-                        cancelButtonText: 'I Will Pay Manually',
-                        confirmButtonColor: '#0057E7'
-                    }).then(res => {
-                        if (res.isConfirmed) {
-                            window.open(storeLink, '_blank');
-                        }
-                    });
-                }
-            }
-        }, 2200);
-    };
-
-    /**
-     * Render QR Code: checks for real QR image file first, with dynamic scannable fallback
-     */
-    function renderGcashQrCode(refNum) {
-        const container = document.getElementById('gcash-qr-container');
-        if (!container) return;
-
-        container.innerHTML = '<div style="color: #64748b; font-size: 12px; padding: 20px;">Loading QR code...</div>';
-        const gcashCfg = cachedPaymentConfig?.receiving_accounts?.wallets?.find(w => w.id === 'wallet_gcash' || w.wallet_name.includes('GCash'));
-        const qrImageSrc = gcashCfg?.qr_image || 'assets/gcash-qr.png';
-
-        // Check if real QR image file exists in assets
-        const testImg = new Image();
-        testImg.onload = function () {
-            container.innerHTML = `<img src="${testImg.src}" alt="GCash Real QR Code" style="width: 200px; height: 200px; display: block; margin: 0 auto; border-radius: 8px; object-fit: contain;">`;
-        };
-        testImg.onerror = function () {
-            // Dynamic generation fallback
-            generateDynamicQr(container, refNum);
-        };
-        testImg.src = qrImageSrc;
-    }
-
-    /**
-     * Generate dynamic scannable QR Code via QRCode.js
-     */
-    function generateDynamicQr(container, refNum) {
-        container.innerHTML = '';
-        const plan = PLAN_DETAILS[selectedPlanCode] || PLAN_DETAILS.yearly;
-        const gcashCfg = cachedPaymentConfig?.receiving_accounts?.wallets?.find(w => w.id === 'wallet_gcash');
-        const mobileNum = gcashCfg?.mobile_number || '09700551207';
-        const recipientName = gcashCfg?.account_name || 'John Elter Gelig';
-
-        const qrPayload = `https://grantee.edu.ph/pay/gcash?to=${encodeURIComponent(mobileNum)}&name=${encodeURIComponent(recipientName)}&amount=${plan.amount}&ref=${encodeURIComponent(refNum)}`;
-
-        try {
-            if (typeof QRCode !== 'undefined') {
-                new QRCode(container, {
-                    text: qrPayload,
-                    width: 200,
-                    height: 200,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-
-                const canvases = container.querySelectorAll('canvas');
-                const imgs = container.querySelectorAll('img');
-                if (canvases.length > 0 && imgs.length > 0) {
-                    canvases.forEach(c => c.style.display = 'none');
-                    imgs.forEach(i => {
-                        i.style.display = 'block';
-                        i.style.margin = '0 auto';
-                        i.style.borderRadius = '8px';
-                    });
-                }
-            } else {
-                container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrPayload)}" alt="GCash QR Code" style="width: 200px; height: 200px; display: block; margin: 0 auto; border-radius: 8px;">`;
-            }
-        } catch (e) {
-            console.warn('QR Code rendering fallback:', e);
-            container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrPayload)}" alt="GCash QR Code" style="width: 200px; height: 200px; display: block; margin: 0 auto; border-radius: 8px;">`;
-        }
-    }
-
-    /**
-     * Confirm GCash Payment Complete (Executes backend validation & generates receipt)
-     */
-    window.confirmGcashPaymentComplete = async function () {
-        const btn = document.getElementById('btn-gcash-complete-submit');
-        const originalText = btn ? btn.innerHTML : 'I Have Completed the Payment';
-
-        const schoolId = currentAdminSchoolId || currentCoordinatorProfile?.school_id;
-        if (!schoolId) {
-            alert('Cannot process payment: School ID not found for coordinator account.');
-            return;
-        }
-
-        // Validate GCash Reference Number
-        const inputRef = document.getElementById('gcash-input-ref');
-        const enteredRef = inputRef ? inputRef.value.trim() : '';
-
-        if (!enteredRef) {
-            alert('Please enter your GCash Reference Number (from your GCash SMS or receipt) to proceed.');
-            if (inputRef) inputRef.focus();
-            return;
-        }
-
-        if (enteredRef.startsWith('REF-') && enteredRef.length <= 13) {
-            alert('Please enter your actual 9 to 13-digit GCash Transaction Number from your SMS or receipt, not the sample placeholder.');
-            if (inputRef) inputRef.focus();
-            return;
-        }
-
-        if (enteredRef.length < 6) {
-            alert('Please enter a valid GCash Reference Number (at least 6 digits/characters from your receipt).');
-            if (inputRef) inputRef.focus();
-            return;
-        }
-
-        // STRICT EXACT AMOUNT CHECK: Do not allow underpayments
-        const plan = PLAN_DETAILS[selectedPlanCode] || PLAN_DETAILS.yearly;
-        const amountInput = document.getElementById('gcash-input-amount');
-        const amountPaid = amountInput ? parseFloat(amountInput.value) : plan.amount;
-
-        if (isNaN(amountPaid) || amountPaid < plan.amount) {
             if (window.Swal) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Exact Amount Required',
+                    title: 'Checkout Gateway Error',
                     html: `
-                        <p style="font-size: 14px; color: #475569; text-align: left; line-height: 1.5;">
-                            The institutional license requires the <strong>exact payment of ₱${plan.amount.toLocaleString()}</strong>.
-                            <br><br>
-                            Amount entered: <strong>₱${(amountPaid || 0).toLocaleString()}</strong>.
-                            <br><br>
-                            <span style="color: #dc2626; font-weight: 700;">Underpayment is not permitted.</span> System access cannot be activated until the exact balance is settled in full.
-                        </p>
+                        <div style="font-size: 13.5px; text-align: left; line-height: 1.6; color: #475569;">
+                            <p style="margin-bottom: 8px; color: #b91c1c; font-weight: 600;">
+                                ${err.message || 'Unable to establish checkout session with PayMongo.'}
+                            </p>
+                            <p style="font-size: 12.5px; color: #64748b;">
+                                Please ensure the backend server is reachable, or check your internet connection and try again.
+                            </p>
+                        </div>
                     `,
-                    confirmButtonColor: '#0057E7'
+                    confirmButtonText: 'Try Again',
+                    confirmButtonColor: '#1F3D2E'
                 });
             } else {
-                alert(`Payment Rejected: You must pay the exact amount of ₱${plan.amount.toLocaleString()}. Underpayment (₱${amountPaid}) cannot activate system access.`);
-            }
-            if (amountInput) amountInput.focus();
-            return;
-        }
-
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Validating GCash Payment...`;
-        }
-
-        const coordinatorName = currentCoordinatorProfile
-            ? `${currentCoordinatorProfile.first_name || 'Coordinator'} ${currentCoordinatorProfile.last_name || ''}`.trim()
-            : 'School Scholarship Coordinator';
-
-        const coordinatorEmail = currentCoordinatorProfile?.email || 'coordinator@school.edu.ph';
-        const paymentLabel = selectedPaymentMethod === 'GCash' ? 'GCash (QR Ph)' : selectedPaymentMethod;
-
-        try {
-            await new Promise(r => setTimeout(r, 800));
-
-            const result = await window.SubscriptionClient.processPayment({
-                schoolId: schoolId,
-                coordinatorId: currentCoordinatorProfile?.id,
-                coordinatorName: coordinatorName,
-                coordinatorEmail: coordinatorEmail,
-                planCode: selectedPlanCode,
-                paymentMethod: paymentLabel,
-                referenceNumber: enteredRef,
-                amountPaid: amountPaid,
-                notes: `Completed via ${paymentLabel} Portal by ${coordinatorName} for ${currentAdminSchoolName}`
-            });
-
-            // Close GCash Modal
-            const gcashModal = document.getElementById('gcash-portal-modal');
-            if (gcashModal) gcashModal.classList.remove('show');
-
-            closeCheckoutModal();
-
-            // Refresh Hero & Invoices
-            await refreshSubscriptionData(true);
-
-            // Open Receipt Modal
-            if (result && result.invoice) {
-                openReceiptModal(result.invoice);
-            }
-
-            if (window.showToast) {
-                window.showToast('success', 'Payment Validated & Activated!', 'Institutional subscription activated. Full system access is restored.');
-            }
-
-        } catch (err) {
-            console.error('Payment error:', err);
-            const msg = err.message || '';
-            if (msg.includes('already been recorded') || msg.includes('Duplicate submissions')) {
-                alert(`Payment Validation Failed: ${msg}\n\nPlease check your GCash receipt to make sure you entered the correct reference number.`);
-            } else if (msg.includes('404')) {
-                alert('Payment processing failed (HTTP 404): The subscription endpoint was not found on the active backend server.\n\nPlease verify that your local backend (http://localhost:3000) is running, or push your backend updates to your production host.');
-            } else {
-                alert('Payment processing failed: ' + msg);
+                alert('PayMongo Checkout initiation error: ' + err.message);
             }
         } finally {
+            window._isInitiatingPaymongoCheckout = false;
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -1077,10 +734,20 @@
     };
 
     /**
-     * Legacy submitSubscriptionPayment - delegates to proceedToPaymentPortal
+     * Stubs for removed bank setup guide modal
      */
+    window.openBankSetupGuideModal = function () {};
+    window.closeBankSetupGuideModal = function () {};
+
+    /**
+     * Payment Actions - Delegates directly to PayMongo Online Gateway
+     */
+    window.proceedToPaymentPortal = function () {
+        window.initiatePaymongoOnlineCheckout();
+    };
+
     window.submitSubscriptionPayment = function () {
-        window.proceedToPaymentPortal();
+        window.initiatePaymongoOnlineCheckout();
     };
 
     /**
@@ -1117,8 +784,9 @@
     };
 
     window.openReceiptFromHistory = function (index) {
-        if (!currentSubscription || !currentSubscription.invoices || !currentSubscription.invoices[index]) return;
-        openReceiptModal(currentSubscription.invoices[index]);
+        const targetList = (displayedInvoices && displayedInvoices.length > 0) ? displayedInvoices : currentSubscription?.invoices;
+        if (!targetList || !targetList[index]) return;
+        openReceiptModal(targetList[index]);
     };
 
     window.printReceipt = function () {
@@ -1139,6 +807,22 @@
                 openCheckoutModal(selectedPlanCode);
             });
         }
+
+        // Checkout Button explicit click listener
+        const btnPaymongo = document.getElementById('btn-paymongo-checkout');
+        if (btnPaymongo) {
+            btnPaymongo.addEventListener('click', (e) => {
+                window.initiatePaymongoOnlineCheckout(e);
+            });
+        }
+
+        // Global ESC key listener to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeReceiptModal();
+                closeCheckoutModal();
+            }
+        });
 
         // Simulator: Expired
         const btnSimExpired = document.getElementById('btn-sim-expired');

@@ -1,7 +1,9 @@
 {
   "scripts": {
     "create-school": "npm --prefix backend-node run create-school",
-    "create-coordinator": "npm --prefix backend-node run create-coordinator"
+    "create-coordinator": "npm --prefix backend-node run create-coordinator",
+    "backup": "node backend-node/scripts/run-backup.js",
+    "restore": "node backend-node/scripts/run-restore.js"
   },
   "dependencies": {
     "@getbrevo/brevo": "^6.0.2",

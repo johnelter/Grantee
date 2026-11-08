@@ -3120,3 +3120,85 @@ body.dark-theme .announcement-modal-body-content a {
     height: 11px;
   }
 }
+
+/* =========================================================
+   DOCUMENT PREVIEW & FULL VIEWER ENHANCEMENTS
+========================================================= */
+.doc-preview-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.doc-preview-wrapper:hover {
+  border-color: var(--palette-moss-green);
+  box-shadow: 0 4px 14px rgba(31, 61, 46, 0.08);
+}
+
+.doc-preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px;
+  color: var(--text-muted);
+  font-size: 13px;
+  width: 100%;
+  height: 100%;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.swal2-container {
+  z-index: 100005 !important;
+}
+
+.swal2-popup.swal-wide-doc-custom {
+  max-width: 94vw !important;
+  width: 1120px !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-color, #DFE6DC) !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45) !important;
+  color: var(--text-main, #20362B) !important;
+}
+
+.swal2-popup.swal-wide-doc-custom .swal2-html-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.swal2-popup.swal-wide-doc-custom .swal2-close {
+  top: 12px !important;
+  right: 14px !important;
+  color: var(--text-muted) !important;
+  font-size: 26px !important;
+  z-index: 100 !important;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.swal2-popup.swal-wide-doc-custom .swal2-close:hover {
+  color: var(--danger-color) !important;
+  transform: rotate(90deg);
+}
+
+.doc-viewer-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  border-radius: 8px;
+}

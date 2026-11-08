@@ -2505,97 +2505,107 @@
                     return String(a.applicant_id).localeCompare(String(b.applicant_id));
                 });
             } else {
-                // === HAS CRITERIA: Rank by eligibility, score, GWA, then submission time ===
+                // === HAS CRITERIA: Multi-tier deterministic tie-breaking model ===
                 candidates.sort((a, b) => {
+                    // Tier 1: Strict Eligibility
                     if (a.is_strictly_eligible !== b.is_strictly_eligible) {
                         return a.is_strictly_eligible ? -1 : 1;
                     }
+                    // Tier 2: Total 100-Point Score descending
                     if (b.total_score !== a.total_score) {
                         return b.total_score - a.total_score;
                     }
-                    if (a.gwa !== null && b.gwa !== null) {
+                    // Tier 3: Academic Performance & Merit (GWA)
+                    if (a.gwa !== null && b.gwa !== null && a.gwa !== b.gwa) {
                         if (a.gwa <= 5.0 && b.gwa <= 5.0) return a.gwa - b.gwa;
                         return b.gwa - a.gwa;
                     }
                     if (a.gwa !== null && b.gwa === null) return -1;
                     if (a.gwa === null && b.gwa !== null) return 1;
 
-                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                    // Tier 4: Degree Program Alignment Score
+                    const aProgScore = a.breakdown?.programMatch?.score || 0;
+                    const bProgScore = b.breakdown?.programMatch?.score || 0;
+                    if (bProgScore !== aProgScore) return bProgScore - aProgScore;
+
+                    // Tier 5: Document Completeness Score
+                    const aDocScore = a.breakdown?.documentCompleteness?.score || 0;
+                    const bDocScore = b.breakdown?.documentCompleteness?.score || 0;
+                    if (bDocScore !== aDocScore) return bDocScore - aDocScore;
+
+                    // Tier 6: Submission Timeliness (earlier submission first)
+                    const timeA = new Date(a.created_at).getTime();
+                    const timeB = new Date(b.created_at).getTime();
+                    if (timeA !== timeB) return timeA - timeB;
+
+                    // Tier 7: Deterministic ID comparison
+                    return String(a.applicant_id).localeCompare(String(b.applicant_id));
                 });
             }
 
-            // Top 75% Shortlist Cutoff Calculation
+            // Slot Allocation based on quota (NO 75% cutoff: 100% of candidates are ranked)
             const totalPending = candidates.length;
-            const shortlistCutoffCount = totalPending > 0 ? Math.max(1, Math.ceil(totalPending * 0.75)) : 0;
-
             let slottedCount = 0;
             candidates.forEach((cand, idx) => {
                 cand.rank = idx + 1;
-                cand.is_shortlisted = idx < shortlistCutoffCount;
-                cand.shortlist_cutoff_rank = shortlistCutoffCount;
+                cand.is_shortlisted = true; // Every candidate receives an official rank
                 cand.total_pending = totalPending;
-                cand.shortlist_percentage = 75;
 
-                if (cand.is_shortlisted) {
-                    if (cand.is_strictly_eligible && cand.tier !== 'ineligible') {
-                        if (slottedCount < availableSlots) {
-                            slottedCount++;
-                            cand.tier = 'slotted';
-                            cand.recommendation = !hasCriteria
-                                ? `Grantee Slot Reserved (Rank #${cand.rank} of ${maxSlots === 999999 ? 'Open' : availableSlots} available slots - Applied First-Come, First-Served on ${cand.applied_date_str || ''} at ${cand.applied_time_str || ''})`
-                                : `Grantee Slot Reserved (Rank #${cand.rank} of ${maxSlots === 999999 ? 'Open' : availableSlots} available slots - Score: ${cand.total_score}%)`;
-                            cand.is_slotted = true;
-                        } else {
-                            cand.tier = 'qualified';
-                            const queuePos = slottedCount - availableSlots + 1;
-                            cand.recommendation = !hasCriteria
-                                ? `Priority Runner-Up (Rank #${cand.rank}, Queue #${queuePos} - Applied First-Come, First-Served on ${cand.applied_date_str || ''} at ${cand.applied_time_str || ''})`
-                                : `Priority Runner-Up (Rank #${cand.rank}, Queue Position #${queuePos})`;
-                            cand.is_slotted = false;
-                        }
+                if (cand.is_strictly_eligible && cand.tier !== 'ineligible') {
+                    if (slottedCount < availableSlots) {
+                        slottedCount++;
+                        cand.tier = 'slotted';
+                        cand.is_slotted = true;
+                        cand.recommendation = !hasCriteria
+                            ? `Grantee Slot Allocated (Rank #${cand.rank} of ${maxSlots === 999999 ? 'Open' : availableSlots} available slots - Applied First-Come, First-Served on ${cand.applied_date_str || ''} at ${cand.applied_time_str || ''})`
+                            : `Grantee Slot Allocated (Rank #${cand.rank} of ${maxSlots === 999999 ? 'Open' : availableSlots} available slots - Score: ${cand.total_score}%)`;
                     } else {
+                        cand.tier = 'qualified';
                         cand.is_slotted = false;
+                        const queuePos = (idx + 1) - slottedCount;
+                        cand.recommendation = !hasCriteria
+                            ? `Qualified Runner-Up (Rank #${cand.rank}, Queue Position #${queuePos} - Applied on ${cand.applied_date_str || ''} at ${cand.applied_time_str || ''})`
+                            : `Qualified Runner-Up (Rank #${cand.rank}, Queue Position #${queuePos} - Meets all criteria, queued for next open slot)`;
                     }
-                } else {
-                    // Beyond the 75% shortlist cutoff
-                    cand.tier = 'cutoff';
+                } else if (cand.tier === 'conditional') {
                     cand.is_slotted = false;
-                    cand.recommendation = `Below 75% Cutoff (Rank #${cand.rank} of ${totalPending} pending applicants - Fell outside top 75% shortlist threshold of ${shortlistCutoffCount} candidates)`;
+                    cand.recommendation = `Conditional Candidate (Rank #${cand.rank} - Requires document review and verification)`;
+                } else {
+                    cand.tier = 'ineligible';
+                    cand.is_slotted = false;
+                    const reason = (cand.disqualifications && cand.disqualifications.length > 0)
+                        ? cand.disqualifications.join('; ')
+                        : 'Does not satisfy mandatory educational criteria';
+                    cand.recommendation = `Ineligible (Rank #${cand.rank} - ${reason})`;
                 }
             });
 
             allEvaluatedShortlist = candidates;
-            rankedShortlist = candidates.filter(c => c.is_shortlisted);
+            rankedShortlist = candidates;
 
-            const qualifiedCount = rankedShortlist.filter(c => c.is_strictly_eligible).length;
-            const slottedCandidates = rankedShortlist.filter(c => c.is_slotted);
+            const qualifiedCount = candidates.filter(c => c.is_strictly_eligible).length;
+            const slottedCandidates = candidates.filter(c => c.is_slotted);
             const topShortlistCount = slottedCandidates.length;
 
             const gwaSum = slottedCandidates.filter(c => c.gwa !== null && c.gwa <= 5.0).reduce((acc, c) => acc + c.gwa, 0);
             const gwaCount = slottedCandidates.filter(c => c.gwa !== null && c.gwa <= 5.0).length;
             const avgSlottedGwa = gwaCount > 0 ? (gwaSum / gwaCount).toFixed(2) : null;
 
-            const cutoffCandidate = rankedShortlist[rankedShortlist.length - 1];
-            const cutoffScore = cutoffCandidate ? cutoffCandidate.total_score : (candidates[0] ? candidates[0].total_score : 100);
-
             shortlistSummaryData = {
                 total_evaluated: candidates.length,
                 total_pending: totalPending,
-                shortlist_quota: shortlistCutoffCount,
-                shortlist_percentage: 75,
-                total_shortlisted: rankedShortlist.length,
-                unshortlisted_count: candidates.length - rankedShortlist.length,
+                total_ranked: candidates.length,
                 total_slots: activeScholarshipData.slots === 'Open' ? 'Open' : maxSlots,
                 available_slots: maxSlots === 999999 ? 'Open' : availableSlots,
                 already_approved: totalApproved,
                 qualified_candidates: qualifiedCount,
                 slotted_grantees: topShortlistCount,
                 runners_up: Math.max(0, qualifiedCount - topShortlistCount),
+                conditional_count: candidates.filter(c => c.tier === 'conditional').length,
+                ineligible_count: candidates.filter(c => c.tier === 'ineligible').length,
                 average_shortlist_gwa: avgSlottedGwa,
-                shortlist_cutoff_score: cutoffScore,
-                shortlist_cutoff_rank: shortlistCutoffCount,
                 has_educational_criteria: hasCriteria,
-                ranking_method: hasCriteria ? 'Educational Criteria Scoring (100 Pts)' : 'Date & Time Applied (First-Come, First-Served)'
+                ranking_method: hasCriteria ? '100-Point Educational Criteria Scoring Model' : 'Date & Time Applied (First-Come, First-Served)'
             };
         }
 
@@ -2615,10 +2625,10 @@
         if (!hasCriteria) {
             criteriaList.push(`<span><i data-lucide="check-circle-2"></i> Criteria: <strong>Open / No Minimum GWA Required</strong></span>`);
             criteriaList.push(`<span><i data-lucide="arrow-down-up"></i> Ranking Method: <strong>Date & Time Applied (First to Apply = Rank 1)</strong></span>`);
-            criteriaList.push(`<span><i data-lucide="scissors"></i> Shortlist Cutoff: <strong>Top 75% of Pending Pool</strong></span>`);
+            criteriaList.push(`<span><i data-lucide="award"></i> Allocation: <strong>Direct Quota Allocation (No Cutoff)</strong></span>`);
             criteriaList.push(`<span><i data-lucide="users"></i> Slots: <strong>${sch.slots || 'Open'}</strong></span>`);
         } else {
-            if (sch.min_college_gwa) criteriaList.push(`<span><i data-lucide="graduation-cap"></i> Min College GWA: <strong>${sch.min_college_gwa}</strong></span>`);
+            if (sch.min_college_gwa || sch.min_gwa) criteriaList.push(`<span><i data-lucide="graduation-cap"></i> Min GWA: <strong>${sch.min_college_gwa || sch.min_gwa}</strong></span>`);
             if (sch.min_hs_average) criteriaList.push(`<span><i data-lucide="award"></i> Min HS Avg: <strong>${sch.min_hs_average}%</strong></span>`);
             if (sch.eligibility_years && sch.eligibility_years.length > 0) criteriaList.push(`<span><i data-lucide="calendar"></i> Cohorts: <strong>${sch.eligibility_years.join(', ')}</strong></span>`);
             if (sch.eligibility_programs && sch.eligibility_programs.length > 0) {
@@ -2627,23 +2637,20 @@
             } else {
                 criteriaList.push(`<span><i data-lucide="book-open"></i> Programs: <strong>All Degrees</strong></span>`);
             }
-            criteriaList.push(`<span><i data-lucide="scissors"></i> Shortlist Cutoff: <strong>Top 75% of Pending Pool</strong></span>`);
+            criteriaList.push(`<span><i data-lucide="sliders-horizontal"></i> Model: <strong>100-Point Scoring Model</strong></span>`);
             criteriaList.push(`<span><i data-lucide="users"></i> Slots: <strong>${sch.slots || 'Open'}</strong></span>`);
         }
 
-        const totalPendingCount = (shortlistSummaryData && (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_pending))
-            ? (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_pending)
+        const totalPendingCount = (shortlistSummaryData && (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_ranked || shortlistSummaryData.total_pending))
+            ? (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_ranked || shortlistSummaryData.total_pending)
             : (allEvaluatedShortlist && allEvaluatedShortlist.length > 0 ? allEvaluatedShortlist.length : rankedShortlist.length);
 
         const summary = shortlistSummaryData || {
             total_evaluated: totalPendingCount,
-            total_pending: totalPendingCount,
-            shortlist_quota: rankedShortlist.length,
-            shortlist_percentage: 75,
-            total_shortlisted: rankedShortlist.length,
+            total_ranked: totalPendingCount,
             qualified_candidates: rankedShortlist.filter(c => c.is_strictly_eligible).length,
             slotted_grantees: rankedShortlist.filter(c => c.tier === 'slotted').length,
-            shortlist_cutoff_score: rankedShortlist[0] ? rankedShortlist[0].total_score : 0,
+            runners_up: rankedShortlist.filter(c => c.tier === 'qualified' || (c.is_strictly_eligible && c.tier !== 'slotted')).length,
             average_shortlist_gwa: hasCriteria ? '1.25' : null
         };
 
@@ -2658,10 +2665,10 @@
                             <span>${isProviderPrivate ? 'Sponsoring Provider:' : 'Educational Assistance Provider:'} ${escapeHtml(providerName)}</span>
                         </div>
                         <h3 class="shortlist-heading">
-                            <span>${hasCriteria ? 'Merit-Ranked Shortlist Evaluation' : 'First-Come, First-Served (FCFS) Ranked Shortlist'}</span>
+                            <span>${hasCriteria ? '100-Point Merit-Ranked Evaluation' : 'First-Come, First-Served (FCFS) Ranked Shortlist'}</span>
                             <span class="badge-status badge-approved" style="font-size: 11.5px; padding: 3px 10px;">
-                                <i data-lucide="scissors" style="width: 13px; height: 13px;"></i>
-                                Top 75% Shortlist Cutoff Active
+                                <i data-lucide="${hasCriteria ? 'sparkles' : 'clock'}" style="width: 13px; height: 13px;"></i>
+                                ${hasCriteria ? '100-Point Scoring Model Active' : 'First-Come, First-Served Active'}
                             </span>
                         </h3>
                         <div class="shortlist-criteria-pills">
@@ -2693,22 +2700,22 @@
                             <i data-lucide="users" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div class="stat-box-content">
-                            <span class="stat-box-label">Pending Pool</span>
+                            <span class="stat-box-label">Evaluated Pool</span>
                             <span class="stat-box-val">${totalPendingCount}</span>
                         </div>
                     </div>
                     <div class="shortlist-stat-box">
-                        <div class="stat-box-icon stat-icon-green">
-                            <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+                        <div class="stat-box-icon stat-icon-purple">
+                            <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div class="stat-box-content">
-                            <span class="stat-box-label">Shortlisted (Top 75%)</span>
-                            <span class="stat-box-val">${rankedShortlist.length}</span>
+                            <span class="stat-box-label">Available Slots</span>
+                            <span class="stat-box-val">${summary.available_slots || sch.slots || 'Open'}</span>
                         </div>
                     </div>
                     <div class="shortlist-stat-box">
                         <div class="stat-box-icon stat-icon-gold">
-                            <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                            <i data-lucide="award" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div class="stat-box-content">
                             <span class="stat-box-label">Slotted Grantees</span>
@@ -2716,12 +2723,12 @@
                         </div>
                     </div>
                     <div class="shortlist-stat-box">
-                        <div class="stat-box-icon stat-icon-purple">
-                            <i data-lucide="${hasCriteria ? 'sparkles' : 'clock'}" style="width: 20px; height: 20px;"></i>
+                        <div class="stat-box-icon stat-icon-green">
+                            <i data-lucide="list-ordered" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div class="stat-box-content">
-                            <span class="stat-box-label">${hasCriteria ? (summary.average_shortlist_gwa ? 'Avg Shortlist GWA' : 'Shortlist Cutoff Score') : 'Shortlist Ranking'}</span>
-                            <span class="stat-box-val" style="font-size: ${hasCriteria ? '20px' : '15px'};">${hasCriteria ? (summary.average_shortlist_gwa || (summary.shortlist_cutoff_score + '%')) : 'Top 75% FCFS'}</span>
+                            <span class="stat-box-label">Qualified Runners-Up</span>
+                            <span class="stat-box-val">${summary.runners_up !== undefined ? summary.runners_up : (summary.qualified_candidates || 0)}</span>
                         </div>
                     </div>
                 </div>
@@ -2740,8 +2747,7 @@
         // Collect unique programs & years from candidates
         const programsSet = new Set();
         const yearsSet = new Set();
-        const poolForFilters = allEvaluatedShortlist && allEvaluatedShortlist.length > 0 ? allEvaluatedShortlist : rankedShortlist;
-        poolForFilters.forEach(c => {
+        rankedShortlist.forEach(c => {
             if (c.program && c.program !== 'N/A') programsSet.add(c.program);
             if (c.year_level && c.year_level !== 'N/A') yearsSet.add(c.year_level);
         });
@@ -2750,42 +2756,41 @@
         const qualifiedCount = rankedShortlist.filter(c => c.tier === 'qualified' || (c.is_strictly_eligible && c.tier !== 'slotted')).length;
         const conditionalCount = rankedShortlist.filter(c => c.tier === 'conditional').length;
         const ineligibleCount = rankedShortlist.filter(c => c.tier === 'ineligible').length;
-        const cutoffCount = (allEvaluatedShortlist || []).filter(c => c.tier === 'cutoff' || !c.is_shortlisted).length;
+        const hasCriteria = hasEducationalCriteria(activeScholarshipData);
+        const availableSlots = activeScholarshipData.slots === 'Open' ? 'Open' : (parseInt(activeScholarshipData.slots, 10) || 'N/A');
+        const totalPendingCount = rankedShortlist.length;
 
         panel.innerHTML = `
             <div class="filter-tier-tabs">
                 <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.04em;">Shortlist Tiers:</span>
                 <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'all' ? 'active' : ''}" onclick="setShortlistTier('all')">
-                    Ranked Shortlist (Top 75%) <span class="tier-pill-count">${rankedShortlist.length}</span>
+                    All Ranked Candidates <span class="tier-pill-count">${rankedShortlist.length}</span>
                 </button>
                 <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'slotted' ? 'active' : ''}" onclick="setShortlistTier('slotted')">
                     <i data-lucide="award" style="width: 13px; height: 13px; color: #d97706;"></i>
-                    Top Slotted Grantees <span class="tier-pill-count">${slottedCount}</span>
+                    Slotted Grantees <span class="tier-pill-count">${slottedCount}</span>
                 </button>
                 <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'qualified' ? 'active' : ''}" onclick="setShortlistTier('qualified')">
                     <i data-lucide="check-circle-2" style="width: 13px; height: 13px; color: var(--moss-green);"></i>
                     Qualified Runners-Up <span class="tier-pill-count">${qualifiedCount}</span>
                 </button>
+                ${conditionalCount > 0 ? `
                 <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'conditional' ? 'active' : ''}" onclick="setShortlistTier('conditional')">
                     <i data-lucide="alert-triangle" style="width: 13px; height: 13px; color: #b45309;"></i>
                     Conditional Review <span class="tier-pill-count">${conditionalCount}</span>
                 </button>
+                ` : ''}
                 ${ineligibleCount > 0 ? `
                 <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'ineligible' ? 'active' : ''}" onclick="setShortlistTier('ineligible')">
                     <i data-lucide="x-circle" style="width: 13px; height: 13px; color: var(--danger-color);"></i>
                     Ineligible <span class="tier-pill-count">${ineligibleCount}</span>
                 </button>
                 ` : ''}
-                ${cutoffCount > 0 ? `
-                <button type="button" class="filter-tier-btn ${shortlistFilterTier === 'cutoff' ? 'active' : ''}" onclick="setShortlistTier('cutoff')" title="Applicants who fell outside the top 75% shortlist cutoff">
-                    <i data-lucide="scissors" style="width: 13px; height: 13px; color: var(--text-muted);"></i>
-                    Below 75% Cutoff <span class="tier-pill-count">${cutoffCount}</span>
-                </button>
-                ` : ''}
             </div>
 
             <div class="shortlist-controls-row">
                 <div class="shortlist-dropdowns-group">
+                    ${hasCriteria ? `
                     <select id="shortlist-gwa-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by GWA / Academic Standing">
                         <option value="all" ${shortlistFilterGwa === 'all' ? 'selected' : ''}>🎓 All Academic Standings</option>
                         <option value="highest_honors" ${shortlistFilterGwa === 'highest_honors' ? 'selected' : ''}>★ Highest Honors (1.00 – 1.25)</option>
@@ -2794,6 +2799,7 @@
                         <option value="good_standing" ${shortlistFilterGwa === 'good_standing' ? 'selected' : ''}>Good Standing (1.76 – 2.00)</option>
                         <option value="pass" ${shortlistFilterGwa === 'pass' ? 'selected' : ''}>Passing (2.01+)</option>
                     </select>
+                    ` : ''}
 
                     <select id="shortlist-prog-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by Degree Program">
                         <option value="all" ${shortlistFilterProgram === 'all' ? 'selected' : ''}>📚 All Degree Programs</option>
@@ -2805,11 +2811,26 @@
                         ${Array.from(yearsSet).sort().map(y => `<option value="${y}" ${shortlistFilterYear === y ? 'selected' : ''}>${y}</option>`).join('')}
                     </select>
 
+                    ${hasCriteria ? `
                     <select id="shortlist-score-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by Qualification Score">
                         <option value="0" ${shortlistFilterMinScore === 0 ? 'selected' : ''}>📊 All Scores</option>
                         <option value="90" ${shortlistFilterMinScore === 90 ? 'selected' : ''}>Score ≥ 90% (Outstanding)</option>
                         <option value="80" ${shortlistFilterMinScore === 80 ? 'selected' : ''}>Score ≥ 80% (Very Good)</option>
                         <option value="70" ${shortlistFilterMinScore === 70 ? 'selected' : ''}>Score ≥ 70% (Satisfactory)</option>
+                    </select>
+                    ` : ''}
+
+                    <select id="shortlist-date-order-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Sort by Submission Date">
+                        <option value="default" ${shortlistFilterDateOrder === 'default' ? 'selected' : ''}>🏆 Default Shortlist Rank</option>
+                        <option value="asc" ${shortlistFilterDateOrder === 'asc' ? 'selected' : ''}>▲ Oldest Submission First</option>
+                        <option value="desc" ${shortlistFilterDateOrder === 'desc' ? 'selected' : ''}>▼ Newest Submission First</option>
+                    </select>
+
+                    <select id="shortlist-status-filter" class="filter-select-mini" onchange="updateShortlistFilters()" aria-label="Filter by Review Status">
+                        <option value="all" ${shortlistFilterStatus === 'all' ? 'selected' : ''}>⚡ All Decision Statuses</option>
+                        <option value="pending" ${shortlistFilterStatus === 'pending' ? 'selected' : ''}>⏳ Pending Evaluation</option>
+                        <option value="approved" ${shortlistFilterStatus === 'approved' ? 'selected' : ''}>✓ Approved Grantees</option>
+                        <option value="rejected" ${shortlistFilterStatus === 'rejected' ? 'selected' : ''}>✗ Rejected</option>
                     </select>
                 </div>
 
@@ -2824,6 +2845,24 @@
                     <button type="button" class="btn-reset-filters" onclick="resetShortlistFilters()" title="Reset all filters">
                         <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Reset
                     </button>
+                </div>
+            </div>
+
+            <!-- SHORTLIST SUMMARY & COORDINATOR METRIC TOOLBAR -->
+            <div id="shortlist-summary-toolbar" class="shortlist-summary-toolbar">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="count-pill shortlist-mode-pill">
+                        <i data-lucide="${hasCriteria ? 'sparkles' : 'clock'}" style="width: 12px; height: 12px; display: inline; vertical-align: middle;"></i>
+                        ${hasCriteria ? '100-Point Scoring Model Active' : 'First-Come, First-Served Ordering (Ranked by Date Submitted)'}
+                    </span>
+                    <span id="shortlist-toolbar-count-text">
+                        Showing ${filteredShortlist.length} of ${rankedShortlist.length} Ranked Candidates (${totalPendingCount} Evaluated Applicants)
+                    </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span>Available Slots: <strong style="color: var(--text-heading);">${availableSlots}</strong></span>
+                    <span>Slotted: <strong style="color: #d97706;">${slottedCount}</strong></span>
+                    <span>Runners-Up: <strong style="color: var(--moss-green);">${qualifiedCount}</strong></span>
                 </div>
             </div>
         `;
@@ -2844,11 +2883,15 @@
         const progSel = document.getElementById('shortlist-prog-filter');
         const yearSel = document.getElementById('shortlist-year-filter');
         const scoreSel = document.getElementById('shortlist-score-filter');
+        const dateOrderSel = document.getElementById('shortlist-date-order-filter');
+        const statusSel = document.getElementById('shortlist-status-filter');
 
         if (gwaSel) shortlistFilterGwa = gwaSel.value;
         if (progSel) shortlistFilterProgram = progSel.value;
         if (yearSel) shortlistFilterYear = yearSel.value;
         if (scoreSel) shortlistFilterMinScore = parseFloat(scoreSel.value) || 0;
+        if (dateOrderSel) shortlistFilterDateOrder = dateOrderSel.value;
+        if (statusSel) shortlistFilterStatus = statusSel.value;
 
         filterShortlist();
     };
@@ -2882,23 +2925,32 @@
         shortlistFilterProgram = 'all';
         shortlistFilterYear = 'all';
         shortlistFilterMinScore = 0;
+        shortlistFilterDateOrder = 'default';
+        shortlistFilterStatus = 'all';
         shortlistSearchTerm = '';
         renderShortlistFilters();
         filterShortlist();
     };
 
     function filterShortlist() {
-        const sourcePool = shortlistFilterTier === 'cutoff'
-            ? (allEvaluatedShortlist && allEvaluatedShortlist.length > 0 ? allEvaluatedShortlist : rankedShortlist)
-            : rankedShortlist;
+        const sourcePool = (rankedShortlist && rankedShortlist.length > 0)
+            ? rankedShortlist
+            : (allEvaluatedShortlist || []);
 
-        filteredShortlist = sourcePool.filter(cand => {
+        let pool = sourcePool.filter(cand => {
             // Tier Filter
             if (shortlistFilterTier === 'slotted' && cand.tier !== 'slotted') return false;
             if (shortlistFilterTier === 'qualified' && (cand.tier !== 'qualified' && cand.tier !== 'slotted')) return false;
             if (shortlistFilterTier === 'conditional' && cand.tier !== 'conditional') return false;
             if (shortlistFilterTier === 'ineligible' && cand.tier !== 'ineligible') return false;
-            if (shortlistFilterTier === 'cutoff' && cand.tier !== 'cutoff' && cand.is_shortlisted) return false;
+
+            // Application Decision Status Filter
+            if (shortlistFilterStatus !== 'all') {
+                const normStatus = normalizeApplicantStatus(cand.current_status);
+                if (shortlistFilterStatus === 'pending' && normStatus !== 'pending') return false;
+                if (shortlistFilterStatus === 'approved' && normStatus !== 'approved') return false;
+                if (shortlistFilterStatus === 'rejected' && normStatus !== 'rejected') return false;
+            }
 
             // GWA Filter
             if (shortlistFilterGwa !== 'all') {
@@ -2929,20 +2981,38 @@
 
             // Search Term
             if (shortlistSearchTerm) {
-                const matchName = cand.full_name.toLowerCase().includes(shortlistSearchTerm);
-                const matchId = cand.student_number.toLowerCase().includes(shortlistSearchTerm);
-                const matchEmail = cand.email.toLowerCase().includes(shortlistSearchTerm);
-                const matchProg = cand.program.toLowerCase().includes(shortlistSearchTerm);
+                const matchName = (cand.full_name || '').toLowerCase().includes(shortlistSearchTerm);
+                const matchId = (cand.student_number || '').toLowerCase().includes(shortlistSearchTerm);
+                const matchEmail = (cand.email || '').toLowerCase().includes(shortlistSearchTerm);
+                const matchProg = (cand.program || '').toLowerCase().includes(shortlistSearchTerm);
                 if (!matchName && !matchId && !matchEmail && !matchProg) return false;
             }
 
             return true;
         });
 
+        // Submission Date Ordering / Default Rank Sort
+        if (shortlistFilterDateOrder === 'asc') {
+            pool.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        } else if (shortlistFilterDateOrder === 'desc') {
+            pool.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        } else {
+            pool.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+        }
+
+        filteredShortlist = pool;
+
+        const countTextEl = document.getElementById('shortlist-toolbar-count-text');
+        if (countTextEl) {
+            countTextEl.innerText = `Showing ${filteredShortlist.length} of ${rankedShortlist.length} Ranked Candidates (${sourcePool.length} Evaluated Applicants)`;
+        }
+
         renderShortlistTable();
     }
 
     function renderShortlistTable() {
+        const hasCriteria = hasEducationalCriteria(activeScholarshipData);
+
         const thead = document.getElementById('applicants-table-thead');
         if (thead) {
             thead.innerHTML = `
@@ -2950,8 +3020,8 @@
                     <th style="width: 62px;">Rank</th>
                     <th>Candidate Name & ID</th>
                     <th>Program & Year</th>
-                    <th>Academic Merit (GWA)</th>
-                    <th>Qualification Score</th>
+                    <th>${hasCriteria ? 'Academic Merit (GWA)' : 'Date & Time Applied'}</th>
+                    <th>${hasCriteria ? 'Qualification Score' : 'Submission Order (FCFS)'}</th>
                     <th>Shortlist Status & Recommendation</th>
                     <th style="text-align: right;">Evaluation Actions</th>
                 </tr>
@@ -2961,19 +3031,13 @@
         const tbody = document.getElementById('applicants-tbody');
         if (!tbody) return;
 
-        const hasCriteria = hasEducationalCriteria(activeScholarshipData);
-
-        const totalPendingCount = (shortlistSummaryData && (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_pending))
-            ? (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_pending)
+        const totalEvaluatedCount = (shortlistSummaryData && (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_ranked || shortlistSummaryData.total_pending))
+            ? (shortlistSummaryData.total_evaluated || shortlistSummaryData.total_ranked || shortlistSummaryData.total_pending)
             : (allEvaluatedShortlist && allEvaluatedShortlist.length > 0 ? allEvaluatedShortlist.length : rankedShortlist.length);
 
         const countLabel = document.getElementById('table-count-label');
         if (countLabel) {
-            if (shortlistFilterTier === 'cutoff') {
-                countLabel.innerText = `Showing ${filteredShortlist.length} Applicants Below 75% Cutoff (Excluded from Shortlist)`;
-            } else {
-                countLabel.innerText = `Showing ${filteredShortlist.length} of ${rankedShortlist.length} Shortlisted Candidates (Top 75% of ${totalPendingCount} Pending Applicants)`;
-            }
+            countLabel.innerText = `Showing ${filteredShortlist.length} of ${rankedShortlist.length} Ranked Candidates (${totalEvaluatedCount} Evaluated Applicants)`;
         }
 
         const showingEntries = document.getElementById('showing-entries');
@@ -3051,20 +3115,16 @@
             // Tier Badge
             let tierClass = 'tier-qualified';
             let tierIcon = 'check-circle';
-            let tierTitle = 'Qualified Candidate';
+            let tierTitle = 'Qualified Runner-Up';
             if (cand.tier === 'slotted') {
                 tierClass = 'tier-slotted';
                 tierIcon = 'award';
                 tierTitle = 'Slotted Grantee';
-            } else if (cand.tier === 'cutoff' || !cand.is_shortlisted) {
-                tierClass = 'tier-cutoff';
-                tierIcon = 'scissors';
-                tierTitle = 'Below 75% Cutoff';
             } else if (cand.tier === 'conditional') {
                 tierClass = 'tier-conditional';
                 tierIcon = 'alert-triangle';
                 tierTitle = 'Conditional Review';
-            } else if (cand.tier === 'ineligible') {
+            } else if (cand.tier === 'ineligible' || !cand.is_strictly_eligible) {
                 tierClass = 'tier-ineligible';
                 tierIcon = 'x-circle';
                 tierTitle = 'Ineligible';
@@ -3106,21 +3166,31 @@
 
             actionButtonsHtml += `</div>`;
 
-            // Column 4: GWA HTML
-            const gwaColHtml = cand.gwa !== null && cand.gwa <= 5.0
-                ? `
-                    <div class="gwa-highlight-pill ${gwaHighlightClass}">
-                        <i data-lucide="graduation-cap" style="width: 13px; height: 13px;"></i>
-                        <span>${cand.gwa_display}</span>
-                    </div>
-                    ${honorTag}
-                `
+            // Column 4: GWA HTML (if criteria) or Applied Date (if FCFS)
+            const gwaColHtml = hasCriteria
+                ? (cand.gwa !== null && cand.gwa <= 5.0
+                    ? `
+                        <div class="gwa-highlight-pill ${gwaHighlightClass}">
+                            <i data-lucide="graduation-cap" style="width: 13px; height: 13px;"></i>
+                            <span>${cand.gwa_display}</span>
+                        </div>
+                        ${honorTag}
+                    `
+                    : `
+                        <div class="gwa-highlight-pill" style="background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.25);">
+                            <i data-lucide="clock" style="width: 13px; height: 13px;"></i>
+                            <span>Pending OCR</span>
+                        </div>
+                        <span style="font-size:10px; color:var(--text-muted); font-weight:600; display:block;">Awaiting Grade</span>
+                    `)
                 : `
-                    <div class="gwa-highlight-pill" style="background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.25);">
-                        <i data-lucide="${hasCriteria ? 'clock' : 'check'}" style="width: 13px; height: 13px;"></i>
-                        <span>${hasCriteria ? 'Pending OCR' : 'No Min GWA'}</span>
+                    <div style="font-size: 12.5px; font-weight: 600; color: var(--text-heading); display: flex; align-items: center; gap: 5px;">
+                        <i data-lucide="calendar" style="width: 13px; height: 13px; color: var(--moss-green);"></i>
+                        <span>${cand.applied_date_str || (cand.created_at ? new Date(cand.created_at).toLocaleDateString() : 'N/A')}</span>
                     </div>
-                    <span style="font-size:10px; color:var(--text-muted); font-weight:600; display:block;">${hasCriteria ? 'Awaiting Grade' : 'Open Program'}</span>
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px;">
+                        ${cand.applied_time_str || (cand.created_at ? new Date(cand.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}
+                    </span>
                 `;
 
             // Column 5: Score / FCFS HTML
@@ -3129,11 +3199,11 @@
                     <div class="score-cell-container">
                         <div class="score-cell-header">
                             <span class="score-badge-val" style="font-size: 12px; color: var(--moss-green); font-weight: 700;">Rank #${cand.rank} (FCFS)</span>
-                            <span class="score-rating-pill rating-excellent">100% Eligible</span>
+                            <span class="score-rating-pill rating-excellent">${cand.is_slotted ? 'Slot Allocated' : 'Queue #' + cand.rank}</span>
                         </div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
-                            <i data-lucide="clock" style="width: 11px; height: 11px;"></i>
-                            <span>Applied: ${cand.applied_date_str || (cand.created_at ? new Date(cand.created_at).toLocaleDateString() : '')} ${cand.applied_time_str || ''}</span>
+                            <i data-lucide="check-circle" style="width: 11px; height: 11px; color: var(--moss-green);"></i>
+                            <span>First-Come, First-Served</span>
                         </div>
                     </div>
                 `
@@ -3222,30 +3292,34 @@
 
         if (modalTier) {
             let tierClass = 'tier-qualified';
-            let tierLabel = 'Qualified Candidate';
+            let tierLabel = 'Qualified Runner-Up';
             if (cand.tier === 'slotted') {
                 tierClass = 'tier-slotted';
                 tierLabel = 'Slotted Grantee (Slot Secured)';
-            } else if (cand.tier === 'cutoff' || !cand.is_shortlisted) {
-                tierClass = 'tier-cutoff';
-                tierLabel = 'Below 75% Cutoff (Not Shortlisted)';
             } else if (cand.tier === 'conditional') {
                 tierClass = 'tier-conditional';
-                tierLabel = 'Conditional Candidate';
-            } else if (cand.tier === 'ineligible') {
+                tierLabel = 'Conditional Review';
+            } else if (cand.tier === 'ineligible' || !cand.is_strictly_eligible) {
                 tierClass = 'tier-ineligible';
                 tierLabel = 'Ineligible (Criteria Not Met)';
             }
             modalTier.className = `tier-badge ${tierClass}`;
-            modalTier.innerHTML = `<i data-lucide="${cand.tier === 'slotted' ? 'award' : (cand.tier === 'cutoff' ? 'scissors' : (cand.is_strictly_eligible ? 'check-circle' : 'x-circle'))}" style="width: 12px; height: 12px;"></i> ${tierLabel}`;
+            modalTier.innerHTML = `<i data-lucide="${cand.tier === 'slotted' ? 'award' : (cand.is_strictly_eligible ? 'check-circle' : 'x-circle')}" style="width: 12px; height: 12px;"></i> ${tierLabel}`;
         }
 
         if (modalRankText) {
             const totalPending = cand.total_pending || (allEvaluatedShortlist && allEvaluatedShortlist.length > 0 ? allEvaluatedShortlist.length : rankedShortlist.length);
-            const cutoffQuota = cand.shortlist_cutoff_rank || rankedShortlist.length;
-            modalRankText.innerText = cand.is_shortlisted
-                ? `Rank: #${cand.rank} of ${totalPending} Pending Applicants (Shortlisted • Top 75% Cutoff #${cutoffQuota})`
-                : `Rank: #${cand.rank} of ${totalPending} Pending Applicants (Below 75% Shortlist Cutoff #${cutoffQuota})`;
+            const availableSlots = activeScholarshipData.slots === 'Open' ? 'Open' : (parseInt(activeScholarshipData.slots, 10) || 0);
+            let slotInfo = '';
+            if (cand.tier === 'slotted') {
+                slotInfo = `Grantee Slot Allocated (${cand.rank} of ${availableSlots})`;
+            } else if (cand.is_strictly_eligible) {
+                const queuePos = (availableSlots !== 'Open' && cand.rank > availableSlots) ? (cand.rank - availableSlots) : cand.rank;
+                slotInfo = `Qualified Runner-Up (Queue Position #${queuePos})`;
+            } else {
+                slotInfo = 'Criteria Not Met';
+            }
+            modalRankText.innerText = `Rank: #${cand.rank} of ${totalPending} Evaluated Applicants • ${slotInfo}`;
         }
 
         const b = cand.breakdown;
@@ -3593,7 +3667,7 @@
         // Complete & Exact Headers
         const headers = [
             "Rank",
-            "Shortlist Cutoff Status",
+            "Ranking Model",
             "Shortlist Tier",
             "Slot Allocation",
             "Student ID",
@@ -3620,7 +3694,7 @@
             "Submission Timeliness Score (/5)",
             "Submission Timeliness Details",
             "Total Qualification Score (%)",
-            "Strict Eligibility (Passed All Cutoffs)",
+            "Strict Eligibility (Passed All Criteria)",
             "Committee Recommendation",
             "Evaluation Flags & Missing Requirements",
             "Disqualification Remarks",
@@ -3648,15 +3722,14 @@
             const appliedTime = cand.applied_time_str || (cand.created_at ? new Date(cand.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A');
             const createdTimestamp = cand.created_at || 'N/A';
 
-            let tierText = 'Qualified Candidate';
-            if (cand.tier === 'slotted') tierText = 'Top Slotted Grantee';
-            else if (cand.tier === 'cutoff' || !cand.is_shortlisted) tierText = 'Below 75% Cutoff';
+            let tierText = 'Qualified Runner-Up';
+            if (cand.tier === 'slotted') tierText = 'Slotted Grantee';
             else if (cand.tier === 'conditional') tierText = 'Conditional Review';
             else if (cand.tier === 'ineligible' || !cand.is_strictly_eligible) tierText = 'Ineligible';
 
-            const slotText = cand.is_slotted ? 'Reserved Grantee Slot' : 'Waitlisted / Priority Runner-Up';
-            const cutoffStatus = cand.is_shortlisted ? 'Shortlisted (Top 75%)' : 'Below 75% Cutoff';
-            const strictEligText = cand.is_strictly_eligible ? 'Yes (Meets All Cutoffs)' : 'No (Missed Required Cutoffs)';
+            const rankingModel = cand.has_educational_criteria !== false ? '100-Point Scoring Model' : 'First-Come, First-Served';
+            const slotText = cand.is_slotted ? 'Reserved Grantee Slot' : (cand.is_strictly_eligible ? `Qualified Runner-Up (Queue #${cand.rank})` : 'Ineligible');
+            const strictEligText = cand.is_strictly_eligible ? 'Yes (Meets All Criteria)' : 'No (Missed Required Criteria)';
 
             const flagsText = Array.isArray(cand.flags) && cand.flags.length > 0 ? cand.flags.join('; ') : 'None';
             const disqText = Array.isArray(cand.disqualifications) && cand.disqualifications.length > 0 ? cand.disqualifications.join('; ') : 'None';
@@ -3680,7 +3753,7 @@
 
             const rowData = [
                 cand.rank,
-                cutoffStatus,
+                rankingModel,
                 tierText,
                 slotText,
                 cand.student_number || 'N/A',
@@ -3764,12 +3837,14 @@
         const providerName = sch.department || sch.category || 'General Administration';
         const schoolName = currentAdminSchool?.name || 'Institution of Higher Education';
 
+        const hasCriteria = hasEducationalCriteria(sch);
         const summary = shortlistSummaryData || {
             total_evaluated: candidatesToExport.length,
+            total_ranked: candidatesToExport.length,
             qualified_candidates: candidatesToExport.filter(c => c.is_strictly_eligible).length,
             slotted_grantees: candidatesToExport.filter(c => c.tier === 'slotted').length,
-            average_shortlist_gwa: '1.25',
-            shortlist_cutoff_score: 85
+            runners_up: candidatesToExport.filter(c => c.tier === 'qualified' || (c.is_strictly_eligible && c.tier !== 'slotted')).length,
+            average_shortlist_gwa: '1.25'
         };
 
         // Header Styling
@@ -3806,27 +3881,29 @@
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(31, 61, 46);
-        doc.text(`Total Evaluated: ${summary.total_evaluated}`, 55, 134);
+        doc.text(`Total Evaluated: ${summary.total_evaluated || summary.total_ranked || candidatesToExport.length}`, 55, 134);
         doc.text(`Available Slots: ${sch.slots || 'Open'}`, 210, 134);
-        doc.text(`Qualified Candidates: ${summary.qualified_candidates}`, 350, 134);
-        doc.text(`Slotted Grantees: ${summary.slotted_grantees}`, 510, 134);
-        doc.text(`Cutoff Score: ${summary.shortlist_cutoff_score}%`, 670, 134);
+        doc.text(`Slotted Grantees: ${summary.slotted_grantees || 0}`, 350, 134);
+        doc.text(`Qualified Runners-Up: ${summary.runners_up !== undefined ? summary.runners_up : (summary.qualified_candidates || 0)}`, 490, 134);
+        doc.text(`Ranking Model: ${hasCriteria ? '100-Point Scoring' : 'FCFS Submission'}`, 645, 134);
 
         // Table Data
-        const tableColumn = ["Rank", "Student ID", "Candidate Full Name", "Degree Program & Year", "GWA", "Score (%)", "Shortlist Status", "Committee Recommendation"];
+        const tableColumn = ["Rank", "Student ID", "Candidate Full Name", "Degree Program & Year", hasCriteria ? "GWA" : "Applied Date", hasCriteria ? "Score (%)" : "Ordering", "Shortlist Status", "Committee Recommendation"];
         const tableRows = [];
 
         candidatesToExport.forEach(cand => {
             const progYear = `${cand.program}\n(${cand.year_level})`;
-            const tierText = cand.tier === 'slotted' ? 'Top Slotted' : (cand.is_strictly_eligible ? 'Qualified' : (cand.tier === 'conditional' ? 'Conditional' : 'Ineligible'));
+            const tierText = cand.tier === 'slotted' ? 'Slotted Grantee' : (cand.is_strictly_eligible ? 'Qualified' : (cand.tier === 'conditional' ? 'Conditional' : 'Ineligible'));
+            const col4 = hasCriteria ? cand.gwa_display : (cand.applied_date_str || (cand.created_at ? new Date(cand.created_at).toLocaleDateString() : 'N/A'));
+            const col5 = hasCriteria ? `${cand.total_score}%` : `Rank #${cand.rank}`;
 
             tableRows.push([
                 cand.rank === 1 ? '#1 (Gold)' : (cand.rank === 2 ? '#2 (Silver)' : (cand.rank === 3 ? '#3 (Bronze)' : `#${cand.rank}`)),
                 cand.student_number,
                 cand.full_name,
                 progYear,
-                cand.gwa_display,
-                `${cand.total_score}%`,
+                col4,
+                col5,
                 tierText,
                 cand.recommendation
             ]);

@@ -2979,6 +2979,38 @@ body.dark-theme .custom-ui-toast .toast-close-btn:hover {
     flex-shrink: 0;
 }
 
+/* Shortlist Summary & Coordinator Metric Toolbar */
+.shortlist-summary-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.shortlist-mode-pill {
+    font-weight: 700;
+    color: var(--moss-green);
+    background: rgba(107, 127, 78, 0.12);
+    border: 1px solid rgba(107, 127, 78, 0.28);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+[data-theme="dark"] .shortlist-mode-pill {
+    color: #a7cf87;
+    background: rgba(129, 155, 97, 0.2);
+    border-color: rgba(129, 155, 97, 0.38);
+}
+
 .shortlist-search-box,
 .shortlist-controls-row .search-box {
     display: inline-flex;

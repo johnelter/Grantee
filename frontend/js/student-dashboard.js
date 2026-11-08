@@ -255,6 +255,178 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // --- DOCUMENT PREVIEW & BLOB RESOLUTION UTILITIES ---
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    const docBlobCache = new Map();
+
+    async function resolveDocBlob(url) {
+        if (!url) throw new Error('Missing file URL');
+        if (docBlobCache.has(url)) {
+            return docBlobCache.get(url);
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`Failed to fetch file: ${res.status}`);
+        }
+
+        const arrayBuffer = await res.arrayBuffer();
+
+        // Detect MIME type via magic bytes
+        let mime = 'application/octet-stream';
+        if (arrayBuffer.byteLength >= 4) {
+            const bytes = new Uint8Array(arrayBuffer.slice(0, 4));
+            // %PDF (0x25, 0x50, 0x44, 0x46)
+            if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+                mime = 'application/pdf';
+            } else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+                mime = 'image/png';
+            } else if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+                mime = 'image/jpeg';
+            }
+        }
+
+        if (mime === 'application/octet-stream') {
+            const clean = url.split('?')[0].toLowerCase();
+            if (clean.endsWith('.pdf')) mime = 'application/pdf';
+            else if (clean.endsWith('.png')) mime = 'image/png';
+            else if (clean.endsWith('.jpg') || clean.endsWith('.jpeg') || clean.endsWith('.jfif')) mime = 'image/jpeg';
+            else if (clean.endsWith('.webp')) mime = 'image/webp';
+        }
+
+        const blob = new Blob([arrayBuffer], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        const item = { blobUrl, mime, size: arrayBuffer.byteLength };
+        docBlobCache.set(url, item);
+        return item;
+    }
+
+    window.viewDocumentFull = async (url, title, isPdfHint) => {
+        if (!url) return;
+        const cleanTitle = title || 'Document Preview';
+        const safeTitle = escapeHtml(cleanTitle);
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Loading Document...',
+                html: '<div style="padding: 24px;"><div class="doc-preview-loading"><i data-lucide="loader-2" class="spin-icon" style="width: 32px; height: 32px; color: var(--palette-moss-green);"></i><span style="margin-top: 10px; display:block; font-size:13.5px;">Loading high-resolution document...</span></div></div>',
+                showConfirmButton: false,
+                allowOutsideClick: true,
+                didOpen: () => { if (window.lucide) window.lucide.createIcons(); }
+            });
+        }
+
+        try {
+            const docBlob = await resolveDocBlob(url);
+            const isPdf = docBlob.mime === 'application/pdf' || isPdfHint;
+            const blobUrl = docBlob.blobUrl;
+            const downloadFilename = (cleanTitle.replace(/\s+/g, '_') || 'document') + (isPdf ? '.pdf' : '.jpg');
+
+            let viewerHTML = '';
+            if (isPdf) {
+                viewerHTML = `
+                    <div style="width: 100%; height: 78vh; position: relative; border-radius: 8px; overflow: hidden; background: #525659;">
+                        <object data="${blobUrl}#toolbar=1" type="application/pdf" style="width: 100%; height: 100%; border: none; display: block;">
+                            <iframe src="${blobUrl}#toolbar=1" style="width: 100%; height: 100%; border: none; display: block;">
+                                <div style="padding: 40px; text-align: center; color: white;">
+                                    <p>Your browser could not embed this PDF.</p>
+                                    <a href="${blobUrl}" target="_blank" class="btn-table-action" style="margin-top: 12px; display: inline-flex;">Open in New Tab</a>
+                                </div>
+                            </iframe>
+                        </object>
+                    </div>
+                `;
+            } else {
+                viewerHTML = `
+                    <div style="width: 100%; height: 78vh; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.03); border-radius: 8px; overflow: auto; padding: 12px;">
+                        <img src="${blobUrl}" alt="${safeTitle}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+                    </div>
+                `;
+            }
+
+            const headerActionsHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 10px 14px 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; color: var(--text-heading); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%;">
+                        <i data-lucide="${isPdf ? 'file-text' : 'image'}" style="color: var(--palette-moss-green); flex-shrink: 0;"></i>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeTitle}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <a href="${blobUrl}" target="_blank" rel="noopener noreferrer" class="btn-table-action" style="padding: 6px 12px; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Open in Tab
+                        </a>
+                        <button type="button" class="btn-table-action" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;" onclick="window.forceDownload('${url}', '${downloadFilename}')">
+                            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    html: headerActionsHTML + viewerHTML,
+                    customClass: {
+                        popup: 'swal-wide-doc-custom'
+                    },
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    didOpen: () => {
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                });
+            } else {
+                window.open(blobUrl, '_blank');
+            }
+        } catch (err) {
+            console.error('Error opening document full view:', err);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: safeTitle,
+                    text: 'Direct preview could not be generated. Opening file directly...',
+                    confirmButtonText: 'Open File',
+                    confirmButtonColor: '#1F3D2E'
+                }).then(() => {
+                    window.open(url, '_blank');
+                });
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+    };
+
+    window.forceDownload = async (url, filename) => {
+        if (!url) return;
+        try {
+            const docBlob = await resolveDocBlob(url);
+            const isPdf = docBlob.mime === 'application/pdf';
+            const dlName = filename || (isPdf ? 'document.pdf' : 'document.jpg');
+            const a = document.createElement('a');
+            a.href = docBlob.blobUrl;
+            a.download = dlName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (err) {
+            console.error('Download error:', err);
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.download = filename || 'document';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+    };
+
     // --- 3B. MODAL: APPLICATION DETAILS (Complete Information) ---
     window.openApplicationDetails = (appId) => {
         const app = applicationsData.find(a => a.id === appId);
@@ -410,29 +582,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 3. Document Uploads & AI Verification
+        let docs = [];
+        if (Array.isArray(app.documents)) {
+            docs = app.documents;
+        } else if (typeof app.documents === 'string') {
+            try {
+                const parsed = JSON.parse(app.documents);
+                docs = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+            } catch (e) {
+                docs = [];
+            }
+        } else if (app.documents && typeof app.documents === 'object') {
+            docs = [app.documents];
+        }
+
         let docsHTML = '';
-        if (app.documents && app.documents.length > 0) {
-            app.documents.forEach(doc => {
-                const fileUrl = doc.file_url || doc.url;
-                let previewContent = '';
-
-                const fullViewLink = fileUrl
-                    ? `<a href="${fileUrl}" target="_blank" class="modal-doc-link"><i data-lucide="external-link"></i> Full View</a>`
-                    : '';
-
-                if (fileUrl) {
-                    if (fileUrl.toLowerCase().split('?')[0].endsWith('.pdf')) {
-                        previewContent = `<iframe src="${fileUrl}#toolbar=0" style="width:100%; height:320px; border:none; display:block; border-radius: 8px;"></iframe>`;
-                    } else {
-                        previewContent = `<img src="${fileUrl}" style="width:100%; max-height:320px; object-fit:contain; display:block; margin: 0 auto; border-radius: 8px;">`;
-                    }
-                } else {
-                    previewContent = `
-                        <div style="padding:40px 20px; text-align:center; color: var(--text-muted);">
-                            <i data-lucide="file-x" style="width:32px; height:32px; margin: 0 auto 10px; display:block;"></i>
-                            <strong style="display:block;">File preview not available</strong>
-                        </div>`;
-                }
+        if (docs.length > 0) {
+            docs.forEach((doc, idx) => {
+                const fileUrl = doc.file_url || doc.url || doc.fileUrl || '';
+                const docName = doc.name || doc.file_name || `Document ${idx + 1}`;
+                const safeName = escapeHtml(docName);
+                const safeUrl = fileUrl.replace(/'/g, "\\'");
+                const isPdfGuess = fileUrl.toLowerCase().split('?')[0].endsWith('.pdf') || docName.toLowerCase().endsWith('.pdf');
 
                 let extractedDataHtml = '';
                 if (doc.extracted_data && Object.keys(doc.extracted_data).length > 0) {
@@ -464,7 +635,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     extractedDataHtml = `
-                        <div class="modal-ai-box" style="flex: 1; min-width: 260px; max-height: 320px; overflow-y: auto;">
+                        <div class="modal-ai-box" style="flex: 1; min-width: 280px; height: 460px; max-height: 460px; overflow-y: auto;">
                             <div class="modal-ai-box-title">
                                 <i data-lucide="sparkles"></i> AI Extracted Information
                             </div>
@@ -478,12 +649,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 docsHTML += `
                     <div class="modal-doc-card">
                         <div class="modal-doc-header">
-                            <div class="modal-doc-title"><i data-lucide="paperclip"></i> ${doc.name || 'Submitted Document'}</div>
-                            ${fullViewLink}
+                            <div class="modal-doc-title">
+                                <i data-lucide="${isPdfGuess ? 'file-text' : 'image'}" style="color: var(--palette-moss-green);"></i>
+                                <span>${safeName}</span>
+                                <span class="badge-status badge-approved" style="font-size: 11px; padding: 2px 8px; margin-left: 6px;">Attached</span>
+                            </div>
+                            ${fileUrl ? `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="btn-table-action" onclick="window.viewDocumentFull('${safeUrl}', '${safeName}', ${isPdfGuess})" style="padding: 5px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                                    <i data-lucide="maximize-2" style="width: 13px; height: 13px;"></i> Full View
+                                </button>
+                                <button type="button" class="btn-table-action" onclick="window.forceDownload('${safeUrl}', '${safeName}')" style="padding: 5px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                                    <i data-lucide="download" style="width: 13px; height: 13px;"></i> Download
+                                </button>
+                            </div>` : ''}
                         </div>
                         <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                            <div style="flex: 1; min-width: 260px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: var(--bg-card);">
-                                ${previewContent}
+                            <div style="flex: 1.2; min-width: 300px;">
+                                <div id="doc-preview-box-dash-${app.id}-${idx}" class="doc-preview-wrapper" style="width: 100%; min-height: 420px; height: 460px; display: flex; align-items: center; justify-content: center; background: var(--bg-card); position: relative;">
+                                    ${fileUrl ? `
+                                    <div class="doc-preview-loading">
+                                        <i data-lucide="loader-2" class="spin-icon" style="width: 28px; height: 28px; color: var(--palette-moss-green);"></i>
+                                        <span style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Loading document preview...</span>
+                                    </div>` : `
+                                    <div style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                                        <i data-lucide="file-x" style="width: 32px; height: 32px; margin: 0 auto 10px; display: block;"></i>
+                                        <strong style="display: block;">No document file available</strong>
+                                    </div>`}
+                                </div>
                             </div>
                             ${extractedDataHtml}
                         </div>
@@ -538,6 +731,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         if (window.lucide) { window.lucide.createIcons(); }
 
+        // Asynchronously resolve and render all document previews
+        if (docs.length > 0) {
+            docs.forEach(async (doc, idx) => {
+                const fileUrl = doc.file_url || doc.url || doc.fileUrl;
+                const container = document.getElementById(`doc-preview-box-dash-${app.id}-${idx}`);
+                if (!container || !fileUrl) return;
+
+                const isPdfGuess = fileUrl.toLowerCase().split('?')[0].endsWith('.pdf') || (doc.name && doc.name.toLowerCase().endsWith('.pdf'));
+                const docTitle = doc.name || 'Submitted Document';
+                const safeTitle = escapeHtml(docTitle);
+                const safeUrl = fileUrl.replace(/'/g, "\\'");
+
+                try {
+                    const docBlob = await resolveDocBlob(fileUrl);
+                    const isPdf = docBlob.mime === 'application/pdf' || isPdfGuess;
+
+                    if (isPdf) {
+                        container.innerHTML = `
+                            <object data="${docBlob.blobUrl}#toolbar=0" type="application/pdf" class="doc-viewer-frame">
+                                <iframe src="${docBlob.blobUrl}#toolbar=0" class="doc-viewer-frame">
+                                    <div style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                                        <i data-lucide="file-text" style="width: 36px; height: 36px; margin: 0 auto 10px; display: block; color: var(--palette-moss-green);"></i>
+                                        <p style="margin-bottom: 12px; font-size: 13.5px;">PDF document ready</p>
+                                        <button type="button" class="btn-table-action" onclick="window.viewDocumentFull('${safeUrl}', '${safeTitle}', true)">
+                                            <i data-lucide="eye"></i> View Full Document
+                                        </button>
+                                    </div>
+                                </iframe>
+                            </object>
+                        `;
+                    } else {
+                        container.innerHTML = `
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); cursor: pointer; padding: 8px;" onclick="window.viewDocumentFull('${safeUrl}', '${safeTitle}', false)" title="Click to view full size">
+                                <img src="${docBlob.blobUrl}" alt="${safeTitle}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; display: block; transition: transform 0.2s ease;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'" onerror="this.onerror=null; this.src='${fileUrl}';" />
+                            </div>
+                        `;
+                    }
+                    if (window.lucide) { window.lucide.createIcons(); }
+                } catch (err) {
+                    console.error('Error loading preview for document:', doc.name, err);
+                    container.innerHTML = `
+                        <div style="padding: 30px 20px; text-align: center; color: var(--text-muted);">
+                            <i data-lucide="${isPdfGuess ? 'file-text' : 'image'}" style="width: 36px; height: 36px; margin: 0 auto 10px; display: block; color: var(--palette-moss-green);"></i>
+                            <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-heading);">${safeTitle}</p>
+                            <p style="font-size: 12.5px; margin-bottom: 14px;">Preview could not be embedded automatically.</p>
+                            <div style="display: flex; gap: 8px; justify-content: center;">
+                                <button type="button" class="btn-table-action" onclick="window.viewDocumentFull('${safeUrl}', '${safeTitle}', ${isPdfGuess})">
+                                    <i data-lucide="maximize-2"></i> Full View
+                                </button>
+                                <button type="button" class="btn-table-action" onclick="window.forceDownload('${safeUrl}', '${safeTitle}')">
+                                    <i data-lucide="download"></i> Download
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    if (window.lucide) { window.lucide.createIcons(); }
+                }
+            });
+        }
+
         // Close on overlay backdrop click
         const modalEl = document.getElementById('app-details-modal');
         if (modalEl) {
@@ -565,15 +818,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return normalizeCategory(raw);
     };
 
-    const escapeHtml = (str) => {
-        if (!str || typeof str !== 'string') return str || '';
-        return str
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    };
+
 
     const calculateDynamicStatus = (sch) => {
         if (sch.status === 'Draft') return 'Draft';

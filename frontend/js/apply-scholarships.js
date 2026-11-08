@@ -999,12 +999,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function uploadFileToSupabase(file) {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split('.').pop().toLowerCase();
         const fileName = `${studentId}/${scholarshipId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        let mimeType = file.type;
+        if (!mimeType) {
+            if (fileExt === 'pdf') mimeType = 'application/pdf';
+            else if (fileExt === 'png') mimeType = 'image/png';
+            else if (['jpg', 'jpeg', 'jfif'].includes(fileExt)) mimeType = 'image/jpeg';
+            else if (fileExt === 'webp') mimeType = 'image/webp';
+            else mimeType = 'application/octet-stream';
+        }
 
         const { data, error } = await window.supabaseClient.storage
             .from('scholarship-docs')
-            .upload(fileName, file);
+            .upload(fileName, file, { contentType: mimeType, upsert: true });
 
         if (error) throw new Error("Storage permission denied. Ensure your Supabase RLS policy allows authenticated uploads.");
 

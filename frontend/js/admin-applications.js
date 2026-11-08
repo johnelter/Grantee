@@ -29,6 +29,8 @@
     let shortlistFilterProgram = 'all';
     let shortlistFilterYear = 'all';
     let shortlistFilterMinScore = 0;
+    let shortlistFilterDateOrder = 'default';
+    let shortlistFilterStatus = 'all';
     let shortlistSearchTerm = '';
     let shortlistSummaryData = null;
 
